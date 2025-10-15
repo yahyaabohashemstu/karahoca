@@ -2489,3 +2489,355 @@ body.light-mode .about-page .timeline-year {
     margin-right: 48px;
   }
 }
+
+/* ==========================================
+   MOBILE RESPONSIVE FIXES - COMPREHENSIVE
+   إصلاحات شاملة للموبايل
+   ========================================== */
+
+/* Small phones (< 480px) */
+@media (max-width: 480px) {
+  /* Container and spacing fixes */
+  .container {
+    padding: 0 1rem !important;
+    max-width: 100% !important;
+  }
+
+  /* Hero section fixes */
+  .hero {
+    padding: 6rem 0 3rem !important;
+    min-height: auto !important;
+  }
+
+  .hero-title,
+  .section-title {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+  }
+
+  .lead,
+  .section-subtitle {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Button fixes */
+  .hero__cta {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+
+  .btn {
+    width: 100% !important;
+    padding: 0.875rem 1.5rem !important;
+    font-size: 0.95rem !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* Badge fixes */
+  .hero__badges {
+    gap: 0.5rem !important;
+    justify-content: center !important;
+  }
+
+  .chip,
+  .glass-chip {
+    padding: 0.5rem 0.875rem !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Card grid fixes */
+  .cards,
+  .kpis,
+  .work__grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0 !important;
+  }
+
+  .glass-card,
+  .kpi {
+    padding: 1.25rem !important;
+    margin: 0 !important;
+  }
+
+  /* Text sizing */
+  .glass-card h3,
+  .kpi__num {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .glass-card p,
+  .kpi__label {
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Image fixes */
+  .hero__visual,
+  .card-3d,
+  .card-3d__inner {
+    width: 100% !important;
+    min-height: 250px !important;
+    max-height: 300px !important;
+  }
+
+  .card-3d__inner img {
+    object-fit: contain !important;
+  }
+
+  /* Section spacing */
+  .section {
+    padding: 2.5rem 0 !important;
+  }
+
+  .section__head {
+    margin-bottom: 1.5rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  /* Footer fixes */
+  .footer__grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+    text-align: center !important;
+  }
+
+  .footer__col {
+    padding: 0 1rem !important;
+  }
+
+  /* Number section fixes */
+  .kpi {
+    min-height: auto !important;
+  }
+
+  .kpi__num {
+    font-size: 2rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .kpi__label {
+    font-size: 0.875rem !important;
+  }
+
+  /* Header fixes */
+  .site-header {
+    margin: 0 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .brand__logo {
+    height: 28px !important;
+  }
+
+  .brand__name {
+    font-size: 1.1rem !important;
+  }
+
+  /* Theme toggle positioning */
+  .theme-toggle {
+    bottom: 1rem !important;
+    right: 1rem !important;
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* WhatsApp button positioning */
+  .whatsapp-button {
+    bottom: 1rem !important;
+    left: 1rem !important;
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* Product grid mobile fixes */
+  .products-grid,
+  .products-grid-compact {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .product-card,
+  .product-card-mini {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Timeline fixes */
+  .timeline-item {
+    flex-direction: column !important;
+  }
+
+  .timeline-year {
+    width: 100% !important;
+    padding: 1.5rem !important;
+    font-size: 2rem !important;
+  }
+
+  .timeline-content {
+    padding: 1.5rem 1rem !important;
+  }
+
+  /* Form fixes */
+  .newsletter__form {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .glass-input {
+    width: 100% !important;
+    font-size: 0.95rem !important;
+    padding: 0.875rem 1rem !important;
+  }
+
+  /* Split section fixes */
+  .split {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+
+  .split__visual {
+    order: -1 !important;
+    max-height: 250px !important;
+  }
+}
+
+/* Medium phones (481px - 600px) */
+@media (min-width: 481px) and (max-width: 600px) {
+  .hero-title {
+    font-size: 2rem !important;
+  }
+
+  .section-title {
+    font-size: 1.875rem !important;
+  }
+
+  .cards,
+  .work__grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Tablets (601px - 768px) */
+@media (min-width: 601px) and (max-width: 768px) {
+  .container {
+    padding: 0 1.5rem !important;
+  }
+
+  .hero-title {
+    font-size: 2.5rem !important;
+  }
+
+  .section-title {
+    font-size: 2rem !important;
+  }
+
+  .cards,
+  .work__grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .hero__cta {
+    flex-direction: row !important;
+  }
+
+  .btn {
+    width: auto !important;
+  }
+}
+
+/* Landscape phone orientation fix */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero {
+    padding: 3rem 0 2rem !important;
+  }
+
+  .hero-title {
+    font-size: 1.5rem !important;
+  }
+
+  .hero__visual {
+    display: none !important;
+  }
+
+  .section {
+    padding: 2rem 0 !important;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .btn,
+  .nav-link,
+  .hamburger {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Remove hover effects */
+  .glass-card:hover,
+  .btn:hover,
+  .chip:hover {
+    transform: none !important;
+  }
+
+  /* Better tap feedback */
+  .btn:active {
+    transform: scale(0.98) !important;
+    opacity: 0.9 !important;
+  }
+}
+
+/* Fix text overflow and wrapping */
+@media (max-width: 768px) {
+  * {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    word-break: break-word !important;
+    hyphens: auto !important;
+  }
+
+  /* Prevent horizontal scroll */
+  html,
+  body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  .container,
+  .section,
+  .hero,
+  .glass-panel {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Fix images breaking layout */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
