@@ -1,0 +1,538 @@
+/* ==========================================
+   MOBILE RESPONSIVE FIXES - PROFESSIONAL
+   إصلاحات احترافية شاملة للموبايل
+   ========================================== */
+
+/* Base mobile styles - applies to ALL mobile devices */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll */
+  html,
+  body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    position: relative !important;
+  }
+
+  /* Container fixes */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Typography fixes */
+  h1,
+  .hero-title {
+    font-size: clamp(1.75rem, 5vw, 2.5rem) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  h2,
+  .section-title {
+    font-size: clamp(1.5rem, 4vw, 2rem) !important;
+    line-height: 1.3 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+    line-height: 1.4 !important;
+  }
+
+  p,
+  .lead,
+  .section-subtitle {
+    font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Prevent text overflow */
+  h1, h2, h3, h4, h5, h6, p, span, div {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+}
+
+/* Small phones (< 480px) - Most critical fixes */
+@media (max-width: 480px) {
+  /* Hero Section */
+  .hero {
+    padding: 4rem 0 2rem !important;
+    min-height: auto !important;
+  }
+
+  .hero__grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+
+  .hero__copy {
+    text-align: center !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .hero-title {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+    padding: 0 !important;
+  }
+
+  .lead {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 1.5rem !important;
+    padding: 0 !important;
+  }
+
+  /* Button fixes */
+  .hero__cta {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  .btn {
+    width: 100% !important;
+    padding: 0.875rem 1.5rem !important;
+    font-size: 1rem !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+
+  /* Badge fixes */
+  .hero__badges {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    justify-content: center !important;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 1rem 0 0 0 !important;
+  }
+
+  .chip,
+  .glass-chip {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+  }
+
+  /* Visual section */
+  .hero__visual {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 1rem !important;
+  }
+
+  .card-3d,
+  .card-3d__inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+    max-height: 300px !important;
+  }
+
+  .card-3d__inner img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .hero-orb {
+    display: none !important;
+  }
+
+  /* Section spacing */
+  .section {
+    padding: 2rem 0 !important;
+  }
+
+  .section__head {
+    margin-bottom: 1.5rem !important;
+    padding: 0 0.5rem !important;
+    text-align: center !important;
+  }
+
+  .section-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Numbers/KPI section */
+  .kpis {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0 !important;
+  }
+
+  .kpi,
+  .main-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    margin: 0 !important;
+  }
+
+  .kpi__num {
+    font-size: 2rem !important;
+    line-height: 1 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .kpi__label {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Animation container fixes */
+  .animation-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .animation-container img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .info-panel {
+    padding: 1rem !important;
+  }
+
+  .info-title {
+    font-size: 1.75rem !important;
+  }
+
+  .info-subtitle {
+    font-size: 0.85rem !important;
+  }
+
+  /* Cards grid */
+  .cards,
+  .work__grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0 !important;
+  }
+
+  .glass-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    margin: 0 !important;
+  }
+
+  .glass-card h3 {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .glass-card p {
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Brands section */
+  .brand-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto 1rem !important;
+  }
+
+  /* Footer */
+  .footer__grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+    text-align: center !important;
+  }
+
+  .footer__col {
+    padding: 0 1rem !important;
+  }
+
+  .footer__col h4 {
+    font-size: 1.1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .footer__col p,
+  .footer__col a {
+    font-size: 0.9rem !important;
+  }
+
+  /* Header/Navigation */
+  .site-header {
+    margin: 0 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .nav {
+    padding: 0.5rem 0 !important;
+  }
+
+  .brand__logo {
+    height: 28px !important;
+    width: auto !important;
+  }
+
+  .brand__name {
+    font-size: 1rem !important;
+  }
+
+  /* Hamburger menu */
+  .hamburger {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Mobile menu */
+  .mobile-menu {
+    padding: 2rem 1rem !important;
+  }
+
+  .mobile-menu .nav-link {
+    padding: 1rem !important;
+    font-size: 1.1rem !important;
+  }
+
+  /* Fixed buttons */
+  .theme-toggle,
+  .whatsapp-button {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: 1rem !important;
+  }
+
+  .theme-toggle {
+    right: 1rem !important;
+  }
+
+  .whatsapp-button {
+    left: 1rem !important;
+  }
+
+  /* Timeline fixes */
+  .timeline-item {
+    flex-direction: column !important;
+    padding: 0 !important;
+  }
+
+  .timeline-year {
+    width: 100% !important;
+    padding: 1.5rem !important;
+    font-size: 2rem !important;
+    text-align: center !important;
+  }
+
+  .timeline-content {
+    width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    text-align: center !important;
+  }
+
+  /* Form fixes */
+  .newsletter__form {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .glass-input {
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* Product cards */
+  .products-grid,
+  .products-grid-compact {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .product-card,
+  .product-card-mini {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Split layouts */
+  .split {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  .split__visual {
+    order: -1 !important;
+    max-height: 250px !important;
+  }
+
+  /* About page */
+  .about-page-header {
+    min-height: 50vh !important;
+    padding: 3rem 1rem !important;
+  }
+
+  .page-title {
+    font-size: 2rem !important;
+  }
+
+  .page-subtitle {
+    font-size: 1rem !important;
+    padding: 0 1rem !important;
+  }
+}
+
+/* Medium phones (481px - 600px) */
+@media (min-width: 481px) and (max-width: 600px) {
+  .hero-title {
+    font-size: 2rem !important;
+  }
+
+  .section-title {
+    font-size: 1.75rem !important;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .cards,
+  .work__grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Tablets (601px - 768px) */
+@media (min-width: 601px) and (max-width: 768px) {
+  .container {
+    padding: 0 1.5rem !important;
+  }
+
+  .hero {
+    padding: 5rem 0 3rem !important;
+  }
+
+  .hero-title {
+    font-size: 2.5rem !important;
+  }
+
+  .section-title {
+    font-size: 2rem !important;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .cards,
+  .work__grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .hero__cta {
+    flex-direction: row !important;
+    justify-content: center !important;
+  }
+
+  .btn {
+    width: auto !important;
+    min-width: 150px !important;
+  }
+}
+
+/* Landscape orientation fixes */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero {
+    padding: 2rem 0 1.5rem !important;
+    min-height: auto !important;
+  }
+
+  .hero__visual {
+    display: none !important;
+  }
+
+  .hero-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .lead {
+    font-size: 0.875rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .section {
+    padding: 1.5rem 0 !important;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .btn,
+  .nav-link,
+  .hamburger,
+  a {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Better tap feedback */
+  .btn:active,
+  .glass-card:active,
+  .chip:active {
+    transform: scale(0.98) !important;
+    opacity: 0.9 !important;
+  }
+
+  /* Remove hover effects on touch devices */
+  .glass-card:hover,
+  .btn:hover,
+  .chip:hover {
+    transform: none !important;
+  }
+}
+
+/* Prevent layout shifts */
+@media (max-width: 768px) {
+  * {
+    box-sizing: border-box !important;
+  }
+
+  img,
+  video,
+  iframe {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Ensure all containers don't overflow */
+  .hero,
+  .section,
+  .container,
+  .glass-panel,
+  .glass-card,
+  .main-container {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
