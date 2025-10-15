@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 288 180.83">
+  <defs>
+    <style>
+      .st0 {
+        stroke-width: 1.86px;
+      }
+      .st0, .st1 {
+        fill: none;
+        stroke: #ff5b2e;
+        stroke-miterlimit: 10;
+      }
+      .st2 {
+        fill: #ff5b2e;
+      }
+      .st3 {
+        fill: #0a2a5e;
+      }
+      .st1 {
+        stroke-linecap: round;
+        stroke-width: 1.86px;
+      }
+    </style>
+  </defs>
+
+  <path class="st3" d="M255.2,177.45H32.79c-18.08,0-32.79-14.71-32.79-32.79s14.71-32.79,32.79-32.79h222.41c11.11,0,21.37,5.55,27.45,14.86,6.08,9.3,7.04,20.93,2.57,31.11h0c-5.23,11.91-17.01,19.61-30.02,19.61ZM32.79,113.74c-17.05,0-30.92,13.87-30.92,30.92s13.87,30.92,30.92,30.92h222.41c12.27,0,23.38-7.26,28.31-18.49h0c4.21-9.6,3.31-20.56-2.42-29.34s-15.41-14.01-25.89-14.01H32.79Z"/>
+
+  <g>
+    <!-- النجمة 1 -->
+    <polygon class="st2" opacity="0" points="51.52 160.78 41.08 155.52 30.6 160.69 32.37 149.14 24.22 140.76 35.75 138.88 41.2 128.54 46.55 138.93 58.07 140.91 49.84 149.21 51.52 160.78">
+      <!-- reset at start of each cycle, then play drop -->
+      <set attributeName="opacity" to="0" begin="2s;lastDrop.end+5s" fill="freeze"/>
+      <set attributeName="transform" to="translate(0,-30)" begin="2s;lastDrop.end+5s" fill="freeze"/>
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2s;lastDrop.end+5s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate"
+        values="0,-30;0,5;0,-3;0,0" keyTimes="0;0.7;0.85;1" dur="0.7s"
+        begin="2s;lastDrop.end+5s" fill="freeze"/>
+    </polygon>
+
+    <!-- النجمة 2 -->
+    <polygon class="st2" opacity="0" points="102.94 160.78 92.51 155.52 82.02 160.69 83.8 149.14 75.64 140.76 87.18 138.88 92.62 128.54 97.97 138.93 109.5 140.91 101.27 149.21 102.94 160.78">
+      <set attributeName="opacity" to="0" begin="2.5s;lastDrop.end+5.5s" fill="freeze"/>
+      <set attributeName="transform" to="translate(0,-30)" begin="2.5s;lastDrop.end+5.5s" fill="freeze"/>
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.5s;lastDrop.end+5.5s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate"
+        values="0,-30;0,5;0,-3;0,0" keyTimes="0;0.7;0.85;1" dur="0.7s"
+        begin="2.5s;lastDrop.end+5.5s" fill="freeze"/>
+    </polygon>
+
+    <!-- النجمة 3 -->
+    <polygon class="st2" opacity="0" points="154.37 160.78 143.93 155.52 133.45 160.69 135.22 149.14 127.07 140.76 138.6 138.88 144.05 128.54 149.4 138.93 160.92 140.91 152.69 149.21 154.37 160.78">
+      <set attributeName="opacity" to="0" begin="3s;lastDrop.end+6s" fill="freeze"/>
+      <set attributeName="transform" to="translate(0,-30)" begin="3s;lastDrop.end+6s" fill="freeze"/>
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3s;lastDrop.end+6s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate"
+        values="0,-30;0,5;0,-3;0,0" keyTimes="0;0.7;0.85;1" dur="0.7s"
+        begin="3s;lastDrop.end+6s" fill="freeze"/>
+    </polygon>
+
+    <!-- النجمة 4 -->
+    <polygon class="st2" opacity="0" points="205.8 160.78 195.36 155.52 184.87 160.69 186.64 149.14 178.49 140.76 190.03 138.88 195.47 128.54 200.82 138.93 212.35 140.91 204.12 149.21 205.8 160.78">
+      <set attributeName="opacity" to="0" begin="3.5s;lastDrop.end+6.5s" fill="freeze"/>
+      <set attributeName="transform" to="translate(0,-30)" begin="3.5s;lastDrop.end+6.5s" fill="freeze"/>
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.5s;lastDrop.end+6.5s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate"
+        values="0,-30;0,5;0,-3;0,0" keyTimes="0;0.7;0.85;1" dur="0.7s"
+        begin="3.5s;lastDrop.end+6.5s" fill="freeze"/>
+    </polygon>
+
+    <!-- النجمة 5 (آخر نجمة) -->
+    <polygon class="st2" opacity="0" points="257.22 160.78 246.78 155.52 236.3 160.69 238.07 149.14 229.92 140.76 241.45 138.88 246.9 128.54 252.25 138.93 263.77 140.91 255.55 149.21 257.22 160.78">
+      <set attributeName="opacity" to="0" begin="4s;lastDrop.end+7s" fill="freeze"/>
+      <set attributeName="transform" to="translate(0,-30)" begin="4s;lastDrop.end+7s" fill="freeze"/>
+      <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="4s;lastDrop.end+7s" fill="freeze"/>
+      <!-- this animateTransform has the id used to trigger the next cycle -->
+      <animateTransform id="lastDrop" attributeName="transform" type="translate"
+        values="0,-30;0,5;0,-3;0,0" keyTimes="0;0.7;0.85;1" dur="0.7s"
+        begin="4s;lastDrop.end+7s" fill="freeze"/>
+    </polygon>
+  </g>
+
+  <circle class="st0" cx="143.99" cy="49.9" r="46.51"/>
+  <circle class="st3" cx="128.25" cy="37.73" r="6.16"/>
+  <circle class="st3" cx="160.52" cy="37.73" r="6.16"/>
+  <path class="st1" d="M166.68,63.31c-3.74,8.84-12.49,15.04-22.69,15.04s-19.09-6.3-22.78-15.25"/>
+
+</svg>

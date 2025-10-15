@@ -1,0 +1,333 @@
+ @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
+
+     @keyframes smokeRise {
+         0% {
+             bottom: -50px;
+             opacity: 0;
+             transform: scale(0.5) rotate(0deg);
+         }
+
+         50% {
+             opacity: 0.6;
+             transform: scale(1.2) rotate(180deg);
+         }
+
+         100% {
+             bottom: 100%;
+             opacity: 0;
+             transform: scale(2) rotate(360deg);
+         }
+     }
+     @keyframes waveExpand {
+         0% {
+             width: 50px;
+             height: 50px;
+             top: 90%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             opacity: 0.8;
+         }
+
+         100% {
+             width: 800px;
+             height: 800px;
+             top: 50%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             opacity: 0;
+         }
+     }
+
+     @keyframes spotlightMove {
+         0% {
+             top: 400px;
+             left: 50%;
+             transform: translateX(-50%) scale(2);
+             opacity: 0.6;
+         }
+
+         20% {
+             top: 320px;
+             left: 50%;
+             transform: translateX(-50%) scale(1.8);
+             opacity: 1;
+         }
+
+         40% {
+             top: 240px;
+             left: 50%;
+             transform: translateX(-50%) scale(1.6);
+             opacity: 1;
+         }
+
+         60% {
+             top: 160px;
+             left: 50%;
+             transform: translateX(-50%) scale(1.4);
+             opacity: 1;
+         }
+
+         80% {
+             top: 80px;
+             left: 50%;
+             transform: translateX(-50%) scale(1.2);
+             opacity: 1;
+         }
+
+         100% {
+             top: 0px;
+             left: 50%;
+             transform: translateX(-50%) scale(0.8);
+             opacity: 0.3;
+         }
+     }
+
+     @keyframes floatSVG {
+         0%, 100% {
+             transform: translateY(0px);
+         }
+         50% {
+             transform: translateY(-20px);
+         }
+     }
+
+     .floating-svg {
+         animation: floatSVG 3s ease-in-out infinite;
+     }
+
+     /* إزالة الخلفية البيضاء من object SVG */
+     object[type="image/svg+xml"] {
+         background: transparent !important;
+         mix-blend-mode: normal;
+     }
+
+     @keyframes cameraSequence {
+
+         /* البداية: الكاميرا في الأسفل */
+         0% {
+             transform: scale(1.5) translateY(400px);
+             opacity: 0.4;
+             filter: blur(3px);
+         }
+
+         /* مرور على الصف السفلي */
+         20% {
+             transform: scale(1.8) translateY(300px);
+             opacity: 1;
+             filter: blur(0px);
+         }
+
+         /* مرور على الصف الثاني */
+         40% {
+             transform: scale(1.6) translateY(100px);
+             opacity: 1;
+             filter: blur(0px);
+         }
+
+         /* مرور على الصف الثالث */
+         60% {
+             transform: scale(1.4) translateY(-100px);
+             opacity: 1;
+             filter: blur(0px);
+         }
+
+         /* مرور على الصف العلوي */
+         80% {
+             transform: scale(1.2) translateY(-300px);
+             opacity: 1;
+             filter: blur(0px);
+         }
+
+         /* النهاية: الخروج من الأعلى */
+         100% {
+             transform: scale(0.8) translateY(-500px);
+             opacity: 0.3;
+             filter: blur(4px);
+         }
+     }
+
+ .main-container {
+     position: relative;
+     z-index: 1;
+
+
+     .animation-container {
+         width: 260px;
+         height: 320px;
+         position: relative;
+         border-radius: 30px;
+         background: rgba(255, 255, 255, 0.08);
+         backdrop-filter: blur(20px);
+         border: 1px solid rgba(255, 255, 255, 0.15);
+         overflow: hidden;
+         box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+     }
+
+     .employees-svg {
+         width: 110%;
+         height: 110%;
+         object-fit: contain;
+         position: relative;
+         z-index: 2;
+         margin: -5%;
+     }
+
+     /* أنيميشن حركة الكاميرا من الأسفل للأعلى */
+     .camera-sequence {
+         animation: cameraSequence 12s ease-in-out infinite;
+     }
+
+
+     /* تأثير الضوء الذي يتبع الكاميرا */
+     .spotlight {
+         position: absolute;
+         width: 300px;
+         height: 300px;
+         background: radial-gradient(circle, rgba(255, 91, 46, 0.3) 0%, transparent 70%);
+         border-radius: 50%;
+         pointer-events: none;
+         z-index: 1;
+         animation: spotlightMove 12s ease-in-out infinite;
+     }
+
+     /* تأثير الموجات */
+     .wave-effect {
+         position: absolute;
+         width: 100%;
+         height: 100%;
+         pointer-events: none;
+         z-index: 0;
+     }
+
+     .wave {
+         position: absolute;
+         border: 2px solid rgba(255, 91, 46, 0.3);
+         border-radius: 50%;
+         animation: waveExpand 12s ease-in-out infinite;
+     }
+
+     .wave:nth-child(1) {
+         animation-delay: 0s;
+     }
+
+     .wave:nth-child(2) {
+         animation-delay: 3s;
+     }
+
+     .wave:nth-child(3) {
+         animation-delay: 6s;
+     }
+
+     .wave:nth-child(4) {
+         animation-delay: 9s;
+     }
+
+
+     .info-panel {
+         position: absolute;
+         bottom: 30px;
+         left: 50%;
+         transform: translateX(-50%);
+         background: rgba(255, 255, 255, 0.1);
+         backdrop-filter: blur(15px);
+         border: 1px solid rgba(255, 255, 255, 0.2);
+         border-radius: 10px;
+         padding: 2.5px 3px;
+         color: white;
+         text-align: center;
+         z-index: 10;
+         width: 80%;
+         max-width: 700px;
+     }
+
+     .info-title {
+         font-size: 18px;
+         font-weight: 800;
+         background: linear-gradient(135deg, #FF5B2E, #FF7A50);
+         -webkit-background-clip: text;
+         background-clip: text;
+         color: transparent;
+         margin-bottom: 0px;
+     }
+
+     .info-subtitle {
+         font-size: 15px;
+         opacity: 0.9;
+         color: #E8ECF2;
+     }
+
+
+     /* استجابة للشاشات الصغيرة */
+     @media (max-width: 768px) {
+         .animation-container {
+             width: 90vw;
+             height: 90vw;
+             max-width: 500px;
+             max-height: 500px;
+         }
+
+
+         .info-panel {
+             bottom: 15px;
+             padding: 20px 60px;
+             width: 85%;
+             max-width: 400px;
+         }
+
+         .info-title {
+             font-size: 24px;
+         }
+     }
+
+     /* تأثير الدخان */
+     .smoke-effect {
+         position: absolute;
+         width: 100%;
+         height: 100%;
+         pointer-events: none;
+         z-index: 0;
+     }
+
+     .smoke {
+         position: absolute;
+         width: 20px;
+         height: 20px;
+         background: rgba(255, 255, 255, 0.1);
+         border-radius: 50%;
+         animation: smokeRise 8s ease-out infinite;
+     }
+
+     .smoke:nth-child(1) {
+         left: 20%;
+         animation-delay: 0s;
+     }
+
+     .smoke:nth-child(2) {
+         left: 40%;
+         animation-delay: 2s;
+     }
+
+     .smoke:nth-child(3) {
+         left: 60%;
+         animation-delay: 4s;
+     }
+
+     .smoke:nth-child(4) {
+         left: 80%;
+         animation-delay: 6s;
+     }
+
+ }
+
+ /* Light Mode Styles */
+ body.light-mode .info-subtitle {
+     color: #153d7a;
+     opacity: 0.9;
+ }
+
+ body.light-mode .info-panel {
+     background: rgba(200, 210, 225, 0.85);
+     backdrop-filter: blur(15px);
+     border: 0px solid rgba(21, 61, 122, 0.3);
+     color: #15181b;
+ }

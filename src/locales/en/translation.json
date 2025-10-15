@@ -1,0 +1,701 @@
+{
+  "translation": {
+    "home": {
+      "seo": {
+        "title": "KARAHOCA - World-Class Cleaning Products",
+        "description": "KARAHOCA is the leading manufacturer of cleaning products in Turkey. Two brands: DIOX & AYLUX. 30+ years of experience, 200+ employees, 15+ countries.",
+        "keywords": "karahoca, detergents, turkey, DIOX, AYLUX, laundry powder, general cleaner, liquid soap, world quality"
+      }
+    },
+    "materials": {
+      "plasticBottle": "Plastic Bottle",
+      "plasticBag": "Plastic Bag",
+      "cardboardBox": "Cardboard Box",
+      "pieces": "piece",
+      "pieces_plural": "pieces"
+    },
+    "nav": {
+      "home": "Home",
+      "brands": "Our Brands",
+      "brandsLong": "Our Brands",
+      "diox": "DIOX",
+      "aylux": "AYLUX",
+      "about": "About Us",
+      "production": "Production",
+      "goal": "Our Goals",
+      "dryer": "Dryers",
+      "contact": "Contact"
+    },
+    "hero": {
+      "title": "Setting a New Standard for Cleanliness Globally",
+      "subtitle": "Innovative cleaning solutions with superior performance and design worthy of an international brand.",
+      "cta": {
+        "products": "Explore Brands",
+        "about": "Request Quote"
+      },
+      "badges": {
+        "quality": "ISO 9001",
+        "experience": "Eco Aware",
+        "countries": "Made in TR",
+        "satisfaction": "Customer Satisfaction"
+      }
+    },
+    "brands": {
+      "title": "Our Brands",
+      "subtitle": "Different worlds, one quality.",
+      "diox": {
+        "title": "DIOX",
+        "description": "Concentrated cleaning power for homes and facilities.",
+        "link": "Learn More"
+      },
+      "aylux": {
+        "title": "AYLUX",
+        "description": "Elegance of purity and effortless daily routine.",
+        "link": "Learn More"
+      }
+    },
+    "numbers": {
+      "title": "Our Numbers",
+      "subtitle": "Sustainable growth and global impact",
+      "countries": "Distribution Countries",
+      "experience": "Experience",
+      "satisfaction": "Customer Satisfaction",
+      "employees": "employees",
+      "employeesLabel": "KARAHOCA Creative Team",
+      "years": "years"
+    },
+    "about": {
+      "title": "About Us",
+      "shortDescription": "A leading company in the detergent sector for over 30 years. We deliver high-quality cleaning products under the AYLUX and DIOX brands to more than 15 countries worldwide, committed to quality, innovation, and sustainability.",
+      "learnMoreButton": "Learn More About Us",
+      "imageAlt": "KARAHOCA Production Facilities",
+      "subtitle": "Moving Forward with Confidence",
+      "history": {
+        "title": "Company History and Development",
+        "description": "Our company was founded 30 years ago on the principles of quality and reliability in the chemical sector, and has gained a strong position by providing high-quality chemical solutions to our customers. In 2014, in response to increasing demand, we moved to the detergent sector and began our journey in developing cleaning products. Today, we are proud to be a trusted brand in domestic and international markets"
+      },
+      "milestones": {
+        "title": "Milestones and Achievements",
+        "description": "Through our innovative approach and investments in cutting-edge technologies, we have made a difference in the industry. In 2019, we expanded our modern production facilities to improve product quality to the highest level and streamlined our operations. Thanks to the work of our dedicated team, we continue our mission to develop effective and sustainable cleaning products successfully"
+      },
+      "vision": {
+        "title": "Global Vision and Commitment to Quality",
+        "description": "The cleaning products we produce under the AYLUX and DIOX brands are exported to more than 15 countries and are preferred by consumers worldwide. By always prioritizing customer satisfaction, we continue to set new standards in the industry. According to our principles of quality, innovation and sustainability, we firmly pursue our goal of leading the cleaning products sector"
+      },
+      "distributorLink": "Find a Distribution Partner"
+    },
+    "aboutPage": {
+      "seo": {
+        "title": "About Us - 30 Years Success Story | KARAHOCA",
+        "description": "Discover KARAHOCA's journey from 1995 to today. 30+ years experience, 15+ distribution countries, 4 main industries, 2 global brands: DIOX & AYLUX. Our values: Quality, Innovation, Sustainability.",
+        "keywords": "about KARAHOCA, company history since 1995, global vision, core values, AYLUX, DIOX, milestones achievements, 30 years experience, 15 countries distribution, Turkish detergent company, cleaning products manufacturer"
+      },
+      "hero": {
+        "title": "About Us",
+        "description": "A leading company in the detergent industry for over 30 years, delivering innovative and high-quality solutions to global markets",
+        "imageAlt": "KARAHOCA Production Facilities"
+      },
+      "history": {
+        "title": "Our History and Evolution",
+        "paragraph1": "Our company was founded 30 years ago on the principles of quality and reliability in the chemical sector. From the beginning, we focused on delivering high-quality chemical solutions to our customers, which helped us build a strong reputation in the market. Through commitment to excellence and continuous innovation, we became a trusted partner for many companies and institutions.",
+        "paragraph2": "In 2014, a major turning point occurred in our journey. In response to growing market demand, we decided to expand into the detergent sector. We began a new journey in developing and producing cleaning products under our two brands, AYLUX and DIOX. Today, we are proud to be a trusted brand in more than 15 countries around the world."
+      },
+      "milestones": {
+        "title": "Our Milestones and Achievements",
+        "year1": {
+          "year": "1995",
+          "title": "Foundation",
+          "description": "The beginning of our journey in the chemical sector with a focus on quality and reliability"
+        },
+        "year2": {
+          "year": "2014",
+          "title": "Detergent Expansion",
+          "description": "Launch of AYLUX and DIOX brands in the cleaning products market"
+        },
+        "year3": {
+          "year": "2019",
+          "title": "Development and Modernization",
+          "description": "Expansion of production facilities and implementation of latest technologies to ensure highest quality standards"
+        }
+      },
+      "vision": {
+        "title": "Our Global Vision",
+        "description": "We aspire to be the first choice in the detergent sector globally. Our products are exported to more than 15 countries and are preferred by consumers worldwide. We continue to set new standards in the industry through commitment to customer satisfaction, superior quality, continuous innovation, and environmental responsibility.",
+        "countries": "Distribution Countries",
+        "experience": "Years of Experience",
+        "brands": "Brands",
+        "industries": "Main Industries",
+        "imageAlt": "KARAHOCA Global Vision"
+      },
+      "values": {
+        "title": "Our Core Values",
+        "quality": {
+          "title": "Quality",
+          "description": "We are committed to the highest quality standards in every product we make, from raw material selection to final delivery"
+        },
+        "innovation": {
+          "title": "Innovation",
+          "description": "We continuously invest in research and development to deliver innovative and effective cleaning solutions that meet our customers' needs"
+        },
+        "sustainability": {
+          "title": "Sustainability",
+          "description": "We believe in our responsibility towards the environment and work on developing eco-friendly and sustainable products"
+        }
+      },
+      "cta": {
+        "title": "Want to Be Our Partner?",
+        "description": "Join our global network of partners and be part of KARAHOCA's success story",
+        "button": "Contact Us"
+      }
+    },
+    "work": {
+      "title": "Our Work",
+      "production": {
+        "title": "Production",
+        "subtitle": "Quality-Focused Production",
+        "link": "Learn More",
+        "aria": "Production",
+        "alt": "Production"
+      },
+      "dryer": {
+        "title": "Dryer",
+        "subtitle": "High Capacity Technology",
+        "link": "Learn More",
+        "aria": "Dryer",
+        "alt": "Dryer"
+      },
+      "goal": {
+        "title": "Our Goal",
+        "subtitle": "Our Roadmap to Excellence",
+        "link": "Learn More",
+        "aria": "Our Goal",
+        "alt": "Our Goal"
+      }
+    },
+    "footer": {
+      "description": "Leading the detergent industry with innovative solutions, reliable performance, and global quality.",
+      "newsletter": {
+        "title": "Newsletter",
+        "placeholder": "Your email",
+        "subscribe": "Subscribe",
+        "submitting": "Submitting...",
+        "success": "Successfully subscribed! 🎉",
+        "error": {
+          "required": "Please enter your email",
+          "invalid": "Please enter a valid email",
+          "failed": "An error occurred. Please try again"
+        }
+      },
+      "links": {
+        "title": "Links",
+        "home": "Home",
+        "brands": "Our Brands",
+        "about": "About Us",
+        "numbers": "Numbers"
+      },
+      "contact": {
+        "title": "Contact",
+        "address": "Turkey, Istanbul",
+        "phone": "+90 850 228 35 34",
+        "email": "info@karahoca.com"
+      },
+      "copyright": "© {{year}} KARAHOCA. All rights reserved."
+    },
+    "whatsapp": {
+      "title": "Contact us via WhatsApp",
+      "message": "Hello! I would like to inquire about KARAHOCA products"
+    },
+    "brandPage": {
+      "exploreProducts": "Explore Products",
+      "requestQuote": "Request a Quote",
+      "scrollDown": "Scroll Down",
+      "productsAlt": "Products",
+      "viewImage": "View Image",
+      "viewImageAria": "View image of",
+      "weight": "Weight",
+      "material": "Material",
+      "count": "Count per Box",
+      "notSpecified": "Not Specified"
+    },
+    "products": {
+      "categories": {
+        "home": "Home Cleaning",
+        "laundry": "Laundry Cleaning",
+        "personal": "Personal Hygiene"
+      },
+      "viewImage": "View Image",
+      "details": {
+        "weight": "Weight",
+        "material": "Material",
+        "count": "Count",
+        "noDetails": "No additional details available"
+      }
+    },
+    "diox": {
+      "brandNameArabic": "Diox",
+      "seo": {
+        "title": "DIOX - Professional Cleaning Products | KARAHOCA",
+        "description": "DIOX brand from KARAHOCA - professional cleaning products with superior power. Laundry detergents, all-purpose cleaners, liquid soap, and stain removers.",
+        "keywords": "DIOX, Diox, cleaning products, laundry detergent, all-purpose cleaner, stain remover, liquid soap, KARAHOCA"
+      },
+      "hero": {
+        "title": "Professional Cleaning Power",
+        "description": "Professional cleaning products with superior strength and proven effectiveness",
+        "imageAlt": "DIOX Professional Cleaning Products",
+        "badge1": "Professional Power",
+        "badge2": "Proven Effectiveness",
+        "badge3": "Advanced Formula"
+      },
+      "about": {
+        "title": "About DIOX",
+        "subtitle": "Power and Effectiveness in Every Product",
+        "mainHeading": "Excellence in Professional Cleaning",
+        "section1": {
+          "title": "Exceptional Power"
+        },
+        "content": "DIOX brand represents a comprehensive range of professional cleaning products that meet all home and facility needs with the highest standards of quality and effectiveness"
+      },
+      "productsSection": {
+        "title": "Complete DIOX Product Range",
+        "subtitle": "All the cleaning solutions you need in one place"
+      },
+      "categories": {
+        "homeCleaning": "Home Cleaning",
+        "laundryCleaning": "Laundry Cleaning",
+        "personalHygiene": "Personal Hygiene"
+      },
+      "products": {
+        "home": {
+          "generalCleaner": {
+            "name": "DIOX General Cleaner",
+            "description": "Multi-purpose cleaner for all surfaces",
+            "alt": "DIOX General Multi-Purpose Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "superGel": {
+            "name": "DIOX Super Gel",
+            "description": "Powerful gel for deep cleaning",
+            "alt": "DIOX Super Gel Powerful Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "floorFragrance": {
+            "name": "DIOX Floor Fragrance",
+            "description": "Floor fragrance with refreshing scent",
+            "alt": "DIOX Floor Fragrance with Refreshing Scent",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "floorFragrance2": {
+            "name": "DIOX Floor Fragrance",
+            "description": "Floor fragrance with special formula",
+            "alt": "DIOX Floor Fragrance with Special Formula",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "glassCleaner": {
+            "name": "DIOX Glass Cleaner",
+            "description": "Cleans glass and mirrors without streaks",
+            "alt": "DIOX Glass Cleaner for Mirrors and Windows",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "chlorine": {
+            "name": "DIOX Chlorine (Bleach)",
+            "description": "Powerful bleach for disinfection and cleaning",
+            "alt": "DIOX Chlorine Bleach for Disinfection",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "ovenCleaner": {
+            "name": "DIOX Oven Cleaner",
+            "description": "Easily removes burnt grease",
+            "alt": "DIOX Oven Cleaner for Burnt Grease",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "flash": {
+            "name": "DIOX Flash Cleaner",
+            "description": "Fast and effective cleaning",
+            "alt": "DIOX Flash Fast Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "bathroomCleaner": {
+            "name": "DIOX Bathroom Cleaner",
+            "description": "Cleans and disinfects the bathroom deeply",
+            "alt": "DIOX Bathroom Disinfecting Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishGel": {
+            "name": "DIOX Dish Washing Gel",
+            "description": "Concentrated gel for dishwashing",
+            "alt": "DIOX Concentrated Dish Washing Gel",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishLiquid1": {
+            "name": "DIOX Dish Washing Liquid",
+            "description": "Effective liquid for removing grease",
+            "alt": "DIOX Dish Washing Liquid for Grease Removal",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishLiquid2": {
+            "name": "DIOX Dish Washing Liquid",
+            "description": "Gentle liquid on hands",
+            "alt": "DIOX Gentle Dish Washing Liquid",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          }
+        },
+        "laundry": {
+          "autoPowder1": {
+            "name": "DIOX Automatic Laundry Powder",
+            "description": "High-efficiency powder for automatic washing machines",
+            "alt": "DIOX High-Efficiency Automatic Laundry Powder",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          },
+          "autoPowder2": {
+            "name": "DIOX Automatic Laundry Powder",
+            "description": "Special formula for automatic washing machines",
+            "alt": "DIOX Automatic Laundry Powder Special Formula",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          },
+          "liquidDetergent": {
+            "name": "DIOX Liquid Laundry Detergent",
+            "description": "Concentrated liquid detergent for all fabrics",
+            "alt": "DIOX Concentrated Liquid Laundry Detergent",
+            "material": "Plastic container",
+            "count": "4 pieces"
+          },
+          "fabricSoftener": {
+            "name": "DIOX Fabric Softener",
+            "description": "Makes clothes soft and fragrant",
+            "alt": "DIOX Fabric Softener for Soft Clothes",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "stainRemover": {
+            "name": "DIOX Stain Remover",
+            "description": "Effectively removes the toughest stains",
+            "alt": "DIOX Effective Stain Remover",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "regularPowder": {
+            "name": "DIOX Regular Laundry Powder",
+            "description": "Powder for hand and regular washing",
+            "alt": "DIOX Regular Laundry Powder for Hand Washing",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          }
+        },
+        "personal": {
+          "liquidSoap": {
+            "name": "DIOX Liquid Soap",
+            "description": "Gentle liquid soap for hands",
+            "alt": "DIOX Gentle Liquid Soap for Hands",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          }
+        }
+      }
+    },
+    "aylux": {
+      "brandNameArabic": "Aylux",
+      "seo": {
+        "title": "AYLUX - Premium Care Products | KARAHOCA",
+        "description": "AYLUX brand from KARAHOCA - premium care products with elegant sophistication. Gel cleaners, liquid cleaners, liquid soap, and fragrances.",
+        "keywords": "AYLUX, Aylux, care products, gel cleaner, glass cleaner, air freshener, premium liquid soap, KARAHOCA"
+      },
+      "hero": {
+        "title": "Luxury Elegance in Care",
+        "description": "Premium care products with elegant sophistication and proven effectiveness for all home and personal care needs",
+        "imageAlt": "AYLUX Premium Care Products",
+        "badge1": "Luxury Elegance",
+        "badge2": "Proven Quality",
+        "badge3": "Refined Formula"
+      },
+      "about": {
+        "title": "About AYLUX",
+        "subtitle": "Elegance and Sophistication in Every Product",
+        "mainHeading": "Excellence in Premium Care",
+        "section1": {
+          "title": "Exceptional Elegance"
+        },
+        "content": "AYLUX brand represents a comprehensive range of premium care products that meet all home and personal care needs with the highest standards of quality and elegance"
+      },
+      "productsSection": {
+        "title": "Complete AYLUX Product Range",
+        "subtitle": "Integrated solutions for home and personal care"
+      },
+      "categories": {
+        "homeCleaning": "Home Cleaning",
+        "laundryCleaning": "Laundry Cleaning",
+        "personalHygiene": "Personal Hygiene"
+      },
+      "products": {
+        "home": {
+          "generalCleaner": {
+            "name": "AYLUX General Cleaner",
+            "description": "Multi-purpose general cleaner",
+            "alt": "AYLUX Multi-Purpose General Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "airFreshener": {
+            "name": "AYLUX Air Freshener",
+            "description": "Air freshener with refreshing scent",
+            "alt": "AYLUX Air Freshener with Refreshing Scent",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "superGel": {
+            "name": "AYLUX Super Gel",
+            "description": "Extra powerful cleaning gel",
+            "alt": "AYLUX Extra Powerful Super Gel",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "floorFragrance": {
+            "name": "AYLUX Floor Fragrance",
+            "description": "Floor fragrance with premium scent",
+            "alt": "AYLUX Floor Fragrance with Premium Scent",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "glassCleaner": {
+            "name": "AYLUX Glass Cleaner",
+            "description": "Cleans glass with perfect shine",
+            "alt": "AYLUX Glass Cleaner with Perfect Shine",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "chlorine": {
+            "name": "AYLUX Chlorine (Bleach)",
+            "description": "Powerful bleach for disinfection",
+            "alt": "AYLUX Chlorine Bleach for Disinfection",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "ovenCleaner": {
+            "name": "AYLUX Oven Cleaner",
+            "description": "Easily removes burnt grease",
+            "alt": "AYLUX Oven Cleaner for Burnt Grease",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "flash": {
+            "name": "AYLUX Flash Cleaner",
+            "description": "Fast and effective cleaning",
+            "alt": "AYLUX Flash Fast Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "bathroomCleaner": {
+            "name": "AYLUX Bathroom Cleaner",
+            "description": "Cleans and disinfects bathroom deeply",
+            "alt": "AYLUX Bathroom Disinfecting Cleaner",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishGel": {
+            "name": "AYLUX Dish Washing Gel",
+            "description": "Concentrated gel for dishwashing",
+            "alt": "AYLUX Concentrated Dish Washing Gel",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishLiquid1": {
+            "name": "AYLUX Dish Washing Liquid",
+            "description": "Effective liquid for grease removal",
+            "alt": "AYLUX Dish Washing Liquid for Grease Removal",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "dishLiquid2": {
+            "name": "AYLUX Dish Washing Liquid",
+            "description": "Gentle liquid on hands",
+            "alt": "AYLUX Gentle Dish Washing Liquid",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          }
+        },
+        "laundry": {
+          "autoPowder1": {
+            "name": "AYLUX Automatic Laundry Powder",
+            "description": "High-efficiency powder for automatic washing machines",
+            "alt": "AYLUX High-Efficiency Automatic Laundry Powder",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          },
+          "autoPowder2": {
+            "name": "AYLUX Automatic Laundry Powder",
+            "description": "Special formula for automatic washing machines",
+            "alt": "AYLUX Automatic Laundry Powder Special Formula",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          },
+          "liquidDetergent": {
+            "name": "AYLUX Liquid Laundry Detergent",
+            "description": "Concentrated liquid detergent for all fabrics",
+            "alt": "AYLUX Concentrated Liquid Laundry Detergent",
+            "material": "Plastic container",
+            "count": "4 pieces"
+          },
+          "fabricSoftener": {
+            "name": "AYLUX Fabric Softener",
+            "description": "Makes clothes soft and fragrant",
+            "alt": "AYLUX Fabric Softener for Soft Clothes",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "stainRemover": {
+            "name": "AYLUX Stain Remover",
+            "description": "Effectively removes the toughest stains",
+            "alt": "AYLUX Effective Stain Remover",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "regularPowder": {
+            "name": "AYLUX Regular Laundry Powder",
+            "description": "Powder for hand and regular washing",
+            "alt": "AYLUX Regular Laundry Powder for Hand Washing",
+            "material": "Plastic bag",
+            "count": "4 pieces"
+          }
+        },
+        "personal": {
+          "liquidSoap1": {
+            "name": "AYLUX Liquid Soap",
+            "description": "Gentle liquid soap for hands",
+            "alt": "AYLUX Gentle Liquid Soap for Hands",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          },
+          "liquidSoap2": {
+            "name": "AYLUX Liquid Soap",
+            "description": "Premium liquid soap with refreshing scent",
+            "alt": "AYLUX Premium Liquid Soap with Refreshing Scent",
+            "material": "Plastic container",
+            "count": "12 pieces"
+          }
+        }
+      }
+    },
+    "production": {
+      "seo": {
+        "title": "Production Process | KARAHOCA",
+        "description": "Discover KARAHOCA's advanced production process from raw materials to packaging with strict quality control",
+        "keywords": "detergent production, manufacturing process, quality control, ISO standards, production safety"
+      },
+      "heroTitle": "Our Production Process",
+      "heroDescription": "Our production process combines state-of-the-art technology at every stage with rigorous quality control. From sourcing the finest raw materials to formulation and packaging, we ensure that each product meets the highest standards of performance and safety. Our team is committed to creating effective and sustainable detergent solutions that meet diverse customer needs.",
+      "heroImageAlt": "Production Lines",
+      "sections": {
+        "process": {
+          "title": "Process Stages",
+          "subtitle": "From raw materials to packaging — a unified path to quality.",
+          "cards": {
+            "sourcing": {
+              "title": "Sourcing & Selection",
+              "description": "Selecting reliable suppliers and internal inspection of raw materials."
+            },
+            "mixing": {
+              "title": "Mixing & Formulation",
+              "description": "Precise recipes and automated control systems to ensure consistency."
+            },
+            "packaging": {
+              "title": "Filling & Labeling",
+              "description": "Efficient packaging lines with weight checks and sealing."
+            }
+          }
+        },
+        "safety": {
+          "title": "Safety & Certification",
+          "content1": "Strict adherence to occupational health and safety standards.",
+          "content2": "Periodic verification and industry-relevant ISO standards.",
+          "content3": "Complete batch tracking and quality record for each product.",
+          "imageAlt": "Production Line"
+        }
+      }
+    },
+    "dryer": {
+      "seo": {
+        "title": "Our Dryer | KARAHOCA",
+        "description": "Discover KARAHOCA's advanced dryer technology - high-capacity production with raw material manufacturing capability",
+        "keywords": "detergent dryer, raw material production, manufacturing technology, industrial production, concentrated detergents"
+      },
+      "heroTitle": "Our Dryer",
+      "heroDescription": "The dryer is designed not only to produce high-quality detergents but also has the capability to manufacture raw materials directly within the system. This integrated approach enhances efficiency and ensures consistent quality. Our high-capacity facility provides the ability to meet large orders while also offering flexibility in customizing formulations to meet specific market needs.",
+      "heroImageAlt": "KARAHOCA Goal",
+      "sections": {
+        "pillars": {
+          "title": "Key Advantages",
+          "subtitle": "Efficiency, flexibility, and rapid response to large orders.",
+          "cards": {
+            "capacity": {
+              "title": "High Production Capacity",
+              "description": "Production line capable of meeting massive orders quickly."
+            },
+            "integration": {
+              "title": "Process Integration",
+              "description": "Ability to produce raw materials within the system to reduce waste."
+            },
+            "consistency": {
+              "title": "Quality Consistency",
+              "description": "Precise testing for each batch to ensure consistent results."
+            }
+          }
+        },
+        "goals": {
+          "title": "Usage Applications",
+          "content1": "Liquid and concentrated detergents.",
+          "content2": "Pre-wash and post-wash treatments.",
+          "content3": "Industrial products with custom specifications.",
+          "imageAlt": "Goals Map"
+        }
+      }
+    },
+    "goal": {
+      "seo": {
+        "title": "Our Goal | KARAHOCA",
+        "description": "Learn about our goals and roadmap for continuous growth and innovation in the detergent sector",
+        "keywords": "KARAHOCA goals, company objectives, innovation, expansion, quality, environmental responsibility"
+      },
+      "heroTitle": "Our Goal",
+      "heroDescription": "Our company is committed to continuous growth and innovation in the detergent sector. Our future goals include expanding our production capacity, developing environmentally friendly and sustainable product lines, and integrating advanced technologies to enhance efficiency and quality. We aim to build a global presence, establish strong partnerships, and be leaders in innovation. While exceeding customer expectations, we will continue to promote environmental responsibility.",
+      "heroImageAlt": "KARAHOCA Goal",
+      "sections": {
+        "pillars": {
+          "title": "Our Work Pillars",
+          "subtitle": "A practical roadmap to achieve our vision.",
+          "innovation": {
+            "title": "Continuous Innovation",
+            "description": "Research and development to deliver effective formulas with less environmental impact."
+          },
+          "expansion": {
+            "title": "Expansion and Capacity",
+            "description": "Increasing production capacity and distribution partnerships in new markets."
+          },
+          "quality": {
+            "title": "Uncompromising Quality",
+            "description": "Strict manufacturing standards and comprehensive performance testing in every batch."
+          }
+        },
+        "goals": {
+          "title": "Goals 2025–2027",
+          "content1": "Reduce water and energy consumption by 20%.",
+          "content2": "Launch 12 eco-friendly products.",
+          "content3": "Reach 60+ countries through certified distribution partners.",
+          "imageAlt": "Goals Map"
+        }
+      }
+    }
+  }
+}

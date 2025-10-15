@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow admin or private pages
+Disallow: /admin/
+Disallow: /private/
+
+# Sitemap
+Sitemap: https://karahoca.com/sitemap.xml

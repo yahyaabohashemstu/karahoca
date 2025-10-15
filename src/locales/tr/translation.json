@@ -1,0 +1,701 @@
+{
+  "translation": {
+    "home": {
+      "seo": {
+        "title": "KARAHOCA - Dünya Standardında Temizlik Ürünleri",
+        "description": "KARAHOCA, Türkiye'nin önde gelen temizlik ürünleri üreticisidir. İki marka: DIOX ve AYLUX. 30+ yıl deneyim, 200+ çalışan, 15+ ülke.",
+        "keywords": "karahoca, deterjan, türkiye, DIOX, AYLUX, çamaşır tozu, genel temizleyici, sıvı sabun, dünya kalitesi"
+      }
+    },
+    "materials": {
+      "plasticBottle": "Plastik Şişe",
+      "plasticBag": "Plastik Torba",
+      "cardboardBox": "Karton Kutu",
+      "pieces": "adet",
+      "pieces_plural": "adet"
+    },
+    "nav": {
+      "home": "Ana Sayfa",
+      "brands": "Markalarımız",
+      "brandsLong": "Markalarımız",
+      "diox": "DIOX",
+      "aylux": "AYLUX",
+      "about": "Hakkımızda",
+      "production": "Üretim",
+      "goal": "Hedeflerimiz",
+      "dryer": "Kurutucular",
+      "contact": "İletişim"
+    },
+    "hero": {
+      "title": "Dünya Çapında Temizlikte Yeni Bir Standart Oluşturuyoruz",
+      "subtitle": "Uluslararası bir markaya yakışan üstün performans ve tasarımla yenilikçi temizlik çözümleri.",
+      "cta": {
+        "products": "Markaları Keşfet",
+        "about": "Teklif İste"
+      },
+      "badges": {
+        "quality": "ISO 9001",
+        "experience": "Eco Aware",
+        "countries": "Made in TR",
+        "satisfaction": "Müşteri Memnuniyeti"
+      }
+    },
+    "brands": {
+      "title": "Markalarımız",
+      "subtitle": "Farklı dünyalar, tek kalite.",
+      "diox": {
+        "title": "DIOX",
+        "description": "Evler ve tesisler için yoğun temizlik gücü.",
+        "link": "Daha Fazla Bilgi"
+      },
+      "aylux": {
+        "title": "AYLUX",
+        "description": "Saflığın zarafeti ve zahmetsiz günlük rutin.",
+        "link": "Daha Fazla Bilgi"
+      }
+    },
+    "numbers": {
+      "title": "Rakamlarımız",
+      "subtitle": "Sürdürülebilir büyüme ve küresel etki",
+      "countries": "Dağıtım Ülkesi",
+      "experience": "Deneyim",
+      "satisfaction": "Müşteri Memnuniyeti",
+      "employees": "çalışan",
+      "employeesLabel": "KARAHOCA Yaratıcı Ekibi",
+      "years": "yıl"
+    },
+    "about": {
+      "title": "Hakkımızda",
+      "shortDescription": "30 yılı aşkın süredir deterjan sektöründe lider bir şirket. AYLUX ve DIOX markaları altında dünya çapında 15'ten fazla ülkeye yüksek kaliteli temizlik ürünleri sunuyoruz, kalite, yenilikçilik ve sürdürülebilirlik taahhüdümüzle.",
+      "learnMoreButton": "Hakkımızda Daha Fazla Bilgi",
+      "imageAlt": "KARAHOCA Üretim Tesisleri",
+      "subtitle": "Güvenle Geleceğe İlerliyoruz",
+      "history": {
+        "title": "Şirket Tarihi ve Gelişimi",
+        "description": "Şirketimiz 30 yıl önce kimya sektöründe kalite ve güvenilirlik ilkeleri üzerine kuruldu ve müşterilerimize yüksek kaliteli kimyasal çözümler sunarak güçlü bir konum elde etti. 2014 yılında, artan talebe yanıt olarak deterjan sektörüne geçtik ve temizlik ürünleri geliştirme yolculuğumuza başladık. Bugün, ulusal ve uluslararası pazarlarda güvenilir bir marka olmaktan gurur duyuyoruz"
+      },
+      "milestones": {
+        "title": "Dönüm Noktaları ve Başarılar",
+        "description": "Yenilikçi yaklaşımımız ve son teknoloji yatırımlarımız sayesinde sektörde fark yarattık. 2019 yılında, ürün kalitesini en üst düzeye çıkarmak için modern üretim tesislerimizi genişlettik ve operasyonlarımızı düzenledik. Özveriyle çalışan ekibimizin çalışması sayesinde, etkili ve sürdürülebilir temizlik ürünleri geliştirme misyonumuzu başarıyla sürdürüyoruz"
+      },
+      "vision": {
+        "title": "Küresel Vizyon ve Kalite Taahhüdü",
+        "description": "AYLUX ve DIOX markaları altında ürettiğimiz temizlik ürünleri 15'ten fazla ülkeye ihraç ediliyor ve dünya çapında tüketiciler tarafından tercih ediliyor. Müşteri memnuniyetini her zaman önceliklendirerek, sektörde yeni standartlar belirlemeye devam ediyoruz. Kalite, yenilikçilik ve sürdürülebilirlik ilkelerimize göre, temizlik ürünleri sektörüne liderlik etme hedefimizi kararlılıkla sürdürüyoruz"
+      },
+      "distributorLink": "Distribütörlük Ortağı Bulun"
+    },
+    "aboutPage": {
+      "seo": {
+        "title": "Hakkımızda - 30 Yıllık Başarı Hikayesi | KARAHOCA",
+        "description": "1995'ten bugüne KARAHOCA'nın yolculuğunu keşfedin. 30+ yıl deneyim, 15+ dağıtım ülkesi, 4 ana endüstri, 2 küresel marka: DIOX ve AYLUX. Değerlerimiz: Kalite, İnovasyon, Sürdürülebilirlik.",
+        "keywords": "KARAHOCA hakkında, 1995'ten beri şirket tarihi, küresel vizyon, temel değerler, AYLUX, DIOX, kilometre taşları başarılar, 30 yıl deneyim, 15 ülke dağıtım, Türk deterjan şirketi, temizlik ürünleri üreticisi"
+      },
+      "hero": {
+        "title": "Hakkımızda",
+        "description": "30 yılı aşkın süredir deterjan sektöründe lider, küresel pazarlara yenilikçi ve yüksek kaliteli çözümler sunan bir şirket",
+        "imageAlt": "KARAHOCA Üretim Tesisleri"
+      },
+      "history": {
+        "title": "Tarihimiz ve Gelişimimiz",
+        "paragraph1": "Şirketimiz 30 yıl önce kimya sektöründe kalite ve güvenilirlik ilkeleri üzerine kuruldu. Başlangıçtan itibaren müşterilerimize yüksek kaliteli kimyasal çözümler sunmaya odaklandık, bu da pazarda güçlü bir itibar oluşturmamıza yardımcı oldu. Mükemmellik ve sürekli yenilik taahhüdümüz sayesinde birçok şirket ve kurum için güvenilir bir ortak olduk.",
+        "paragraph2": "2014 yılında yolculuğumuzda önemli bir dönüm noktası yaşandı. Artan pazar talebine yanıt olarak deterjan sektörüne genişlemeye karar verdik. İki markamız AYLUX ve DIOX altında temizlik ürünleri geliştirme ve üretme konusunda yeni bir yolculuğa başladık. Bugün, dünya çapında 15'ten fazla ülkede güvenilir bir marka olmaktan gurur duyuyoruz."
+      },
+      "milestones": {
+        "title": "Dönüm Noktalarımız ve Başarılarımız",
+        "year1": {
+          "year": "1995",
+          "title": "Kuruluş",
+          "description": "Kimya sektöründe kalite ve güvenilirliğe odaklanarak yolculuğumuzun başlangıcı"
+        },
+        "year2": {
+          "year": "2014",
+          "title": "Deterjan Genişlemesi",
+          "description": "Temizlik ürünleri pazarında AYLUX ve DIOX markalarının lansmanı"
+        },
+        "year3": {
+          "year": "2019",
+          "title": "Geliştirme ve Modernizasyon",
+          "description": "En yüksek kalite standartlarını sağlamak için üretim tesislerinin genişletilmesi ve en son teknolojilerin uygulanması"
+        }
+      },
+      "vision": {
+        "title": "Küresel Vizyonumuz",
+        "description": "Küresel olarak deterjan sektöründe ilk tercih olmayı hedefliyoruz. Ürünlerimiz 15'ten fazla ülkeye ihraç ediliyor ve dünya çapında tüketiciler tarafından tercih ediliyor. Müşteri memnuniyeti, üstün kalite, sürekli yenilik ve çevresel sorumluluk taahhüdümüz aracılığıyla sektörde yeni standartlar belirlemeye devam ediyoruz.",
+        "countries": "Dağıtım Ülkeleri",
+        "experience": "Yıl Deneyim",
+        "brands": "Marka",
+        "industries": "Ana Endüstriler",
+        "imageAlt": "KARAHOCA Küresel Vizyonu"
+      },
+      "values": {
+        "title": "Temel Değerlerimiz",
+        "quality": {
+          "title": "Kalite",
+          "description": "Ürettiğimiz her üründe, hammadde seçiminden nihai teslimata kadar en yüksek kalite standartlarına bağlıyız"
+        },
+        "innovation": {
+          "title": "Yenilikçilik",
+          "description": "Müşterilerimizin ihtiyaçlarını karşılayan yenilikçi ve etkili temizlik çözümleri sunmak için araştırma ve geliştirmeye sürekli yatırım yapıyoruz"
+        },
+        "sustainability": {
+          "title": "Sürdürülebilirlik",
+          "description": "Çevreye karşı sorumluluğumuza inanıyor ve çevre dostu ve sürdürülebilir ürünler geliştirmek için çalışıyoruz"
+        }
+      },
+      "cta": {
+        "title": "Ortağımız Olmak İster misiniz?",
+        "description": "Küresel ortaklarımız ağına katılın ve KARAHOCA'nın başarı hikayesinin bir parçası olun",
+        "button": "Bizimle İletişime Geçin"
+      }
+    },
+    "work": {
+      "title": "Çalışmalarımız",
+      "production": {
+        "title": "Üretim",
+        "subtitle": "Kalite Odaklı Üretim",
+        "link": "Daha Fazla Bilgi",
+        "aria": "Üretim",
+        "alt": "Üretim"
+      },
+      "dryer": {
+        "title": "Kurutucu",
+        "subtitle": "Yüksek Kapasite Teknolojisi",
+        "link": "Daha Fazla Bilgi",
+        "aria": "Kurutucu",
+        "alt": "Kurutucu"
+      },
+      "goal": {
+        "title": "Hedefimiz",
+        "subtitle": "Mükemmelliğe Giden Yol Haritamız",
+        "link": "Daha Fazla Bilgi",
+        "aria": "Hedefimiz",
+        "alt": "Hedefimiz"
+      }
+    },
+    "footer": {
+      "description": "Yenilikçi çözümler, güvenilir performans ve küresel kaliteyle deterjan sektörüne öncülük ediyoruz.",
+      "newsletter": {
+        "title": "Haber Bülteni",
+        "placeholder": "E-posta adresiniz",
+        "subscribe": "Abone Ol",
+        "submitting": "Gönderiliyor...",
+        "success": "Başarıyla abone oldunuz! 🎉",
+        "error": {
+          "required": "Lütfen e-posta adresinizi girin",
+          "invalid": "Lütfen geçerli bir e-posta adresi girin",
+          "failed": "Bir hata oluştu. Lütfen tekrar deneyin"
+        }
+      },
+      "links": {
+        "title": "Bağlantılar",
+        "home": "Ana Sayfa",
+        "brands": "Markalarımız",
+        "about": "Hakkımızda",
+        "numbers": "Rakamlar"
+      },
+      "contact": {
+        "title": "İletişim",
+        "address": "Türkiye, İstanbul",
+        "phone": "+90 850 228 35 34",
+        "email": "info@karahoca.com"
+      },
+      "copyright": "© {{year}} KARAHOCA. Tüm hakları saklıdır."
+    },
+    "whatsapp": {
+      "title": "WhatsApp ile iletişime geçin",
+      "message": "Merhaba! KARAHOCA ürünleri hakkında bilgi almak istiyorum"
+    },
+    "brandPage": {
+      "exploreProducts": "Ürünleri Keşfedin",
+      "requestQuote": "Teklif İsteyin",
+      "scrollDown": "Aşağı Kaydır",
+      "productsAlt": "Ürünler",
+      "viewImage": "Resmi Görüntüle",
+      "viewImageAria": "Resmini görüntüle",
+      "weight": "Ağırlık",
+      "material": "Hammadde",
+      "count": "Kutu Başına Adet",
+      "notSpecified": "Belirtilmemiş"
+    },
+    "products": {
+      "categories": {
+        "home": "Ev Temizliği",
+        "laundry": "Çamaşır Temizliği",
+        "personal": "Kişisel Hijyen"
+      },
+      "viewImage": "Resmi Görüntüle",
+      "details": {
+        "weight": "Ağırlık",
+        "material": "Malzeme",
+        "count": "Adet",
+        "noDetails": "Ek detay mevcut değil"
+      }
+    },
+    "diox": {
+      "brandNameArabic": "Diox",
+      "seo": {
+        "title": "DIOX - Profesyonel Temizlik Ürünleri | KARAHOCA",
+        "description": "KARAHOCA'dan DIOX markası - üstün güçle profesyonel temizlik ürünleri. Çamaşır deterjanları, genel temizleyiciler, sıvı sabun ve leke çıkarıcılar.",
+        "keywords": "DIOX, Diox, temizlik ürünleri, çamaşır deterjanı, genel temizleyici, leke çıkarıcı, sıvı sabun, KARAHOCA"
+      },
+      "hero": {
+        "title": "Temizlikte Profesyonel Güç",
+        "description": "Üstün güç ve kanıtlanmış etkililikle profesyonel temizlik ürünleri",
+        "imageAlt": "DIOX Profesyonel Temizlik Ürünleri",
+        "badge1": "Profesyonel Güç",
+        "badge2": "Kanıtlanmış Etkinlik",
+        "badge3": "İleri Formül"
+      },
+      "about": {
+        "title": "DIOX Hakkında",
+        "subtitle": "Her Üründe Güç ve Etkinlik",
+        "mainHeading": "Profesyonel Temizlikte Mükemmellik",
+        "section1": {
+          "title": "İstisna Güç"
+        },
+        "content": "DIOX markası, ev ve tesis ihtiyaçlarını en yüksek kalite ve etkinlik standartlarıyla karşılayan kapsamlı bir profesyonel temizlik ürünleri yelpazesini temsil eder"
+      },
+      "productsSection": {
+        "title": "Tam DIOX Ürün Yelpazesi",
+        "subtitle": "İhtiyacınız olan tüm temizlik çözümleri tek yerde"
+      },
+      "categories": {
+        "homeCleaning": "Ev Temizliği",
+        "laundryCleaning": "Çamaşır Temizliği",
+        "personalHygiene": "Kişisel Hijyen"
+      },
+      "products": {
+        "home": {
+          "generalCleaner": {
+            "name": "DIOX Genel Temizleyici",
+            "description": "Tüm yüzeyler için çok amaçlı temizleyici",
+            "alt": "DIOX Genel Çok Amaçlı Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "superGel": {
+            "name": "DIOX Süper Jel",
+            "description": "Derin temizlik için güçlü jel",
+            "alt": "DIOX Süper Jel Güçlü Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "floorFragrance": {
+            "name": "DIOX Zemin Kokusu",
+            "description": "Ferahlatıcı kokulu zemin kokusu",
+            "alt": "DIOX Ferahlatıcı Kokulu Zemin Kokusu",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "floorFragrance2": {
+            "name": "DIOX Zemin Kokusu",
+            "description": "Özel formüllü zemin kokusu",
+            "alt": "DIOX Özel Formüllü Zemin Kokusu",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "glassCleaner": {
+            "name": "DIOX Cam Temizleyici",
+            "description": "Cam ve aynaları çizgisiz temizler",
+            "alt": "DIOX Ayna ve Pencere Cam Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "chlorine": {
+            "name": "DIOX Klor (Ağartıcı)",
+            "description": "Dezenfeksiyon ve temizlik için güçlü ağartıcı",
+            "alt": "DIOX Dezenfeksiyon Klor Ağartıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "ovenCleaner": {
+            "name": "DIOX Fırın Temizleyici",
+            "description": "Yanmış yağları kolayca çıkarır",
+            "alt": "DIOX Yanmış Yağ için Fırın Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "flash": {
+            "name": "DIOX Flash Temizleyici",
+            "description": "Hızlı ve etkili temizlik",
+            "alt": "DIOX Flash Hızlı Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "bathroomCleaner": {
+            "name": "DIOX Banyo Temizleyici",
+            "description": "Banyoyu derinlemesine temizler ve dezenfekte eder",
+            "alt": "DIOX Banyo Dezenfekte Edici Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishGel": {
+            "name": "DIOX Bulaşık Yıkama Jeli",
+            "description": "Bulaşık yıkama için konsantre jel",
+            "alt": "DIOX Konsantre Bulaşık Yıkama Jeli",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishLiquid1": {
+            "name": "DIOX Bulaşık Yıkama Sıvısı",
+            "description": "Yağ giderme için etkili sıvı",
+            "alt": "DIOX Yağ Giderme için Bulaşık Yıkama Sıvısı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishLiquid2": {
+            "name": "DIOX Bulaşık Yıkama Sıvısı",
+            "description": "Ellere nazik sıvı",
+            "alt": "DIOX Nazik Bulaşık Yıkama Sıvısı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          }
+        },
+        "laundry": {
+          "autoPowder1": {
+            "name": "DIOX Otomatik Çamaşır Tozu",
+            "description": "Otomatik çamaşır makineleri için yüksek verimli toz",
+            "alt": "DIOX Yüksek Verimli Otomatik Çamaşır Tozu",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          },
+          "autoPowder2": {
+            "name": "DIOX Otomatik Çamaşır Tozu",
+            "description": "Otomatik çamaşır makineleri için özel formül",
+            "alt": "DIOX Otomatik Çamaşır Tozu Özel Formül",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          },
+          "liquidDetergent": {
+            "name": "DIOX Sıvı Çamaşır Deterjanı",
+            "description": "Tüm kumaşlar için konsantre sıvı deterjan",
+            "alt": "DIOX Konsantre Sıvı Çamaşır Deterjanı",
+            "material": "Plastik kap",
+            "count": "4 adet"
+          },
+          "fabricSoftener": {
+            "name": "DIOX Yumuşatıcı",
+            "description": "Kıyafetleri yumuşak ve kokulu yapar",
+            "alt": "DIOX Yumuşak Kıyafetler için Yumuşatıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "stainRemover": {
+            "name": "DIOX Leke Çıkarıcı",
+            "description": "En zor lekeleri etkili bir şekilde çıkarır",
+            "alt": "DIOX Etkili Leke Çıkarıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "regularPowder": {
+            "name": "DIOX Normal Çamaşır Tozu",
+            "description": "El yıkama ve normal yıkama için toz",
+            "alt": "DIOX El Yıkama için Normal Çamaşır Tozu",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          }
+        },
+        "personal": {
+          "liquidSoap": {
+            "name": "DIOX Sıvı Sabun",
+            "description": "Eller için nazik sıvı sabun",
+            "alt": "DIOX Eller için Nazik Sıvı Sabun",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          }
+        }
+      }
+    },
+    "aylux": {
+      "brandNameArabic": "Aylux",
+      "seo": {
+        "title": "AYLUX - Premium Bakım Ürünleri | KARAHOCA",
+        "description": "KARAHOCA'dan AYLUX markası - zarif sofistikeyle premium bakım ürünleri. Jel temizleyiciler, sıvı temizleyiciler, sıvı sabun ve kokular.",
+        "keywords": "AYLUX, Aylux, bakım ürünleri, jel temizleyici, cam temizleyici, hava ferahlatıcı, premium sıvı sabun, KARAHOCA"
+      },
+      "hero": {
+        "title": "Bakımda Lüks Zarafet",
+        "description": "Tüm ev ve kişisel bakım ihtiyaçları için zarif sofistike ve kanıtlanmış etkinlikle premium bakım ürünleri",
+        "imageAlt": "AYLUX Premium Bakım Ürünleri",
+        "badge1": "Lüks Zarafet",
+        "badge2": "Kanıtlanmış Kalite",
+        "badge3": "Rafine Formül"
+      },
+      "about": {
+        "title": "AYLUX Hakkında",
+        "subtitle": "Her Üründe Zarafet ve Sofistike",
+        "mainHeading": "Premium Bakımda Mükemmellik",
+        "section1": {
+          "title": "İstisnai Zarafet"
+        },
+        "content": "AYLUX markası, tüm ev ve kişisel bakım ihtiyaçlarını en yüksek kalite ve zarafet standartlarıyla karşılayan kapsamlı bir premium bakım ürünleri yelpazesini temsil eder"
+      },
+      "productsSection": {
+        "title": "Tam AYLUX Ürün Yelpazesi",
+        "subtitle": "Ev ve kişisel bakım için entegre çözümler"
+      },
+      "categories": {
+        "homeCleaning": "Ev Temizliği",
+        "laundryCleaning": "Çamaşır Temizliği",
+        "personalHygiene": "Kişisel Hijyen"
+      },
+      "products": {
+        "home": {
+          "generalCleaner": {
+            "name": "AYLUX Genel Temizleyici",
+            "description": "Çok amaçlı genel temizleyici",
+            "alt": "AYLUX Çok Amaçlı Genel Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "airFreshener": {
+            "name": "AYLUX Hava Ferahlatıcı",
+            "description": "Ferahlatıcı kokulu hava ferahlatıcı",
+            "alt": "AYLUX Ferahlatıcı Kokulu Hava Ferahlatıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "superGel": {
+            "name": "AYLUX Süper Jel",
+            "description": "Ekstra güçlü temizlik jeli",
+            "alt": "AYLUX Ekstra Güçlü Süper Jel",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "floorFragrance": {
+            "name": "AYLUX Zemin Kokusu",
+            "description": "Premium kokulu zemin kokusu",
+            "alt": "AYLUX Premium Kokulu Zemin Kokusu",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "glassCleaner": {
+            "name": "AYLUX Cam Temizleyici",
+            "description": "Camı mükemmel parlaklıkla temizler",
+            "alt": "AYLUX Mükemmel Parlaklıklı Cam Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "chlorine": {
+            "name": "AYLUX Klor (Ağartıcı)",
+            "description": "Dezenfeksiyon için güçlü ağartıcı",
+            "alt": "AYLUX Dezenfeksiyon için Klor Ağartıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "ovenCleaner": {
+            "name": "AYLUX Fırın Temizleyici",
+            "description": "Yanmış yağları kolayca çıkarır",
+            "alt": "AYLUX Yanmış Yağ için Fırın Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "flash": {
+            "name": "AYLUX Flash Temizleyici",
+            "description": "Hızlı ve etkili temizlik",
+            "alt": "AYLUX Flash Hızlı Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "bathroomCleaner": {
+            "name": "AYLUX Banyo Temizleyici",
+            "description": "Banyoyu derinlemesine temizler ve dezenfekte eder",
+            "alt": "AYLUX Banyo Dezenfekte Edici Temizleyici",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishGel": {
+            "name": "AYLUX Bulaşık Yıkama Jeli",
+            "description": "Bulaşık yıkama için konsantre jel",
+            "alt": "AYLUX Konsantre Bulaşık Yıkama Jeli",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishLiquid1": {
+            "name": "AYLUX Bulaşık Yıkama Sıvısı",
+            "description": "Yağ giderme için etkili sıvı",
+            "alt": "AYLUX Yağ Giderme için Bulaşık Yıkama Sıvısı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "dishLiquid2": {
+            "name": "AYLUX Bulaşık Yıkama Sıvısı",
+            "description": "Ellere nazik sıvı",
+            "alt": "AYLUX Nazik Bulaşık Yıkama Sıvısı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          }
+        },
+        "laundry": {
+          "autoPowder1": {
+            "name": "AYLUX Otomatik Çamaşır Tozu",
+            "description": "Otomatik çamaşır makineleri için yüksek verimli toz",
+            "alt": "AYLUX Yüksek Verimli Otomatik Çamaşır Tozu",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          },
+          "autoPowder2": {
+            "name": "AYLUX Otomatik Çamaşır Tozu",
+            "description": "Otomatik çamaşır makineleri için özel formül",
+            "alt": "AYLUX Otomatik Çamaşır Tozu Özel Formül",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          },
+          "liquidDetergent": {
+            "name": "AYLUX Sıvı Çamaşır Deterjanı",
+            "description": "Tüm kumaşlar için konsantre sıvı deterjan",
+            "alt": "AYLUX Konsantre Sıvı Çamaşır Deterjanı",
+            "material": "Plastik kap",
+            "count": "4 adet"
+          },
+          "fabricSoftener": {
+            "name": "AYLUX Yumuşatıcı",
+            "description": "Kıyafetleri yumuşak ve kokulu yapar",
+            "alt": "AYLUX Yumuşak Kıyafetler için Yumuşatıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "stainRemover": {
+            "name": "AYLUX Leke Çıkarıcı",
+            "description": "En zor lekeleri etkili bir şekilde çıkarır",
+            "alt": "AYLUX Etkili Leke Çıkarıcı",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "regularPowder": {
+            "name": "AYLUX Normal Çamaşır Tozu",
+            "description": "El yıkama ve normal yıkama için toz",
+            "alt": "AYLUX El Yıkama için Normal Çamaşır Tozu",
+            "material": "Plastik torba",
+            "count": "4 adet"
+          }
+        },
+        "personal": {
+          "liquidSoap1": {
+            "name": "AYLUX Sıvı Sabun",
+            "description": "Eller için nazik sıvı sabun",
+            "alt": "AYLUX Eller için Nazik Sıvı Sabun",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          },
+          "liquidSoap2": {
+            "name": "AYLUX Sıvı Sabun",
+            "description": "Ferahlatıcı kokulu premium sıvı sabun",
+            "alt": "AYLUX Ferahlatıcı Kokulu Premium Sıvı Sabun",
+            "material": "Plastik kap",
+            "count": "12 adet"
+          }
+        }
+      }
+    },
+    "production": {
+      "seo": {
+        "title": "Üretim Süreci | KARAHOCA",
+        "description": "KARAHOCA'nın hammaddeden ambalajlamaya kadar sıkı kalite kontrollü gelişmiş üretim sürecini keşfedin",
+        "keywords": "deterjan üretimi, üretim süreci, kalite kontrol, ISO standartları, üretim güvenliği"
+      },
+      "heroTitle": "Üretim Sürecimiz",
+      "heroDescription": "Üretim sürecimiz, her aşamada son teknoloji ile titiz kalite kontrolü birleştirir. En kaliteli hammaddelerin tedarikinden formülasyon ve ambalajlamaya kadar, her ürünün en yüksek performans ve güvenlik standartlarını karşıladığından emin oluruz. Ekibimiz, çeşitli müşteri ihtiyaçlarını karşılayan etkili ve sürdürülebilir deterjan çözümleri yaratmaya kararlıdır.",
+      "heroImageAlt": "Üretim Hatları",
+      "sections": {
+        "process": {
+          "title": "Süreç Aşamaları",
+          "subtitle": "Hammaddeden ambalajlamaya — kaliteye giden birleşik yol.",
+          "cards": {
+            "sourcing": {
+              "title": "Tedarik ve Seçim",
+              "description": "Güvenilir tedarikçilerin seçimi ve hammaddelerin iç denetimi."
+            },
+            "mixing": {
+              "title": "Karıştırma ve Formülasyon",
+              "description": "Tutarlılığı sağlamak için hassas tarifler ve otomatik kontrol sistemleri."
+            },
+            "packaging": {
+              "title": "Dolum ve Etiketleme",
+              "description": "Ağırlık kontrolleri ve mühürleme ile verimli ambalajlama hatları."
+            }
+          }
+        },
+        "safety": {
+          "title": "Güvenlik ve Sertifikasyon",
+          "content1": "İş sağlığı ve güvenliği standartlarına sıkı sıkıya bağlılık.",
+          "content2": "Periyodik doğrulama ve sektöre uygun ISO standartları.",
+          "content3": "Her ürün için eksiksiz parti takibi ve kalite kaydı.",
+          "imageAlt": "Üretim Hattı"
+        }
+      }
+    },
+    "dryer": {
+      "seo": {
+        "title": "Kurutucumuz | KARAHOCA",
+        "description": "KARAHOCA'nın gelişmiş kurutucu teknolojisini keşfedin - hammadde üretim kapasiteli yüksek kapasiteli üretim",
+        "keywords": "deterjan kurutucusu, hammadde üretimi, üretim teknolojisi, endüstriyel üretim, konsantre deterjanlar"
+      },
+      "heroTitle": "Kurutucumuz",
+      "heroDescription": "Kurutucu, yalnızca yüksek kaliteli deterjanlar üretmek için değil, aynı zamanda sistem içinde doğrudan hammadde üretme kabiliyetine sahip olacak şekilde tasarlanmıştır. Bu entegre yaklaşım verimliliği artırır ve tutarlı kaliteyi garanti eder. Yüksek kapasiteli tesisimiz, büyük siparişleri karşılama yeteneği sağlarken, belirli pazar ihtiyaçlarını karşılamak üzere formülasyonları özelleştirmede esneklik sunar.",
+      "heroImageAlt": "KARAHOCA Hedefi",
+      "sections": {
+        "pillars": {
+          "title": "Temel Avantajlar",
+          "subtitle": "Verimlilik, esneklik ve büyük siparişlere hızlı yanıt.",
+          "cards": {
+            "capacity": {
+              "title": "Yüksek Üretim Kapasitesi",
+              "description": "Büyük siparişleri hızlı bir şekilde karşılayabilen üretim hattı."
+            },
+            "integration": {
+              "title": "Süreç Entegrasyonu",
+              "description": "Atığı azaltmak için sistem içinde hammadde üretim imkanı."
+            },
+            "consistency": {
+              "title": "Kalite Tutarlılığı",
+              "description": "Tutarlı sonuçlar sağlamak için her parti için hassas testler."
+            }
+          }
+        },
+        "goals": {
+          "title": "Kullanım Uygulamaları",
+          "content1": "Sıvı ve konsantre deterjanlar.",
+          "content2": "Yıkama öncesi ve sonrası işlemler.",
+          "content3": "Özel spesifikasyonlu endüstriyel ürünler.",
+          "imageAlt": "Hedefler Haritası"
+        }
+      }
+    },
+    "goal": {
+      "seo": {
+        "title": "Hedefimiz | KARAHOCA",
+        "description": "Deterjan sektöründe sürekli büyüme ve yenilik için hedeflerimizi ve yol haritamızı öğrenin",
+        "keywords": "KARAHOCA hedefleri, şirket hedefleri, yenilik, genişleme, kalite, çevresel sorumluluk"
+      },
+      "heroTitle": "Hedefimiz",
+      "heroDescription": "Şirketimiz deterjan sektöründe sürekli büyüme ve yenilik taahhüdündedir. Gelecek hedeflerimiz arasında üretim kapasitemizi genişletmek, çevre dostu ve sürdürülebilir ürün hatları geliştirmek ve verimliliği ve kaliteyi artırmak için ileri teknolojileri entegre etmek yer almaktadır. Küresel bir varlık oluşturmayı, güçlü ortaklıklar kurmayı ve yenilikte lider olmayı hedefliyoruz. Müşteri beklentilerini aşarken, çevresel sorumluluğu desteklemeye devam edeceğiz.",
+      "heroImageAlt": "KARAHOCA Hedefi",
+      "sections": {
+        "pillars": {
+          "title": "Çalışma Temellerimiz",
+          "subtitle": "Vizyonumuzu gerçekleştirmek için pratik bir yol haritası.",
+          "innovation": {
+            "title": "Sürekli Yenilik",
+            "description": "Daha az çevresel etkiye sahip etkili formüller sunmak için araştırma ve geliştirme."
+          },
+          "expansion": {
+            "title": "Genişleme ve Kapasite",
+            "description": "Yeni pazarlarda üretim kapasitesini artırma ve distribütörlük ortaklıkları."
+          },
+          "quality": {
+            "title": "Taviz Vermeyen Kalite",
+            "description": "Her partide sıkı üretim standartları ve kapsamlı performans testleri."
+          }
+        },
+        "goals": {
+          "title": "2025–2027 Hedefleri",
+          "content1": "Su ve enerji tüketimini %20 azaltmak.",
+          "content2": "12 çevre dostu ürün piyasaya sürmek.",
+          "content3": "Sertifikalı distribütörlük ortakları aracılığıyla 60+ ülkeye ulaşmak.",
+          "imageAlt": "Hedefler Haritası"
+        }
+      }
+    }
+  }
+}

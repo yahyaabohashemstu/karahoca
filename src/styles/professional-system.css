@@ -1,0 +1,572 @@
+/* ==================================================
+   نظام التصميم الموحد - KARAHOCA Professional System
+   ================================================== */
+
+:root {
+  /* الألوان الأساسية */
+  --blue: #0a2a5e;
+  --orange: #ff5b2e;
+  --white: #ffffff;
+  --light-gray: #f5f7fa;
+  --dark-gray: #1a1a1a;
+
+  /* نظام الألوان المحسن */
+  --primary: var(--orange);
+  --secondary: var(--blue);
+  --text: rgba(255, 255, 255, 0.95);
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --text-subtle: rgba(255, 255, 255, 0.5);
+
+  /* نظام Glass المحسن */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-backdrop: blur(16px) saturate(180%);
+
+  /* ==================================================
+     نظام المسافات المعياري - Professional Spacing System
+     ================================================== */
+  
+  /* مسافات أساسية */
+  --space-xs: 0.25rem;    /* 4px */
+  --space-sm: 0.5rem;     /* 8px */
+  --space-md: 1rem;       /* 16px */
+  --space-lg: 1.5rem;     /* 24px */
+  --space-xl: 2rem;       /* 32px */
+  --space-2xl: 3rem;      /* 48px */
+  --space-3xl: 4rem;      /* 64px */
+  --space-4xl: 6rem;      /* 96px */
+  --space-5xl: 8rem;      /* 128px */
+
+  /* مسافات خاصة */
+  --section-padding: var(--space-4xl) 0;
+  --container-padding: 0 var(--space-lg);
+  --card-padding: var(--space-xl);
+  --hero-padding: var(--space-5xl) 0;
+
+  /* ==================================================
+     نظام الخطوط المعياري - Typography System
+     ================================================== */
+  
+  /* أحجام الخطوط */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+  --text-5xl: 3rem;       /* 48px */
+  --text-6xl: 3.75rem;    /* 60px */
+
+  /* سماكة الخطوط */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* ارتفاع الأسطر */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* ==================================================
+     نظام التخطيط المعياري - Layout System
+     ================================================== */
+  
+  /* عرض الحاويات */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+
+  /* نظام الشبكة */
+  --grid-cols-1: repeat(1, minmax(0, 1fr));
+  --grid-cols-2: repeat(2, minmax(0, 1fr));
+  --grid-cols-3: repeat(3, minmax(0, 1fr));
+  --grid-cols-4: repeat(4, minmax(0, 1fr));
+  --grid-cols-6: repeat(6, minmax(0, 1fr));
+  --grid-cols-12: repeat(12, minmax(0, 1fr));
+
+  /* مسافات الشبكة */
+  --grid-gap-sm: var(--space-md);
+  --grid-gap-md: var(--space-lg);
+  --grid-gap-lg: var(--space-xl);
+  --grid-gap-xl: var(--space-2xl);
+
+  /* ==================================================
+     نظام الأبعاد المعياري - Dimensions System
+     ================================================== */
+  
+  /* ارتفاعات محددة */
+  --height-header: 80px;
+  --height-hero: 100vh;
+  --height-section-min: 600px;
+  --height-card: 400px;
+  --height-card-small: 300px;
+
+  /* أحجام الصور */
+  --image-hero-size: 500px;
+  --image-card-size: 250px;
+  --image-icon-size: 64px;
+  --image-logo-size: 120px;
+
+  /* ==================================================
+     نظام الظلال والحدود - Shadows & Borders
+     ================================================== */
+  
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 20px;
+  --border-radius-2xl: 24px;
+  --border-radius-full: 50%;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 16px 32px rgba(0, 0, 0, 0.3);
+
+  /* ==================================================
+     نظام الحركة والانتقالات - Animation System
+     ================================================== */
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ==================================================
+   الفئات المساعدة للمسافات - Spacing Utilities
+   ================================================== */
+
+/* Margin */
+.m-0 { margin: 0; }
+.m-xs { margin: var(--space-xs); }
+.m-sm { margin: var(--space-sm); }
+.m-md { margin: var(--space-md); }
+.m-lg { margin: var(--space-lg); }
+.m-xl { margin: var(--space-xl); }
+.m-2xl { margin: var(--space-2xl); }
+.m-3xl { margin: var(--space-3xl); }
+
+/* Margin Top */
+.mt-0 { margin-top: 0; }
+.mt-xs { margin-top: var(--space-xs); }
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mt-xl { margin-top: var(--space-xl); }
+.mt-2xl { margin-top: var(--space-2xl); }
+.mt-3xl { margin-top: var(--space-3xl); }
+
+/* Margin Bottom */
+.mb-0 { margin-bottom: 0; }
+.mb-xs { margin-bottom: var(--space-xs); }
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+.mb-2xl { margin-bottom: var(--space-2xl); }
+.mb-3xl { margin-bottom: var(--space-3xl); }
+
+/* Padding */
+.p-0 { padding: 0; }
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+.p-2xl { padding: var(--space-2xl); }
+.p-3xl { padding: var(--space-3xl); }
+
+/* ==================================================
+   الفئات المساعدة للنصوص - Typography Utilities
+   ================================================== */
+
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.text-2xl { font-size: var(--text-2xl); }
+.text-3xl { font-size: var(--text-3xl); }
+.text-4xl { font-size: var(--text-4xl); }
+.text-5xl { font-size: var(--text-5xl); }
+.text-6xl { font-size: var(--text-6xl); }
+
+.font-light { font-weight: var(--font-light); }
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+.font-extrabold { font-weight: var(--font-extrabold); }
+
+.leading-tight { line-height: var(--leading-tight); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+
+/* ==================================================
+   الفئات المساعدة للتخطيط - Layout Utilities
+   ================================================== */
+
+.container-professional {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+.grid-professional {
+  display: grid;
+  gap: var(--grid-gap-lg);
+}
+
+.grid-1 { grid-template-columns: var(--grid-cols-1); }
+.grid-2 { grid-template-columns: var(--grid-cols-2); }
+.grid-3 { grid-template-columns: var(--grid-cols-3); }
+.grid-4 { grid-template-columns: var(--grid-cols-4); }
+
+.grid-responsive {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-responsive-cards {
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
+
+/* ==================================================
+   محسنات للصفحات الفرعية - Subpage Enhancements
+   ================================================== */
+
+.page-hero {
+  padding: var(--hero-padding);
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+}
+
+.page-section {
+  padding: var(--section-padding);
+  min-height: auto;
+}
+
+.section-container {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+.card-professional {
+  padding: var(--card-padding);
+  border-radius: var(--border-radius-lg);
+  backdrop-filter: var(--glass-backdrop);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: all var(--transition-normal);
+}
+
+.card-professional:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-2xl);
+}
+
+/* ==================================================
+   أنماط خاصة للصفحات الفرعية
+   ================================================== */
+
+.subpage-hero {
+  background: linear-gradient(135deg, var(--blue), var(--orange));
+  padding: var(--space-5xl) 0;
+  text-align: center;
+  color: white;
+}
+
+.subpage-hero .container {
+  max-width: var(--container-lg);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+.subpage-title {
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-lg);
+  line-height: var(--leading-tight);
+}
+
+.subpage-description {
+  font-size: var(--text-xl);
+  line-height: var(--leading-relaxed);
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.features-grid-professional {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-2xl);
+  margin-top: var(--space-3xl);
+}
+
+.feature-card {
+  background: var(--glass-bg);
+  border-radius: var(--border-radius-xl);
+  padding: var(--space-2xl);
+  text-align: center;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-backdrop);
+  transition: all var(--transition-normal);
+}
+
+.feature-card:hover {
+  transform: translateY(-12px);
+  box-shadow: var(--shadow-2xl);
+}
+
+.feature-icon {
+  font-size: var(--text-6xl);
+  margin-bottom: var(--space-lg);
+  display: block;
+}
+
+.feature-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-md);
+  color: var(--text);
+}
+
+.feature-description {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+
+/* ==================================================
+   تحسينات الاستجابة - Responsive Enhancements
+   ================================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --space-4xl: 3rem;
+    --space-5xl: 4rem;
+    --hero-padding: var(--space-3xl) 0;
+    --section-padding: var(--space-2xl) 0;
+    --container-padding: 0 var(--space-md);
+  }
+
+  .subpage-title {
+    font-size: var(--text-3xl);
+  }
+
+  .subpage-description {
+    font-size: var(--text-lg);
+  }
+
+  .features-grid-professional {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .feature-card {
+    padding: var(--space-lg);
+  }
+}
+
+/* ==================================================
+   فئات مساعدة إضافية - Additional Utility Classes
+   ================================================== */
+
+/* Margin Left/Right */
+.ml-xs { margin-left: var(--space-xs); }
+.ml-sm { margin-left: var(--space-sm); }
+.ml-md { margin-left: var(--space-md); }
+.ml-lg { margin-left: var(--space-lg); }
+.ml-xl { margin-left: var(--space-xl); }
+
+.mr-xs { margin-right: var(--space-xs); }
+.mr-sm { margin-right: var(--space-sm); }
+.mr-md { margin-right: var(--space-md); }
+.mr-lg { margin-right: var(--space-lg); }
+.mr-xl { margin-right: var(--space-xl); }
+
+/* Padding Left/Right */
+.pl-xs { padding-left: var(--space-xs); }
+.pl-sm { padding-left: var(--space-sm); }
+.pl-md { padding-left: var(--space-md); }
+.pl-lg { padding-left: var(--space-lg); }
+.pl-xl { padding-left: var(--space-xl); }
+
+.pr-xs { padding-right: var(--space-xs); }
+.pr-sm { padding-right: var(--space-sm); }
+.pr-md { padding-right: var(--space-md); }
+.pr-lg { padding-right: var(--space-lg); }
+.pr-xl { padding-right: var(--space-xl); }
+
+/* Display utilities */
+.block { display: block; }
+.inline-block { display: inline-block; }
+.flex { display: flex; }
+.grid { display: grid; }
+
+/* Text alignment */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+/* Color utilities */
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-muted { color: var(--text-muted); }
+.text-subtle { color: var(--text-subtle); }
+
+/* Background utilities */
+.bg-primary { background-color: var(--primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-glass { background: var(--glass-bg); }
+
+/* Border radius utilities */
+.rounded-sm { border-radius: var(--border-radius-sm); }
+.rounded-md { border-radius: var(--border-radius-md); }
+.rounded-lg { border-radius: var(--border-radius-lg); }
+.rounded-xl { border-radius: var(--border-radius-xl); }
+.rounded-full { border-radius: var(--border-radius-full); }
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* ==================================================
+   تحسينات خاصة لصفحات العلامات التجارية
+   ================================================== */
+
+.brand-hero {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  padding: var(--space-5xl) 0;
+  text-align: center;
+  color: white;
+}
+
+.brand-hero.aylux {
+  background: linear-gradient(135deg, var(--orange), #ff7a50);
+}
+
+.brand-hero.diox {
+  background: linear-gradient(135deg, var(--blue), #1e4a8c);
+}
+
+.product-grid-enhanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-xl);
+  margin-top: var(--space-3xl);
+}
+
+.product-card-enhanced {
+  background: var(--glass-bg);
+  border-radius: var(--border-radius-xl);
+  padding: var(--space-xl);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-backdrop);
+  transition: all var(--transition-normal);
+  text-align: center;
+}
+
+.product-card-enhanced:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-2xl);
+}
+
+.product-image-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+}
+
+.category-badge {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--primary);
+  color: white;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-md);
+}
+
+/* ==================================================
+   تحسينات للاستجابة المحسنة
+   ================================================== */
+
+@media (max-width: 1024px) {
+  .features-grid-professional {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-lg);
+  }
+  
+  .product-grid-enhanced {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-lg);
+  }
+}
+
+@media (max-width: 768px) {
+  .subpage-hero {
+    padding: var(--space-3xl) 0;
+  }
+  
+  .brand-hero {
+    padding: var(--space-3xl) 0;
+  }
+  
+  .features-grid-professional {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+  
+  .product-grid-enhanced {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+  
+  .grid-professional.grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .feature-card,
+  .card-professional,
+  .product-card-enhanced {
+    padding: var(--space-lg);
+  }
+  
+  .feature-icon {
+    font-size: var(--text-4xl);
+  }
+  
+  .subpage-title {
+    font-size: var(--text-3xl);
+  }
+  
+  .subpage-description {
+    font-size: var(--text-base);
+  }
+}
