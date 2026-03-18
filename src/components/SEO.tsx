@@ -1,5 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
+import { getLanguageDirection, normalizeLanguageCode } from '../utils/language';
 
 interface SEOProps {
   title: string;
@@ -20,9 +22,19 @@ const SEO: React.FC<SEOProps> = ({
   canonicalUrl,
   noindex = false
 }) => {
+  const { i18n } = useTranslation();
   const siteUrl = 'https://karahoca.com'; // تحديث بالدومين الفعلي
+  const language = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
+  const direction = getLanguageDirection(language);
+  const ogLocaleMap: Record<string, string> = {
+    ar: 'ar_TR',
+    en: 'en_US',
+    tr: 'tr_TR',
+    ru: 'ru_RU'
+  };
   const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
   const fullCanonicalUrl = canonicalUrl || `${siteUrl}${typeof window !== 'undefined' ? window.location.pathname : ''}`;
+  const ogLocale = ogLocaleMap[language] || ogLocaleMap.ar;
 
   return (
     <Helmet>
@@ -41,7 +53,7 @@ const SEO: React.FC<SEOProps> = ({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:locale" content="ar_TR" />
+      <meta property="og:locale" content={ogLocale} />
       <meta property="og:site_name" content="KARAHOCA" />
 
       {/* Twitter */}
@@ -54,10 +66,10 @@ const SEO: React.FC<SEOProps> = ({
       {/* Additional Meta Tags */}
       <meta name="author" content="KARAHOCA" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta httpEquiv="Content-Language" content="ar" />
+      <meta httpEquiv="Content-Language" content={language} />
       
       {/* Language and Direction */}
-      <html lang="ar" dir="rtl" />
+      <html lang={language} dir={direction} />
     </Helmet>
   );
 };

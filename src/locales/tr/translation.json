@@ -24,7 +24,22 @@
       "production": "Üretim",
       "goal": "Hedeflerimiz",
       "dryer": "Kurutucular",
-      "contact": "İletişim"
+      "contact": "İletişim",
+      "menu": "Menü",
+      "closeMenu": "Menüyü kapat",
+      "changeLanguage": "Dili değiştir"
+    },
+    "errorBoundary": {
+      "title": "Üzgünüz, beklenmeyen bir hata oluştu",
+      "message": "Verdiğimiz rahatsızlıktan dolayı özür dileriz. Bu sayfa yüklenirken bir hata oluştu.",
+      "details": "Hata ayrıntıları (yalnızca geliştirme)",
+      "reload": "Sayfayı yeniden yükle",
+      "home": "Ana sayfaya dön",
+      "help": "Sorun devam ederse lütfen",
+      "contact": "bizimle iletişime geçin"
+    },
+    "themeToggle": {
+      "label": "Temayi degistir"
     },
     "hero": {
       "title": "Dünya Çapında Temizlikte Yeni Bir Standart Oluşturuyoruz",

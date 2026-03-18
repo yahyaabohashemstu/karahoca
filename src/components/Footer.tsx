@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { trackFormSubmit } from './GoogleAnalytics';
+import { trackFormSubmit } from '../utils/analytics';
+import { buildApiUrl } from '../utils/api';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
   const currentYear = new Date().getFullYear();
+  const isHomePage = location.pathname === '/';
+  const brandsHref = isHomePage ? '#brands' : '/#brands';
+  const aboutHref = isHomePage ? '#about' : '/about';
+  const numbersHref = isHomePage ? '#numbers' : '/#numbers';
+  const contactAddress = t('footer.contact.address');
+  const contactEmail = t('footer.contact.email');
+  const contactPhone = t('footer.contact.phone');
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,11 +60,17 @@ const Footer: React.FC = () => {
     setEmailError('');
 
     try {
-      // TODO: Integrate with email service (Mailchimp/SendGrid)
-      // await subscribeToNewsletter(email);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(buildApiUrl('/api/newsletter/subscribe'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error('Newsletter subscription failed');
+      }
       
       setSubmissionState('success');
       setEmail('');
@@ -66,7 +82,7 @@ const Footer: React.FC = () => {
       setTimeout(() => {
         setSubmissionState('idle');
       }, 3000);
-    } catch (error) {
+    } catch {
       setSubmissionState('error');
       setEmailError(t('footer.newsletter.error.failed'));
       
@@ -107,19 +123,19 @@ const Footer: React.FC = () => {
 
         <nav className="footer__links" aria-label={t('footer.links.title')}>
           <strong>{t('footer.links.title')}</strong>
-          <a href="#" className="footer-link">{t('footer.links.home')}</a>
-          <a href="#brands" className="footer-link">{t('footer.links.brands')}</a>
-          <a href="#about" className="footer-link">{t('footer.links.about')}</a>
-          <a href="#numbers" className="footer-link">{t('footer.links.numbers')}</a>
+          <Link to="/" className="footer-link">{t('footer.links.home')}</Link>
+          <a href={brandsHref} className="footer-link">{t('footer.links.brands')}</a>
+          <a href={aboutHref} className="footer-link">{t('footer.links.about')}</a>
+          <a href={numbersHref} className="footer-link">{t('footer.links.numbers')}</a>
         </nav>
 
         <section className="footer__contact">
           <strong>{t('footer.contact.title')}</strong>
           <address>
-            Kilis / Türkiye<br />
-            info@karahoca.com<br />
+            {contactAddress}<br />
+            {contactEmail}<br />
             <a 
-              href="tel:+908502283534" 
+              href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`} 
               style={{ 
                 color: 'inherit', 
                 textDecoration: 'none',
@@ -127,7 +143,7 @@ const Footer: React.FC = () => {
                 display: 'inline-block'
               }}
             >
-              +90 (850) 228 35 34
+              {contactPhone}
             </a>
           </address>
           <form 

@@ -35,8 +35,8 @@ const AboutPage: React.FC = () => {
                 <p className="lead fx-reveal">
                   {t('aboutPage.hero.description')}
                 </p>
-                <div className="hero__cta fx-reveal">
-                  <a href="#contact" className="btn btn--primary">تواصل معنا</a>
+              <div className="hero__cta fx-reveal">
+                  <a href="#contact" className="btn btn--primary">{t('nav.contact')}</a>
                 </div>
               </div>
               <div className="hero__visual">

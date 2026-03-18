@@ -24,7 +24,22 @@
       "production": "Production",
       "goal": "Our Goals",
       "dryer": "Dryers",
-      "contact": "Contact"
+      "contact": "Contact",
+      "menu": "Menu",
+      "closeMenu": "Close menu",
+      "changeLanguage": "Change language"
+    },
+    "errorBoundary": {
+      "title": "Sorry, something went wrong",
+      "message": "We apologize for the inconvenience. An error occurred while loading this page.",
+      "details": "Error details (development only)",
+      "reload": "Reload page",
+      "home": "Back to home",
+      "help": "If the problem continues, please",
+      "contact": "contact us"
+    },
+    "themeToggle": {
+      "label": "Toggle theme"
     },
     "hero": {
       "title": "Setting a New Standard for Cleanliness Globally",

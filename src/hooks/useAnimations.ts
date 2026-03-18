@@ -3,10 +3,9 @@ import { useEffect } from 'react';
 // Hook لإدارة تأثيرات التمرير والرسوم المتحركة
 export const useScrollAnimations = () => {
   useEffect(() => {
-    // Intersection Observer للرسوم المتحركة عند التمرير
-    const observeElements = (selector: string, animationClass: string) => {
-      const elements = document.querySelectorAll(selector);
-      
+    const observers: Array<() => void> = [];
+
+    const initObserver = (selector: string, animationClass: string) => {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -19,18 +18,65 @@ export const useScrollAnimations = () => {
         rootMargin: '0px 0px -50px 0px'
       });
 
-      elements.forEach((el) => observer.observe(el));
-      
-      return () => observer.disconnect();
+      const elements = document.querySelectorAll(selector);
+      elements.forEach((el) => {
+        if (!el.classList.contains(animationClass)) {
+          observer.observe(el);
+        }
+      });
+
+      observers.push(() => observer.disconnect());
+
+      return observer;
     };
 
-    // تطبيق الرسوم المتحركة
-    const cleanup1 = observeElements('.fx-reveal', 'fx-reveal-active');
-    const cleanup2 = observeElements('.fx-up', 'fx-up-active');
+    const revealObserver = initObserver('.fx-reveal', 'fx-reveal-active');
+    const upObserver = initObserver('.fx-up', 'fx-up-active');
+
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) {
+            return;
+          }
+
+          if (node.matches('.fx-reveal') && !node.classList.contains('fx-reveal-active')) {
+            revealObserver.observe(node);
+          }
+          if (node.matches('.fx-up') && !node.classList.contains('fx-up-active')) {
+            upObserver.observe(node);
+          }
+
+          node.querySelectorAll?.('.fx-reveal').forEach((child) => {
+            if (!child.classList.contains('fx-reveal-active')) {
+              revealObserver.observe(child);
+            }
+          });
+
+          node.querySelectorAll?.('.fx-up').forEach((child) => {
+            if (!child.classList.contains('fx-up-active')) {
+              upObserver.observe(child);
+            }
+          });
+        });
+      });
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    observers.push(() => mutationObserver.disconnect());
 
     // إضافة CSS للرسوم المتحركة إذا لم تكن موجودة
-    const style = document.createElement('style');
-    style.textContent = `
+    const styleId = 'fx-animations-style';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
       .fx-reveal {
         opacity: 0;
         transform: translateY(30px);
@@ -57,12 +103,18 @@ export const useScrollAnimations = () => {
       .fx-up:nth-child(3) { transition-delay: 0.2s; }
       .fx-up:nth-child(4) { transition-delay: 0.3s; }
     `;
-    document.head.appendChild(style);
+      document.head.appendChild(style);
+    }
 
     return () => {
-      cleanup1?.();
-      cleanup2?.();
-      document.head.removeChild(style);
+      while (observers.length) {
+        const dispose = observers.pop();
+        dispose?.();
+      }
+
+      if (style && style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
     };
   }, []);
 };

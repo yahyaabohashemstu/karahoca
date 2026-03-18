@@ -157,8 +157,12 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
               <h3 className="category-title gradient-heading">{category.title}</h3>
               <div className="products-grid-compact">
                 {category.products.map((product, productIndex) => (
-                  <div key={productIndex} className="product-card-flip-container">
-                    <div className="product-card-mini glass-card fx-up">
+                  <div 
+                    key={productIndex} 
+                    className="product-card-flip-container product-auto-reveal"
+                    style={{ animationDelay: `${productIndex * 0.05}s` }}
+                  >
+                    <div className="product-card-mini glass-card">
                       <div className="product-card-front">
                         <img src={product.image} alt={product.alt} className="product-mini-image" />
                         <div className="product-mini-info">

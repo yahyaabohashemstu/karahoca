@@ -1,19 +1,29 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
+import { normalizeLanguageCode } from '../utils/language';
 
 interface HeaderProps {
   className?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ className = '' }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  // تحديد المسافة حسب اللغة
+  const menuMarginLeft = currentLanguage === 'ru' ? '16rem' : '24rem';
+  const isHomePage = location.pathname === '/';
+  const brandsHref = isHomePage ? '#brands' : '/#brands';
+  const numbersHref = isHomePage ? '#numbers' : '/#numbers';
+  const aboutHref = isHomePage ? '#about' : '/about';
 
   return (
     <header className={`site-header glass-panel ${className}`}>
@@ -24,17 +34,17 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         </div>
 
         {/* Main Navigation Menu - Moved towards left */}
-        <nav className="menu" aria-label={t('nav.brands')} style={{ marginRight: 'auto', marginLeft: '24rem', gap: '1.5rem' }}>
-          <a href="#brands" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
-          <a href="#numbers" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
-          <a href="#about" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
+        <nav className="menu" aria-label={t('nav.brands')} style={{ marginRight: 'auto', marginLeft: menuMarginLeft, gap: '1.5rem' }}>
+          <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
+          <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
+          <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
           <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>
         </nav>
-        
-        <button 
-          className="hamburger glass-button" 
-          aria-label="قائمة" 
-          aria-expanded={isMobileMenuOpen} 
+
+        <button
+          className="hamburger glass-button"
+          aria-label={t('nav.menu')}
+          aria-expanded={isMobileMenuOpen}
           aria-controls="mobile-menu"
           onClick={toggleMobileMenu}
         >
@@ -42,25 +52,25 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
           <span></span>
           <span></span>
         </button>
-        
+
         <Link to="/" className="brand" style={{ marginLeft: 0, marginRight: 'auto' }}>
-          <img 
-            src="/karahoca-logo-1-Photoroom.webp" 
-            alt="KARAHOCA" 
+          <img
+            src="/karahoca-logo-1-Photoroom.webp"
+            alt="KARAHOCA"
             className="brand__logo"
             style={{ height: '64px', width: 'auto', objectFit: 'contain' }}
           />
         </Link>
       </div>
-      
-      <nav 
-        id="mobile-menu" 
-        className={`mobile-menu glass-panel ${isMobileMenuOpen ? 'mobile-menu--open' : ''}`} 
+
+      <nav
+        id="mobile-menu"
+        className={`mobile-menu glass-panel ${isMobileMenuOpen ? 'mobile-menu--open' : ''}`}
         aria-hidden={!isMobileMenuOpen}
       >
-        <a href="#brands" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
-        <a href="#numbers" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
-        <a href="#about" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
+        <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
+        <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
+        <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
         <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>
       </nav>
     </header>

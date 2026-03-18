@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
+# KARAHOCA React + Vite Website
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+الموقع الرسمي لشركة KARAHOCA KIMYA، مبني بتقنيات React وTypeScript وVite مع دعم كامل للغة العربية واتجاه RTL. يتضمن المشروع صفحات العلامات التجارية (DIOX وAYLUX)، أقسام تعرّف بالشركة، وواجهة زجاجية أنيقة بالإضافة إلى مساعد ذكاء اصطناعي يعتمد على Gemini.
 
-Currently, two official plugins are available:
+## المتطلبات
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 18 أو أحدث
+- npm 9 أو أحدث
+- مفتاح واجهة Gemini (Google AI Studio) محفوظ على الخادم
 
-## React Compiler
+## أوامر التشغيل
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install          # تثبيت الحزم مرة واحدة
+npm run dev          # تشغيل واجهة Vite + API المحلي معاً
+npm run dev:web      # تشغيل واجهة Vite فقط على المنفذ 5173
+npm run dev:api      # تشغيل API المحلي على المنفذ 5000
+npm run build        # إنشاء نسخة الإنتاج داخل dist/
+npm run preview      # معاينة نسخة الإنتاج + API المحلي معاً
+npm run preview:web  # معاينة نسخة الإنتاج فقط
+npm run start        # تشغيل API المحلي بعد البناء
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## إعداد المساعد والـ API
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. أنشئ ملفًا باسم `.env` في جذر المشروع `karahoca-react-vite/`.
+2. أضف إعدادات الـ API التالية:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+GEMINI_API_KEY=ضع_المفتاح_هنا
+VITE_BACKEND_URL=http://localhost:5000
 ```
+
+> **مهم:** لم يعد مفتاح Gemini يُقرأ من الواجهة الأمامية. الواجهة تستدعي API محليًا، والخادم فقط هو الذي يستهلك `GEMINI_API_KEY`.
+
+## تخصيص قاعدة المعرفة
+
+- قم بتعديل ملف `src/data/aiKnowledge.ts` لتحديث المعلومات التي يعتمد عليها المساعد.
+- يمكنك إضافة أقسام جديدة أو تعديل التوجيهات اللغوية من نفس الملف لضمان إجابات دقيقة ومتناسقة مع هوية KARAHOCA.
+
+## بنية المشروع المختصرة
+
+- `src/components/` مكونات الواجهة (الهيدر، الأقسام، مساعد الذكاء الاصطناعي، ...)
+- `src/pages/` الصفحات الفرعية الخاصة بالعلامات التجارية والمحتوى التعريفي
+- `src/styles/` ملفات الأنماط العامة والمتخصصة
+- `src/data/` مصادر البيانات الثابتة مثل قاعدة المعرفة الخاصة بالمساعد
+- `server/` واجهة API محلية للمحادثة، حفظ المحادثات، وطلبات النشرة البريدية
+
+## نشر الموقع
+
+- قم بتشغيل `npm run build` لإنشاء مجلد `dist/`.
+- استضف المجلد الناتج على أي خدمة استضافة ثابتة (Netlify، Vercel، Cloudflare Pages...).
+- المشروع يحتوي الآن على API محلي داخل `server/server.mjs` لإخفاء مفتاح Gemini ومعالجة طلبات الواجهة.
+
+## الدعم والتواصل
+
+- البريد الرسمي: `info@karahoca.com`
+- واتساب خدمة العملاء: `+90 530 591 4990`

@@ -1,0 +1,474 @@
+/* نقاط التحميل المتحركة للمساعد */
+.ai-assistant__dots {
+  display: inline-block;
+  font-size: 2rem;
+  letter-spacing: 0.2em;
+  direction: ltr;
+}
+.ai-assistant__dots .dot {
+  animation: ai-dot-blink 1.2s infinite;
+  opacity: 0.5;
+}
+.ai-assistant__dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.ai-assistant__dots .dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.ai-assistant__dots .dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+@keyframes ai-dot-blink {
+  0%, 80%, 100% { opacity: 0.5; }
+  40% { opacity: 1; }
+}
+.ai-assistant {
+  position: fixed;
+  bottom: 2rem;
+  left: auto;
+  right: auto;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+html[dir="rtl"] .ai-assistant {
+  left: 2rem;
+  right: auto;
+  align-items: flex-start;
+}
+
+html[dir="ltr"] .ai-assistant {
+  right: 2rem;
+  left: auto;
+  align-items: flex-end;
+}
+
+.ai-assistant__toggle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-primary);
+  color: #ffffff;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-medium);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ai-assistant__toggle:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: var(--shadow-strong);
+}
+
+.ai-assistant__window {
+  width: min(500px, 92vw);
+  max-height: 650px;
+  border-radius: 24px;
+  background: rgba(10, 26, 46, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(6, 20, 40, 0.35);
+  backdrop-filter: blur(12px) saturate(140%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  direction: rtl;
+  color: #ffffff;
+}
+
+/* ✨ تطبيق RTL للعربية */
+.ai-assistant__window[data-lang="ar"] {
+  direction: rtl;
+}
+
+/* ✨ تطبيق LTR للإنجليزية والتركية */
+.ai-assistant__window[data-lang="en"],
+.ai-assistant__window[data-lang="tr"],
+.ai-assistant__window[data-lang="ru"] {
+  direction: ltr;
+}
+
+body.light-mode .ai-assistant__window {
+  background: rgba(245, 247, 250, 0.96);
+  color: rgba(10, 42, 94, 0.9);
+  border-color: rgba(10, 42, 94, 0.12);
+  box-shadow: 0 28px 70px rgba(10, 42, 94, 0.18);
+}
+
+.ai-assistant__header {
+  padding: 1rem 1.25rem;
+  background: linear-gradient(120deg, rgba(255, 91, 46, 0.9), rgba(10, 42, 94, 0.9));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+body.light-mode .ai-assistant__header {
+  background: linear-gradient(120deg, rgba(255, 126, 80, 0.95), rgba(21, 61, 122, 0.9));
+}
+
+.ai-assistant__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ai-assistant__subtitle {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.ai-assistant__close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.ai-assistant__messages {
+  flex: 1;
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  scroll-behavior: smooth;
+}
+
+.ai-assistant__message {
+  max-width: 90%;
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.35s ease;
+}
+
+/* ملاحظة: الاتجاه (dir) يتم التحكم فيه تلقائياً من ReactMarkdown components */
+
+.ai-assistant__message--user {
+  margin-inline-start: auto;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+body.light-mode .ai-assistant__message--user {
+  background: rgba(21, 61, 122, 0.12);
+  border-color: rgba(21, 61, 122, 0.18);
+}
+
+.ai-assistant__message--assistant {
+  margin-inline-end: auto;
+  background: rgba(10, 20, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-mode .ai-assistant__message--assistant {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(10, 42, 94, 0.08);
+}
+
+.ai-assistant__timestamp {
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 0.4rem;
+  opacity: 0.6;
+}
+
+.ai-assistant__composer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .ai-assistant__composer {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(10, 42, 94, 0.08);
+}
+
+.ai-assistant__input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 15, 30, 0.45);
+  color: inherit;
+  font-size: 0.95rem;
+  resize: none;
+  min-height: 52px;
+  max-height: 120px;
+}
+
+/* ✨ محاذاة حقل الإدخال حسب اللغة */
+.ai-assistant__window[data-lang="ar"] .ai-assistant__input {
+  text-align: right;
+  direction: rtl;
+}
+
+.ai-assistant__window[data-lang="en"] .ai-assistant__input,
+.ai-assistant__window[data-lang="tr"] .ai-assistant__input,
+.ai-assistant__window[data-lang="ru"] .ai-assistant__input {
+  text-align: left;
+  direction: ltr;
+}
+
+body.light-mode .ai-assistant__input {
+  background: rgba(245, 247, 250, 0.92);
+  border-color: rgba(10, 42, 94, 0.15);
+}
+
+.ai-assistant__send {
+  padding: 0.75rem 1.25rem;
+  border-radius: 16px;
+  border: none;
+  background: var(--gradient-primary);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ai-assistant__send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ai-assistant__status {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 0 1.25rem 0.85rem 1.25rem;
+}
+
+body.light-mode .ai-assistant__status {
+  color: rgba(10, 42, 94, 0.65);
+}
+
+/* ✨ أزرار الاقتراحات الذكية */
+.ai-assistant__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  animation: slideInUp 0.4s ease;
+}
+
+body.light-mode .ai-assistant__suggestions {
+  border-color: rgba(10, 42, 94, 0.08);
+}
+
+.ai-assistant__suggestion-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.ai-assistant__suggestion-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 91, 46, 0.9), rgba(10, 42, 94, 0.9));
+  border-color: rgba(255, 91, 46, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 91, 46, 0.3);
+}
+
+body.light-mode .ai-assistant__suggestion-btn {
+  background: rgba(21, 61, 122, 0.08);
+  border-color: rgba(21, 61, 122, 0.2);
+}
+
+body.light-mode .ai-assistant__suggestion-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 126, 80, 0.95), rgba(21, 61, 122, 0.9));
+  border-color: rgba(255, 126, 80, 0.5);
+  box-shadow: 0 4px 12px rgba(255, 126, 80, 0.3);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 📝 تنسيق عناصر Markdown داخل الرسائل */
+.ai-assistant__message p {
+  margin: 0 0 0.75rem 0;
+}
+
+.ai-assistant__message p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-assistant__message ul,
+.ai-assistant__message ol {
+  margin: 0.5rem 0;
+  padding-inline-start: 1.5rem;
+}
+
+.ai-assistant__message li {
+  margin: 0.25rem 0;
+}
+
+.ai-assistant__message code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+body.light-mode .ai-assistant__message code {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.ai-assistant__message pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.75rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+body.light-mode .ai-assistant__message pre {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ai-assistant__message pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.ai-assistant__message strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+body.light-mode .ai-assistant__message strong {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.ai-assistant__message em {
+  font-style: italic;
+}
+
+.ai-assistant__message blockquote {
+  border-inline-start: 3px solid rgba(255, 255, 255, 0.3);
+  padding-inline-start: 1rem;
+  margin: 0.5rem 0;
+  opacity: 0.85;
+}
+
+/* خط فاصل في Markdown */
+.ai-assistant__message hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin: 1rem 0;
+}
+
+body.light-mode .ai-assistant__message hr {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* تنسيق رسالة الترحيب متعددة اللغات */
+/* ملاحظة: تمت إزالة text-align: center لتتبع كل فقرة اتجاهها الطبيعي (RTL/LTR) */
+
+body.light-mode .ai-assistant__message blockquote {
+  border-inline-start-color: rgba(0, 0, 0, 0.2);
+}
+
+.ai-assistant__message table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+
+.ai-assistant__message th,
+.ai-assistant__message td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem;
+  text-align: start;
+}
+
+body.light-mode .ai-assistant__message th,
+body.light-mode .ai-assistant__message td {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.ai-assistant__message th {
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+
+body.light-mode .ai-assistant__message th {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .ai-assistant {
+    bottom: 1rem;
+  }
+
+  html[dir="rtl"] .ai-assistant {
+    left: 1rem;
+    right: auto;
+  }
+
+  html[dir="ltr"] .ai-assistant {
+    right: 1rem;
+    left: auto;
+  }
+
+  .ai-assistant__toggle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .ai-assistant__window {
+    width: min(320px, 92vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant__toggle,
+  .ai-assistant__message {
+    transition: none;
+    animation: none;
+  }
+}
+

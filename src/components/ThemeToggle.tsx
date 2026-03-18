@@ -1,29 +1,18 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useThemeToggle } from '../hooks/useAnimations';
 
 const ThemeToggle: React.FC = () => {
   const { toggleTheme } = useThemeToggle();
+  const { t } = useTranslation();
 
   return (
     <button 
+      type="button"
       className="theme-toggle glass-button" 
       onClick={toggleTheme} 
-      aria-label="تبديل الوضع"
-      style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        zIndex: 1000,
-        border: 'none',
-        borderRadius: '50%',
-        width: '50px',
-        height: '50px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease'
-      }}
+      aria-label={t('themeToggle.label')}
+      title={t('themeToggle.label')}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="5" />

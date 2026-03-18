@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { trackEvent } from './GoogleAnalytics';
+import { trackEvent } from '../utils/analytics';
+import { normalizeLanguageCode } from '../utils/language';
 import './LanguageSwitcher.css';
 
 interface Language {
@@ -17,15 +18,17 @@ interface LanguageSwitcherProps {
 const languages: Language[] = [
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
-  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' }
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' }
 ];
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
 
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const currentLanguage = languages.find(lang => lang.code === currentLanguageCode) || languages[0];
 
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
@@ -62,7 +65,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
       <button
         className="language-switcher__button glass-button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="تبديل اللغة"
+        aria-label={t('nav.changeLanguage')}
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
@@ -96,10 +99,10 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
             <button
               key={language.code}
               className={`language-switcher__option ${
-                language.code === i18n.language ? 'language-switcher__option--active' : ''
+                language.code === currentLanguageCode ? 'language-switcher__option--active' : ''
               }`}
               onClick={() => handleLanguageChange(language.code)}
-              aria-label={`التبديل إلى ${language.nativeName}`}
+              aria-label={`${t('nav.changeLanguage')} ${language.nativeName}`}
             >
               <span className="language-switcher__option-flag" aria-hidden="true">
                 {language.flag}
@@ -107,7 +110,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
               <span className="language-switcher__option-name">
                 {language.nativeName}
               </span>
-              {language.code === i18n.language && (
+              {language.code === currentLanguageCode && (
                 <svg
                   className="language-switcher__check"
                   width="16"

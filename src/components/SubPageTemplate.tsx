@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -37,6 +38,8 @@ const SubPageTemplate: React.FC<SubPageTemplateProps> = ({
   heroImageAlt,
   sectionsData
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className={pageClass}>
       <div className="bg-elements">
@@ -60,7 +63,7 @@ const SubPageTemplate: React.FC<SubPageTemplateProps> = ({
                 {heroDescription}
               </p>
               <div className="hero__cta fx-reveal">
-                <a href="#contact" className="btn btn--primary">تواصل معنا</a>
+                <a href="#contact" className="btn btn--primary">{t('nav.contact')}</a>
               </div>
             </div>
             <div className="hero__visual">

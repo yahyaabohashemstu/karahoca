@@ -157,15 +157,15 @@
          position: relative;
          border-radius: 30px;
          background: rgba(255, 255, 255, 0.08);
-         backdrop-filter: blur(20px);
+         backdrop-filter: blur(12px);
          border: 1px solid rgba(255, 255, 255, 0.15);
          overflow: hidden;
          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
      }
 
      .employees-svg {
-         width: 110%;
-         height: 110%;
+         width: 100%;
+         height: 100%;
          object-fit: contain;
          position: relative;
          z-index: 2;
@@ -175,6 +175,7 @@
      /* أنيميشن حركة الكاميرا من الأسفل للأعلى */
      .camera-sequence {
          animation: cameraSequence 12s ease-in-out infinite;
+         animation-play-state: paused;
      }
 
 
@@ -188,6 +189,7 @@
          pointer-events: none;
          z-index: 1;
          animation: spotlightMove 12s ease-in-out infinite;
+         animation-play-state: paused;
      }
 
      /* تأثير الموجات */
@@ -204,6 +206,7 @@
          border: 2px solid rgba(255, 91, 46, 0.3);
          border-radius: 50%;
          animation: waveExpand 12s ease-in-out infinite;
+         animation-play-state: paused;
      }
 
      .wave:nth-child(1) {
@@ -229,7 +232,7 @@
          left: 50%;
          transform: translateX(-50%);
          background: rgba(255, 255, 255, 0.1);
-         backdrop-filter: blur(15px);
+         backdrop-filter: blur(8px);
          border: 1px solid rgba(255, 255, 255, 0.2);
          border-radius: 10px;
          padding: 2.5px 3px;
@@ -295,6 +298,7 @@
          background: rgba(255, 255, 255, 0.1);
          border-radius: 50%;
          animation: smokeRise 8s ease-out infinite;
+         animation-play-state: paused;
      }
 
      .smoke:nth-child(1) {
@@ -327,7 +331,23 @@
 
  body.light-mode .info-panel {
      background: rgba(200, 210, 225, 0.85);
-     backdrop-filter: blur(15px);
+     backdrop-filter: blur(8px);
      border: 0px solid rgba(21, 61, 122, 0.3);
      color: #15181b;
+ }
+
+ .main-container.is-visible .camera-sequence,
+ .main-container.is-visible .spotlight,
+ .main-container.is-visible .wave,
+ .main-container.is-visible .smoke {
+     animation-play-state: running;
+ }
+
+ @media (prefers-reduced-motion: reduce) {
+     .camera-sequence,
+     .spotlight,
+     .wave,
+     .smoke {
+         animation: none !important;
+     }
  }

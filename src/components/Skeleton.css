@@ -1,0 +1,169 @@
+/* Skeleton Loading Animations */
+
+/* Shimmer Animation */
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Base Skeleton Styles */
+.skeleton {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 25%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+/* Light Mode Skeleton */
+body.light-mode .skeleton {
+    background: linear-gradient(90deg,
+            rgba(0, 0, 0, 0.06) 25%,
+            rgba(0, 0, 0, 0.12) 50%,
+            rgba(0, 0, 0, 0.06) 75%);
+    background-size: 200% 100%;
+}
+
+/* Skeleton Variants */
+.skeleton-text {
+    height: 16px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.skeleton-text--title {
+    height: 32px;
+    width: 60%;
+    margin-bottom: 16px;
+}
+
+.skeleton-text--subtitle {
+    height: 20px;
+    width: 80%;
+}
+
+.skeleton-card {
+    height: 200px;
+    width: 100%;
+    border-radius: 16px;
+}
+
+.skeleton-image {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+}
+
+.skeleton-circle {
+    border-radius: 50%;
+}
+
+.skeleton-button {
+    height: 48px;
+    width: 140px;
+    border-radius: 24px;
+}
+
+/* Page Loader Container */
+.page-loader {
+    min-height: 100vh;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.page-loader__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+}
+
+body.light-mode .page-loader__header {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.page-loader__hero {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 3rem 2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 24px;
+}
+
+body.light-mode .page-loader__hero {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.page-loader__badges {
+    display: flex;
+    gap: 12px;
+}
+
+.page-loader__cta-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 1rem;
+}
+
+.page-loader__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.page-loader__section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 2rem;
+}
+
+/* Fade In Animation for Content */
+@keyframes skeleton-fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.page-loader--hiding {
+    animation: skeleton-fade-out 0.3s ease-out forwards;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .page-loader {
+        padding: 1rem;
+    }
+
+    .page-loader__header {
+        padding: 0.75rem 1rem;
+    }
+
+    .page-loader__hero {
+        padding: 1.5rem 1rem;
+    }
+
+    .page-loader__cards {
+        grid-template-columns: 1fr;
+    }
+
+    .skeleton-text--title {
+        height: 24px;
+    }
+}

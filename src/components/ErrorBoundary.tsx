@@ -1,8 +1,10 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { withTranslation } from 'react-i18next';
+import type { WithTranslation } from 'react-i18next';
 import './ErrorBoundary.css';
 
-interface Props {
+interface Props extends WithTranslation {
   children: ReactNode;
   fallback?: ReactNode;
 }
@@ -50,6 +52,8 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const { t } = this.props;
+
       // استخدام fallback مخصص إن وُجد
       if (this.props.fallback) {
         return this.props.fallback;
@@ -76,15 +80,15 @@ class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
 
-            <h1 className="error-boundary__title">عذراً، حدث خطأ غير متوقع</h1>
+            <h1 className="error-boundary__title">{t('errorBoundary.title')}</h1>
             
             <p className="error-boundary__message">
-              نعتذر عن هذا الإزعاج. حدث خطأ في تحميل هذه الصفحة.
+              {t('errorBoundary.message')}
             </p>
 
             {import.meta.env.DEV && this.state.error && (
               <details className="error-boundary__details">
-                <summary>تفاصيل الخطأ (Development Only)</summary>
+                <summary>{t('errorBoundary.details')}</summary>
                 <pre className="error-boundary__error-text">
                   {this.state.error.toString()}
                 </pre>
@@ -101,20 +105,20 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReload}
                 className="btn btn--primary"
               >
-                إعادة تحميل الصفحة
+                {t('errorBoundary.reload')}
               </button>
               <button 
                 onClick={this.handleGoHome}
                 className="btn btn--ghost"
               >
-                العودة للصفحة الرئيسية
+                {t('errorBoundary.home')}
               </button>
             </div>
 
             <p className="error-boundary__help">
-              إذا استمرت المشكلة، يرجى{' '}
+              {t('errorBoundary.help')}{' '}
               <a href="mailto:info@karahoca.com" className="error-boundary__link">
-                التواصل معنا
+                {t('errorBoundary.contact')}
               </a>
             </p>
           </div>
@@ -126,4 +130,6 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export default ErrorBoundary;
+const TranslatedErrorBoundary = withTranslation()(ErrorBoundary);
+
+export default TranslatedErrorBoundary;

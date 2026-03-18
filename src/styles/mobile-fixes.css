@@ -207,8 +207,9 @@
   }
 
   .animation-container img {
-    max-width: 100% !important;
-    height: auto !important;
+
+    max-width: 400% !important;
+    height: 400% !important;  
   }
 
   .info-panel {
@@ -319,12 +320,26 @@
     bottom: 1rem !important;
   }
 
-  .theme-toggle {
+  html[dir="rtl"] .theme-toggle {
     right: 1rem !important;
+    left: auto !important;
   }
 
-  .whatsapp-button {
+  html[dir="rtl"] .whatsapp-button {
+    left: auto !important;
+    right: 1rem !important;
+    bottom: 4.5rem !important;
+  }
+
+  html[dir="ltr"] .theme-toggle {
     left: 1rem !important;
+    right: auto !important;
+  }
+
+  html[dir="ltr"] .whatsapp-button {
+    left: 1rem !important;
+    right: auto !important;
+    bottom: 4.5rem !important;
   }
 
   /* Timeline fixes */

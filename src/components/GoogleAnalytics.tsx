@@ -60,65 +60,8 @@ const GoogleAnalytics: React.FC<GoogleAnalyticsProps> = ({ measurementId }) => {
     }
   }, [location, measurementId]);
 
-  // هذا المكون لا يعرض أي شيء
-  return null;
-};
-
-// دالة مساعدة لتتبع الأحداث المخصصة
-export const trackEvent = (
-  category: string,
-  action: string,
-  label?: string,
-  value?: number
-) => {
-  const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-  
-  if (gaId && gaId !== 'G-XXXXXXXXXX') {
-    try {
-      ReactGA.event({
-        category,
-        action,
-        label,
-        value
-      });
-
-      if (import.meta.env.DEV) {
-        console.log('📊 GA Event:', { category, action, label, value });
-      }
-    } catch (error) {
-      console.error('❌ Failed to track event:', error);
-    }
-  }
-};
-
-// دالة مساعدة لتتبع النقرات على الروابط الخارجية
-export const trackOutboundLink = (url: string, label?: string) => {
-  trackEvent('Outbound Link', 'Click', label || url);
-};
-
-// دالة مساعدة لتتبع تنزيل الملفات
-export const trackDownload = (filename: string) => {
-  trackEvent('Download', 'File', filename);
-};
-
-// دالة مساعدة لتتبع النقرات على WhatsApp
-export const trackWhatsAppClick = () => {
-  trackEvent('Contact', 'WhatsApp Click', 'Floating Button');
-};
-
-// دالة مساعدة لتتبع إرسال النماذج
-export const trackFormSubmit = (formName: string, success: boolean) => {
-  trackEvent('Form', success ? 'Submit Success' : 'Submit Error', formName);
-};
-
-// دالة مساعدة لتتبع عرض المنتجات
-export const trackProductView = (productName: string, brand: string) => {
-  trackEvent('Product', 'View', `${brand} - ${productName}`);
-};
-
-// دالة مساعدة لتتبع فتح صورة المنتج
-export const trackProductImageOpen = (productName: string) => {
-  trackEvent('Product', 'Image Open', productName);
+// هذا المكون لا يعرض أي شيء
+return null;
 };
 
 export default GoogleAnalytics;

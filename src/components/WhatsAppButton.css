@@ -5,7 +5,8 @@
 .whatsapp-button {
   position: fixed;
   bottom: 7rem;
-  right: 2rem;
+  left: auto;
+  right: auto;
   z-index: 999;
   display: flex;
   align-items: center;
@@ -26,6 +27,16 @@
   opacity: 0;
   transform: translateY(100px) scale(0.8);
   pointer-events: none;
+}
+
+html[dir="rtl"] .whatsapp-button {
+  right: 2rem;
+  left: auto;
+}
+
+html[dir="ltr"] .whatsapp-button {
+  left: 2rem;
+  right: auto;
 }
 
 .whatsapp-button--visible {
@@ -132,9 +143,18 @@
 @media (max-width: 768px) {
   .whatsapp-button {
     bottom: 6.5rem;
-    right: 1rem;
     width: 50px;
     height: 50px;
+  }
+
+  html[dir="rtl"] .whatsapp-button {
+    right: 1rem;
+    left: auto;
+  }
+
+  html[dir="ltr"] .whatsapp-button {
+    left: 1rem;
+    right: auto;
   }
 
   .whatsapp-button__icon {
