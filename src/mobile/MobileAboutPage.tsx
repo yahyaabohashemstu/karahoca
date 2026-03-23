@@ -47,7 +47,11 @@ export default function MobileAboutPage() {
     { value: "4", label: t("aboutPage.vision.industries") },
   ];
 
-  const heroBadges = [t("hero.badges.experience")];
+  const heroBadges = [
+    t("hero.badges.countries"),
+    t("hero.badges.experience"),
+    t("hero.badges.quality"),
+  ];
 
   return (
     <>

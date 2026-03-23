@@ -1494,24 +1494,33 @@
   }
 
   .m-aboutHero__badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
     position: relative;
     z-index: 1;
+    align-items: stretch;
   }
 
   .m-aboutHero__badge {
     display: inline-flex;
     align-items: center;
-    padding: 8px 12px;
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+    padding: 9px 8px;
     border-radius: 999px;
-    background: rgba(21, 61, 122, 0.26);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.4;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05)),
+      rgba(21, 61, 122, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: clamp(10px, 2.8vw, 11.5px);
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 10px 22px rgba(8, 18, 36, 0.12);
   }
 
   .m-aboutHero__stage {
@@ -1867,6 +1876,16 @@
 
     .m-aboutHero__panel {
       padding: 18px;
+    }
+
+    .m-aboutHero__badges {
+      gap: 8px;
+    }
+
+    .m-aboutHero__badge {
+      min-height: 41px;
+      padding-inline: 6px;
+      font-size: 10px;
     }
 
     .m-aboutHero__stage {
