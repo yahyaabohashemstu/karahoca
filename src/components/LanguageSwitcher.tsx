@@ -37,10 +37,6 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
     // تتبع تغيير اللغة في Analytics
     trackEvent('Language', 'Change', languageCode);
     
-    // حفظ في localStorage (يتم تلقائياً بواسطة i18next)
-    if (import.meta.env.DEV) {
-      console.log(`🌐 Language switched to: ${languageCode}`);
-    }
   };
 
   // إغلاق القائمة عند النقر خارجها
@@ -137,3 +133,4 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
 };
 
 export default LanguageSwitcher;
+

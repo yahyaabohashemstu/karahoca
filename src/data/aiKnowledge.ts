@@ -709,33 +709,32 @@ TONE & STYLE:
 `;
 
 
-/** نص ترحيبي يمكن تعديله بسهولة من ملف واحد. */
-export const assistantWelcomeMessage = `**مرحباً بك!** 👋
+/** نص ترحيبي مبني على اللغة الحالية. */
+export const getAssistantWelcomeMessage = (lang: string) => {
+  switch (normalizeLanguageCode(lang)) {
+    case 'en':
+      return `**Welcome!** 👋
 
-أنا المساعد الذكي لشركة **KARAHOCA**  
-يمكنك سؤالي بأي لغة تريد!
+I'm the AI assistant for **KARAHOCA**.
+You can ask me about our products, company, shipping, and contact details.`;
+    case 'tr':
+      return `**Hoş geldiniz!** 👋
 
----
+Ben **KARAHOCA** için hazırlanan yapay zeka asistanıyım.
+Ürünlerimiz, şirketimiz, sevkiyat ve iletişim hakkında soru sorabilirsiniz.`;
+    case 'ru':
+      return `**Добро пожаловать!** 👋
 
-**Welcome!** 👋
+Я виртуальный помощник компании **KARAHOCA**.
+Вы можете спросить меня о продукции, компании, доставке и способах связи.`;
+    case 'ar':
+    default:
+      return `**مرحباً بك!** 👋
 
-I'm **KARAHOCA**'s AI assistant  
-You can ask me in English!
-
----
-
-**Hoş geldiniz!** 👋
-
-KARAHOCA yapay zeka asistanıyım  
-Bana Türkçe sorabilirsiniz!
-
----
-
-**Добро пожаловать!** 👋
-
-Я виртуальный помощник компании **KARAHOCA**  
-Вы можете задавать мне вопросы на русском языке!`;
-
+أنا المساعد الذكي لشركة **KARAHOCA**.
+يمكنك سؤالي عن المنتجات، الشركة، الشحن، ووسائل التواصل.`;
+  }
+};
 /**
  * 🧠 دالة مساعدة لاستخراج المواضيع التي تم التطرق لها في المحادثة
  * @param conversationHistory - مصفوفة الرسائل الكاملة

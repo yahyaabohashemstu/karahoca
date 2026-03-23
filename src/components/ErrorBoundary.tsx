@@ -31,7 +31,9 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    if (import.meta.env.DEV) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    }
     
     this.setState({
       error,
@@ -133,3 +135,4 @@ class ErrorBoundary extends Component<Props, State> {
 const TranslatedErrorBoundary = withTranslation()(ErrorBoundary);
 
 export default TranslatedErrorBoundary;
+

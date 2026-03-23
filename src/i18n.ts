@@ -7,13 +7,11 @@ import {
   supportedLanguageCodes,
 } from './utils/language';
 
-// استيراد ملفات الترجمة
 import translationAR from './locales/ar/translation.json';
 import translationEN from './locales/en/translation.json';
 import translationTR from './locales/tr/translation.json';
 import translationRU from './locales/ru/translation.json';
 
-// الموارد المتاحة
 const resources = {
   ar: {
     translation: translationAR.translation
@@ -39,40 +37,32 @@ const applyDocumentLanguage = (lng?: string | null) => {
 
   document.documentElement.dir = direction;
   document.documentElement.lang = normalizedLanguage;
-
-  if (import.meta.env.DEV) {
-    console.log(`🌐 Language changed to: ${normalizedLanguage} (${direction})`);
-  }
 };
 
-// تهيئة i18next
 void i18n
-  .use(LanguageDetector) // كشف اللغة تلقائياً من المتصفح
-  .use(initReactI18next) // ربط مع React
+  .use(LanguageDetector)
+  .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'ar', // اللغة الافتراضية إذا لم يتم العثور على لغة محفوظة
+    fallbackLng: 'ar',
     supportedLngs: [...supportedLanguageCodes],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     cleanCode: true,
-    // lng: 'ar', // تم إزالته ليقرأ من localStorage أولاً
-    debug: import.meta.env.DEV, // تفعيل وضع التصحيح في التطوير
-    
+    debug: import.meta.env.DEV,
+
     interpolation: {
-      escapeValue: false // React يتعامل مع XSS تلقائياً
+      escapeValue: false
     },
 
-    // إعدادات كشف اللغة
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage'], // حفظ اللغة المختارة
+      caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng'
     },
 
-    // إعدادات RTL
     react: {
-      useSuspense: false, // تعطيل Suspense لتجنب مشاكل التحميل
+      useSuspense: false,
       bindI18n: 'languageChanged loaded',
       bindI18nStore: 'added removed',
       transEmptyNodeValue: '',
@@ -84,7 +74,6 @@ void i18n
     applyDocumentLanguage(i18n.resolvedLanguage || i18n.language);
   });
 
-// تحديث اتجاه الصفحة عند تغيير اللغة
 i18n.on('languageChanged', (lng) => {
   applyDocumentLanguage(lng);
 });

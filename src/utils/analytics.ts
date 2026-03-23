@@ -16,12 +16,10 @@ export const trackEvent = (
         label,
         value
       });
-
-      if (import.meta.env.DEV) {
-        console.log('📊 GA Event:', { category, action, label, value });
-      }
     } catch (error) {
-      console.error('❌ Failed to track event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to track event:', error);
+      }
     }
   }
 };
@@ -43,7 +41,7 @@ export const trackFormSubmit = (formName: string, success: boolean) => {
 };
 
 export const trackProductView = (productName: string, brand: string) => {
-  trackEvent('Product', 'View', `${brand} - ${productName}`);
+  trackEvent('Product', 'View', brand + ' - ' + productName);
 };
 
 export const trackProductImageOpen = (productName: string) => {

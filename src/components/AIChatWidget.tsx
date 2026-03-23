@@ -2,11 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   assistantToneGuidelines,
-  assistantWelcomeMessage,
+  getAssistantWelcomeMessage,
   buildLocalAssistantReply,
   buildKnowledgeBase,
   generateSmartSuggestions,
@@ -15,7 +14,6 @@ import {
 import { buildApiUrl } from '../utils/api';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getLanguageDirection, normalizeLanguageCode } from '../utils/language';
-import { getOrCreateUserId, getUserInfo } from '../utils/userIdentification';
 import '../styles/ai-chat.css';
 
 type MessageRole = 'user' | 'assistant';
@@ -25,6 +23,8 @@ interface ChatMessage {
   content: string;
   timestamp: string;
 }
+
+const CHAT_STORAGE_KEY = 'karahoca_ai_chat_messages';
 
 interface UIStrings {
   title: string;
@@ -144,6 +144,60 @@ const formatTimestamp = (lang: string) =>
 
 const sanitizeInput = (value: string) => value.replace(/\s+/g, ' ').trim();
 
+const isStoredChatMessage = (value: unknown): value is ChatMessage =>
+  Boolean(
+    value &&
+      typeof value === 'object' &&
+      typeof (value as ChatMessage).id === 'string' &&
+      ((value as ChatMessage).role === 'user' || (value as ChatMessage).role === 'assistant') &&
+      typeof (value as ChatMessage).content === 'string' &&
+      typeof (value as ChatMessage).timestamp === 'string'
+  );
+
+const createWelcomeMessage = (lang: string): ChatMessage => ({
+  id: 'welcome',
+  role: 'assistant',
+  content: getAssistantWelcomeMessage(lang),
+  timestamp: formatTimestamp(lang),
+});
+
+const loadStoredMessages = () => {
+  if (typeof window === 'undefined') {
+    return [] as ChatMessage[];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!rawValue) {
+      return [] as ChatMessage[];
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    if (!Array.isArray(parsedValue)) {
+      window.localStorage.removeItem(CHAT_STORAGE_KEY);
+      return [] as ChatMessage[];
+    }
+
+    return parsedValue.filter(isStoredChatMessage);
+  } catch {
+    window.localStorage.removeItem(CHAT_STORAGE_KEY);
+    return [] as ChatMessage[];
+  }
+};
+
+const persistMessagesLocally = (messages: ChatMessage[]) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (messages.length === 0) {
+    window.localStorage.removeItem(CHAT_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+};
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
@@ -233,37 +287,16 @@ const AIChatWidget: React.FC = () => {
 
   const [showWelcomeHint, setShowWelcomeHint] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: assistantWelcomeMessage,
-      timestamp: formatTimestamp(currentLang),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const storedMessages = loadStoredMessages();
+    return storedMessages.length > 0 ? storedMessages : [createWelcomeMessage(currentLang)];
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [userId, setUserId] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    const initUser = async () => {
-      try {
-        const id = await getOrCreateUserId();
-        setUserId(id);
-
-        const userInfo = await getUserInfo();
-        console.log('👤 User Info:', userInfo);
-      } catch (error) {
-        console.error('❌ Error initializing user:', error);
-      }
-    };
-
-    initUser();
-  }, []);
 
   useEffect(() => {
     if (isOpen || welcomeHintShownRef.current) {
@@ -278,11 +311,9 @@ const AIChatWidget: React.FC = () => {
       try {
         const audio = new Audio('/notification-sound.wav');
         audio.volume = 0.5;
-        audio.play().catch((error) => {
-          console.log('🔇 Audio autoplay blocked:', error.message);
-        });
+        audio.play().catch(() => {});
       } catch {
-        console.log('🔇 Audio not supported');
+        // Ignore browsers that block autoplay or do not support audio.
       }
     }, 3000);
 
@@ -290,73 +321,27 @@ const AIChatWidget: React.FC = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!userId || messages.length <= 1) {
+    const messagesToPersist = messages.filter((message) => message.id !== 'welcome');
+    persistMessagesLocally(messagesToPersist);
+  }, [messages]);
+
+  useEffect(() => {
+    const storedMessages = loadStoredMessages();
+    if (storedMessages.length > 0) {
       return;
     }
 
-    const saveTimer = window.setTimeout(async () => {
-      try {
-        const messagesToSave = messages.filter((message) => message.id !== 'welcome');
-
-        if (messagesToSave.length === 0) {
-          return;
-        }
-
-        const conversationData = {
-          userId,
-          messages: messagesToSave.map((message) => ({
-            role: message.role,
-            content: message.content.replace(/<[^>]*>/g, ''),
-            timestamp: message.timestamp,
-          })),
-        };
-
-        await axios.post(buildApiUrl('/api/conversations/save'), conversationData, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 10000,
-        });
-      } catch (error) {
-        console.error('❌ Error saving conversation:', error);
-      }
-    }, 2000);
-
-    return () => window.clearTimeout(saveTimer);
-  }, [messages, userId]);
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (!userId || messages.length <= 1) {
-        return;
+    setMessages((previousMessages) => {
+      if (
+        previousMessages.length === 1 &&
+        previousMessages[0]?.id === 'welcome'
+      ) {
+        return [createWelcomeMessage(currentLang)];
       }
 
-      const messagesToSave = messages.filter((message) => message.id !== 'welcome');
-      if (messagesToSave.length === 0) {
-        return;
-      }
-
-      const conversationData = {
-        userId,
-        messages: messagesToSave.map((message) => ({
-          role: message.role,
-          content: message.content.replace(/<[^>]*>/g, ''),
-          timestamp: message.timestamp,
-        })),
-      };
-
-      const blob = new Blob([JSON.stringify(conversationData)], {
-        type: 'application/json',
-      });
-
-      navigator.sendBeacon(buildApiUrl('/api/conversations/save'), blob);
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [messages, userId]);
+      return previousMessages;
+    });
+  }, [currentLang]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -373,33 +358,6 @@ const AIChatWidget: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isLoading]);
-
-  const saveConversationImmediately = async () => {
-    if (!userId || messages.length <= 1) {
-      return;
-    }
-
-    const messagesToSave = messages.filter((message) => message.id !== 'welcome');
-    if (messagesToSave.length === 0) {
-      return;
-    }
-
-    const conversationData = {
-      userId,
-      messages: messagesToSave.map((message) => ({
-        role: message.role,
-        content: message.content.replace(/<[^>]*>/g, ''),
-        timestamp: message.timestamp,
-      })),
-    };
-
-    await axios.post(buildApiUrl('/api/conversations/save'), conversationData, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      timeout: 5000,
-    });
-  };
 
   const handleSend = async (directMessage?: string) => {
     const cleanedInput = sanitizeInput(directMessage || inputValue);
@@ -475,7 +433,9 @@ const AIChatWidget: React.FC = () => {
         )
       );
     } catch (error) {
-      console.error('Gemini request failed:', getErrorMessage(error));
+      if (import.meta.env.DEV) {
+        console.error('Gemini request failed:', getErrorMessage(error));
+      }
       const localFallbackReply = buildLocalAssistantReply(
         cleanedInput,
         fixedT,
@@ -512,20 +472,14 @@ const AIChatWidget: React.FC = () => {
     handleSend(suggestion);
   };
 
-  const handleClose = async () => {
-    try {
-      await saveConversationImmediately();
-    } catch (error) {
-      console.error('❌ Error saving on close:', error);
-    } finally {
-      setIsOpen(false);
-      setShowWelcomeHint(false);
-    }
+  const handleClose = () => {
+    setIsOpen(false);
+    setShowWelcomeHint(false);
   };
 
-  const handleToggle = async () => {
+  const handleToggle = () => {
     if (isOpen) {
-      await handleClose();
+      handleClose();
       return;
     }
 

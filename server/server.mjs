@@ -1,28 +1,84 @@
 import { createServer } from 'node:http';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDirectory = path.join(__dirname, 'data');
-const conversationsDirectory = path.join(dataDirectory, 'conversations');
 const newsletterFile = path.join(dataDirectory, 'newsletter.json');
 
 const port = Number.parseInt(process.env.PORT || '5000', 10);
 const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+const isProduction = process.env.NODE_ENV === 'production';
 const geminiEndpoint =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
-const jsonHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json; charset=utf-8'
+const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
+const configuredAllowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => trimTrailingSlash(origin.trim()))
+    .filter(Boolean)
+);
+const localDevelopmentOrigins = new Set([
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+]);
+
+const createJsonHeaders = (requestOrigin = '') => {
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+
+  if (requestOrigin) {
+    headers['Access-Control-Allow-Origin'] = requestOrigin;
+    headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+    headers.Vary = 'Origin';
+  }
+
+  return headers;
+};
+
+const getRequestOrigin = (request) => {
+  const origin = request.headers.origin;
+  return typeof origin === 'string' ? trimTrailingSlash(origin) : '';
+};
+
+const getRequestHostOrigin = (request) => {
+  const host = typeof request.headers.host === 'string' ? request.headers.host.trim() : '';
+  if (!host) {
+    return '';
+  }
+
+  const forwardedProto = request.headers['x-forwarded-proto'];
+  const protocol =
+    typeof forwardedProto === 'string' && forwardedProto.trim().length > 0
+      ? forwardedProto.split(',')[0].trim()
+      : request.socket.encrypted
+        ? 'https'
+        : 'http';
+
+  return protocol + '://' + host;
+};
+
+const isOriginAllowed = (requestOrigin, requestHostOrigin) => {
+  if (!requestOrigin) {
+    return !isProduction;
+  }
+
+  return (
+    requestOrigin === requestHostOrigin ||
+    configuredAllowedOrigins.has(requestOrigin) ||
+    (!isProduction && localDevelopmentOrigins.has(requestOrigin))
+  );
 };
 
 const ensureDataDirectories = async () => {
-  await mkdir(conversationsDirectory, { recursive: true });
+  await mkdir(dataDirectory, { recursive: true });
 };
 
 const readRequestBody = async (request) =>
@@ -36,7 +92,7 @@ const readRequestBody = async (request) =>
     request.on('end', () => {
       try {
         resolve(rawBody ? JSON.parse(rawBody) : {});
-      } catch (error) {
+      } catch {
         reject(new Error('Invalid JSON payload.'));
       }
     });
@@ -44,8 +100,8 @@ const readRequestBody = async (request) =>
     request.on('error', reject);
   });
 
-const sendJson = (response, statusCode, payload) => {
-  response.writeHead(statusCode, jsonHeaders);
+const sendJson = (response, statusCode, payload, requestOrigin = '') => {
+  response.writeHead(statusCode, createJsonHeaders(requestOrigin));
   response.end(JSON.stringify(payload));
 };
 
@@ -69,43 +125,6 @@ const extractModelText = (payload) => {
   }
 
   return textParts.join('\n').trim();
-};
-
-const normalizeFilename = (value) => value.replace(/[^a-zA-Z0-9_-]/g, '_');
-
-const saveConversation = async ({ userId, messages }) => {
-  if (typeof userId !== 'string' || !Array.isArray(messages) || messages.length === 0) {
-    throw new Error('Invalid conversation payload.');
-  }
-
-  await ensureDataDirectories();
-
-  const safeUserId = normalizeFilename(userId);
-  const conversationPath = path.join(conversationsDirectory, `${safeUserId}.json`);
-
-  let isNew = true;
-  try {
-    await stat(conversationPath);
-    isNew = false;
-  } catch {
-    isNew = true;
-  }
-
-  const payload = {
-    userId,
-    updatedAt: new Date().toISOString(),
-    messageCount: messages.length,
-    messages
-  };
-
-  await writeFile(conversationPath, JSON.stringify(payload, null, 2), 'utf8');
-
-  return {
-    success: true,
-    conversationId: safeUserId,
-    messageCount: messages.length,
-    isNew
-  };
 };
 
 const subscribeNewsletter = async ({ email }) => {
@@ -168,14 +187,16 @@ const generateAiReply = async ({ prompt }) => {
     body: JSON.stringify({
       systemInstruction: {
         parts: [{
-          text: `You are a multilingual customer service AI for KARAHOCA company.
-
-CRITICAL INSTRUCTION: You MUST respond in the SAME LANGUAGE as the customer's question.
-- Arabic question -> Arabic response
-- English question -> English response
-- Turkish question -> Turkish response
-- Russian question -> Russian response
-- Any other language -> Same language response`
+          text: [
+            'You are a multilingual customer service AI for KARAHOCA company.',
+            '',
+            'CRITICAL INSTRUCTION: You MUST respond in the SAME LANGUAGE as the customer\'s question.',
+            '- Arabic question -> Arabic response',
+            '- English question -> English response',
+            '- Turkish question -> Turkish response',
+            '- Russian question -> Russian response',
+            '- Any other language -> Same language response'
+          ].join('\\n')
         }]
       },
       contents: [
@@ -195,7 +216,7 @@ CRITICAL INSTRUCTION: You MUST respond in the SAME LANGUAGE as the customer's qu
 
   if (!geminiResponse.ok) {
     const rawError = await geminiResponse.text();
-    const error = new Error(rawError || `Gemini request failed (${geminiResponse.status}).`);
+    const error = new Error(rawError || 'Gemini request failed (' + geminiResponse.status + ').');
     error.statusCode = geminiResponse.status;
     throw error;
   }
@@ -221,9 +242,23 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  const requestOrigin = getRequestOrigin(request);
+  const requestHostOrigin = getRequestHostOrigin(request);
+  const originAllowed = isOriginAllowed(requestOrigin, requestHostOrigin);
+
   if (request.method === 'OPTIONS') {
-    response.writeHead(204, jsonHeaders);
+    if (!originAllowed) {
+      sendJson(response, 403, { success: false, error: 'Origin is not allowed.' });
+      return;
+    }
+
+    response.writeHead(204, createJsonHeaders(requestOrigin));
     response.end();
+    return;
+  }
+
+  if (request.method === 'POST' && !originAllowed) {
+    sendJson(response, 403, { success: false, error: 'Origin is not allowed.' });
     return;
   }
 
@@ -231,34 +266,33 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && request.url === '/api/ai/chat') {
       const body = await readRequestBody(request);
       const result = await generateAiReply(body);
-      sendJson(response, 200, result);
-      return;
-    }
-
-    if (request.method === 'POST' && request.url === '/api/conversations/save') {
-      const body = await readRequestBody(request);
-      const result = await saveConversation(body);
-      sendJson(response, 200, result);
+      sendJson(response, 200, result, requestOrigin);
       return;
     }
 
     if (request.method === 'POST' && request.url === '/api/newsletter/subscribe') {
       const body = await readRequestBody(request);
       const result = await subscribeNewsletter(body);
-      sendJson(response, 200, result);
+      sendJson(response, 200, result, requestOrigin);
       return;
     }
 
-    sendJson(response, 404, { success: false, error: 'Route not found.' });
+    sendJson(response, 404, { success: false, error: 'Route not found.' }, requestOrigin);
   } catch (error) {
     const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
-    sendJson(response, statusCode, {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown server error.'
-    });
+    sendJson(
+      response,
+      statusCode,
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown server error.'
+      },
+      requestOrigin
+    );
   }
 });
 
 server.listen(port, () => {
-  console.log(`KARAHOCA API server listening on http://localhost:${port}`);
+  console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
+
