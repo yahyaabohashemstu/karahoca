@@ -146,6 +146,65 @@
          }
      }
 
+     @keyframes cameraSequenceMobile {
+         0% {
+             transform: scale(1.12) translate3d(0, 120px, 0);
+             opacity: 0.5;
+         }
+         35% {
+             transform: scale(1.08) translate3d(0, 40px, 0);
+             opacity: 0.95;
+         }
+         70% {
+             transform: scale(1.02) translate3d(0, -35px, 0);
+             opacity: 0.95;
+         }
+         100% {
+             transform: scale(0.96) translate3d(0, -110px, 0);
+             opacity: 0.35;
+         }
+     }
+
+     @keyframes spotlightMoveMobile {
+         0% {
+             transform: translate3d(-50%, 110px, 0) scale(1.3);
+             opacity: 0.35;
+         }
+         50% {
+             transform: translate3d(-50%, 10px, 0) scale(1);
+             opacity: 0.65;
+         }
+         100% {
+             transform: translate3d(-50%, -70px, 0) scale(0.82);
+             opacity: 0.2;
+         }
+     }
+
+     @keyframes waveExpandMobile {
+         0% {
+             transform: translate3d(-50%, -50%, 0) scale(0.28);
+             opacity: 0.55;
+         }
+         100% {
+             transform: translate3d(-50%, -50%, 0) scale(2.6);
+             opacity: 0;
+         }
+     }
+
+     @keyframes smokeRiseMobile {
+         0% {
+             transform: translate3d(0, 18px, 0) scale(0.6);
+             opacity: 0;
+         }
+         35% {
+             opacity: 0.22;
+         }
+         100% {
+             transform: translate3d(0, -180px, 0) scale(1.6);
+             opacity: 0;
+         }
+     }
+
  .main-container {
      position: relative;
      z-index: 1;
@@ -349,5 +408,83 @@
      .wave,
      .smoke {
          animation: none !important;
+     }
+ }
+
+ @media (max-width: 768px) {
+     .numbers-section--mobile .kpis {
+         gap: 1rem;
+         padding: 1.25rem;
+         backdrop-filter: blur(8px);
+     }
+
+     .numbers-section--mobile .animation-container {
+         width: min(90vw, 360px);
+         height: min(90vw, 360px);
+         backdrop-filter: blur(7px);
+         box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+         contain: layout paint style;
+         isolation: isolate;
+     }
+
+     .numbers-section--mobile .camera-sequence,
+     .numbers-section--mobile .spotlight,
+     .numbers-section--mobile .wave,
+     .numbers-section--mobile .smoke {
+         will-change: transform, opacity;
+         backface-visibility: hidden;
+         transform: translateZ(0);
+     }
+
+     .numbers-section--mobile .camera-sequence {
+         animation-name: cameraSequenceMobile;
+         animation-duration: 14s;
+         animation-timing-function: ease-in-out;
+     }
+
+     .numbers-section--mobile .spotlight {
+         top: 50%;
+         left: 50%;
+         width: 220px;
+         height: 220px;
+         animation-name: spotlightMoveMobile;
+         animation-duration: 14s;
+     }
+
+     .numbers-section--mobile .wave {
+         top: 50%;
+         left: 50%;
+         width: 140px;
+         height: 140px;
+         border-width: 1.5px;
+         animation-name: waveExpandMobile;
+         animation-duration: 14s;
+     }
+
+     .numbers-section--mobile .wave:nth-child(n+3),
+     .numbers-section--mobile .smoke:nth-child(n+3) {
+         display: none;
+     }
+
+     .numbers-section--mobile .smoke {
+         width: 16px;
+         height: 16px;
+         animation-name: smokeRiseMobile;
+         animation-duration: 9s;
+     }
+
+     .numbers-section--mobile .info-panel {
+         bottom: 12px;
+         width: calc(100% - 26px);
+         max-width: none;
+         padding: 14px 18px;
+     }
+
+     .numbers-section--mobile .info-title {
+         font-size: 21px;
+     }
+
+     .numbers-section--mobile .info-subtitle {
+         font-size: 13px;
      }
  }

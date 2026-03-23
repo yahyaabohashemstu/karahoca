@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const NumbersSection: React.FC = () => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile(768);
   const sectionRef = useRef<HTMLElement | null>(null);
   const countRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const experienceSvgRef = useRef<HTMLDivElement | null>(null);
@@ -30,7 +32,7 @@ const NumbersSection: React.FC = () => {
     const animateCount = (element: HTMLSpanElement, target: number) => {
       const suffix = element.getAttribute('data-suffix') || '';
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const duration = prefersReducedMotion ? 800 : 1400;
+      const duration = prefersReducedMotion ? 700 : isMobile ? 950 : 1400;
       let startTime: number | null = null;
 
       const step = (timestamp: number) => {
@@ -76,7 +78,7 @@ const NumbersSection: React.FC = () => {
       activeAnimations.forEach((frameId) => cancelAnimationFrame(frameId));
       activeAnimations.clear();
     };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -137,6 +139,8 @@ const NumbersSection: React.FC = () => {
 
     let isMounted = true;
     const timers: number[] = [];
+    let animationFrameId: number | null = null;
+    let mobileObserver: IntersectionObserver | null = null;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const schedule = (handler: () => void, delay: number) => {
@@ -163,6 +167,51 @@ const NumbersSection: React.FC = () => {
 
         if (prefersReducedMotion) {
           textElement.textContent = '30';
+          return;
+        }
+
+        if (isMobile) {
+          const runMobileAnimation = () => {
+            let startTime: number | null = null;
+            const duration = 1400;
+
+            const step = (timestamp: number) => {
+              if (!isMounted) {
+                return;
+              }
+
+              if (startTime === null) {
+                startTime = timestamp;
+              }
+
+              const progress = Math.min((timestamp - startTime) / duration, 1);
+              const value = Math.round(1 + (29 * progress));
+              textElement.textContent = value.toString();
+
+              if (progress < 1) {
+                animationFrameId = window.requestAnimationFrame(step);
+              } else {
+                animationFrameId = null;
+              }
+            };
+
+            animationFrameId = window.requestAnimationFrame(step);
+          };
+
+          mobileObserver = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  runMobileAnimation();
+                  mobileObserver?.disconnect();
+                  mobileObserver = null;
+                }
+              });
+            },
+            { threshold: 0.35 }
+          );
+
+          mobileObserver.observe(container);
           return;
         }
 
@@ -196,11 +245,19 @@ const NumbersSection: React.FC = () => {
     return () => {
       isMounted = false;
       timers.forEach((timerId) => window.clearTimeout(timerId));
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      mobileObserver?.disconnect();
     };
-  }, []);
+  }, [isMobile]);
 
   return (
-    <section ref={sectionRef} id="numbers" className="section glass-section">
+    <section
+      ref={sectionRef}
+      id="numbers"
+      className={`section glass-section${isMobile ? ' numbers-section--mobile' : ''}`}
+    >
       <div className="section-divider"></div>
       <div className="container section__head fx-reveal">
         <h2 className="section-title">{t('numbers.title')}</h2>
