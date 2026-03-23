@@ -21,6 +21,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const menuMarginLeft = currentLanguage === 'ru' ? '12rem' : '20rem';
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
+  const newsHref = isHomePage ? '#news' : '/#news';
   const numbersHref = isHomePage ? '#numbers' : '/#numbers';
   const aboutHref = isHomePage ? '#about' : '/about';
 
@@ -33,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
         <nav className="menu" aria-label={t('nav.menu')} style={{ marginRight: 'auto', marginLeft: menuMarginLeft, gap: '1.25rem' }}>
           <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
-          <Link to="/news" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</Link>
+          <a href={newsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</a>
           <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
           <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
           <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>
@@ -67,7 +68,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         aria-hidden={!isMobileMenuOpen}
       >
         <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
-        <Link to="/news" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</Link>
+        <a href={newsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</a>
         <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
         <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
         <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>

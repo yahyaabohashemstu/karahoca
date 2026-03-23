@@ -14,6 +14,7 @@ export default function MobileNavSheet({ open, onClose }: Props) {
   const isArabic = currentLanguageCode === "ar";
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
+  const newsHref = isHomePage ? '#news' : '/#news';
   const numbersHref = isHomePage ? '#numbers' : '/#numbers';
 
   return (
@@ -32,7 +33,11 @@ export default function MobileNavSheet({ open, onClose }: Props) {
         <nav className="m-nav">
           <Link to="/" onClick={onClose}>{t('nav.home')}</Link>
           <Link to="/about" onClick={onClose}>{t('nav.about')}</Link>
-          <Link to="/news" onClick={onClose}>{t('nav.news')}</Link>
+          {isHomePage ? (
+            <a href={newsHref} onClick={onClose}>{t('nav.news')}</a>
+          ) : (
+            <Link to="/#news" onClick={onClose}>{t('nav.news')}</Link>
+          )}
           {isHomePage ? (
             <a href={brandsHref} onClick={onClose}>{t('nav.brands')}</a>
           ) : (

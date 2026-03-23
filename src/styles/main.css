@@ -2675,10 +2675,10 @@ html[lang="ru"] .site-header .menu {
 }
 
 .news-section__head {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 2rem;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 1.25rem;
 }
 
 .news-section__copy,
@@ -2687,8 +2687,14 @@ html[lang="ru"] .site-header .menu {
   gap: 1rem;
 }
 
+.news-section__copy {
+  justify-items: center;
+  text-align: center;
+}
+
 .news-section__all {
   flex-shrink: 0;
+  margin-inline: auto;
 }
 
 .news-section__viewport {
@@ -2969,8 +2975,8 @@ html[dir="ltr"] .news-card {
 
 @media (max-width: 899px) {
   .news-section__head {
-    flex-direction: column;
-    align-items: flex-start;
+    justify-items: center;
+    text-align: center;
   }
 
   .news-card--featured {
