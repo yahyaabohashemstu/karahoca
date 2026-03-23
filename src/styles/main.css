@@ -2693,6 +2693,7 @@ html[lang="ru"] .site-header .menu {
 
 .news-section__viewport {
   overflow: hidden;
+  direction: ltr;
   padding: 0.5rem 0 0.25rem;
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
@@ -2700,6 +2701,8 @@ html[lang="ru"] .site-header .menu {
 .news-section__track {
   --news-gap: 24px;
   display: flex;
+  direction: ltr;
+  justify-content: flex-start;
   align-items: stretch;
   gap: var(--news-gap);
   width: max-content;
@@ -2778,6 +2781,17 @@ html[lang="ru"] .site-header .menu {
   align-content: start;
   gap: 0.9rem;
   padding: 1.35rem;
+}
+
+
+html[dir="rtl"] .news-card {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="ltr"] .news-card {
+  direction: ltr;
+  text-align: left;
 }
 
 .news-card__meta,
