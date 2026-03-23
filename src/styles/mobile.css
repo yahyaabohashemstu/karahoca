@@ -198,17 +198,28 @@
 
   .m-sheet__panel {
     position: absolute;
-    inset: 0 0 0 auto;
     width: 82%;
     background: rgba(5, 10, 22, .96);
     backdrop-filter: blur(14px);
-    border-left: 1px solid rgba(255, 255, 255, .08);
-    transform: translateX(100%);
     transition: transform .28s ease;
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 20px 16px 28px;
+  }
+
+  .m-sheet--rtl .m-sheet__panel {
+    inset: 0 0 0 auto;
+    border-left: 1px solid rgba(255, 255, 255, .08);
+    border-right: none;
+    transform: translateX(100%);
+  }
+
+  .m-sheet--ltr .m-sheet__panel {
+    inset: 0 auto 0 0;
+    border-right: 1px solid rgba(255, 255, 255, .08);
+    border-left: none;
+    transform: translateX(-100%);
   }
 
   .m-sheet--open {
@@ -1060,7 +1071,16 @@
 
   body.light-mode .m-sheet__panel {
     background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  body.light-mode .m-sheet--rtl .m-sheet__panel {
     border-left: 1px solid rgba(21, 61, 122, 0.1) !important;
+    border-right: none !important;
+  }
+
+  body.light-mode .m-sheet--ltr .m-sheet__panel {
+    border-right: 1px solid rgba(21, 61, 122, 0.1) !important;
+    border-left: none !important;
   }
 
   body.light-mode .m-nav a {

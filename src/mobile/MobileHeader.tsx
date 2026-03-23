@@ -19,8 +19,9 @@ export default function MobileHeader({ onMenu }: Props) {
   const { t, i18n } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [buttonPos, setButtonPos] = useState({ top: 0, right: 0 });
+  const [buttonPos, setButtonPos] = useState({ top: 0, left: 0, right: 0 });
   const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
+  const isArabic = currentLanguageCode === 'ar';
   
   const currentLang = languages.find(lang => lang.code === currentLanguageCode) || languages[0];
   
@@ -35,7 +36,8 @@ export default function MobileHeader({ onMenu }: Props) {
       const rect = buttonRef.current.getBoundingClientRect();
       setButtonPos({
         top: rect.bottom + 8, // 8px تحت الزر
-        right: rect.right // محاذاة من الحافة اليمنى للزر
+        left: rect.left,
+        right: window.innerWidth - rect.right
       });
     }
   }, [langOpen]);
@@ -122,15 +124,18 @@ export default function MobileHeader({ onMenu }: Props) {
             <div style={{
               position: 'fixed',
               top: `${buttonPos.top}px`,
-              right: `${Math.max(window.innerWidth - buttonPos.right, 16)}px`,
+              left: 'auto',
+              right: isArabic ? '16px' : `${Math.max(buttonPos.right, 16)}px`,
               minWidth: '160px',
+              maxWidth: 'calc(100vw - 32px)',
               padding: '0.5rem',
               background: 'rgba(5, 10, 22, 0.98)',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '16px',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)',
-              zIndex: 999
+              zIndex: 999,
+              overflow: 'hidden'
             }}>
               {languages.map((lang) => (
                 <button
@@ -138,6 +143,7 @@ export default function MobileHeader({ onMenu }: Props) {
                   onClick={() => handleLanguageChange(lang.code)}
                   style={{
                     display: 'flex',
+                    flexDirection: isArabic ? 'row-reverse' : 'row',
                     alignItems: 'center',
                     gap: '0.75rem',
                     width: '100%',
@@ -147,7 +153,7 @@ export default function MobileHeader({ onMenu }: Props) {
                     borderRadius: '12px',
                     color: lang.code === currentLanguageCode ? 'var(--primary)' : 'rgba(255, 255, 255, 0.7)',
                     cursor: 'pointer',
-                    textAlign: 'left',
+                    textAlign: isArabic ? 'right' : 'left',
                     fontSize: '0.9rem',
                     transition: 'all 0.2s ease'
                   }}

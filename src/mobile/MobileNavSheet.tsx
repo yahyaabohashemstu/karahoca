@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { normalizeLanguageCode } from "../utils/language";
 
 type Props = {
   open: boolean;
@@ -7,14 +8,19 @@ type Props = {
 };
 
 export default function MobileNavSheet({ open, onClose }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
+  const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
+  const isArabic = currentLanguageCode === "ar";
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
   const numbersHref = isHomePage ? '#numbers' : '/#numbers';
 
   return (
-    <div className={`m-sheet ${open ? 'm-sheet--open' : ''}`} aria-hidden={!open}>
+    <div
+      className={`m-sheet ${open ? 'm-sheet--open' : ''} ${isArabic ? 'm-sheet--rtl' : 'm-sheet--ltr'}`}
+      aria-hidden={!open}
+    >
       <div className="m-sheet__backdrop" onClick={onClose} />
       <aside className="m-sheet__panel" role="dialog" aria-modal="true" aria-label={t('nav.menu')}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
