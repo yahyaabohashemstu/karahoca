@@ -21,32 +21,32 @@ export default function MobileFooter() {
   const contactEmail = t('footer.contact.email');
   const contactPhone = t('footer.contact.phone');
 
-  const validateEmail = (email: string): boolean => {
+  const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(emailValue);
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
     setEmail(value);
-    
+
     if (emailError) {
       setEmailError('');
     }
-    
+
     if (submissionState === 'success') {
       setSubmissionState('idle');
     }
   };
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubscribe = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!email.trim()) {
       setEmailError(t('footer.newsletter.error.required'));
       return;
     }
-    
+
     if (!validateEmail(email)) {
       setEmailError(t('footer.newsletter.error.invalid'));
       return;
@@ -67,21 +67,19 @@ export default function MobileFooter() {
       if (!response.ok) {
         throw new Error('Newsletter subscription failed');
       }
-      
+
       setSubmissionState('success');
       setEmail('');
-      
       trackFormSubmit('Newsletter Subscription', true);
-      
+
       setTimeout(() => {
         setSubmissionState('idle');
       }, 3000);
     } catch {
       setSubmissionState('error');
       setEmailError(t('footer.newsletter.error.failed'));
-      
       trackFormSubmit('Newsletter Subscription', false);
-      
+
       setTimeout(() => {
         setSubmissionState('idle');
       }, 3000);
@@ -116,6 +114,7 @@ export default function MobileFooter() {
           ) : (
             <Link to="/#brands" className="footer-link">{t('footer.links.brands')}</Link>
           )}
+          <Link to="/news" className="footer-link">{t('footer.links.news')}</Link>
           {isHomePage ? (
             <a href={aboutHref} className="footer-link">{t('footer.links.about')}</a>
           ) : (
@@ -133,10 +132,10 @@ export default function MobileFooter() {
           <address>
             {contactAddress}<br />
             {contactEmail}<br />
-            <a 
-              href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`} 
-              style={{ 
-                color: 'inherit', 
+            <a
+              href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`}
+              style={{
+                color: 'inherit',
                 textDecoration: 'none',
                 direction: 'ltr',
                 display: 'inline-block'
@@ -145,16 +144,16 @@ export default function MobileFooter() {
               {contactPhone}
             </a>
           </address>
-          <form 
+          <form
             className={`newsletter glass-form ${submissionState !== 'idle' ? `newsletter--${submissionState}` : ''}`}
             onSubmit={handleSubscribe}
             noValidate
           >
             <div className="newsletter__input-wrapper">
-              <input 
-                type="email" 
-                placeholder={t('footer.newsletter.placeholder')} 
-                required 
+              <input
+                type="email"
+                placeholder={t('footer.newsletter.placeholder')}
+                required
                 className={`glass-input ${emailError ? 'input--error' : ''} ${submissionState === 'success' ? 'input--success' : ''}`}
                 value={email}
                 onChange={handleEmailChange}
@@ -173,8 +172,8 @@ export default function MobileFooter() {
                 </span>
               )}
             </div>
-            <button 
-              className="btn btn--primary" 
+            <button
+              className="btn btn--primary"
               type="submit"
               disabled={submissionState === 'loading'}
             >

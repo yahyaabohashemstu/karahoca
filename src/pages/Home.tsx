@@ -4,6 +4,7 @@ import SEO from '../components/SEO';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import BrandsSection from '../components/BrandsSection';
+import NewsSection from '../components/NewsSection';
 import WorkSection from '../components/WorkSection';
 import NumbersSection from '../components/NumbersSection';
 import AboutSection from '../components/AboutSection';
@@ -11,7 +12,7 @@ import Footer from '../components/Footer';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
-  
+
   return (
     <div className="home-page">
       <SEO
@@ -26,17 +27,18 @@ const Home: React.FC = () => {
         <div className="floating-orb orb-2"></div>
         <div className="floating-orb orb-3"></div>
       </div>
-      
+
       <Header />
-      
+
       <main>
         <Hero />
         <BrandsSection />
+        <NewsSection />
         <WorkSection />
         <NumbersSection />
         <AboutSection />
       </main>
-      
+
       <Footer />
     </div>
   );

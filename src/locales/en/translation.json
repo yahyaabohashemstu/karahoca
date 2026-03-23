@@ -27,7 +27,8 @@
       "contact": "Contact",
       "menu": "Menu",
       "closeMenu": "Close menu",
-      "changeLanguage": "Change language"
+      "changeLanguage": "Change language",
+      "news": "News"
     },
     "errorBoundary": {
       "title": "Sorry, something went wrong",
@@ -206,7 +207,8 @@
         "home": "Home",
         "brands": "Our Brands",
         "about": "About Us",
-        "numbers": "Numbers"
+        "numbers": "Numbers",
+        "news": "News"
       },
       "contact": {
         "title": "Contact",
@@ -711,6 +713,23 @@
           "imageAlt": "Goals Map"
         }
       }
+    },
+    "newsPage": {
+      "seo": {
+        "title": "News & Updates | KARAHOCA",
+        "description": "Follow KARAHOCA news about new product launches, distribution agreements, exhibitions, and operational upgrades.",
+        "keywords": "KARAHOCA news, product launches, trade exhibitions, distribution agreements, company updates"
+      },
+      "eyebrow": "Latest updates",
+      "sectionTitle": "News",
+      "sectionSubtitle": "New launches, fresh partnerships, and the exhibitions where we represent our brands.",
+      "pageTitle": "KARAHOCA News",
+      "pageDescription": "Stay close to our newest launches, regional expansion, exhibition presence, and the updates shaping KARAHOCA growth.",
+      "featuredLabel": "Featured story",
+      "latestLabel": "All updates",
+      "readMore": "Read more",
+      "viewAll": "All news",
+      "modalClose": "Close article"
     }
   }
 }

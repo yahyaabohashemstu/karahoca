@@ -12,11 +12,13 @@ import GoalPage from './pages/GoalPage';
 import DryerPage from './pages/DryerPage';
 import AyluxPage from './pages/AyluxPage';
 import AboutPage from './pages/AboutPage';
+import NewsPage from './pages/NewsPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
 import MobileLayout from './mobile/MobileLayout';
 import MobileHome from './mobile/MobileHome';
 import MobileAboutPage from './mobile/MobileAboutPage';
+import MobileNewsPage from './mobile/MobileNewsPage';
 import MobileDioxPage from './mobile/MobileDioxPage';
 import MobileAyluxPage from './mobile/MobileAyluxPage';
 import MobileProductionPage from './mobile/MobileProductionPage';
@@ -32,29 +34,24 @@ import './styles/professional-system.css';
 
 function App() {
   const { i18n } = useTranslation();
-
-  // حالة التحميل
   const [isLoading, setIsLoading] = useState(true);
   const [isHiding, setIsHiding] = useState(false);
 
-  // تطبيق الـ hooks للرسوم المتحركة والتحسينات
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
 
-  // الكشف عن نسخة الهاتف
   const isMobile = useIsMobile(768);
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const currentDir = getLanguageDirection(currentLang);
 
-  // محاكاة التحميل (في التطبيق الحقيقي يمكن ربطه بتحميل البيانات)
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsHiding(true);
       setTimeout(() => {
         setIsLoading(false);
-      }, 300); // انتظار انتهاء الأنيميشن
-    }, 1200); // وقت التحميل
+      }, 300);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
@@ -64,19 +61,17 @@ function App() {
       <HelmetProvider>
         <Router>
           <GoogleAnalytics />
-          {/* Skeleton Loading */}
           {isLoading && <PageLoader hiding={isHiding} />}
 
-          {/* المحتوى الرئيسي */}
           {!isLoading && (
             <>
               {isMobile ? (
-                // واجهة الهاتف المخصصة
                 <div className="App" dir={currentDir} lang={currentLang}>
                   <MobileLayout>
                     <Routes>
                       <Route path="/" element={<MobileHome />} />
                       <Route path="/about" element={<MobileAboutPage />} />
+                      <Route path="/news" element={<MobileNewsPage />} />
                       <Route path="/diox" element={<MobileDioxPage />} />
                       <Route path="/aylux" element={<MobileAyluxPage />} />
                       <Route path="/production" element={<MobileProductionPage />} />
@@ -89,11 +84,11 @@ function App() {
                   <WhatsAppButton phoneNumber="905305914990" />
                 </div>
               ) : (
-                // واجهة الكمبيوتر الأصلية
                 <div className="App" dir={currentDir} lang={currentLang}>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<AboutPage />} />
+                    <Route path="/news" element={<NewsPage />} />
                     <Route path="/diox" element={<DioxPage />} />
                     <Route path="/aylux" element={<AyluxPage />} />
                     <Route path="/production" element={<ProductionPage />} />

@@ -21,41 +21,37 @@ const Footer: React.FC = () => {
   const contactEmail = t('footer.contact.email');
   const contactPhone = t('footer.contact.phone');
 
-  const validateEmail = (email: string): boolean => {
+  const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(emailValue);
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
     setEmail(value);
-    
-    // Clear error when user starts typing
+
     if (emailError) {
       setEmailError('');
     }
-    
-    // Clear success state when user modifies email
+
     if (submissionState === 'success') {
       setSubmissionState('idle');
     }
   };
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
+  const handleSubscribe = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!email.trim()) {
       setEmailError(t('footer.newsletter.error.required'));
       return;
     }
-    
+
     if (!validateEmail(email)) {
       setEmailError(t('footer.newsletter.error.invalid'));
       return;
     }
 
-    // Simulate API call
     setSubmissionState('loading');
     setEmailError('');
 
@@ -71,25 +67,19 @@ const Footer: React.FC = () => {
       if (!response.ok) {
         throw new Error('Newsletter subscription failed');
       }
-      
+
       setSubmissionState('success');
       setEmail('');
-      
-      // تتبع نجاح إرسال النموذج
       trackFormSubmit('Newsletter Subscription', true);
-      
-      // Reset success message after 3 seconds
+
       setTimeout(() => {
         setSubmissionState('idle');
       }, 3000);
     } catch {
       setSubmissionState('error');
       setEmailError(t('footer.newsletter.error.failed'));
-      
-      // تتبع فشل إرسال النموذج
       trackFormSubmit('Newsletter Subscription', false);
-      
-      // Reset error state after 3 seconds
+
       setTimeout(() => {
         setSubmissionState('idle');
       }, 3000);
@@ -101,8 +91,8 @@ const Footer: React.FC = () => {
       <div className="section-divider"></div>
       <div className="container footer__grid">
         <section className="footer__brand">
-          <img 
-            src="/cropped-karahoca-logo-s-.webp" 
+          <img
+            src="/cropped-karahoca-logo-s-.webp"
             alt="KARAHOCA"
             style={{ height: '64px', width: 'auto', objectFit: 'contain' }}
           />
@@ -125,6 +115,7 @@ const Footer: React.FC = () => {
           <strong>{t('footer.links.title')}</strong>
           <Link to="/" className="footer-link">{t('footer.links.home')}</Link>
           <a href={brandsHref} className="footer-link">{t('footer.links.brands')}</a>
+          <Link to="/news" className="footer-link">{t('footer.links.news')}</Link>
           <a href={aboutHref} className="footer-link">{t('footer.links.about')}</a>
           <a href={numbersHref} className="footer-link">{t('footer.links.numbers')}</a>
         </nav>
@@ -134,10 +125,10 @@ const Footer: React.FC = () => {
           <address>
             {contactAddress}<br />
             {contactEmail}<br />
-            <a 
-              href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`} 
-              style={{ 
-                color: 'inherit', 
+            <a
+              href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`}
+              style={{
+                color: 'inherit',
                 textDecoration: 'none',
                 direction: 'ltr',
                 display: 'inline-block'
@@ -146,16 +137,16 @@ const Footer: React.FC = () => {
               {contactPhone}
             </a>
           </address>
-          <form 
+          <form
             className={`newsletter glass-form ${submissionState !== 'idle' ? `newsletter--${submissionState}` : ''}`}
             onSubmit={handleSubscribe}
             noValidate
           >
             <div className="newsletter__input-wrapper">
-              <input 
-                type="email" 
-                placeholder={t('footer.newsletter.placeholder')} 
-                required 
+              <input
+                type="email"
+                placeholder={t('footer.newsletter.placeholder')}
+                required
                 className={`glass-input ${emailError ? 'input--error' : ''} ${submissionState === 'success' ? 'input--success' : ''}`}
                 value={email}
                 onChange={handleEmailChange}
@@ -174,8 +165,8 @@ const Footer: React.FC = () => {
                 </span>
               )}
             </div>
-            <button 
-              className="btn btn--primary" 
+            <button
+              className="btn btn--primary"
               type="submit"
               disabled={submissionState === 'loading'}
             >

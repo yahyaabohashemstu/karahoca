@@ -27,7 +27,8 @@
       "contact": "İletişim",
       "menu": "Menü",
       "closeMenu": "Menüyü kapat",
-      "changeLanguage": "Dili değiştir"
+      "changeLanguage": "Dili değiştir",
+      "news": "Haberler"
     },
     "errorBoundary": {
       "title": "Üzgünüz, beklenmeyen bir hata oluştu",
@@ -206,7 +207,8 @@
         "home": "Ana Sayfa",
         "brands": "Markalarımız",
         "about": "Hakkımızda",
-        "numbers": "Rakamlar"
+        "numbers": "Rakamlar",
+        "news": "Haberler"
       },
       "contact": {
         "title": "İletişim",
@@ -711,6 +713,23 @@
           "imageAlt": "Hedefler Haritası"
         }
       }
+    },
+    "newsPage": {
+      "seo": {
+        "title": "Haberler ve Guncellemeler | KARAHOCA",
+        "description": "KARAHOCA hakkinda yeni urun lansmanlari, dagitim anlasmalari, fuarlar ve operasyonel gelismelerden haberdar olun.",
+        "keywords": "KARAHOCA haberler, urun lansmani, fuar katilimi, dagitim anlasmasi, sirket guncellemeleri"
+      },
+      "eyebrow": "Son gelismeler",
+      "sectionTitle": "Haberler",
+      "sectionSubtitle": "Yeni lansmanlar, is birlikleri ve markalarimizi tasidigimiz fuarlar burada.",
+      "pageTitle": "KARAHOCA Haberleri",
+      "pageDescription": "En yeni lansmanlarimizi, ticari genislememizi, fuar katilimlarimizi ve KARAHOCA buyumesini sekillendiren guncellemeleri takip edin.",
+      "featuredLabel": "One cikan haber",
+      "latestLabel": "Tum haberler",
+      "readMore": "Devamini oku",
+      "viewAll": "Tum haberler",
+      "modalClose": "Haberi kapat"
     }
   }
 }

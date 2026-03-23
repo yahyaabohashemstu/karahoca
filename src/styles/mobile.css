@@ -2216,4 +2216,123 @@
   body.light-mode .m-productChip strong {
     color: #64748b;
   }
+  .news-section.section,
+  .news-page .section {
+    padding: 32px 0;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+    backdrop-filter: none;
+  }
+
+  .news-section .section-divider,
+  .news-page .section-divider {
+    width: calc(100% - 32px);
+    margin-bottom: 18px;
+  }
+
+  .news-section__head {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .news-section__all {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .news-section__viewport {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    mask-image: none;
+  }
+
+  .news-section__track {
+    --news-gap: 14px;
+  }
+
+  .news-section__item {
+    width: min(82vw, 292px);
+  }
+
+  .news-card,
+  .news-card--compact,
+  .news-card--featured {
+    grid-template-columns: 1fr;
+    grid-template-rows: 190px 1fr;
+    border-radius: 22px;
+  }
+
+  .news-card__body {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .news-card__title,
+  .news-modal__title {
+    font-size: 20px;
+  }
+
+  .news-card__excerpt,
+  .news-modal__content p,
+  .news-page__lead {
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .news-card__action,
+  .news-page__heroButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .news-page__heroGrid {
+    gap: 16px;
+  }
+
+  .news-page__heroCopy {
+    padding: 20px;
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at top right, rgba(245, 75, 26, 0.15), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 34px rgba(7, 16, 34, 0.18);
+  }
+
+  .news-page__title {
+    font-size: 28px !important;
+    line-height: 1.15;
+  }
+
+  .news-page__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .news-modal {
+    padding: 14px;
+    z-index: 1600;
+  }
+
+  .news-modal__dialog {
+    width: min(100%, calc(100vw - 28px));
+    max-height: min(84vh, 760px);
+    border-radius: 24px;
+  }
+
+  .news-modal__media {
+    height: min(34vh, 280px);
+  }
+
+  .news-modal__body {
+    padding: 16px;
+  }
+
+  body.light-mode .news-page__heroCopy {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.88));
+    border-color: rgba(21, 61, 122, 0.1);
+    box-shadow: 0 18px 34px rgba(21, 61, 122, 0.08);
+  }
 }
+

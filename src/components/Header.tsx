@@ -18,8 +18,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // تحديد المسافة حسب اللغة
-  const menuMarginLeft = currentLanguage === 'ru' ? '16rem' : '24rem';
+  const menuMarginLeft = currentLanguage === 'ru' ? '12rem' : '20rem';
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
   const numbersHref = isHomePage ? '#numbers' : '/#numbers';
@@ -28,14 +27,13 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   return (
     <header className={`site-header glass-panel ${className}`}>
       <div className="container nav">
-        {/* Language Switcher - Fixed on the right */}
         <div style={{ marginRight: '-5rem', marginLeft: 'auto' }}>
           <LanguageSwitcher inline />
         </div>
 
-        {/* Main Navigation Menu - Moved towards left */}
-        <nav className="menu" aria-label={t('nav.brands')} style={{ marginRight: 'auto', marginLeft: menuMarginLeft, gap: '1.5rem' }}>
+        <nav className="menu" aria-label={t('nav.menu')} style={{ marginRight: 'auto', marginLeft: menuMarginLeft, gap: '1.25rem' }}>
           <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
+          <Link to="/news" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</Link>
           <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
           <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
           <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>
@@ -69,6 +67,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         aria-hidden={!isMobileMenuOpen}
       >
         <a href={brandsHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.brands')}</a>
+        <Link to="/news" className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.news')}</Link>
         <a href={numbersHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('numbers.title')}</a>
         <a href={aboutHref} className="nav-link" style={{ whiteSpace: 'nowrap' }}>{t('nav.about')}</a>
         <a href="#contact" className="btn btn--primary" style={{ whiteSpace: 'nowrap' }}>{t('nav.contact')}</a>

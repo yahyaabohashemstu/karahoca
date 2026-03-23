@@ -23,15 +23,16 @@ export default function MobileNavSheet({ open, onClose }: Props) {
     >
       <div className="m-sheet__backdrop" onClick={onClose} />
       <aside className="m-sheet__panel" role="dialog" aria-modal="true" aria-label={t('nav.menu')}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10}}>
-          <strong style={{letterSpacing:'.3px'}}>{t('nav.menu')}</strong>
-          <button onClick={onClose} aria-label={t('nav.closeMenu')} style={{ background:'transparent', border:0, color:'#fff' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 5.71L12 12.01 5.7 5.7 4.29 7.11l6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z"/></svg>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <strong style={{ letterSpacing: '.3px' }}>{t('nav.menu')}</strong>
+          <button onClick={onClose} aria-label={t('nav.closeMenu')} style={{ background: 'transparent', border: 0, color: '#fff' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 5.71L12 12.01 5.7 5.7 4.29 7.11l6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z" /></svg>
           </button>
         </div>
         <nav className="m-nav">
           <Link to="/" onClick={onClose}>{t('nav.home')}</Link>
           <Link to="/about" onClick={onClose}>{t('nav.about')}</Link>
+          <Link to="/news" onClick={onClose}>{t('nav.news')}</Link>
           {isHomePage ? (
             <a href={brandsHref} onClick={onClose}>{t('nav.brands')}</a>
           ) : (
