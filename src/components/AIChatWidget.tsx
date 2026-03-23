@@ -13,6 +13,7 @@ import {
   type KnowledgeSection,
 } from '../data/aiKnowledge';
 import { buildApiUrl } from '../utils/api';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { getLanguageDirection, normalizeLanguageCode } from '../utils/language';
 import { getOrCreateUserId, getUserInfo } from '../utils/userIdentification';
 import '../styles/ai-chat.css';
@@ -225,6 +226,7 @@ const AIChatWidget: React.FC = () => {
   const { i18n } = useTranslation();
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isRtl = getLanguageDirection(currentLang) === 'rtl';
+  const isMobile = useIsMobile(768);
   const uiText = useMemo(() => getUIText(currentLang), [currentLang]);
   const fixedT = useMemo(() => i18n.getFixedT(currentLang), [i18n, currentLang]);
   const welcomeHintShownRef = useRef(false);
@@ -538,25 +540,26 @@ const AIChatWidget: React.FC = () => {
           className="ai-assistant__welcome-hint"
           style={{
             position: 'absolute',
-            bottom: '8px',
-            left: isRtl ? '72px' : 'auto',
-            right: isRtl ? 'auto' : '72px',
+            bottom: isMobile ? '6px' : '8px',
+            left: isRtl ? (isMobile ? '58px' : '72px') : 'auto',
+            right: isRtl ? 'auto' : (isMobile ? '58px' : '72px'),
             background: 'var(--orange, #f54b1a)',
             color: '#fff',
-            borderRadius: '20px',
+            borderRadius: isMobile ? '16px' : '20px',
             boxShadow: '0 4px 24px rgba(10,42,94,0.10)',
-            padding: '0.5rem 1.5rem',
-            fontSize: '1.08rem',
+            padding: isMobile ? '0.42rem 1rem' : '0.5rem 1.5rem',
+            fontSize: isMobile ? '0.92rem' : '1.08rem',
             fontWeight: '500',
             zIndex: 999,
             cursor: 'pointer',
             transition: 'opacity 0.5s',
-            minWidth: '160px',
-            maxWidth: '340px',
+            minWidth: isMobile ? '128px' : '160px',
+            maxWidth: isMobile ? '250px' : '340px',
             whiteSpace: 'nowrap',
             direction: isRtl ? 'rtl' : 'ltr',
             textAlign: isRtl ? 'right' : 'left',
             display: 'inline-block',
+            lineHeight: 1.35,
           }}
           onClick={() => setShowWelcomeHint(false)}
           title={uiText.closeWelcomeHint}

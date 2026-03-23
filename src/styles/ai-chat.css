@@ -455,8 +455,9 @@ body.light-mode .ai-assistant__message th {
   }
 
   .ai-assistant__toggle {
-    width: 56px;
-    height: 56px;
+    width: 46px;
+    height: 46px;
+    font-size: 1.2rem;
   }
 
   .ai-assistant__window {

@@ -8,6 +8,9 @@
     --khc-orange: #f54b1a;
     --khc-glass: rgba(255, 255, 255, .08);
     --khc-white: #ffffff;
+    --khc-fab-size: 46px;
+    --khc-fab-icon-size: 20px;
+    --khc-ai-fab-icon-size: 1.2rem;
     --radius-xl: 20px;
     --radius-lg: 16px;
     --radius-md: 12px;
@@ -738,8 +741,8 @@
   .whatsapp-button {
     position: fixed !important;
     z-index: 999 !important;
-    width: 56px !important;
-    height: 56px !important;
+    width: var(--khc-fab-size) !important;
+    height: var(--khc-fab-size) !important;
     border-radius: 50% !important;
     background: rgba(255, 255, 255, .12) !important;
     backdrop-filter: blur(12px) !important;
@@ -749,6 +752,12 @@
     align-items: center !important;
     justify-content: center !important;
     transition: all .3s ease !important;
+  }
+
+  .theme-toggle svg,
+  .whatsapp-button__icon {
+    width: var(--khc-fab-icon-size) !important;
+    height: var(--khc-fab-icon-size) !important;
   }
 
   html[dir="rtl"] .whatsapp-button {
@@ -803,8 +812,10 @@
   }
 
   .ai-assistant__toggle {
-    width: 56px !important;
-    height: 56px !important;
+    width: var(--khc-fab-size) !important;
+    height: var(--khc-fab-size) !important;
+    font-size: var(--khc-ai-fab-icon-size) !important;
+    line-height: 1 !important;
   }
 
   .ai-assistant__toggle:active {
@@ -1530,25 +1541,29 @@
   .m-productModal {
     position: fixed;
     inset: 0;
-    z-index: 210;
+    z-index: 1200;
     display: grid;
-    align-items: end;
-    padding: 18px 16px;
+    place-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
     background: rgba(2, 6, 16, 0.72);
     backdrop-filter: blur(14px);
   }
 
   .m-productModal__dialog {
     position: relative;
-    max-height: min(82vh, 720px);
+    width: min(440px, calc(100vw - 32px));
+    max-height: min(78vh, 720px);
     overflow: auto;
-    padding: 18px;
+    padding: 18px 18px 20px;
+    border-radius: 24px;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
   }
 
   .m-productModal__close {
-    position: sticky;
-    top: 0;
-    margin-inline-start: auto;
+    position: absolute;
+    top: 14px;
+    inset-inline-end: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1560,11 +1575,11 @@
     color: #fff;
     font-size: 26px;
     line-height: 1;
-    z-index: 1;
+    z-index: 2;
   }
 
   .m-productModal__media {
-    margin-top: 6px;
+    margin-top: 18px;
     border-radius: 18px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.04);
@@ -1600,6 +1615,21 @@
 
     .m-brandHero__subtitle {
       font-size: 21px;
+    }
+
+    .m-productModal {
+      padding: 14px;
+    }
+
+    .m-productModal__dialog {
+      width: min(100%, calc(100vw - 28px));
+      max-height: min(76vh, 680px);
+      padding: 16px 16px 18px;
+      border-radius: 22px;
+    }
+
+    .m-productModal__media img {
+      height: min(38vh, 300px);
     }
   }
 
