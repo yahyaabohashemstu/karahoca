@@ -19,7 +19,7 @@ export default function MobileHeader({ onMenu }: Props) {
   const { t, i18n } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [buttonPos, setButtonPos] = useState({ top: 0, left: 0, right: 0 });
+  const [buttonPos, setButtonPos] = useState({ top: 0, left: 0, right: 0, width: 0 });
   const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isArabic = currentLanguageCode === 'ar';
   
@@ -37,10 +37,17 @@ export default function MobileHeader({ onMenu }: Props) {
       setButtonPos({
         top: rect.bottom + 8, // 8px تحت الزر
         left: rect.left,
-        right: window.innerWidth - rect.right
+        right: window.innerWidth - rect.right,
+        width: rect.width
       });
     }
   }, [langOpen]);
+
+  const dropdownWidth = Math.min(184, window.innerWidth - 32);
+  const dropdownLeft = Math.min(
+    Math.max(buttonPos.left + buttonPos.width + 8, 16),
+    window.innerWidth - dropdownWidth - 16
+  );
 
   // إغلاق الـ dropdown عند السكرول
   useEffect(() => {
@@ -124,9 +131,9 @@ export default function MobileHeader({ onMenu }: Props) {
             <div style={{
               position: 'fixed',
               top: `${buttonPos.top}px`,
-              left: 'auto',
-              right: isArabic ? '16px' : `${Math.max(buttonPos.right, 16)}px`,
-              minWidth: '160px',
+              left: isArabic ? `${dropdownLeft}px` : 'auto',
+              right: isArabic ? 'auto' : `${Math.max(buttonPos.right, 16)}px`,
+              width: `${dropdownWidth}px`,
               maxWidth: 'calc(100vw - 32px)',
               padding: '0.5rem',
               background: 'rgba(5, 10, 22, 0.98)',
