@@ -47,11 +47,7 @@ export default function MobileAboutPage() {
     { value: "4", label: t("aboutPage.vision.industries") },
   ];
 
-  const heroBadges = [
-    t("hero.badges.quality"),
-    t("hero.badges.experience"),
-    t("hero.badges.countries"),
-  ];
+  const heroBadges = [t("hero.badges.experience")];
 
   return (
     <>
@@ -84,13 +80,6 @@ export default function MobileAboutPage() {
               <figure className="m-aboutHero__primaryShot">
                 <img src="/KARAHOCA-2-wb.webp" alt={t("aboutPage.hero.imageAlt")} />
               </figure>
-              <figure className="m-aboutHero__secondaryShot">
-                <img src="/KARAHOCA-1-newPhoto.webp" alt={t("aboutPage.vision.imageAlt")} />
-              </figure>
-              <div className="m-aboutHero__stageChip">
-                <strong>{t("hero.badges.quality")}</strong>
-                <span>{t("hero.badges.countries")}</span>
-              </div>
             </div>
 
             <div className="m-aboutHero__actions">
