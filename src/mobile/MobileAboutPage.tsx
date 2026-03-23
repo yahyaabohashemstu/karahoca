@@ -47,6 +47,12 @@ export default function MobileAboutPage() {
     { value: "4", label: t("aboutPage.vision.industries") },
   ];
 
+  const heroBadges = [
+    t("hero.badges.quality"),
+    t("hero.badges.experience"),
+    t("hero.badges.countries"),
+  ];
+
   return (
     <>
       <SEO
@@ -57,18 +63,42 @@ export default function MobileAboutPage() {
         ogImage="/KARAHOCA-1-newPhoto.webp"
       />
 
-      <main className="m-page">
-        <section className="m-pageHero m-container">
-          <div className="m-pageHero__content">
-            <span className="m-pageHero__eyebrow">{t("nav.about")}</span>
-            <h1 className="m-pageHero__title">{t("aboutPage.hero.title")}</h1>
-            <p className="m-pageHero__desc">{t("aboutPage.hero.description")}</p>
-            <div className="m-pageHero__badges">
-              <span className="m-pageHero__badge">{t("hero.badges.quality")}</span>
-              <span className="m-pageHero__badge">{t("hero.badges.experience")}</span>
-              <span className="m-pageHero__badge">{t("hero.badges.countries")}</span>
+      <main className="m-page m-aboutPage">
+        <section className="m-aboutHero m-container">
+          <div className="m-aboutHero__panel m-card">
+            <div className="m-aboutHero__copy">
+              <span className="m-aboutEyebrow">{t("nav.about")}</span>
+              <h1 className="m-aboutHero__title">{t("aboutPage.hero.title")}</h1>
+              <p className="m-aboutHero__desc">{t("aboutPage.hero.description")}</p>
             </div>
-            <div className="m-pageHero__actions">
+
+            <div className="m-aboutHero__badges">
+              {heroBadges.map((badge) => (
+                <span key={badge} className="m-aboutHero__badge">
+                  {badge}
+                </span>
+              ))}
+            </div>
+
+            <div className="m-aboutHero__gallery">
+              <figure className="m-aboutHero__visual m-aboutHero__visual--primary m-card">
+                <img src="/KARAHOCA-2-wb.webp" alt={t("aboutPage.hero.imageAlt")} />
+              </figure>
+              <figure className="m-aboutHero__visual m-aboutHero__visual--secondary m-card">
+                <img src="/KARAHOCA-1-newPhoto.webp" alt={t("aboutPage.vision.imageAlt")} />
+              </figure>
+            </div>
+
+            <div className="m-aboutHero__stats">
+              {stats.map((stat) => (
+                <article key={stat.label} className="m-aboutHero__stat">
+                  <strong>{stat.value}</strong>
+                  <span>{stat.label}</span>
+                </article>
+              ))}
+            </div>
+
+            <div className="m-aboutHero__actions">
               <a href="#history" className="m-cta">
                 {t("aboutPage.history.title")}
               </a>
@@ -77,36 +107,52 @@ export default function MobileAboutPage() {
               </a>
             </div>
           </div>
-
-          <div className="m-pageHero__visual m-card">
-            <img src="/KARAHOCA-2-wb.webp" alt={t("aboutPage.hero.imageAlt")} />
-          </div>
         </section>
 
         <section id="history" className="m-pageSection m-container">
-          <div className="m-section-header">
+          <div className="m-section-header m-aboutSectionHeader">
+            <span className="m-aboutSectionHeader__eyebrow">
+              {t("hero.badges.experience")}
+            </span>
             <h2 className="m-section-title">{t("aboutPage.history.title")}</h2>
           </div>
-          <div className="m-copyStack">
-            <article className="m-richCard m-card">
+
+          <div className="m-aboutStoryGrid">
+            <article className="m-aboutStoryCard m-aboutStoryCard--lead m-card">
+              <span className="m-aboutStoryCard__label">
+                {t("aboutPage.hero.title")}
+              </span>
               <p>{t("aboutPage.history.paragraph1")}</p>
             </article>
-            <article className="m-richCard m-card">
+
+            <article className="m-aboutStoryCard m-card">
+              <span className="m-aboutStoryCard__label">
+                {t("aboutPage.vision.title")}
+              </span>
               <p>{t("aboutPage.history.paragraph2")}</p>
             </article>
           </div>
         </section>
 
         <section className="m-pageSection m-container">
-          <div className="m-section-header">
+          <div className="m-section-header m-aboutSectionHeader">
+            <span className="m-aboutSectionHeader__eyebrow">
+              {t("hero.badges.experience")}
+            </span>
             <h2 className="m-section-title">{t("aboutPage.milestones.title")}</h2>
           </div>
 
-          <div className="m-timeline">
-            {milestones.map((milestone) => (
-              <article key={milestone.year} className="m-timelineItem m-card">
-                <div className="m-timelineItem__year">{milestone.year}</div>
-                <div className="m-timelineItem__body">
+          <div className="m-aboutTimeline">
+            {milestones.map((milestone, index) => (
+              <article key={milestone.year} className="m-aboutTimeline__item m-card">
+                <div className="m-aboutTimeline__rail" aria-hidden="true">
+                  <span className="m-aboutTimeline__dot" />
+                  {index < milestones.length - 1 && (
+                    <span className="m-aboutTimeline__line" />
+                  )}
+                </div>
+                <div className="m-aboutTimeline__content">
+                  <div className="m-aboutTimeline__year">{milestone.year}</div>
                   <h3>{milestone.title}</h3>
                   <p>{milestone.description}</p>
                 </div>
@@ -116,21 +162,20 @@ export default function MobileAboutPage() {
         </section>
 
         <section className="m-pageSection m-container">
-          <div className="m-section-header">
-            <h2 className="m-section-title">{t("aboutPage.vision.title")}</h2>
-          </div>
-
-          <div className="m-featureCard m-card">
-            <div className="m-featureCard__media">
+          <div className="m-aboutVision m-card">
+            <div className="m-aboutVision__media">
               <img src="/KARAHOCA-1-newPhoto.webp" alt={t("aboutPage.vision.imageAlt")} />
             </div>
-            <div className="m-featureCard__content">
-              <h3 className="m-featureCard__title">{t("aboutPage.vision.title")}</h3>
-              <p className="m-featureCard__text">{t("aboutPage.vision.description")}</p>
+            <div className="m-aboutVision__body">
+              <span className="m-aboutSectionHeader__eyebrow">
+                {t("hero.badges.countries")}
+              </span>
+              <h2 className="m-aboutVision__title">{t("aboutPage.vision.title")}</h2>
+              <p className="m-aboutVision__text">{t("aboutPage.vision.description")}</p>
 
-              <div className="m-aboutStats">
+              <div className="m-aboutVision__stats">
                 {stats.map((stat) => (
-                  <article key={stat.label} className="m-aboutStat">
+                  <article key={stat.label} className="m-aboutVision__stat">
                     <strong>{stat.value}</strong>
                     <span>{stat.label}</span>
                   </article>
@@ -141,23 +186,49 @@ export default function MobileAboutPage() {
         </section>
 
         <section className="m-pageSection m-container">
-          <div className="m-section-header">
+          <div className="m-section-header m-aboutSectionHeader">
+            <span className="m-aboutSectionHeader__eyebrow">
+              {t("hero.badges.quality")}
+            </span>
             <h2 className="m-section-title">{t("aboutPage.values.title")}</h2>
           </div>
 
-          <div className="m-pageCards">
-            {values.map((value) => (
-              <article key={value.title} className="m-infoCard m-card">
-                <span
-                  className="m-infoCard__accent"
-                  style={{ background: value.accent }}
-                />
-                <div className="m-infoCard__body">
-                  <h3 className="m-infoCard__title">{value.title}</h3>
-                  <p className="m-infoCard__desc">{value.description}</p>
+          <div className="m-aboutValuesGrid">
+            {values.map((value, index) => (
+              <article key={value.title} className="m-aboutValueCard m-card">
+                <div className="m-aboutValueCard__top">
+                  <span className="m-aboutValueCard__index">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className="m-aboutValueCard__bar"
+                    style={{ background: value.accent }}
+                  />
                 </div>
+                <h3 className="m-aboutValueCard__title">{value.title}</h3>
+                <p className="m-aboutValueCard__desc">{value.description}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section id="contact" className="m-pageSection m-container">
+          <div className="m-aboutJourney m-card">
+            <div className="m-aboutJourney__copy">
+              <span className="m-aboutSectionHeader__eyebrow">
+                {t("nav.contact")}
+              </span>
+              <h2 className="m-aboutJourney__title">{t("aboutPage.hero.title")}</h2>
+              <p className="m-aboutJourney__desc">{t("footer.description")}</p>
+            </div>
+            <div className="m-aboutJourney__actions">
+              <a href="mailto:info@karahoca.com" className="m-ghost">
+                info@karahoca.com
+              </a>
+              <a href="https://wa.me/905305914990" className="m-cta">
+                WhatsApp
+              </a>
+            </div>
           </div>
         </section>
       </main>

@@ -1405,6 +1405,478 @@
     color: rgba(255, 255, 255, 0.76);
   }
 
+  .m-aboutPage {
+    gap: 32px;
+    padding-top: 14px;
+    padding-bottom: 40px;
+  }
+
+  .m-aboutHero {
+    padding-top: 6px;
+  }
+
+  .m-aboutHero__panel,
+  .m-aboutStoryCard,
+  .m-aboutTimeline__item,
+  .m-aboutVision,
+  .m-aboutValueCard,
+  .m-aboutJourney {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .m-aboutHero__panel {
+    display: grid;
+    gap: 18px;
+    padding: 22px;
+    background:
+      radial-gradient(circle at top right, rgba(245, 75, 26, 0.18), transparent 34%),
+      radial-gradient(circle at top left, rgba(106, 153, 255, 0.18), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    border-color: rgba(255, 255, 255, 0.11);
+    box-shadow: 0 20px 42px rgba(4, 11, 25, 0.26);
+  }
+
+  .m-aboutHero__copy,
+  .m-aboutJourney__copy {
+    display: grid;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .m-aboutEyebrow,
+  .m-aboutSectionHeader__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(245, 75, 26, 0.14);
+    border: 1px solid rgba(245, 75, 26, 0.28);
+    color: #ffe0d5;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+
+  .m-aboutSectionHeader {
+    display: grid;
+    gap: 10px;
+  }
+
+  .m-aboutSectionHeader .m-section-title {
+    margin: 0;
+  }
+
+  .m-aboutHero__title,
+  .m-aboutVision__title,
+  .m-aboutJourney__title {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.12;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+  }
+
+  .m-aboutHero__desc,
+  .m-aboutStoryCard p,
+  .m-aboutTimeline__content p,
+  .m-aboutVision__text,
+  .m-aboutValueCard__desc,
+  .m-aboutJourney__desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.9;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .m-aboutHero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .m-aboutHero__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(21, 61, 122, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .m-aboutHero__gallery {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 12px;
+    align-items: end;
+    position: relative;
+    z-index: 1;
+  }
+
+  .m-aboutHero__visual {
+    margin: 0;
+    padding: 12px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+      rgba(9, 18, 39, 0.38);
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  .m-aboutHero__visual img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 16px;
+  }
+
+  .m-aboutHero__visual--primary {
+    min-height: 248px;
+  }
+
+  .m-aboutHero__visual--secondary {
+    min-height: 188px;
+    transform: translateY(18px);
+  }
+
+  .m-aboutHero__stats,
+  .m-aboutVision__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .m-aboutHero__stat,
+  .m-aboutVision__stat {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-height: 94px;
+    padding: 16px 14px;
+    border-radius: 18px;
+    background: rgba(5, 16, 40, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .m-aboutHero__stat::before,
+  .m-aboutVision__stat::before {
+    content: "";
+    position: absolute;
+    inset-block: 14px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--khc-orange), rgba(255, 255, 255, 0));
+  }
+
+  .m-aboutHero__stat strong,
+  .m-aboutVision__stat strong {
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.05;
+    color: #ffffff;
+  }
+
+  .m-aboutHero__stat span,
+  .m-aboutVision__stat span {
+    font-size: 12px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.74);
+  }
+
+  .m-aboutHero__actions,
+  .m-aboutJourney__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .m-aboutHero__actions .m-cta,
+  .m-aboutHero__actions .m-ghost,
+  .m-aboutJourney__actions .m-cta,
+  .m-aboutJourney__actions .m-ghost {
+    width: 100%;
+    text-decoration: none;
+  }
+
+  .m-aboutJourney__actions {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+
+  .m-aboutJourney__actions .m-cta,
+  .m-aboutJourney__actions .m-ghost {
+    min-height: 50px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .m-aboutStoryGrid,
+  .m-aboutTimeline,
+  .m-aboutValuesGrid {
+    display: grid;
+    gap: 14px;
+  }
+
+  .m-aboutStoryCard {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04)),
+      rgba(7, 16, 34, 0.3);
+  }
+
+  .m-aboutStoryCard--lead::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -18px;
+    top: -22px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 75, 26, 0.2), transparent 70%);
+  }
+
+  .m-aboutStoryCard__label {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+  }
+
+  .m-aboutTimeline__item {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+      rgba(7, 16, 34, 0.3);
+  }
+
+  .m-aboutTimeline__rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-self: stretch;
+  }
+
+  .m-aboutTimeline__dot {
+    width: 12px;
+    height: 12px;
+    margin-top: 7px;
+    border-radius: 50%;
+    background: var(--khc-orange);
+    box-shadow: 0 0 0 5px rgba(245, 75, 26, 0.14);
+    flex-shrink: 0;
+  }
+
+  .m-aboutTimeline__line {
+    position: absolute;
+    top: 20px;
+    bottom: -18px;
+    width: 2px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(245, 75, 26, 0.55), rgba(255, 255, 255, 0.06));
+  }
+
+  .m-aboutTimeline__content {
+    display: grid;
+    gap: 8px;
+  }
+
+  .m-aboutTimeline__year {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(21, 61, 122, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+
+  .m-aboutTimeline__content h3,
+  .m-aboutValueCard__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+
+  .m-aboutVision {
+    display: grid;
+    gap: 0;
+    padding: 0;
+    background:
+      radial-gradient(circle at top left, rgba(245, 75, 26, 0.16), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  }
+
+  .m-aboutVision__media {
+    padding: 14px 14px 0;
+  }
+
+  .m-aboutVision__media img {
+    display: block;
+    width: 100%;
+    height: 228px;
+    object-fit: cover;
+    border-radius: 22px;
+  }
+
+  .m-aboutVision__body {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+  }
+
+  .m-aboutValueCard {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+      rgba(7, 16, 34, 0.28);
+  }
+
+  .m-aboutValueCard__top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .m-aboutValueCard__index {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.56);
+    white-space: nowrap;
+  }
+
+  .m-aboutValueCard__bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    opacity: 0.95;
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.03);
+  }
+
+  .m-aboutJourney {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+    background:
+      radial-gradient(circle at top right, rgba(245, 75, 26, 0.15), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  }
+
+  body.light-mode .m-aboutEyebrow,
+  body.light-mode .m-aboutSectionHeader__eyebrow {
+    background: rgba(245, 75, 26, 0.12) !important;
+    border-color: rgba(245, 75, 26, 0.25) !important;
+    color: #f54b1a !important;
+  }
+
+  body.light-mode .m-aboutHero__panel,
+  body.light-mode .m-aboutStoryCard,
+  body.light-mode .m-aboutTimeline__item,
+  body.light-mode .m-aboutVision,
+  body.light-mode .m-aboutValueCard,
+  body.light-mode .m-aboutJourney {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.84)) !important;
+    border: 1px solid rgba(21, 61, 122, 0.1) !important;
+    box-shadow: 0 18px 36px rgba(21, 61, 122, 0.1) !important;
+  }
+
+  body.light-mode .m-aboutHero__visual,
+  body.light-mode .m-aboutHero__stat,
+  body.light-mode .m-aboutVision__stat {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(21, 61, 122, 0.12) !important;
+  }
+
+  body.light-mode .m-aboutHero__title,
+  body.light-mode .m-aboutVision__title,
+  body.light-mode .m-aboutValueCard__title,
+  body.light-mode .m-aboutJourney__title,
+  body.light-mode .m-aboutTimeline__content h3 {
+    color: #1e293b !important;
+  }
+
+  body.light-mode .m-aboutHero__desc,
+  body.light-mode .m-aboutStoryCard p,
+  body.light-mode .m-aboutTimeline__content p,
+  body.light-mode .m-aboutVision__text,
+  body.light-mode .m-aboutValueCard__desc,
+  body.light-mode .m-aboutJourney__desc,
+  body.light-mode .m-aboutHero__stat span,
+  body.light-mode .m-aboutVision__stat span,
+  body.light-mode .m-aboutValueCard__index {
+    color: #475569 !important;
+  }
+
+  body.light-mode .m-aboutHero__badge,
+  body.light-mode .m-aboutStoryCard__label,
+  body.light-mode .m-aboutTimeline__year {
+    background: rgba(21, 61, 122, 0.08) !important;
+    border: 1px solid rgba(21, 61, 122, 0.12) !important;
+    color: #153D7A !important;
+  }
+
+  body.light-mode .m-aboutHero__stat strong,
+  body.light-mode .m-aboutVision__stat strong {
+    color: #153D7A !important;
+  }
+
+  @media (max-width: 380px) {
+    .m-aboutHero__title,
+    .m-aboutVision__title,
+    .m-aboutJourney__title {
+      font-size: 27px;
+    }
+
+    .m-aboutHero__panel {
+      padding: 18px;
+    }
+
+    .m-aboutHero__gallery {
+      grid-template-columns: 1fr;
+    }
+
+    .m-aboutHero__visual--secondary {
+      min-height: 168px;
+      transform: none;
+    }
+  }
+
   .m-brandHero__name {
     display: block;
     color: var(--khc-orange);
