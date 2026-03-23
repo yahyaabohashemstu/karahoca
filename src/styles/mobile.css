@@ -1514,43 +1514,90 @@
     line-height: 1.4;
   }
 
-  .m-aboutHero__gallery {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 12px;
-    align-items: end;
-    position: relative;
-    z-index: 1;
-  }
-
-  .m-aboutHero__visual {
+  .m-aboutHero__stage {
     margin: 0;
-    padding: 12px;
+    position: relative;
+    padding: 14px 14px 86px;
+    min-height: 332px;
     background:
+      radial-gradient(circle at top right, rgba(245, 75, 26, 0.18), transparent 36%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
-      rgba(9, 18, 39, 0.38);
-    border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+      rgba(9, 18, 39, 0.42);
+    border-radius: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
-  .m-aboutHero__visual img {
+  .m-aboutHero__primaryShot,
+  .m-aboutHero__secondaryShot {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .m-aboutHero__primaryShot {
+    height: 228px;
+    border-radius: 28px;
+    box-shadow: 0 20px 38px rgba(10, 22, 44, 0.18);
+  }
+
+  .m-aboutHero__primaryShot img,
+  .m-aboutHero__secondaryShot img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+  }
+
+  .m-aboutHero__secondaryShot {
+    position: absolute;
+    inset-inline-start: 18px;
+    bottom: 18px;
+    width: min(42%, 152px);
+    height: 112px;
+    padding: 6px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    box-shadow: 0 18px 32px rgba(8, 18, 36, 0.18);
+    transform: rotate(-3deg);
+  }
+
+  .m-aboutHero__secondaryShot img {
     border-radius: 16px;
   }
 
-  .m-aboutHero__visual--primary {
-    min-height: 248px;
+  .m-aboutHero__stageChip {
+    position: absolute;
+    inset-inline-end: 18px;
+    bottom: 24px;
+    display: grid;
+    gap: 4px;
+    max-width: min(52%, 180px);
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(6, 17, 38, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 16px 30px rgba(8, 18, 36, 0.18);
   }
 
-  .m-aboutHero__visual--secondary {
-    min-height: 188px;
-    transform: translateY(18px);
+  .m-aboutHero__stageChip strong,
+  .m-aboutHero__stageChip span {
+    display: block;
+    line-height: 1.45;
   }
 
-  .m-aboutHero__stats,
+  .m-aboutHero__stageChip strong {
+    font-size: 13px;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .m-aboutHero__stageChip span {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
   .m-aboutVision__stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1559,31 +1606,29 @@
     z-index: 1;
   }
 
-  .m-aboutHero__stat,
   .m-aboutVision__stat {
     position: relative;
     display: grid;
     gap: 6px;
     align-content: start;
     min-height: 94px;
-    padding: 16px 14px;
+    padding: 18px 14px 16px;
     border-radius: 18px;
     background: rgba(5, 16, 40, 0.28);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .m-aboutHero__stat::before,
   .m-aboutVision__stat::before {
     content: "";
     position: absolute;
-    inset-block: 14px;
-    inset-inline-start: 0;
-    width: 3px;
+    top: 14px;
+    inset-inline-end: 0;
+    width: 4px;
+    height: calc(100% - 28px);
     border-radius: 999px;
     background: linear-gradient(180deg, var(--khc-orange), rgba(255, 255, 255, 0));
   }
 
-  .m-aboutHero__stat strong,
   .m-aboutVision__stat strong {
     font-size: 24px;
     font-weight: 900;
@@ -1591,7 +1636,6 @@
     color: #ffffff;
   }
 
-  .m-aboutHero__stat span,
   .m-aboutVision__stat span {
     font-size: 12px;
     line-height: 1.65;
@@ -1601,7 +1645,7 @@
   .m-aboutHero__actions,
   .m-aboutJourney__actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     gap: 10px;
     position: relative;
     z-index: 1;
@@ -1740,21 +1784,22 @@
   }
 
   .m-aboutVision__media {
-    padding: 14px 14px 0;
+    padding: 16px 16px 0;
   }
 
   .m-aboutVision__media img {
     display: block;
     width: 100%;
-    height: 228px;
+    height: 236px;
     object-fit: cover;
-    border-radius: 22px;
+    border-radius: 24px;
+    box-shadow: 0 18px 34px rgba(10, 22, 44, 0.14);
   }
 
   .m-aboutVision__body {
     display: grid;
-    gap: 14px;
-    padding: 20px;
+    gap: 16px;
+    padding: 18px 20px 22px;
   }
 
   .m-aboutValueCard {
@@ -1816,8 +1861,8 @@
     box-shadow: 0 18px 36px rgba(21, 61, 122, 0.1) !important;
   }
 
-  body.light-mode .m-aboutHero__visual,
-  body.light-mode .m-aboutHero__stat,
+  body.light-mode .m-aboutHero__stage,
+  body.light-mode .m-aboutHero__secondaryShot,
   body.light-mode .m-aboutVision__stat {
     background: rgba(255, 255, 255, 0.88) !important;
     border: 1px solid rgba(21, 61, 122, 0.12) !important;
@@ -1837,7 +1882,6 @@
   body.light-mode .m-aboutVision__text,
   body.light-mode .m-aboutValueCard__desc,
   body.light-mode .m-aboutJourney__desc,
-  body.light-mode .m-aboutHero__stat span,
   body.light-mode .m-aboutVision__stat span,
   body.light-mode .m-aboutValueCard__index {
     color: #475569 !important;
@@ -1851,7 +1895,19 @@
     color: #153D7A !important;
   }
 
-  body.light-mode .m-aboutHero__stat strong,
+  body.light-mode .m-aboutHero__stageChip {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(21, 61, 122, 0.12) !important;
+  }
+
+  body.light-mode .m-aboutHero__stageChip strong {
+    color: #153D7A !important;
+  }
+
+  body.light-mode .m-aboutHero__stageChip span {
+    color: #64748b !important;
+  }
+
   body.light-mode .m-aboutVision__stat strong {
     color: #153D7A !important;
   }
@@ -1867,13 +1923,29 @@
       padding: 18px;
     }
 
-    .m-aboutHero__gallery {
-      grid-template-columns: 1fr;
+    .m-aboutHero__stage {
+      padding-inline: 12px;
+      padding-top: 12px;
+      padding-bottom: 80px;
+      min-height: 300px;
     }
 
-    .m-aboutHero__visual--secondary {
-      min-height: 168px;
-      transform: none;
+    .m-aboutHero__primaryShot {
+      height: 212px;
+    }
+
+    .m-aboutHero__secondaryShot {
+      width: 132px;
+      height: 98px;
+      inset-inline-start: 14px;
+      bottom: 14px;
+    }
+
+    .m-aboutHero__stageChip {
+      inset-inline-end: 14px;
+      bottom: 18px;
+      max-width: 156px;
+      padding: 10px 12px;
     }
   }
 
