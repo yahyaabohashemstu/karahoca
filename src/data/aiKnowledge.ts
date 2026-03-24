@@ -74,9 +74,97 @@ const buildCatalogLine = (
 const normalizeSearchText = (value: string) =>
   value
     .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
     .replace(/[()[\]{}.,/#!$%^&*;:{}=_`~?"'|\\+-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const tokenizeSearchText = (value: string) =>
+  normalizeSearchText(value)
+    .split(' ')
+    .filter((token) => token.length >= 2);
+
+const scoreKnowledgeSection = (question: string, section: KnowledgeSection) => {
+  const normalizedQuestion = normalizeSearchText(question);
+  if (!normalizedQuestion) {
+    return 0;
+  }
+
+  const questionTokens = tokenizeSearchText(question);
+  if (questionTokens.length === 0) {
+    return 0;
+  }
+
+  const sectionTitle = normalizeSearchText(section.title);
+  const sectionContent = normalizeSearchText(section.content);
+  const sectionTags = normalizeSearchText((section.tags || []).join(' '));
+
+  let score = 0;
+
+  for (const token of questionTokens) {
+    if (sectionTitle.includes(token)) {
+      score += 4;
+    }
+
+    if (sectionTags.includes(token)) {
+      score += 3;
+    }
+
+    if (sectionContent.includes(token)) {
+      score += 1;
+    }
+  }
+
+  if (sectionTitle.includes(normalizedQuestion)) {
+    score += 8;
+  }
+
+  if (sectionContent.includes(normalizedQuestion)) {
+    score += 5;
+  }
+
+  return score;
+};
+
+const dedupeKnowledgeSections = (sections: KnowledgeSection[]) => {
+  const seenTitles = new Set<string>();
+
+  return sections.filter((section) => {
+    const normalizedTitle = normalizeSearchText(section.title);
+    if (seenTitles.has(normalizedTitle)) {
+      return false;
+    }
+
+    seenTitles.add(normalizedTitle);
+    return true;
+  });
+};
+
+const selectRelevantKnowledgeSections = (
+  question: string,
+  sections: KnowledgeSection[],
+  maxSections: number
+) => {
+  const normalizedQuestion = normalizeSearchText(question);
+
+  if (!normalizedQuestion) {
+    return dedupeKnowledgeSections(sections).slice(0, maxSections);
+  }
+
+  const scoredSections = sections
+    .map((section) => ({
+      section,
+      score: scoreKnowledgeSection(question, section)
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .map((entry) => entry.section);
+
+  const uniqueSections = dedupeKnowledgeSections(scoredSections);
+  return uniqueSections.slice(0, maxSections);
+};
 
 const stripBrandTokens = (value: string) =>
   value
@@ -835,11 +923,11 @@ export const buildLocalAssistantReply = (
   }
 
   const contactPattern = /contact|email|mail|whatsapp|phone|newsletter|subscribe|تواصل|اتصال|بريد|واتساب|رقم|النشرة|اشترك|iletişim|eposta|telefon|bulten|abon|контакт|почт|ватсап|телефон|рассыл/u;
-  const newsPattern = /news|latest|announcement|launch|launched|contract|distribution|exhibition|event|أخبار|خبر|مستجد|إطلاق|عقد|اتفاق|توزيع|معرض|فعالية|اخبار|haber|duyuru|lansman|anlasma|dagitim|fuar|etkinlik|новост|анонс|запуск|контракт|дистриб|выстав/u;
-  const pricingPattern = /price|pricing|quote|quotation|cost|exw|shipping|delivery|سعر|أسعار|عرض سعر|تكلفة|شحن|توصيل|fiyat|teklif|maliyet|kargo|teslimat|цена|стоимость|доставка|exw/u;
-  const companyPattern = /about|company|who are|history|milestone|vision|values|karahoca|من نحن|شركة|عن الشركة|تاريخ|إنجاز|رؤية|قيم|hakkımızda|firma|tarih|vizyon|deger|компан|о вас|истор|ценност|виден/u;
-  const productionPattern = /production|process|factory|manufacturing|safety|mixing|packaging|raw material|الإنتاج|عملية|تصنيع|المصنع|سلامة|مواد خام|خلط|تعبئة|üretim|surec|fabrika|guvenlik|hammadde|karisim|ambalaj|производ|процесс|завод|безопас/u;
-  const goalPattern = /goal|goals|mission|future|strategy|growth|innovation|expansion|هدف|أهداف|رؤية|مستقبل|استراتيجية|نمو|ابتكار|توسع|hedef|gelecek|strateji|buyume|inovasyon|цель|цели|будущ|стратег|рост|иннова/u;
+  const newsPattern = /news|latest|announcement|launch|launched|contract|distribution|exhibition|event|اخبار|خبر|مستجد|اطلاق|عقد|اتفاق|توزيع|معرض|فعالية|haber|duyuru|lansman|anlasma|dagitim|fuar|etkinlik|новост|анонс|запуск|контракт|дистриб|выстав/u;
+  const pricingPattern = /price|pricing|quote|quotation|cost|exw|shipping|delivery|سعر|اسعار|عرض سعر|تكلفة|شحن|توصيل|fiyat|teklif|maliyet|kargo|teslimat|цена|стоимость|доставка|exw/u;
+  const companyPattern = /about|company|who are|history|milestone|vision|values|karahoca|من نحن|شركة|عن الشركة|تاريخ|انجاز|رؤية|قيم|hakkımızda|firma|tarih|vizyon|deger|компан|о вас|истор|ценност|виден/u;
+  const productionPattern = /production|process|factory|manufacturing|safety|mixing|packaging|raw material|الانتاج|عملية|تصنيع|المصنع|سلامة|مواد خام|خلط|تعبئة|üretim|surec|fabrika|guvenlik|hammadde|karisim|ambalaj|производ|процесс|завод|безопас/u;
+  const goalPattern = /goal|goals|mission|future|strategy|growth|innovation|expansion|هدف|اهداف|رؤية|مستقبل|استراتيجية|نمو|ابتكار|توسع|hedef|gelecek|strateji|buyume|inovasyon|цель|цели|будущ|стратег|рост|иннова/u;
   const dryerPattern = /dryer|drying|capacity|integration|consistency|المجفف|مجفف|سعة|تكامل|ثبات|dryer|kurutucu|kapasite|entegrasyon|tutarlilik|сушил|мощност|интеграц|стабиль/u;
   const qualityPattern = /quality|certificate|private label|جودة|شهادة|علامة خاصة|kalite|sertifika|özel marka|качество|сертифик/u;
 
@@ -1178,27 +1266,27 @@ export const buildLocalAssistantReply = (
     case 'en':
       return [
         'I can still help using the information currently available on the KARAHOCA website.',
-        'Available topics include DIOX products, AYLUX products, company history, production, goals, dryer technology, news, pricing, shipping, quality, and contact details.',
-        `For direct contact: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
+        'Please tell me a little more specifically what you need, such as the product name, pricing request, shipping requirement, news item, or company topic you want to know about.',
+        `You can also contact KARAHOCA directly at ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'tr':
       return [
-        'KARAHOCA web sitesinde mevcut olan bilgilerle yine de yardimci olabilirim.',
-        'Mevcut konular: DIOX urunleri, AYLUX urunleri, sirket gecmisi, uretim, hedefler, kurutucu teknolojisi, haberler, fiyatlar, kargo, kalite ve iletisim detaylari.',
+        'KARAHOCA web sitesindeki mevcut bilgilerle yine de yardimci olabilirim.',
+        'Lutfen ihtiyacinizi biraz daha net yazin; urun adi, fiyat talebi, kargo detayi, haber, ya da sirketle ilgili merak ettiginiz konu olabilir.',
         `Dogrudan iletisim: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'ru':
       return [
         'Я все равно могу помочь, используя информацию, доступную на сайте KARAHOCA.',
-        'Доступные темы: продукты DIOX, продукты AYLUX, история компании, производство, цели, технология сушилки, новости, цены, доставка, качество и контакты.',
+        'Пожалуйста, уточните немного точнее, что именно вам нужно: конкретный продукт, цены, доставка, новости, производство или информация о компании.',
         `Прямой контакт: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'ar':
     default:
       return [
         'يمكنني مع ذلك مساعدتك بالاعتماد على المعلومات المتاحة في موقع KARAHOCA.',
-        'الموضوعات المتاحة تشمل منتجات DIOX وAYLUX، تاريخ الشركة، الإنتاج، هدفنا، المجفف، الأخبار، الأسعار، الشحن، الجودة، ووسائل التواصل.',
-        `للتواصل المباشر: ${snapshot.contact.email} | ${snapshot.contact.phone} | الواتساب: ${snapshot.contact.whatsapp}`
+        'اكتب لي طلبك بشكل أدق قليلًا، مثل اسم المنتج، أو سؤال الأسعار، أو الشحن، أو خبر معين، أو أي تفصيل عن الشركة، وسأجيبك مباشرة من معلومات الموقع.',
+        `وللتواصل المباشر: ${snapshot.contact.email} | ${snapshot.contact.phone} | الواتساب: ${snapshot.contact.whatsapp}`
       ].join('\n');
   }
 };
@@ -1230,11 +1318,32 @@ export const buildKnowledgeBase = (
     ...(focusedNewsSection ? [focusedNewsSection] : [])
   ];
 
+  const supportSections = [
+    ...websiteSections,
+    ...productPrioritySections,
+    ...catalogSections,
+    ...baseKnowledgeSections
+  ];
+
+  const relevantSections = selectRelevantKnowledgeSections(question, supportSections, 10);
+  const fallbackSections = dedupeKnowledgeSections([
+    ...relevantSections,
+    ...websiteSections.slice(0, 3),
+    ...productPrioritySections,
+    ...baseKnowledgeSections.slice(0, 2)
+  ]);
+
   if (shouldPrioritizeProductKnowledge(question)) {
-    return [...productPrioritySections, ...catalogSections, ...websiteSections, ...baseKnowledgeSections];
+    return dedupeKnowledgeSections([
+      ...productPrioritySections,
+      ...relevantSections,
+      ...catalogSections,
+      ...websiteSections,
+      ...baseKnowledgeSections
+    ]).slice(0, 14);
   }
 
-  return [...websiteSections, ...productPrioritySections, ...catalogSections, ...baseKnowledgeSections];
+  return fallbackSections.slice(0, 12);
 };
 
 /** إرشادات لغوية لضمان اتساق إجابات المساعد. */
@@ -1249,7 +1358,11 @@ export const assistantToneGuidelines = `
 - Translate the knowledge base content to match the customer's language
 
 TONE & STYLE:
-- Use a friendly and professional tone
+- Sound like a natural human sales/support assistant, not a keyword bot
+- Answer the customer's actual question directly before offering extra context
+- Do not answer with a generic list of available topics unless the customer explicitly asks what you can help with
+- If the question is broad, infer the most likely intent from the wording and answer naturally
+- If some commercial detail depends on quantity, size, or exact SKU, explain that clearly and ask only the needed follow-up
 - Provide answers in short paragraphs or easy-to-read bullet points
 - Always include brand names (DIOX, AYLUX, KARAHOCA) in English regardless of response language
 - Use the actual product data from the website catalog whenever the question is about products, variants, sizes, materials, counts, or comparisons
@@ -1352,7 +1465,7 @@ export function generateSmartSuggestions(
   conversationHistory: Array<{role: string, content: string}>,
   language: string = 'ar'
 ): string[] {
-  const lowerMessage = lastUserMessage.toLowerCase();
+  const lowerMessage = normalizeSearchText(lastUserMessage);
   const lowerResponse = lastBotResponse.toLowerCase();
   
   // 🧠 استخراج المواضيع المطروقة سابقاً
@@ -1420,7 +1533,7 @@ export function generateSmartSuggestions(
   if (lowerMessage.includes('aylux') || lowerMessage.includes('آيلوكس') || lowerMessage.includes('ايلوكس')) {
     return langSuggestions.aylux;
   }
-  if (lowerMessage.includes('price') || lowerMessage.includes('سعر') || lowerMessage.includes('أسعار') || 
+  if (lowerMessage.includes('price') || lowerMessage.includes('سعر') || lowerMessage.includes('اسعار') || 
       lowerMessage.includes('fiyat') || lowerResponse.includes('exw')) {
     return langSuggestions.pricing;
   }
@@ -1431,11 +1544,11 @@ export function generateSmartSuggestions(
       lowerMessage.includes('whatsapp') || lowerMessage.includes('واتساب')) {
     return langSuggestions.contact;
   }
-  if (lowerMessage.includes('news') || lowerMessage.includes('خبر') || lowerMessage.includes('أخبار') ||
+  if (lowerMessage.includes('news') || lowerMessage.includes('خبر') || lowerMessage.includes('اخبار') ||
       lowerMessage.includes('haber') || lowerMessage.includes('новост')) {
     return langSuggestions.news;
   }
-  if (lowerMessage.includes('production') || lowerMessage.includes('إنتاج') || lowerMessage.includes('تصنيع') ||
+  if (lowerMessage.includes('production') || lowerMessage.includes('انتاج') || lowerMessage.includes('تصنيع') ||
       lowerMessage.includes('üretim') || lowerMessage.includes('производ')) {
     return langSuggestions.production;
   }

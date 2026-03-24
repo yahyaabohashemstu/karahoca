@@ -358,7 +358,7 @@ const mapKnowledgeToPrompt = (
     .join('\n');
 
   const historySnippet = history
-    .slice(-4)
+    .slice(-6)
     .map((message) => `${message.role === 'user' ? 'Customer' : 'Assistant'}: ${message.content}`)
     .join('\n');
 
@@ -378,10 +378,13 @@ ${assistantToneGuidelines}
 
 Website Knowledge Rules:
 - The knowledge base below is built from the actual KARAHOCA website content, including products, company pages, production, goals, dryer information, news, and contact details
+- The sections are already ranked so the most relevant context for this question appears first
 - If the customer asks about products, variants, sizes, materials, counts, or comparisons, answer from the website catalog first
 - If the customer asks about company history, milestones, values, production, goals, dryer capability, news, newsletter, or contact details, answer from the matching site sections below
 - Do not say information is unavailable if it already appears in the website knowledge below
 - If the customer asks for broad comparisons or broad site summaries, provide the concrete facts already present in the knowledge base before asking a follow-up question
+- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with
+- Answer like an experienced human sales and support representative for KARAHOCA
 
 Knowledge Base (translate when needed):
 ${knowledgeSummary}
