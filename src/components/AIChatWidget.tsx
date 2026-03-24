@@ -477,6 +477,27 @@ const AIChatWidget: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isLoading]);
 
+  const updateSuggestions = (
+    question: string,
+    assistantReply: string,
+    conversationHistory: ChatMessage[],
+    suggestionLanguage: string
+  ) => {
+    const normalizedSuggestionLanguage = normalizeLanguageCode(suggestionLanguage);
+
+    setSuggestions(
+      generateSmartSuggestions(
+        question,
+        assistantReply,
+        conversationHistory.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+        normalizedSuggestionLanguage
+      )
+    );
+  };
+
   const handleSend = async (directMessage?: string) => {
     const cleanedInput = sanitizeInput(directMessage || inputValue);
 
@@ -542,20 +563,13 @@ const AIChatWidget: React.FC = () => {
         timestamp: formatTimestamp(currentLang),
       };
 
-      setMessages((previousMessages) => [...previousMessages, assistantMessage]);
-
-      const conversationForAnalysis = [...messages, userMessage, assistantMessage].map((message) => ({
-        role: message.role,
-        content: message.content,
-      }));
-
-      setSuggestions(
-        generateSmartSuggestions(
-          cleanedInput,
-          replyContent,
-          conversationForAnalysis,
-          detectedQuestionLanguage ?? currentLang
-        )
+      const updatedConversation = [...messages, userMessage, assistantMessage];
+      setMessages(updatedConversation);
+      updateSuggestions(
+        cleanedInput,
+        replyContent,
+        updatedConversation,
+        detectedQuestionLanguage ?? currentLang
       );
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -576,7 +590,14 @@ const AIChatWidget: React.FC = () => {
         timestamp: formatTimestamp(currentLang),
       };
 
-      setMessages((previousMessages) => [...previousMessages, fallbackMessage]);
+      const updatedConversation = [...messages, userMessage, fallbackMessage];
+      setMessages(updatedConversation);
+      updateSuggestions(
+        cleanedInput,
+        fallbackMessage.content,
+        updatedConversation,
+        detectedQuestionLanguage ?? currentLang
+      );
     } finally {
       setIsLoading(false);
 
