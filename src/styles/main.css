@@ -2679,7 +2679,7 @@ html[lang="ru"] .site-header .menu {
   justify-items: center;
   text-align: center;
   gap: 1.25rem;
-  width: min(1360px, 96vw);
+  width: min(1500px, 98vw);
 }
 
 .news-section__copy,
@@ -2703,7 +2703,7 @@ html[lang="ru"] .site-header .menu {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
-  width: min(1360px, 96vw);
+  width: min(1500px, 98vw);
 }
 
 .news-section__arrow {

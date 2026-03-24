@@ -38,6 +38,7 @@ const NewsSection: React.FC = () => {
   const loopWidthRef = useRef(0);
   const offsetRef = useRef(0);
   const pausedUntilRef = useRef(0);
+  const isHoveringRef = useRef(false);
   const transitionTimeoutRef = useRef<number | null>(null);
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
@@ -157,7 +158,7 @@ const NewsSection: React.FC = () => {
       const delta = timestamp - lastFrameTimeRef.current;
       lastFrameTimeRef.current = timestamp;
 
-      if (timestamp >= pausedUntilRef.current && loopWidthRef.current > 0) {
+      if (!isHoveringRef.current && timestamp >= pausedUntilRef.current && loopWidthRef.current > 0) {
         applyOffset(offsetRef.current + delta * AUTO_SCROLL_SPEED_PX_PER_MS);
       }
 
@@ -201,7 +202,15 @@ const NewsSection: React.FC = () => {
         </Link>
       </div>
 
-      <div className="container news-section__carousel fx-up">
+      <div
+        className="container news-section__carousel fx-up"
+        onMouseEnter={() => {
+          isHoveringRef.current = true;
+        }}
+        onMouseLeave={() => {
+          isHoveringRef.current = false;
+        }}
+      >
         <button
           type="button"
           className="news-section__arrow news-section__arrow--previous"
