@@ -31,12 +31,14 @@ const ARROW_LABELS = {
 const NewsSection: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
   const loopWidthRef = useRef(0);
   const offsetRef = useRef(0);
   const pausedUntilRef = useRef(0);
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const newsItems = getLocalizedNewsItems(currentLanguage);
@@ -81,23 +83,58 @@ const NewsSection: React.FC = () => {
     track.style.transform = `translate3d(${normalized}px, 0, 0)`;
   }, [normalizeOffset]);
 
-  const nudgeTrack = useCallback((direction: 'previous' | 'next') => {
+  const animateToOffset = useCallback((offset: number) => {
     const track = trackRef.current;
-    const firstItem = track?.querySelector<HTMLElement>('.news-section__item');
-
-    if (!track || !firstItem) {
+    if (!track) {
       return;
     }
 
-    const trackStyles = window.getComputedStyle(track);
-    const gapValue = trackStyles.gap || trackStyles.columnGap || '0';
-    const gap = Number.parseFloat(gapValue) || 0;
-    const step = firstItem.getBoundingClientRect().width + gap;
-    const delta = direction === 'previous' ? step : -step;
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current);
+    }
+
+    track.style.transition = 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)';
+    applyOffset(offset);
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      track.style.transition = '';
+      transitionTimeoutRef.current = null;
+    }, 460);
+  }, [applyOffset]);
+
+  const focusNearestCard = useCallback((direction: 'previous' | 'next') => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+
+    if (!viewport || !track) {
+      return;
+    }
+
+    const items = Array.from(track.querySelectorAll<HTMLElement>('.news-section__item'));
+    if (items.length === 0) {
+      return;
+    }
+
+    const viewportCenter = -offsetRef.current + viewport.clientWidth / 2;
+    const epsilon = 1;
+    const itemCenters = items.map((item) => item.offsetLeft + item.offsetWidth / 2);
+
+    let targetCenter: number | undefined;
+
+    if (direction === 'previous') {
+      const previousCenters = itemCenters.filter((center) => center < viewportCenter - epsilon);
+      targetCenter = previousCenters.length > 0 ? previousCenters[previousCenters.length - 1] : itemCenters[itemCenters.length - 1];
+    } else {
+      const nextCenters = itemCenters.filter((center) => center > viewportCenter + epsilon);
+      targetCenter = nextCenters.length > 0 ? nextCenters[0] : itemCenters[0];
+    }
+
+    if (targetCenter === undefined) {
+      return;
+    }
 
     pauseAutoScroll();
-    applyOffset(offsetRef.current + delta);
-  }, [applyOffset]);
+    animateToOffset(viewport.clientWidth / 2 - targetCenter);
+  }, [animateToOffset]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -136,6 +173,13 @@ const NewsSection: React.FC = () => {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
       }
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
+      }
+      if (track) {
+        track.style.transition = '';
+      }
       animationFrameRef.current = null;
       lastFrameTimeRef.current = null;
     };
@@ -162,12 +206,12 @@ const NewsSection: React.FC = () => {
           type="button"
           className="news-section__arrow news-section__arrow--previous"
           aria-label={arrowLabels.previous}
-          onClick={() => nudgeTrack('previous')}
+          onClick={() => focusNearestCard('previous')}
         >
           <span aria-hidden="true">←</span>
         </button>
 
-        <div className="news-section__viewport">
+        <div ref={viewportRef} className="news-section__viewport">
           <div ref={trackRef} className="news-section__track">
             {marqueeItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="news-section__item">
@@ -181,7 +225,7 @@ const NewsSection: React.FC = () => {
           type="button"
           className="news-section__arrow news-section__arrow--next"
           aria-label={arrowLabels.next}
-          onClick={() => nudgeTrack('next')}
+          onClick={() => focusNearestCard('next')}
         >
           <span aria-hidden="true">→</span>
         </button>
