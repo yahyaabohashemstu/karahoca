@@ -2698,21 +2698,13 @@ html[lang="ru"] .site-header .menu {
 }
 
 .news-section__viewport {
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   direction: ltr;
   padding: 0.5rem 0 0.25rem;
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   cursor: grab;
   user-select: none;
   touch-action: pan-y;
-  overscroll-behavior-x: contain;
-}
-
-.news-section__viewport::-webkit-scrollbar {
-  display: none;
 }
 
 .news-section__viewport.is-dragging {
@@ -2727,6 +2719,7 @@ html[lang="ru"] .site-header .menu {
   align-items: stretch;
   gap: var(--news-gap);
   width: max-content;
+  will-change: transform;
 }
 
 .news-section__item {

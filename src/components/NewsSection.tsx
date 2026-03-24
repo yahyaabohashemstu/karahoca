@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
@@ -8,6 +8,7 @@ import { normalizeLanguageCode } from '../utils/language';
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
 const AUTO_SCROLL_SPEED_PX_PER_MS = 0.03;
+const DRAG_THRESHOLD_PX = 6;
 
 const NewsSection: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -17,11 +18,16 @@ const NewsSection: React.FC = () => {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
+  const loopWidthRef = useRef(0);
+  const offsetRef = useRef(0);
   const pausedUntilRef = useRef(0);
+  const suppressClickUntilRef = useRef(0);
   const dragStateRef = useRef({
     active: false,
+    moved: false,
     startX: 0,
-    startScrollLeft: 0
+    startOffset: 0,
+    pointerId: -1
   });
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
@@ -33,47 +39,50 @@ const NewsSection: React.FC = () => {
     pausedUntilRef.current = now + duration;
   };
 
+  const normalizeOffset = useCallback((offset: number) => {
+    const loopWidth = loopWidthRef.current;
+    if (!loopWidth) {
+      return offset;
+    }
+
+    let normalized = offset;
+
+    while (normalized >= 0) {
+      normalized -= loopWidth;
+    }
+
+    while (normalized < -2 * loopWidth) {
+      normalized += loopWidth;
+    }
+
+    return normalized;
+  }, []);
+
+  const applyOffset = useCallback((offset: number) => {
+    const track = trackRef.current;
+    if (!track) {
+      return;
+    }
+
+    const normalized = normalizeOffset(offset);
+    offsetRef.current = normalized;
+    track.style.transform = `translate3d(${normalized}px, 0, 0)`;
+  }, [normalizeOffset]);
+
   useEffect(() => {
-    const viewport = viewportRef.current;
     const track = trackRef.current;
 
-    if (!viewport || !track || newsItems.length === 0) {
+    if (!track || newsItems.length === 0) {
       return undefined;
     }
 
-    const getLoopWidth = () => track.scrollWidth / 3;
-
-    const resetToMiddle = () => {
-      const loopWidth = getLoopWidth();
-      if (loopWidth > 0) {
-        viewport.scrollLeft = loopWidth;
-      }
-    };
-
-    resetToMiddle();
-
-    const handleResize = () => {
-      const loopWidth = getLoopWidth();
-      if (!loopWidth) {
-        return;
-      }
-
-      if (viewport.scrollLeft <= 0 || viewport.scrollLeft >= loopWidth * 2) {
-        viewport.scrollLeft = loopWidth;
-        return;
-      }
-
-      viewport.scrollLeft = Math.max(loopWidth * 0.25, Math.min(viewport.scrollLeft, loopWidth * 1.75));
+    const measureLoop = () => {
+      const loopWidth = track.scrollWidth / 3;
+      loopWidthRef.current = loopWidth;
+      applyOffset(-loopWidth);
     };
 
     const step = (timestamp: number) => {
-      const loopWidth = getLoopWidth();
-
-      if (!loopWidth) {
-        animationFrameRef.current = window.requestAnimationFrame(step);
-        return;
-      }
-
       if (lastFrameTimeRef.current === null) {
         lastFrameTimeRef.current = timestamp;
       }
@@ -81,24 +90,19 @@ const NewsSection: React.FC = () => {
       const delta = timestamp - lastFrameTimeRef.current;
       lastFrameTimeRef.current = timestamp;
 
-      if (!dragStateRef.current.active && timestamp >= pausedUntilRef.current) {
-        viewport.scrollLeft -= delta * AUTO_SCROLL_SPEED_PX_PER_MS;
-
-        if (viewport.scrollLeft <= 0) {
-          viewport.scrollLeft += loopWidth;
-        } else if (viewport.scrollLeft >= loopWidth * 2) {
-          viewport.scrollLeft -= loopWidth;
-        }
+      if (!dragStateRef.current.active && timestamp >= pausedUntilRef.current && loopWidthRef.current > 0) {
+        applyOffset(offsetRef.current + delta * AUTO_SCROLL_SPEED_PX_PER_MS);
       }
 
       animationFrameRef.current = window.requestAnimationFrame(step);
     };
 
-    window.addEventListener('resize', handleResize);
+    measureLoop();
+    window.addEventListener('resize', measureLoop);
     animationFrameRef.current = window.requestAnimationFrame(step);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', measureLoop);
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
       }
@@ -107,7 +111,7 @@ const NewsSection: React.FC = () => {
       dragStateRef.current.active = false;
       setIsDragging(false);
     };
-  }, [newsItems.length, currentLanguage]);
+  }, [applyOffset, newsItems.length, currentLanguage]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current;
@@ -117,11 +121,12 @@ const NewsSection: React.FC = () => {
 
     dragStateRef.current = {
       active: true,
+      moved: false,
       startX: event.clientX,
-      startScrollLeft: viewport.scrollLeft
+      startOffset: offsetRef.current,
+      pointerId: event.pointerId
     };
 
-    setIsDragging(true);
     pauseAutoScroll();
     viewport.setPointerCapture(event.pointerId);
   };
@@ -133,8 +138,16 @@ const NewsSection: React.FC = () => {
     }
 
     const deltaX = event.clientX - dragStateRef.current.startX;
-    viewport.scrollLeft = dragStateRef.current.startScrollLeft - deltaX;
-    pauseAutoScroll();
+
+    if (!dragStateRef.current.moved && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
+      dragStateRef.current.moved = true;
+      setIsDragging(true);
+    }
+
+    if (dragStateRef.current.moved) {
+      applyOffset(dragStateRef.current.startOffset + deltaX);
+      pauseAutoScroll();
+    }
   };
 
   const handlePointerRelease = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -143,12 +156,26 @@ const NewsSection: React.FC = () => {
       return;
     }
 
+    const moved = dragStateRef.current.moved;
     dragStateRef.current.active = false;
+    dragStateRef.current.moved = false;
     setIsDragging(false);
     pauseAutoScroll();
 
+    if (moved) {
+      suppressClickUntilRef.current = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 250;
+    }
+
     if (viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now < suppressClickUntilRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   };
 
@@ -175,8 +202,7 @@ const NewsSection: React.FC = () => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerRelease}
         onPointerCancel={handlePointerRelease}
-        onPointerLeave={handlePointerRelease}
-        onWheel={() => pauseAutoScroll()}
+        onClickCapture={handleClickCapture}
       >
         <div ref={trackRef} className="news-section__track">
           {marqueeItems.map((item, index) => (
