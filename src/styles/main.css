@@ -2698,10 +2698,25 @@ html[lang="ru"] .site-header .menu {
 }
 
 .news-section__viewport {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   direction: ltr;
   padding: 0.5rem 0 0.25rem;
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
+}
+
+.news-section__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.news-section__viewport.is-dragging {
+  cursor: grabbing;
 }
 
 .news-section__track {
@@ -2712,28 +2727,11 @@ html[lang="ru"] .site-header .menu {
   align-items: stretch;
   gap: var(--news-gap);
   width: max-content;
-  will-change: transform;
-  animation: news-marquee 48s linear infinite;
-}
-
-.news-section__viewport:hover .news-section__track,
-.news-section__viewport:focus-within .news-section__track {
-  animation-play-state: paused;
 }
 
 .news-section__item {
   flex: 0 0 auto;
   width: clamp(300px, 29vw, 360px);
-}
-
-@keyframes news-marquee {
-  from {
-    transform: translateX(calc(-50% - (var(--news-gap) / 2)));
-  }
-
-  to {
-    transform: translateX(0);
-  }
 }
 
 .news-card {
