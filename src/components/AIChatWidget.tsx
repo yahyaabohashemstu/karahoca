@@ -13,7 +13,11 @@ import {
 } from '../data/aiKnowledge';
 import { buildApiUrl } from '../utils/api';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { getLanguageDirection, normalizeLanguageCode } from '../utils/language';
+import {
+  getLanguageDirection,
+  normalizeLanguageCode,
+  type SupportedLanguageCode,
+} from '../utils/language';
 import '../styles/ai-chat.css';
 
 type MessageRole = 'user' | 'assistant';
@@ -144,6 +148,114 @@ const formatTimestamp = (lang: string) =>
 
 const sanitizeInput = (value: string) => value.replace(/\s+/g, ' ').trim();
 
+const ARABIC_SCRIPT_PATTERN = /[\u0600-\u06FF]/u;
+const CYRILLIC_SCRIPT_PATTERN = /[\u0400-\u04FF]/u;
+const DEVANAGARI_SCRIPT_PATTERN = /[\u0900-\u097F]/u;
+const GREEK_SCRIPT_PATTERN = /[\u0370-\u03FF]/u;
+const HEBREW_SCRIPT_PATTERN = /[\u0590-\u05FF]/u;
+const THAI_SCRIPT_PATTERN = /[\u0E00-\u0E7F]/u;
+const HANGUL_SCRIPT_PATTERN = /[\uAC00-\uD7AF]/u;
+const HIRAGANA_KATAKANA_PATTERN = /[\u3040-\u30FF]/u;
+const HAN_SCRIPT_PATTERN = /[\u4E00-\u9FFF]/u;
+const TURKISH_LANGUAGE_PATTERN =
+  /[çğıöşüÇĞİÖŞÜ]|\b(merhaba|urun|ürün|fiyat|haber|iletisim|iletişim|kargo|uretim|üretim|hedef|temizlik|sirket|şirket|nedir|nasil|nasıl|teslimat|fabrika)\b/iu;
+const GERMAN_LANGUAGE_PATTERN =
+  /[äöüßÄÖÜ]|\b(hallo|danke|bitte|preis|preise|produkt|produkte|nachricht|neuigkeit|lieferung|unternehmen|kontakt|wie|was|und|über)\b/iu;
+const ENGLISH_LANGUAGE_PATTERN =
+  /\b(hello|hi|what|how|price|prices|product|products|news|contact|company|about|shipping|delivery|factory|quality|quote|thanks)\b/iu;
+
+const getLanguageLabel = (lang: SupportedLanguageCode) => {
+  switch (lang) {
+    case 'en':
+      return 'English';
+    case 'tr':
+      return 'Turkish';
+    case 'ru':
+      return 'Russian';
+    case 'ar':
+    default:
+      return 'Arabic';
+  }
+};
+
+const detectSupportedQuestionLanguage = (
+  question: string
+): SupportedLanguageCode | null => {
+  if (ARABIC_SCRIPT_PATTERN.test(question)) {
+    return 'ar';
+  }
+
+  if (CYRILLIC_SCRIPT_PATTERN.test(question)) {
+    return 'ru';
+  }
+
+  if (TURKISH_LANGUAGE_PATTERN.test(question)) {
+    return 'tr';
+  }
+
+  if (GERMAN_LANGUAGE_PATTERN.test(question)) {
+    return null;
+  }
+
+  if (ENGLISH_LANGUAGE_PATTERN.test(question) || /[A-Za-z]/u.test(question)) {
+    return 'en';
+  }
+
+  return null;
+};
+
+const inferQuestionLanguageHint = (question: string) => {
+  if (ARABIC_SCRIPT_PATTERN.test(question)) {
+    return 'Arabic';
+  }
+
+  if (CYRILLIC_SCRIPT_PATTERN.test(question)) {
+    return 'Russian or another Cyrillic language';
+  }
+
+  if (DEVANAGARI_SCRIPT_PATTERN.test(question)) {
+    return 'Hindi';
+  }
+
+  if (GERMAN_LANGUAGE_PATTERN.test(question)) {
+    return 'German';
+  }
+
+  if (TURKISH_LANGUAGE_PATTERN.test(question)) {
+    return 'Turkish';
+  }
+
+  if (GREEK_SCRIPT_PATTERN.test(question)) {
+    return 'Greek';
+  }
+
+  if (HEBREW_SCRIPT_PATTERN.test(question)) {
+    return 'Hebrew';
+  }
+
+  if (THAI_SCRIPT_PATTERN.test(question)) {
+    return 'Thai';
+  }
+
+  if (HANGUL_SCRIPT_PATTERN.test(question)) {
+    return 'Korean';
+  }
+
+  if (HIRAGANA_KATAKANA_PATTERN.test(question)) {
+    return 'Japanese';
+  }
+
+  if (HAN_SCRIPT_PATTERN.test(question)) {
+    return 'Chinese';
+  }
+
+  if (ENGLISH_LANGUAGE_PATTERN.test(question)) {
+    return 'English';
+  }
+
+  return 'the customer’s exact language';
+};
+
 const isStoredChatMessage = (value: unknown): value is ChatMessage =>
   Boolean(
     value &&
@@ -237,7 +349,9 @@ const withWhatsAppLinks = (content: string) => {
 const mapKnowledgeToPrompt = (
   question: string,
   history: ChatMessage[],
-  knowledgeSections: KnowledgeSection[]
+  knowledgeSections: KnowledgeSection[],
+  websiteLanguage: SupportedLanguageCode,
+  questionLanguageHint: string
 ) => {
   const knowledgeSummary = knowledgeSections
     .map((section, index) => `${index + 1}. ${section.title}: ${section.content}`)
@@ -255,15 +369,19 @@ CRITICAL LANGUAGE RULE:
 1. Detect the language of the customer's question first
 2. Respond in the exact same language
 3. Do not mix languages in a single answer
+4. The website interface language is currently ${getLanguageLabel(websiteLanguage)}, but you MUST ignore it when choosing your reply language
+5. The customer appears to be writing in ${questionLanguageHint}
+6. You are NOT limited to the website languages; if the question is in German, Hindi, or any other language, reply in that same language
 
 Assistant Tone Guidelines:
 ${assistantToneGuidelines}
 
-Product Catalog Rules:
-- The product catalog in the knowledge base below comes from the actual DIOX and AYLUX product sections shown on the website
-- If the customer asks about products, variants, sizes, materials, counts, or comparisons, answer from that catalog first
-- Do not say product comparison information is unavailable when the catalog already includes relevant products
-- If the customer asks for a broad comparison without naming exact items, provide a short brand/category-level comparison first and then invite them to narrow it down if needed
+Website Knowledge Rules:
+- The knowledge base below is built from the actual KARAHOCA website content, including products, company pages, production, goals, dryer information, news, and contact details
+- If the customer asks about products, variants, sizes, materials, counts, or comparisons, answer from the website catalog first
+- If the customer asks about company history, milestones, values, production, goals, dryer capability, news, newsletter, or contact details, answer from the matching site sections below
+- Do not say information is unavailable if it already appears in the website knowledge below
+- If the customer asks for broad comparisons or broad site summaries, provide the concrete facts already present in the knowledge base before asking a follow-up question
 
 Knowledge Base (translate when needed):
 ${knowledgeSummary}
@@ -366,6 +484,11 @@ const AIChatWidget: React.FC = () => {
       return;
     }
 
+    const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleanedInput);
+    const questionLanguageHint = inferQuestionLanguageHint(cleanedInput);
+    const fallbackLanguage = detectedQuestionLanguage ?? 'en';
+    const fallbackT = i18n.getFixedT(fallbackLanguage);
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -380,11 +503,13 @@ const AIChatWidget: React.FC = () => {
     setSuggestions([]);
 
     try {
-      const knowledgeSections = buildKnowledgeBase(fixedT, cleanedInput);
+      const knowledgeSections = buildKnowledgeBase(fixedT, cleanedInput, currentLang);
       const prompt = mapKnowledgeToPrompt(
         cleanedInput,
         [...messages, userMessage],
-        knowledgeSections
+        knowledgeSections,
+        currentLang,
+        questionLanguageHint
       );
       const response = await fetch(buildApiUrl('/api/ai/chat'), {
         method: 'POST',
@@ -407,7 +532,7 @@ const AIChatWidget: React.FC = () => {
       const assistantReply =
         typeof payload?.reply === 'string' && payload.reply.trim().length > 0
           ? payload.reply.trim()
-          : uiText.noAnswerFallback;
+          : buildLocalAssistantReply(cleanedInput, fallbackT, fallbackLanguage);
 
       const replyContent = withWhatsAppLinks(assistantReply);
       const assistantMessage: ChatMessage = {
@@ -429,7 +554,7 @@ const AIChatWidget: React.FC = () => {
           cleanedInput,
           replyContent,
           conversationForAnalysis,
-          currentLang
+          detectedQuestionLanguage ?? currentLang
         )
       );
     } catch (error) {
@@ -438,8 +563,8 @@ const AIChatWidget: React.FC = () => {
       }
       const localFallbackReply = buildLocalAssistantReply(
         cleanedInput,
-        fixedT,
-        currentLang
+        fallbackT,
+        fallbackLanguage
       );
 
       setStatusMessage(null);

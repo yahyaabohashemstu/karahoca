@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
-import { normalizeLanguageCode } from '../utils/language';
+import { normalizeLanguageCode, type SupportedLanguageCode } from '../utils/language';
 import { getBrandCatalogs, type BrandCatalogData, type BrandProductInfo } from './brandCatalog';
+import { getLocalizedNewsItems, type LocalizedNewsItem } from './news';
 
 export interface KnowledgeSection {
   /** عنوان القسم المعرفي */
@@ -300,6 +301,332 @@ const buildCatalogSection = (catalog: BrandCatalogData): KnowledgeSection => {
   };
 };
 
+type SiteSnapshot = {
+  language: SupportedLanguageCode;
+  contact: {
+    address: string;
+    email: string;
+    phone: string;
+    whatsapp: string;
+    newsletterTitle: string;
+    newsletterDescription: string;
+    footerDescription: string;
+  };
+  about: {
+    heroDescription: string;
+    history: string[];
+    milestones: Array<{ year: string; title: string; description: string }>;
+    visionDescription: string;
+    stats: Array<{ value: string; label: string }>;
+    values: Array<{ title: string; description: string }>;
+  };
+  production: {
+    heroDescription: string;
+    processSubtitle: string;
+    processCards: Array<{ title: string; description: string }>;
+    safetyContent: string[];
+  };
+  goal: {
+    heroDescription: string;
+    pillarsSubtitle: string;
+    pillars: Array<{ title: string; description: string }>;
+    goalsContent: string[];
+  };
+  dryer: {
+    heroDescription: string;
+    pillarsSubtitle: string;
+    pillars: Array<{ title: string; description: string }>;
+    goalsContent: string[];
+  };
+  news: LocalizedNewsItem[];
+};
+
+const WEBSITE_WHATSAPP_NUMBER = '+90 530 591 4990';
+
+const toSupportedLanguageCode = (language: string): SupportedLanguageCode =>
+  normalizeLanguageCode(language) as SupportedLanguageCode;
+
+const buildSiteSnapshot = (
+  t: TFunction,
+  language: string = 'ar'
+): SiteSnapshot => {
+  const normalizedLanguage = toSupportedLanguageCode(language);
+
+  return {
+    language: normalizedLanguage,
+    contact: {
+      address: t('footer.contact.address'),
+      email: t('footer.contact.email'),
+      phone: t('footer.contact.phone'),
+      whatsapp: WEBSITE_WHATSAPP_NUMBER,
+      newsletterTitle: t('footer.newsletter.title'),
+      newsletterDescription: t('footer.newsletter.description'),
+      footerDescription: t('footer.description')
+    },
+    about: {
+      heroDescription: t('aboutPage.hero.description'),
+      history: [t('aboutPage.history.paragraph1'), t('aboutPage.history.paragraph2')],
+      milestones: [
+        {
+          year: t('aboutPage.milestones.year1.year'),
+          title: t('aboutPage.milestones.year1.title'),
+          description: t('aboutPage.milestones.year1.description')
+        },
+        {
+          year: t('aboutPage.milestones.year2.year'),
+          title: t('aboutPage.milestones.year2.title'),
+          description: t('aboutPage.milestones.year2.description')
+        },
+        {
+          year: t('aboutPage.milestones.year3.year'),
+          title: t('aboutPage.milestones.year3.title'),
+          description: t('aboutPage.milestones.year3.description')
+        }
+      ],
+      visionDescription: t('aboutPage.vision.description'),
+      stats: [
+        { value: '15+', label: t('aboutPage.vision.countries') },
+        { value: '30+', label: t('aboutPage.vision.experience') },
+        { value: '2', label: t('aboutPage.vision.brands') },
+        { value: '4', label: t('aboutPage.vision.industries') }
+      ],
+      values: [
+        {
+          title: t('aboutPage.values.quality.title'),
+          description: t('aboutPage.values.quality.description')
+        },
+        {
+          title: t('aboutPage.values.innovation.title'),
+          description: t('aboutPage.values.innovation.description')
+        },
+        {
+          title: t('aboutPage.values.sustainability.title'),
+          description: t('aboutPage.values.sustainability.description')
+        }
+      ]
+    },
+    production: {
+      heroDescription: t('production.heroDescription'),
+      processSubtitle: t('production.sections.process.subtitle'),
+      processCards: [
+        {
+          title: t('production.sections.process.cards.sourcing.title'),
+          description: t('production.sections.process.cards.sourcing.description')
+        },
+        {
+          title: t('production.sections.process.cards.mixing.title'),
+          description: t('production.sections.process.cards.mixing.description')
+        },
+        {
+          title: t('production.sections.process.cards.packaging.title'),
+          description: t('production.sections.process.cards.packaging.description')
+        }
+      ],
+      safetyContent: [
+        t('production.sections.safety.content1'),
+        t('production.sections.safety.content2'),
+        t('production.sections.safety.content3')
+      ]
+    },
+    goal: {
+      heroDescription: t('goal.heroDescription'),
+      pillarsSubtitle: t('goal.sections.pillars.subtitle'),
+      pillars: [
+        {
+          title: t('goal.sections.pillars.innovation.title'),
+          description: t('goal.sections.pillars.innovation.description')
+        },
+        {
+          title: t('goal.sections.pillars.expansion.title'),
+          description: t('goal.sections.pillars.expansion.description')
+        },
+        {
+          title: t('goal.sections.pillars.quality.title'),
+          description: t('goal.sections.pillars.quality.description')
+        }
+      ],
+      goalsContent: [
+        t('goal.sections.goals.content1'),
+        t('goal.sections.goals.content2'),
+        t('goal.sections.goals.content3')
+      ]
+    },
+    dryer: {
+      heroDescription: t('dryer.heroDescription'),
+      pillarsSubtitle: t('dryer.sections.pillars.subtitle'),
+      pillars: [
+        {
+          title: t('dryer.sections.pillars.cards.capacity.title'),
+          description: t('dryer.sections.pillars.cards.capacity.description')
+        },
+        {
+          title: t('dryer.sections.pillars.cards.integration.title'),
+          description: t('dryer.sections.pillars.cards.integration.description')
+        },
+        {
+          title: t('dryer.sections.pillars.cards.consistency.title'),
+          description: t('dryer.sections.pillars.cards.consistency.description')
+        }
+      ],
+      goalsContent: [
+        t('dryer.sections.goals.content1'),
+        t('dryer.sections.goals.content2'),
+        t('dryer.sections.goals.content3')
+      ]
+    },
+    news: getLocalizedNewsItems(normalizedLanguage)
+  };
+};
+
+const buildWebsiteKnowledgeSections = (
+  t: TFunction,
+  language: string = 'ar'
+): KnowledgeSection[] => {
+  const snapshot = buildSiteSnapshot(t, language);
+
+  const latestNewsLines = snapshot.news.map((item) =>
+    `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}`
+  );
+
+  return [
+    {
+      title: 'Website company profile',
+      content: [
+        snapshot.contact.footerDescription,
+        snapshot.about.heroDescription,
+        `Portfolio brands: DIOX, AYLUX.`,
+        `Direct contact channels on the website: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp ${snapshot.contact.whatsapp}.`
+      ].join('\n'),
+      tags: ['company', 'about', 'contact']
+    },
+    {
+      title: 'Company history and milestones',
+      content: [
+        ...snapshot.about.history,
+        ...snapshot.about.milestones.map(
+          (milestone) => `- ${milestone.year}: ${milestone.title} - ${milestone.description}`
+        )
+      ].join('\n'),
+      tags: ['about', 'history', 'milestones']
+    },
+    {
+      title: 'Global vision and values',
+      content: [
+        snapshot.about.visionDescription,
+        `Key numbers: ${snapshot.about.stats
+          .map((stat) => `${stat.value} ${stat.label}`)
+          .join(' | ')}`,
+        `Core values:\n${snapshot.about.values
+          .map((value) => `- ${value.title}: ${value.description}`)
+          .join('\n')}`
+      ].join('\n'),
+      tags: ['vision', 'values', 'about']
+    },
+    {
+      title: 'Production process and safety',
+      content: [
+        snapshot.production.heroDescription,
+        `Production pillars (${snapshot.production.processSubtitle}):\n${snapshot.production.processCards
+          .map((card) => `- ${card.title}: ${card.description}`)
+          .join('\n')}`,
+        `Safety and control:\n${snapshot.production.safetyContent.map((item) => `- ${item}`).join('\n')}`
+      ].join('\n'),
+      tags: ['production', 'factory', 'manufacturing', 'quality']
+    },
+    {
+      title: 'Goals and growth roadmap',
+      content: [
+        snapshot.goal.heroDescription,
+        `Strategic pillars (${snapshot.goal.pillarsSubtitle}):\n${snapshot.goal.pillars
+          .map((pillar) => `- ${pillar.title}: ${pillar.description}`)
+          .join('\n')}`,
+        `Roadmap details:\n${snapshot.goal.goalsContent.map((item) => `- ${item}`).join('\n')}`
+      ].join('\n'),
+      tags: ['goal', 'vision', 'strategy', 'growth']
+    },
+    {
+      title: 'Dryer technology and industrial capability',
+      content: [
+        snapshot.dryer.heroDescription,
+        `Dryer pillars (${snapshot.dryer.pillarsSubtitle}):\n${snapshot.dryer.pillars
+          .map((pillar) => `- ${pillar.title}: ${pillar.description}`)
+          .join('\n')}`,
+        `Dryer goals and benefits:\n${snapshot.dryer.goalsContent
+          .map((item) => `- ${item}`)
+          .join('\n')}`
+      ].join('\n'),
+      tags: ['dryer', 'raw-materials', 'capacity', 'production']
+    },
+    {
+      title: 'Contact, newsletter, and support',
+      content: [
+        `Address: ${snapshot.contact.address}`,
+        `Email: ${snapshot.contact.email}`,
+        `Phone: ${snapshot.contact.phone}`,
+        `WhatsApp: ${snapshot.contact.whatsapp}`,
+        `${snapshot.contact.newsletterTitle}: ${snapshot.contact.newsletterDescription}`
+      ].join('\n'),
+      tags: ['contact', 'support', 'newsletter']
+    },
+    {
+      title: 'Latest website news and announcements',
+      content: latestNewsLines.join('\n'),
+      tags: ['news', 'announcements', 'events', 'contracts', 'launches']
+    }
+  ];
+};
+
+const getMatchedNewsItems = (question: string, language: string): LocalizedNewsItem[] => {
+  const normalizedQuestion = normalizeSearchText(question);
+  if (!normalizedQuestion) {
+    return [];
+  }
+
+  const items = getLocalizedNewsItems(toSupportedLanguageCode(language));
+
+  return items
+    .map((item) => {
+      const searchableText = normalizeSearchText(
+        `${item.category} ${item.title} ${item.excerpt} ${item.body.join(' ')}`
+      );
+      const titleTokens = normalizeSearchText(item.title)
+        .split(' ')
+        .filter((token) => token.length >= 3);
+      const tokenScore = titleTokens.filter((token) => normalizedQuestion.includes(token)).length;
+      const phraseScore = normalizedQuestion.includes(normalizeSearchText(item.title)) ? 3 : 0;
+      const bodyScore = searchableText.includes(normalizedQuestion) ? 2 : 0;
+      const score = tokenScore + phraseScore + bodyScore;
+
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .map((entry) => entry.item)
+    .slice(0, 3);
+};
+
+const buildFocusedNewsSection = (
+  question: string,
+  language: string
+): KnowledgeSection | null => {
+  const matchedItems = getMatchedNewsItems(question, language);
+
+  if (matchedItems.length === 0) {
+    return null;
+  }
+
+  return {
+    title: 'Focused news items for this question',
+    content: matchedItems
+      .map(
+        (item) =>
+          `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}\n  ${item.body.join(' ')}`
+      )
+      .join('\n'),
+    tags: ['news', 'focused']
+  };
+};
+
 export const buildLocalProductFallbackReply = (
   question: string,
   t: TFunction,
@@ -477,192 +804,416 @@ export const buildLocalAssistantReply = (
   language: string = 'ar'
 ): string => {
   const normalizedQuestion = normalizeSearchText(question);
+  const normalizedLanguage = toSupportedLanguageCode(language);
+  const snapshot = buildSiteSnapshot(t, normalizedLanguage);
+  const productReply = buildLocalProductFallbackReply(question, t, language);
 
   if (!normalizedQuestion) {
-    switch (normalizeLanguageCode(language)) {
+    switch (normalizedLanguage) {
       case 'en':
         return [
           'I can still help using the information currently available on the KARAHOCA website.',
-          'You can ask me about DIOX products, AYLUX products, pricing, shipping, company information, or contact details.'
+          'You can ask me about DIOX products, AYLUX products, company history, production, goals, dryer technology, news, pricing, shipping, or contact details.'
         ].join('\n');
       case 'tr':
         return [
           'KARAHOCA web sitesinde mevcut olan bilgilerle yine de yardimci olabilirim.',
-          'Bana DIOX urunleri, AYLUX urunleri, fiyatlar, kargo, sirket bilgileri veya iletisim detaylari hakkinda sorabilirsiniz.'
+          'Bana DIOX urunleri, AYLUX urunleri, sirket gecmisi, uretim, hedefler, kurutucu teknolojisi, haberler, fiyatlar, kargo veya iletisim detaylari hakkinda soru sorabilirsiniz.'
         ].join('\n');
       case 'ru':
         return [
           'Я все равно могу помочь, используя информацию, которая сейчас доступна на сайте KARAHOCA.',
-          'Вы можете спросить меня о продуктах DIOX, продуктах AYLUX, ценах, доставке, информации о компании или контактах.'
+          'Вы можете спросить меня о продуктах DIOX и AYLUX, истории компании, производстве, целях, технологии сушилки, новостях, ценах, доставке и контактах.'
         ].join('\n');
       case 'ar':
       default:
         return [
           'يمكنني مع ذلك مساعدتك بالاعتماد على المعلومات المتاحة حاليًا في موقع KARAHOCA.',
-          'يمكنك سؤالي عن منتجات DIOX وAYLUX أو الأسعار أو الشحن أو معلومات الشركة أو وسائل التواصل.'
+          'يمكنك سؤالي عن منتجات DIOX وAYLUX، تاريخ الشركة، الإنتاج، هدفنا، المجفف، الأخبار، الأسعار، الشحن، أو وسائل التواصل.'
         ].join('\n');
     }
   }
 
-  const contactPattern = /contact|email|mail|whatsapp|phone|تواصل|اتصال|بريد|واتساب|رقم|iletişim|eposta|telefon|контакт|почт|ватсап|телефон/u;
+  const contactPattern = /contact|email|mail|whatsapp|phone|newsletter|subscribe|تواصل|اتصال|بريد|واتساب|رقم|النشرة|اشترك|iletişim|eposta|telefon|bulten|abon|контакт|почт|ватсап|телефон|рассыл/u;
+  const newsPattern = /news|latest|announcement|launch|launched|contract|distribution|exhibition|event|أخبار|خبر|مستجد|إطلاق|عقد|اتفاق|توزيع|معرض|فعالية|اخبار|haber|duyuru|lansman|anlasma|dagitim|fuar|etkinlik|новост|анонс|запуск|контракт|дистриб|выстав/u;
   const pricingPattern = /price|pricing|quote|quotation|cost|exw|shipping|delivery|سعر|أسعار|عرض سعر|تكلفة|شحن|توصيل|fiyat|teklif|maliyet|kargo|teslimat|цена|стоимость|доставка|exw/u;
-  const companyPattern = /about|company|who are|karahoca|من نحن|شركة|عن الشركة|hakkımızda|firma|компан|о вас/u;
-  const qualityPattern = /quality|certificate|factory|private label|manufacturing|جودة|شهادة|مصنع|تصنيع|علامة خاصة|kalite|sertifika|fabrika|uretim|özel marka|качество|сертифик|завод|производ/u;
+  const companyPattern = /about|company|who are|history|milestone|vision|values|karahoca|من نحن|شركة|عن الشركة|تاريخ|إنجاز|رؤية|قيم|hakkımızda|firma|tarih|vizyon|deger|компан|о вас|истор|ценност|виден/u;
+  const productionPattern = /production|process|factory|manufacturing|safety|mixing|packaging|raw material|الإنتاج|عملية|تصنيع|المصنع|سلامة|مواد خام|خلط|تعبئة|üretim|surec|fabrika|guvenlik|hammadde|karisim|ambalaj|производ|процесс|завод|безопас/u;
+  const goalPattern = /goal|goals|mission|future|strategy|growth|innovation|expansion|هدف|أهداف|رؤية|مستقبل|استراتيجية|نمو|ابتكار|توسع|hedef|gelecek|strateji|buyume|inovasyon|цель|цели|будущ|стратег|рост|иннова/u;
+  const dryerPattern = /dryer|drying|capacity|integration|consistency|المجفف|مجفف|سعة|تكامل|ثبات|dryer|kurutucu|kapasite|entegrasyon|tutarlilik|сушил|мощност|интеграц|стабиль/u;
+  const qualityPattern = /quality|certificate|private label|جودة|شهادة|علامة خاصة|kalite|sertifika|özel marka|качество|сертифик/u;
+
+  if (productReply && shouldPrioritizeProductKnowledge(question)) {
+    return productReply;
+  }
 
   if (contactPattern.test(normalizedQuestion)) {
-    switch (normalizeLanguageCode(language)) {
+    switch (normalizedLanguage) {
       case 'en':
         return [
           'You can contact KARAHOCA directly through the official channels below:',
-          '- Email: info@karahoca.com',
-          '- WhatsApp: +90 530 591 4990'
+          `- Address: ${snapshot.contact.address}`,
+          `- Email: ${snapshot.contact.email}`,
+          `- Phone: ${snapshot.contact.phone}`,
+          `- WhatsApp: ${snapshot.contact.whatsapp}`,
+          `- ${snapshot.contact.newsletterTitle}: ${snapshot.contact.newsletterDescription}`
         ].join('\n');
       case 'tr':
         return [
           'KARAHOCA ile dogrudan asagidaki resmi kanallardan iletisime gecebilirsiniz:',
-          '- E-posta: info@karahoca.com',
-          '- WhatsApp: +90 530 591 4990'
+          `- Adres: ${snapshot.contact.address}`,
+          `- E-posta: ${snapshot.contact.email}`,
+          `- Telefon: ${snapshot.contact.phone}`,
+          `- WhatsApp: ${snapshot.contact.whatsapp}`,
+          `- ${snapshot.contact.newsletterTitle}: ${snapshot.contact.newsletterDescription}`
         ].join('\n');
       case 'ru':
         return [
           'Вы можете связаться с KARAHOCA по официальным каналам ниже:',
-          '- Email: info@karahoca.com',
-          '- WhatsApp: +90 530 591 4990'
+          `- Адрес: ${snapshot.contact.address}`,
+          `- Email: ${snapshot.contact.email}`,
+          `- Телефон: ${snapshot.contact.phone}`,
+          `- WhatsApp: ${snapshot.contact.whatsapp}`,
+          `- ${snapshot.contact.newsletterTitle}: ${snapshot.contact.newsletterDescription}`
         ].join('\n');
       case 'ar':
       default:
         return [
           'يمكنك التواصل مع KARAHOCA مباشرة عبر القنوات الرسمية التالية:',
-          '- البريد الإلكتروني: info@karahoca.com',
-          '- الواتساب: +90 530 591 4990'
+          `- العنوان: ${snapshot.contact.address}`,
+          `- البريد الإلكتروني: ${snapshot.contact.email}`,
+          `- الهاتف: ${snapshot.contact.phone}`,
+          `- الواتساب: ${snapshot.contact.whatsapp}`,
+          `- ${snapshot.contact.newsletterTitle}: ${snapshot.contact.newsletterDescription}`
+        ].join('\n');
+    }
+  }
+
+  if (newsPattern.test(normalizedQuestion)) {
+    const matchedNews = getMatchedNewsItems(question, normalizedLanguage);
+    const newsItems = matchedNews.length > 0 ? matchedNews : snapshot.news.slice(0, 3);
+
+    switch (normalizedLanguage) {
+      case 'en':
+        return [
+          matchedNews.length > 0
+            ? 'These are the news items on the website that match your question most closely:'
+            : 'These are the latest news items currently shown on the KARAHOCA website:',
+          ...newsItems.map(
+            (item) => `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}`
+          ),
+          'If you want, I can also summarize one specific news item in more detail.'
+        ].join('\n');
+      case 'tr':
+        return [
+          matchedNews.length > 0
+            ? 'Sorunuza en yakin eslesen web sitesi haberleri sunlar:'
+            : 'KARAHOCA web sitesinde su anda gorunen en guncel haberler sunlar:',
+          ...newsItems.map(
+            (item) => `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}`
+          ),
+          'Isterseniz belirli bir haberi daha ayrintili da ozetleyebilirim.'
+        ].join('\n');
+      case 'ru':
+        return [
+          matchedNews.length > 0
+            ? 'Вот новости на сайте, которые ближе всего соответствуют вашему вопросу:'
+            : 'Вот последние новости, которые сейчас опубликованы на сайте KARAHOCA:',
+          ...newsItems.map(
+            (item) => `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}`
+          ),
+          'При желании я могу отдельно подробнее пересказать любую конкретную новость.'
+        ].join('\n');
+      case 'ar':
+      default:
+        return [
+          matchedNews.length > 0
+            ? 'هذه هي الأخبار الموجودة في الموقع والأقرب إلى سؤالك:'
+            : 'هذه هي أحدث الأخبار الظاهرة حاليًا في موقع KARAHOCA:',
+          ...newsItems.map(
+            (item) => `- ${item.dateLabel} | ${item.category} | ${item.title}: ${item.excerpt}`
+          ),
+          'إذا رغبت، أستطيع أيضًا تلخيص خبر محدد لك بمزيد من التفصيل.'
+        ].join('\n');
+    }
+  }
+
+  if (productionPattern.test(normalizedQuestion)) {
+    switch (normalizedLanguage) {
+      case 'en':
+        return [
+          snapshot.production.heroDescription,
+          `Production stages: ${snapshot.production.processCards
+            .map((card) => `${card.title} - ${card.description}`)
+            .join(' | ')}`,
+          `Safety and control: ${snapshot.production.safetyContent.join(' ')}`
+        ].join('\n');
+      case 'tr':
+        return [
+          snapshot.production.heroDescription,
+          `Uretim asamalari: ${snapshot.production.processCards
+            .map((card) => `${card.title} - ${card.description}`)
+            .join(' | ')}`,
+          `Guvenlik ve kontrol: ${snapshot.production.safetyContent.join(' ')}`
+        ].join('\n');
+      case 'ru':
+        return [
+          snapshot.production.heroDescription,
+          `Этапы производства: ${snapshot.production.processCards
+            .map((card) => `${card.title} - ${card.description}`)
+            .join(' | ')}`,
+          `Безопасность и контроль: ${snapshot.production.safetyContent.join(' ')}`
+        ].join('\n');
+      case 'ar':
+      default:
+        return [
+          snapshot.production.heroDescription,
+          `مراحل الإنتاج: ${snapshot.production.processCards
+            .map((card) => `${card.title} - ${card.description}`)
+            .join(' | ')}`,
+          `السلامة والرقابة: ${snapshot.production.safetyContent.join(' ')}`
+        ].join('\n');
+    }
+  }
+
+  if (goalPattern.test(normalizedQuestion)) {
+    switch (normalizedLanguage) {
+      case 'en':
+        return [
+          snapshot.goal.heroDescription,
+          `Strategic pillars: ${snapshot.goal.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Roadmap details: ${snapshot.goal.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'tr':
+        return [
+          snapshot.goal.heroDescription,
+          `Stratejik basliklar: ${snapshot.goal.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Yol haritasi detaylari: ${snapshot.goal.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'ru':
+        return [
+          snapshot.goal.heroDescription,
+          `Стратегические направления: ${snapshot.goal.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Детали дорожной карты: ${snapshot.goal.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'ar':
+      default:
+        return [
+          snapshot.goal.heroDescription,
+          `الركائز الاستراتيجية: ${snapshot.goal.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `تفاصيل خارطة الطريق: ${snapshot.goal.goalsContent.join(' ')}`
+        ].join('\n');
+    }
+  }
+
+  if (dryerPattern.test(normalizedQuestion)) {
+    switch (normalizedLanguage) {
+      case 'en':
+        return [
+          snapshot.dryer.heroDescription,
+          `Dryer strengths: ${snapshot.dryer.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Operational benefits: ${snapshot.dryer.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'tr':
+        return [
+          snapshot.dryer.heroDescription,
+          `Kurutucu gucleri: ${snapshot.dryer.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Operasyonel avantajlar: ${snapshot.dryer.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'ru':
+        return [
+          snapshot.dryer.heroDescription,
+          `Преимущества сушилки: ${snapshot.dryer.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `Операционные преимущества: ${snapshot.dryer.goalsContent.join(' ')}`
+        ].join('\n');
+      case 'ar':
+      default:
+        return [
+          snapshot.dryer.heroDescription,
+          `نقاط قوة المجفف: ${snapshot.dryer.pillars
+            .map((pillar) => `${pillar.title} - ${pillar.description}`)
+            .join(' | ')}`,
+          `الفوائد التشغيلية: ${snapshot.dryer.goalsContent.join(' ')}`
         ].join('\n');
     }
   }
 
   if (pricingPattern.test(normalizedQuestion)) {
-    switch (normalizeLanguageCode(language)) {
+    switch (normalizedLanguage) {
       case 'en':
         return [
           'Pricing depends on the product type, order quantity, and size.',
           'KARAHOCA offers Ex Works (EXW) terms from the factory, and detailed quotations are provided directly by the sales team.',
-          'For a custom quote, contact info@karahoca.com or WhatsApp +90 530 591 4990.'
+          `For a custom quote, contact ${snapshot.contact.email}, phone ${snapshot.contact.phone}, or WhatsApp ${snapshot.contact.whatsapp}.`
         ].join('\n');
       case 'tr':
         return [
           'Fiyatlar urun tipi, siparis miktari ve boyuta gore degisir.',
           'KARAHOCA fabrikadan Ex Works (EXW) sartlariyla calisir ve detayli teklif satis ekibi tarafindan hazirlanir.',
-          'Ozel teklif icin info@karahoca.com veya WhatsApp +90 530 591 4990 uzerinden ulasabilirsiniz.'
+          `Ozel teklif icin ${snapshot.contact.email}, ${snapshot.contact.phone} veya WhatsApp ${snapshot.contact.whatsapp} uzerinden ulasabilirsiniz.`
         ].join('\n');
       case 'ru':
         return [
           'Цена зависит от типа продукта, объема заказа и размера.',
           'KARAHOCA работает на условиях Ex Works (EXW) с завода, а подробные коммерческие предложения готовит отдел продаж.',
-          'Для индивидуального предложения свяжитесь с нами: info@karahoca.com или WhatsApp +90 530 591 4990.'
+          `Для индивидуального предложения свяжитесь с нами: ${snapshot.contact.email}, ${snapshot.contact.phone} или WhatsApp ${snapshot.contact.whatsapp}.`
         ].join('\n');
       case 'ar':
       default:
         return [
           'تعتمد الأسعار على نوع المنتج والكمية المطلوبة والحجم.',
           'تعمل KARAHOCA بنظام Ex Works (EXW) من المصنع، ويتم إعداد عروض الأسعار التفصيلية مباشرة عبر فريق المبيعات.',
-          'لطلب عرض سعر مخصص يمكنك التواصل عبر info@karahoca.com أو الواتساب +90 530 591 4990.'
+          `لطلب عرض سعر مخصص يمكنك التواصل عبر ${snapshot.contact.email} أو الهاتف ${snapshot.contact.phone} أو الواتساب ${snapshot.contact.whatsapp}.`
         ].join('\n');
     }
   }
 
   if (companyPattern.test(normalizedQuestion)) {
-    switch (normalizeLanguageCode(language)) {
+    switch (normalizedLanguage) {
       case 'en':
         return [
-          'KARAHOCA KIMYA is a Turkish company that manufactures household and industrial cleaning products.',
-          'Its portfolio includes the DIOX and AYLUX brands, with production focused on quality, modern processes, and export-ready supply.'
+          snapshot.about.heroDescription,
+          `History: ${snapshot.about.history.join(' ')}`,
+          `Milestones: ${snapshot.about.milestones
+            .map((milestone) => `${milestone.year} - ${milestone.title}`)
+            .join(' | ')}`,
+          `Vision numbers: ${snapshot.about.stats
+            .map((stat) => `${stat.value} ${stat.label}`)
+            .join(' | ')}`
         ].join('\n');
       case 'tr':
         return [
-          'KARAHOCA KIMYA, evsel ve endustriyel temizlik urunleri ureten Turk bir sirkettir.',
-          'Portfoyunde DIOX ve AYLUX markalari bulunur; uretimde kaliteye, modern sureclere ve ihracata uygun tedarige odaklanir.'
+          snapshot.about.heroDescription,
+          `Tarihce: ${snapshot.about.history.join(' ')}`,
+          `Kilometre taslari: ${snapshot.about.milestones
+            .map((milestone) => `${milestone.year} - ${milestone.title}`)
+            .join(' | ')}`,
+          `Vizyon sayilari: ${snapshot.about.stats
+            .map((stat) => `${stat.value} ${stat.label}`)
+            .join(' | ')}`
         ].join('\n');
       case 'ru':
         return [
-          'KARAHOCA KIMYA — турецкая компания, производящая бытовые и промышленные чистящие средства.',
-          'В портфеле есть бренды DIOX и AYLUX; производство ориентировано на качество, современные процессы и экспортные поставки.'
+          snapshot.about.heroDescription,
+          `История: ${snapshot.about.history.join(' ')}`,
+          `Ключевые этапы: ${snapshot.about.milestones
+            .map((milestone) => `${milestone.year} - ${milestone.title}`)
+            .join(' | ')}`,
+          `Основные показатели: ${snapshot.about.stats
+            .map((stat) => `${stat.value} ${stat.label}`)
+            .join(' | ')}`
         ].join('\n');
       case 'ar':
       default:
         return [
-          'KARAHOCA KIMYA شركة تركية متخصصة في تصنيع منتجات التنظيف المنزلية والصناعية.',
-          'وتضم ضمن محفظتها علامتي DIOX وAYLUX مع تركيز على الجودة والتقنيات الحديثة والاستعداد لأسواق التصدير.'
+          snapshot.about.heroDescription,
+          `نبذة تاريخية: ${snapshot.about.history.join(' ')}`,
+          `المعالم الرئيسية: ${snapshot.about.milestones
+            .map((milestone) => `${milestone.year} - ${milestone.title}`)
+            .join(' | ')}`,
+          `أرقام الرؤية: ${snapshot.about.stats
+            .map((stat) => `${stat.value} ${stat.label}`)
+            .join(' | ')}`
         ].join('\n');
     }
   }
 
   if (qualityPattern.test(normalizedQuestion)) {
-    switch (normalizeLanguageCode(language)) {
+    switch (normalizedLanguage) {
       case 'en':
         return [
-          'KARAHOCA focuses on controlled production quality, internal testing, and careful supply-chain monitoring.',
-          'The company can also support private-label and flexible manufacturing partnerships depending on customer needs.'
+          `Quality focus: ${snapshot.about.values
+            .map((value) => `${value.title} - ${value.description}`)
+            .join(' | ')}`,
+          `Production control: ${snapshot.production.safetyContent.join(' ')}`,
+          'KARAHOCA also supports flexible manufacturing and private-label style partnerships depending on project needs.'
         ].join('\n');
       case 'tr':
         return [
-          'KARAHOCA kontrollu uretim kalitesine, ic testlere ve tedarik zinciri takibine odaklanir.',
-          'Sirket, ihtiyaca gore ozel marka ve esnek uretim is birliklerini de destekleyebilir.'
+          `Kalite odagi: ${snapshot.about.values
+            .map((value) => `${value.title} - ${value.description}`)
+            .join(' | ')}`,
+          `Uretim kontrolu: ${snapshot.production.safetyContent.join(' ')}`,
+          'KARAHOCA, proje ihtiyacina gore esnek uretim ve ozel marka benzeri is birliklerini de destekleyebilir.'
         ].join('\n');
       case 'ru':
         return [
-          'KARAHOCA уделяет внимание контролю качества производства, внутренним испытаниям и отслеживанию цепочки поставок.',
-          'Компания также может поддерживать private label и гибкие производственные партнерства в зависимости от потребностей клиента.'
+          `Фокус на качестве: ${snapshot.about.values
+            .map((value) => `${value.title} - ${value.description}`)
+            .join(' | ')}`,
+          `Производственный контроль: ${snapshot.production.safetyContent.join(' ')}`,
+          'KARAHOCA также может поддерживать гибкие производственные партнерства и проекты private label в зависимости от потребностей.'
         ].join('\n');
       case 'ar':
       default:
         return [
-          'تركز KARAHOCA على جودة الإنتاج والاختبارات الداخلية ومراقبة سلسلة التوريد بعناية.',
-          'كما يمكنها دعم التصنيع المرن وتصنيع العلامات الخاصة بحسب احتياجات العميل.'
+          `تركيز الجودة: ${snapshot.about.values
+            .map((value) => `${value.title} - ${value.description}`)
+            .join(' | ')}`,
+          `ضبط الإنتاج: ${snapshot.production.safetyContent.join(' ')}`,
+          'كما تدعم KARAHOCA التصنيع المرن ومشاريع العلامات الخاصة بحسب احتياجات الشريك أو العميل.'
         ].join('\n');
     }
   }
 
-  const productReply = buildLocalProductFallbackReply(question, t, language);
   if (productReply) {
     return productReply;
   }
 
-  switch (normalizeLanguageCode(language)) {
+  switch (normalizedLanguage) {
     case 'en':
       return [
         'I can still help using the information currently available on the KARAHOCA website.',
-        'Available topics include DIOX products, AYLUX products, pricing, shipping, company information, quality, and contact details.',
-        'For direct contact: info@karahoca.com | WhatsApp: +90 530 591 4990'
+        'Available topics include DIOX products, AYLUX products, company history, production, goals, dryer technology, news, pricing, shipping, quality, and contact details.',
+        `For direct contact: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'tr':
       return [
         'KARAHOCA web sitesinde mevcut olan bilgilerle yine de yardimci olabilirim.',
-        'Mevcut konular: DIOX urunleri, AYLUX urunleri, fiyatlar, kargo, sirket bilgileri, kalite ve iletisim detaylari.',
-        'Dogrudan iletisim: info@karahoca.com | WhatsApp: +90 530 591 4990'
+        'Mevcut konular: DIOX urunleri, AYLUX urunleri, sirket gecmisi, uretim, hedefler, kurutucu teknolojisi, haberler, fiyatlar, kargo, kalite ve iletisim detaylari.',
+        `Dogrudan iletisim: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'ru':
       return [
         'Я все равно могу помочь, используя информацию, доступную на сайте KARAHOCA.',
-        'Доступные темы: продукты DIOX, продукты AYLUX, цены, доставка, информация о компании, качество и контакты.',
-        'Прямой контакт: info@karahoca.com | WhatsApp: +90 530 591 4990'
+        'Доступные темы: продукты DIOX, продукты AYLUX, история компании, производство, цели, технология сушилки, новости, цены, доставка, качество и контакты.',
+        `Прямой контакт: ${snapshot.contact.email} | ${snapshot.contact.phone} | WhatsApp: ${snapshot.contact.whatsapp}`
       ].join('\n');
     case 'ar':
     default:
       return [
         'يمكنني مع ذلك مساعدتك بالاعتماد على المعلومات المتاحة في موقع KARAHOCA.',
-        'الموضوعات المتاحة تشمل منتجات DIOX وAYLUX والأسعار والشحن ومعلومات الشركة والجودة ووسائل التواصل.',
-        'للتواصل المباشر: info@karahoca.com | الواتساب: +90 530 591 4990'
+        'الموضوعات المتاحة تشمل منتجات DIOX وAYLUX، تاريخ الشركة، الإنتاج، هدفنا، المجفف، الأخبار، الأسعار، الشحن، الجودة، ووسائل التواصل.',
+        `للتواصل المباشر: ${snapshot.contact.email} | ${snapshot.contact.phone} | الواتساب: ${snapshot.contact.whatsapp}`
       ].join('\n');
   }
 };
 
 export const buildKnowledgeBase = (
   t: TFunction,
-  question: string = ''
+  question: string = '',
+  language: string = 'ar'
 ): KnowledgeSection[] => {
   const catalogs = getBrandCatalogs(t);
   const catalogSections = catalogs.map(buildCatalogSection);
+  const websiteSections = buildWebsiteKnowledgeSections(t, language);
   const comparisonSection = buildBrandComparisonSection(catalogs);
   const focusedComparisonSection = buildFocusedComparisonSection(question, catalogs);
+  const focusedNewsSection = buildFocusedNewsSection(question, language);
   const productPrioritySections = [
     {
       title: 'Product comparison guidance from live website catalog',
@@ -675,14 +1226,15 @@ export const buildKnowledgeBase = (
       tags: ['comparison', 'catalog', 'products']
     },
     comparisonSection,
-    ...(focusedComparisonSection ? [focusedComparisonSection] : [])
+    ...(focusedComparisonSection ? [focusedComparisonSection] : []),
+    ...(focusedNewsSection ? [focusedNewsSection] : [])
   ];
 
   if (shouldPrioritizeProductKnowledge(question)) {
-    return [...productPrioritySections, ...catalogSections, ...baseKnowledgeSections];
+    return [...productPrioritySections, ...catalogSections, ...websiteSections, ...baseKnowledgeSections];
   }
 
-  return [...baseKnowledgeSections, ...productPrioritySections, ...catalogSections];
+  return [...websiteSections, ...productPrioritySections, ...catalogSections, ...baseKnowledgeSections];
 };
 
 /** إرشادات لغوية لضمان اتساق إجابات المساعد. */
@@ -701,39 +1253,53 @@ TONE & STYLE:
 - Provide answers in short paragraphs or easy-to-read bullet points
 - Always include brand names (DIOX, AYLUX, KARAHOCA) in English regardless of response language
 - Use the actual product data from the website catalog whenever the question is about products, variants, sizes, materials, counts, or comparisons
+- Use the actual website sections whenever the question is about company history, milestones, production, goals, dryer technology, news, newsletter, or contact details
 - If the customer asks to compare products, compare using the catalog fields that are actually available: brand, category, description, weight/size, material, and count
 - Never say that product comparison information is unavailable if the catalog already contains relevant product entries
+- If the customer asks about recent news, launches, contracts, or exhibitions, answer from the news items already shown on the website
 - If information is not in the knowledge base, acknowledge this clearly and provide contact information
 - Do not mention details outside of KARAHOCA's scope
 - Remind customers of official contact options: info@karahoca.com | WhatsApp: +90 530 591 4990
 `;
 
 
-/** نص ترحيبي مبني على اللغة الحالية. */
-export const getAssistantWelcomeMessage = (lang: string) => {
-  switch (normalizeLanguageCode(lang)) {
+const getSingleAssistantWelcomeMessage = (lang: SupportedLanguageCode) => {
+  switch (lang) {
     case 'en':
       return `**Welcome!** 👋
 
 I'm the AI assistant for **KARAHOCA**.
-You can ask me about our products, company, shipping, and contact details.`;
+You can ask me about our products, company, production, news, shipping, and contact details.`;
     case 'tr':
       return `**Hoş geldiniz!** 👋
 
 Ben **KARAHOCA** için hazırlanan yapay zeka asistanıyım.
-Ürünlerimiz, şirketimiz, sevkiyat ve iletişim hakkında soru sorabilirsiniz.`;
+Urunlerimiz, sirketimiz, uretim, haberler, sevkiyat ve iletisim hakkinda soru sorabilirsiniz.`;
     case 'ru':
       return `**Добро пожаловать!** 👋
 
 Я виртуальный помощник компании **KARAHOCA**.
-Вы можете спросить меня о продукции, компании, доставке и способах связи.`;
+Вы можете спросить меня о продукции, компании, производстве, новостях, доставке и способах связи.`;
     case 'ar':
     default:
       return `**مرحباً بك!** 👋
 
 أنا المساعد الذكي لشركة **KARAHOCA**.
-يمكنك سؤالي عن المنتجات، الشركة، الشحن، ووسائل التواصل.`;
+يمكنك سؤالي عن المنتجات، الشركة، الإنتاج، الأخبار، الشحن، ووسائل التواصل.`;
   }
+};
+
+/** نص ترحيبي ثنائي اللغة: لغة الموقع الحالية + الإنجليزية. */
+export const getAssistantWelcomeMessage = (lang: string) => {
+  const normalizedLanguage = normalizeLanguageCode(lang);
+  const localizedMessage = getSingleAssistantWelcomeMessage(normalizedLanguage);
+  const englishMessage = getSingleAssistantWelcomeMessage('en');
+
+  if (normalizedLanguage === 'en') {
+    return englishMessage;
+  }
+
+  return `${localizedMessage}\n\n${englishMessage}`;
 };
 /**
  * 🧠 دالة مساعدة لاستخراج المواضيع التي تم التطرق لها في المحادثة
@@ -758,6 +1324,8 @@ function getDiscussedTopics(conversationHistory: Array<{role: string, content: s
     contact: /تواصل|اتصال|contact|whatsapp|واتساب|email|iletişim/,
     quality: /جودة|شهادة|certificate|quality|kalite|مصنع|factory|fabrika/,
     products: /منتج|منتجات|product|ürün|cleaning|تنظيف|temizlik/,
+    news: /خبر|أخبار|اخبار|مستجد|إطلاق|معرض|عقد|اتفاق|news|announcement|launch|exhibition|contract|haber|duyuru|lansman|fuar|anlaşma|новост|анонс|запуск|выстав|контракт/,
+    production: /إنتاج|تصنيع|عملية|production|manufacturing|process|üretim|süreç|производ|процесс/,
   };
   
   // فحص كل موضوع
@@ -800,7 +1368,9 @@ export function generateSmartSuggestions(
       contact: ['منتجاتنا', 'أسئلة عن الأسعار', 'معلومات الشركة'],
       company: ['منتجات DIOX', 'منتجات AYLUX', 'طرق التواصل'],
       quality: ['شهادات الجودة', 'المصنع', 'المنتجات'],
-      default: ['من نحن؟', 'منتجاتنا', 'التواصل معنا', 'الأسعار']
+      news: ['آخر الأخبار', 'الإنتاج', 'وسائل التواصل'],
+      production: ['الجودة والمصنع', 'هدفنا', 'آخر الأخبار'],
+      default: ['من نحن؟', 'منتجاتنا', 'آخر الأخبار', 'التواصل معنا']
     },
     en: {
       diox: ['AYLUX Products', 'Pricing & Shipping', 'Request Quote'],
@@ -810,7 +1380,9 @@ export function generateSmartSuggestions(
       contact: ['Our Products', 'Pricing Questions', 'Company Info'],
       company: ['DIOX Products', 'AYLUX Products', 'Contact Methods'],
       quality: ['Quality Certificates', 'Factory', 'Products'],
-      default: ['About Us?', 'Our Products', 'Contact Us', 'Pricing']
+      news: ['Latest News', 'Production', 'Contact Methods'],
+      production: ['Factory & Quality', 'Our Goal', 'Latest News'],
+      default: ['About Us?', 'Our Products', 'Latest News', 'Contact Us']
     },
     tr: {
       diox: ['AYLUX Ürünleri', 'Fiyat & Kargo', 'Teklif İste'],
@@ -820,7 +1392,9 @@ export function generateSmartSuggestions(
       contact: ['Ürünlerimiz', 'Fiyat Soruları', 'Şirket Bilgisi'],
       company: ['DIOX Ürünleri', 'AYLUX Ürünleri', 'İletişim Yöntemleri'],
       quality: ['Kalite Sertifikaları', 'Fabrika', 'Ürünler'],
-      default: ['Hakkımızda?', 'Ürünlerimiz', 'Bize Ulaşın', 'Fiyatlandırma']
+      news: ['Son Haberler', 'Üretim', 'İletişim Yöntemleri'],
+      production: ['Fabrika & Kalite', 'Hedefimiz', 'Son Haberler'],
+      default: ['Hakkımızda?', 'Ürünlerimiz', 'Son Haberler', 'Bize Ulaşın']
     },
     ru: {
       diox: ['Продукты AYLUX', 'Цены и доставка', 'Запросить предложение'],
@@ -830,7 +1404,9 @@ export function generateSmartSuggestions(
       contact: ['Наши продукты', 'Вопросы о ценах', 'Информация о компании'],
       company: ['Продукты DIOX', 'Продукты AYLUX', 'Способы связи'],
       quality: ['Сертификаты качества', 'Завод', 'Продукты'],
-      default: ['О нас?', 'Наши продукты', 'Связаться с нами', 'Цены']
+      news: ['Последние новости', 'Производство', 'Способы связи'],
+      production: ['Завод и качество', 'Наша цель', 'Последние новости'],
+      default: ['О нас?', 'Наши продукты', 'Последние новости', 'Связаться с нами']
     }
   };
 
@@ -854,6 +1430,14 @@ export function generateSmartSuggestions(
   if (lowerMessage.includes('contact') || lowerMessage.includes('تواصل') || lowerMessage.includes('iletişim') ||
       lowerMessage.includes('whatsapp') || lowerMessage.includes('واتساب')) {
     return langSuggestions.contact;
+  }
+  if (lowerMessage.includes('news') || lowerMessage.includes('خبر') || lowerMessage.includes('أخبار') ||
+      lowerMessage.includes('haber') || lowerMessage.includes('новост')) {
+    return langSuggestions.news;
+  }
+  if (lowerMessage.includes('production') || lowerMessage.includes('إنتاج') || lowerMessage.includes('تصنيع') ||
+      lowerMessage.includes('üretim') || lowerMessage.includes('производ')) {
+    return langSuggestions.production;
   }
   if (lowerMessage.includes('company') || lowerMessage.includes('شركة') || lowerMessage.includes('karahoca') ||
       lowerMessage.includes('من أنت') || lowerMessage.includes('who are')) {
@@ -891,6 +1475,10 @@ export function generateSmartSuggestions(
     'شهادات الجودة': ['quality'],
     'المصنع': ['quality'],
     'المنتجات': ['products'],
+    'آخر الأخبار': ['news'],
+    'الإنتاج': ['production'],
+    'الجودة والمصنع': ['quality', 'production'],
+    'هدفنا': ['company'],
     'مقارنة المنتجات': ['diox', 'aylux'],
     'شروط الشحن EXW': ['shipping'],
     'الحد الأدنى للطلب': ['pricing'],
@@ -914,6 +1502,9 @@ export function generateSmartSuggestions(
     'Quality Certificates': ['quality'],
     'Factory': ['quality'],
     'Products': ['products'],
+    'Latest News': ['news'],
+    'Production': ['production'],
+    'Our Goal': ['company'],
     'Compare Products': ['diox', 'aylux'],
     'EXW Shipping Terms': ['shipping'],
     'Minimum Order': ['pricing'],
@@ -938,6 +1529,9 @@ export function generateSmartSuggestions(
     'Kalite Sertifikaları': ['quality'],
     'Fabrika': ['quality'],
     'Ürünler': ['products'],
+    'Son Haberler': ['news'],
+    'Üretim': ['production'],
+    'Hedefimiz': ['company'],
     'Ürün Karşılaştır': ['diox', 'aylux'],
     'EXW Kargo Şartları': ['shipping'],
     'Minimum Sipariş': ['pricing'],
@@ -962,6 +1556,9 @@ export function generateSmartSuggestions(
     'Сертификаты качества': ['quality'],
     'Завод': ['quality'],
     'Продукты': ['products'],
+    'Последние новости': ['news'],
+    'Производство': ['production'],
+    'Наша цель': ['company'],
     'Сравнить продукты': ['diox', 'aylux'],
     'Условия доставки EXW': ['shipping'],
     'Минимальный заказ': ['pricing'],
