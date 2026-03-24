@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import {
   assistantToneGuidelines,
   getAssistantWelcomeMessage,
-  buildLocalAssistantReply,
   buildKnowledgeBase,
   generateSmartSuggestions,
   type KnowledgeSection,
@@ -510,8 +509,6 @@ const AIChatWidget: React.FC = () => {
 
     const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleanedInput);
     const questionLanguageHint = inferQuestionLanguageHint(cleanedInput);
-    const fallbackLanguage = detectedQuestionLanguage ?? 'en';
-    const fallbackT = i18n.getFixedT(fallbackLanguage);
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -554,9 +551,12 @@ const AIChatWidget: React.FC = () => {
 
       const payload = await response.json();
       const assistantReply =
-        typeof payload?.reply === 'string' && payload.reply.trim().length > 0
-          ? payload.reply.trim()
-          : buildLocalAssistantReply(cleanedInput, fallbackT, fallbackLanguage);
+        typeof payload?.reply === 'string' ? payload.reply.trim() : '';
+
+      if (!assistantReply) {
+        setStatusMessage(uiText.noAnswerFallback);
+        return;
+      }
 
       const replyContent = withWhatsAppLinks(assistantReply);
       const assistantMessage: ChatMessage = {
@@ -578,29 +578,10 @@ const AIChatWidget: React.FC = () => {
       if (import.meta.env.DEV) {
         console.error('Gemini request failed:', getErrorMessage(error));
       }
-      const localFallbackReply = buildLocalAssistantReply(
-        cleanedInput,
-        fallbackT,
-        fallbackLanguage
-      );
-
-      setStatusMessage(null);
-
-      const fallbackMessage: ChatMessage = {
-        id: `assistant-error-${Date.now()}`,
-        role: 'assistant',
-        content: withWhatsAppLinks(localFallbackReply),
-        timestamp: formatTimestamp(currentLang),
-      };
-
-      const updatedConversation = [...messages, userMessage, fallbackMessage];
-      setMessages(updatedConversation);
-      updateSuggestions(
-        cleanedInput,
-        fallbackMessage.content,
-        updatedConversation,
-        detectedQuestionLanguage ?? currentLang
-      );
+      const errorMessage = getErrorMessage(error);
+      const isEmptyReplyError = /empty response|empty reply/i.test(errorMessage);
+      setStatusMessage(isEmptyReplyError ? uiText.noAnswerFallback : uiText.fallbackReply);
+      setSuggestions([]);
     } finally {
       setIsLoading(false);
 

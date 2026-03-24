@@ -32,3 +32,6 @@ server/data/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+*.rar
+*.zip
