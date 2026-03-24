@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
@@ -8,31 +8,43 @@ import { normalizeLanguageCode } from '../utils/language';
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
 const AUTO_SCROLL_SPEED_PX_PER_MS = 0.03;
-const DRAG_THRESHOLD_PX = 6;
+
+const ARROW_LABELS = {
+  ar: {
+    previous: 'تحريك الأخبار إلى اليمين',
+    next: 'تحريك الأخبار إلى اليسار'
+  },
+  en: {
+    previous: 'Move news to the right',
+    next: 'Move news to the left'
+  },
+  tr: {
+    previous: 'Haberleri saga kaydir',
+    next: 'Haberleri sola kaydir'
+  },
+  ru: {
+    previous: 'Sdvinit novosti vpravo',
+    next: 'Sdvinit novosti vlevo'
+  }
+} as const;
 
 const NewsSection: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const viewportRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
   const loopWidthRef = useRef(0);
   const offsetRef = useRef(0);
   const pausedUntilRef = useRef(0);
-  const suppressClickUntilRef = useRef(0);
-  const dragStateRef = useRef({
-    active: false,
-    moved: false,
-    startX: 0,
-    startOffset: 0,
-    pointerId: -1
-  });
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const newsItems = getLocalizedNewsItems(currentLanguage);
   const marqueeItems = [...newsItems, ...newsItems, ...newsItems];
+  const arrowLabels = useMemo(
+    () => ARROW_LABELS[currentLanguage as keyof typeof ARROW_LABELS] ?? ARROW_LABELS.en,
+    [currentLanguage]
+  );
 
   const pauseAutoScroll = (duration = AUTO_SCROLL_PAUSE_MS) => {
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -69,6 +81,24 @@ const NewsSection: React.FC = () => {
     track.style.transform = `translate3d(${normalized}px, 0, 0)`;
   }, [normalizeOffset]);
 
+  const nudgeTrack = useCallback((direction: 'previous' | 'next') => {
+    const track = trackRef.current;
+    const firstItem = track?.querySelector<HTMLElement>('.news-section__item');
+
+    if (!track || !firstItem) {
+      return;
+    }
+
+    const trackStyles = window.getComputedStyle(track);
+    const gapValue = trackStyles.gap || trackStyles.columnGap || '0';
+    const gap = Number.parseFloat(gapValue) || 0;
+    const step = firstItem.getBoundingClientRect().width + gap;
+    const delta = direction === 'previous' ? step : -step;
+
+    pauseAutoScroll();
+    applyOffset(offsetRef.current + delta);
+  }, [applyOffset]);
+
   useEffect(() => {
     const track = trackRef.current;
 
@@ -90,7 +120,7 @@ const NewsSection: React.FC = () => {
       const delta = timestamp - lastFrameTimeRef.current;
       lastFrameTimeRef.current = timestamp;
 
-      if (!dragStateRef.current.active && timestamp >= pausedUntilRef.current && loopWidthRef.current > 0) {
+      if (timestamp >= pausedUntilRef.current && loopWidthRef.current > 0) {
         applyOffset(offsetRef.current + delta * AUTO_SCROLL_SPEED_PX_PER_MS);
       }
 
@@ -108,76 +138,8 @@ const NewsSection: React.FC = () => {
       }
       animationFrameRef.current = null;
       lastFrameTimeRef.current = null;
-      dragStateRef.current.active = false;
-      setIsDragging(false);
     };
   }, [applyOffset, newsItems.length, currentLanguage]);
-
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
-
-    dragStateRef.current = {
-      active: true,
-      moved: false,
-      startX: event.clientX,
-      startOffset: offsetRef.current,
-      pointerId: event.pointerId
-    };
-
-    pauseAutoScroll();
-    viewport.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
-    if (!viewport || !dragStateRef.current.active) {
-      return;
-    }
-
-    const deltaX = event.clientX - dragStateRef.current.startX;
-
-    if (!dragStateRef.current.moved && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
-      dragStateRef.current.moved = true;
-      setIsDragging(true);
-    }
-
-    if (dragStateRef.current.moved) {
-      applyOffset(dragStateRef.current.startOffset + deltaX);
-      pauseAutoScroll();
-    }
-  };
-
-  const handlePointerRelease = (event: React.PointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
-    if (!viewport || !dragStateRef.current.active) {
-      return;
-    }
-
-    const moved = dragStateRef.current.moved;
-    dragStateRef.current.active = false;
-    dragStateRef.current.moved = false;
-    setIsDragging(false);
-    pauseAutoScroll();
-
-    if (moved) {
-      suppressClickUntilRef.current = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 250;
-    }
-
-    if (viewport.hasPointerCapture(event.pointerId)) {
-      viewport.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const handleClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (now < suppressClickUntilRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  };
 
   return (
     <section id="news" className="section glass-section news-section">
@@ -195,22 +157,34 @@ const NewsSection: React.FC = () => {
         </Link>
       </div>
 
-      <div
-        ref={viewportRef}
-        className={`container news-section__viewport fx-up${isDragging ? ' is-dragging' : ''}`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerRelease}
-        onPointerCancel={handlePointerRelease}
-        onClickCapture={handleClickCapture}
-      >
-        <div ref={trackRef} className="news-section__track">
-          {marqueeItems.map((item, index) => (
-            <div key={`${item.id}-${index}`} className="news-section__item">
-              <NewsCard news={item} onOpen={setActiveNews} compact />
-            </div>
-          ))}
+      <div className="container news-section__carousel fx-up">
+        <button
+          type="button"
+          className="news-section__arrow news-section__arrow--previous"
+          aria-label={arrowLabels.previous}
+          onClick={() => nudgeTrack('previous')}
+        >
+          <span aria-hidden="true">←</span>
+        </button>
+
+        <div className="news-section__viewport">
+          <div ref={trackRef} className="news-section__track">
+            {marqueeItems.map((item, index) => (
+              <div key={`${item.id}-${index}`} className="news-section__item">
+                <NewsCard news={item} onOpen={setActiveNews} compact />
+              </div>
+            ))}
+          </div>
         </div>
+
+        <button
+          type="button"
+          className="news-section__arrow news-section__arrow--next"
+          aria-label={arrowLabels.next}
+          onClick={() => nudgeTrack('next')}
+        >
+          <span aria-hidden="true">→</span>
+        </button>
       </div>
 
       <NewsModal news={activeNews} onClose={() => setActiveNews(null)} />

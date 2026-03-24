@@ -2248,9 +2248,21 @@
     justify-content: center;
   }
 
+  .news-section__carousel {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .news-section__arrow {
+    width: 42px;
+    height: 42px;
+    font-size: 1.1rem;
+    box-shadow: 0 10px 22px rgba(7, 16, 34, 0.18);
+  }
+
   .news-section__viewport {
-    margin-inline: -16px;
-    padding-inline: 16px;
+    margin-inline: 0;
     mask-image: none;
   }
 

@@ -2697,18 +2697,47 @@ html[lang="ru"] .site-header .menu {
   margin-inline: auto;
 }
 
+.news-section__carousel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.news-section__arrow {
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-soft);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  flex-shrink: 0;
+}
+
+.news-section__arrow:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 91, 46, 0.28);
+}
+
+.news-section__arrow:active {
+  transform: scale(0.96);
+}
+
 .news-section__viewport {
+  min-width: 0;
   overflow: hidden;
   direction: ltr;
   padding: 0.5rem 0 0.25rem;
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-  cursor: grab;
-  user-select: none;
-  touch-action: pan-y;
-}
-
-.news-section__viewport.is-dragging {
-  cursor: grabbing;
 }
 
 .news-section__track {
@@ -2980,7 +3009,8 @@ body.light-mode .news-page__eyebrow,
 body.light-mode .news-card__action,
 body.light-mode .news-card__chip,
 body.light-mode .news-page__heroTag,
-body.light-mode .news-modal__close {
+body.light-mode .news-modal__close,
+body.light-mode .news-section__arrow {
   color: #153D7A;
 }
 
@@ -3021,8 +3051,8 @@ body.light-mode .news-modal__close {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .news-section__track {
-    animation: none;
-    transform: none;
+  .news-section__arrow,
+  .news-card__media img {
+    transition: none;
   }
 }
