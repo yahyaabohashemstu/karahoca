@@ -28,6 +28,29 @@ interface ChatMessage {
 }
 
 const CHAT_STORAGE_KEY = 'karahoca_ai_chat_messages';
+const USER_ID_KEY = 'karahoca_user_id';
+
+const getOrCreateUserId = (): string => {
+  if (typeof window === 'undefined') return 'unknown';
+  let id = window.localStorage.getItem(USER_ID_KEY);
+  if (!id) {
+    id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `uid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(USER_ID_KEY, id);
+  }
+  return id;
+};
+
+const logChatToServer = (userId: string, sessionId: string, messages: ChatMessage[], language: string): void => {
+  if (!messages.length) return;
+  const payload = { userId, sessionId, messages, language };
+  fetch(buildApiUrl('/api/chat/log'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+};
 
 interface UIStrings {
   title: string;
@@ -417,6 +440,8 @@ const AIChatWidget: React.FC = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const userIdRef = useRef<string>(getOrCreateUserId());
+  const sessionIdRef = useRef<string>(`sess-${Date.now()}`);
 
   useEffect(() => {
     if (isOpen || welcomeHintShownRef.current) {
@@ -568,6 +593,7 @@ const AIChatWidget: React.FC = () => {
 
       const updatedConversation = [...messages, userMessage, assistantMessage];
       setMessages(updatedConversation);
+      logChatToServer(userIdRef.current, sessionIdRef.current, [userMessage, assistantMessage], detectedQuestionLanguage ?? currentLang);
       updateSuggestions(
         cleanedInput,
         replyContent,

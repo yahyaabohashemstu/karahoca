@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -32,7 +32,9 @@ import './styles/main.css';
 import './styles/employee.css';
 import './styles/professional-system.css';
 
-function App() {
+const AdminApp = lazy(() => import('./admin/AdminApp').then(m => ({ default: m.AdminApp })));
+
+function MainSite() {
   const { i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isHiding, setIsHiding] = useState(false);
@@ -57,51 +59,69 @@ function App() {
   }, []);
 
   return (
+    <>
+      <GoogleAnalytics />
+      {isLoading && <PageLoader hiding={isHiding} />}
+
+      {!isLoading && (
+        <>
+          {isMobile ? (
+            <div className="App" dir={currentDir} lang={currentLang}>
+              <MobileLayout>
+                <Routes>
+                  <Route path="/" element={<MobileHome />} />
+                  <Route path="/about" element={<MobileAboutPage />} />
+                  <Route path="/news" element={<MobileNewsPage />} />
+                  <Route path="/diox" element={<MobileDioxPage />} />
+                  <Route path="/aylux" element={<MobileAyluxPage />} />
+                  <Route path="/production" element={<MobileProductionPage />} />
+                  <Route path="/goal" element={<MobileGoalPage />} />
+                  <Route path="/dryer" element={<MobileDryerPage />} />
+                </Routes>
+              </MobileLayout>
+              <AIChatWidget />
+              <ThemeToggle />
+              <WhatsAppButton phoneNumber="905305914990" />
+            </div>
+          ) : (
+            <div className="App" dir={currentDir} lang={currentLang}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/news" element={<NewsPage />} />
+                <Route path="/diox" element={<DioxPage />} />
+                <Route path="/aylux" element={<AyluxPage />} />
+                <Route path="/production" element={<ProductionPage />} />
+                <Route path="/goal" element={<GoalPage />} />
+                <Route path="/dryer" element={<DryerPage />} />
+              </Routes>
+              <AIChatWidget />
+              <ThemeToggle />
+              <WhatsAppButton phoneNumber="905305914990" />
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function App() {
+  return (
     <ErrorBoundary>
       <HelmetProvider>
         <Router>
-          <GoogleAnalytics />
-          {isLoading && <PageLoader hiding={isHiding} />}
-
-          {!isLoading && (
-            <>
-              {isMobile ? (
-                <div className="App" dir={currentDir} lang={currentLang}>
-                  <MobileLayout>
-                    <Routes>
-                      <Route path="/" element={<MobileHome />} />
-                      <Route path="/about" element={<MobileAboutPage />} />
-                      <Route path="/news" element={<MobileNewsPage />} />
-                      <Route path="/diox" element={<MobileDioxPage />} />
-                      <Route path="/aylux" element={<MobileAyluxPage />} />
-                      <Route path="/production" element={<MobileProductionPage />} />
-                      <Route path="/goal" element={<MobileGoalPage />} />
-                      <Route path="/dryer" element={<MobileDryerPage />} />
-                    </Routes>
-                  </MobileLayout>
-                  <AIChatWidget />
-                  <ThemeToggle />
-                  <WhatsAppButton phoneNumber="905305914990" />
-                </div>
-              ) : (
-                <div className="App" dir={currentDir} lang={currentLang}>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/news" element={<NewsPage />} />
-                    <Route path="/diox" element={<DioxPage />} />
-                    <Route path="/aylux" element={<AyluxPage />} />
-                    <Route path="/production" element={<ProductionPage />} />
-                    <Route path="/goal" element={<GoalPage />} />
-                    <Route path="/dryer" element={<DryerPage />} />
-                  </Routes>
-                  <AIChatWidget />
-                  <ThemeToggle />
-                  <WhatsAppButton phoneNumber="905305914990" />
-                </div>
-              )}
-            </>
-          )}
+          <Routes>
+            <Route
+              path="/admin/*"
+              element={
+                <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f1117', color: '#fff', fontFamily: 'sans-serif', fontSize: 16 }}>Loading...</div>}>
+                  <AdminApp />
+                </Suspense>
+              }
+            />
+            <Route path="*" element={<MainSite />} />
+          </Routes>
         </Router>
       </HelmetProvider>
     </ErrorBoundary>

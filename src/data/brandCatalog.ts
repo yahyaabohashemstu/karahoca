@@ -1,4 +1,6 @@
 import type { TFunction } from 'i18next';
+import { buildApiUrl } from '../utils/api';
+import type { SupportedLanguageCode } from '../utils/language';
 
 export interface BrandProductDetails {
   weight?: string;
@@ -507,3 +509,50 @@ export const getBrandCatalogs = (t: TFunction): BrandCatalogData[] => [
     categories: getAyluxCategories(t)
   }
 ];
+
+// ─── API-based fetching (primary source when server is available) ────────────
+
+interface ApiCategory {
+  title_ar: string; title_en: string; title_tr: string; title_ru: string;
+  products: Array<{
+    name_ar: string; name_en: string; name_tr: string; name_ru: string;
+    description_ar: string; description_en: string; description_tr: string; description_ru: string;
+    image: string;
+    alt_ar: string; alt_en: string; alt_tr: string; alt_ru: string;
+    weight: string;
+    material_ar: string; material_en: string; material_tr: string; material_ru: string;
+    count_ar: string; count_en: string; count_tr: string; count_ru: string;
+  }>;
+}
+
+const langKey = (lang: SupportedLanguageCode) => lang as string;
+
+const mapApiCategory = (cat: ApiCategory, lang: SupportedLanguageCode): BrandCategoryData => ({
+  title: (cat as unknown as Record<string, string>)[`title_${langKey(lang)}`] || cat.title_en,
+  products: cat.products.map(p => ({
+    name: (p as unknown as Record<string, string>)[`name_${langKey(lang)}`] || p.name_en,
+    description: (p as unknown as Record<string, string>)[`description_${langKey(lang)}`] || p.description_en,
+    image: p.image,
+    alt: (p as unknown as Record<string, string>)[`alt_${langKey(lang)}`] || p.alt_en,
+    details: {
+      weight: p.weight || undefined,
+      material: (p as unknown as Record<string, string>)[`material_${langKey(lang)}`] || undefined,
+      count: (p as unknown as Record<string, string>)[`count_${langKey(lang)}`] || undefined,
+    },
+  })),
+});
+
+export const fetchBrandCatalogFromApi = async (
+  brand: 'DIOX' | 'AYLUX',
+  lang: SupportedLanguageCode
+): Promise<BrandCategoryData[] | null> => {
+  try {
+    const res = await fetch(buildApiUrl(`/api/products/${brand}?lang=${lang}`));
+    if (!res.ok) return null;
+    const data = await res.json() as { success: boolean; categories: ApiCategory[] };
+    if (!data.success) return null;
+    return data.categories.map(cat => mapApiCategory(cat, lang));
+  } catch {
+    return null;
+  }
+};
