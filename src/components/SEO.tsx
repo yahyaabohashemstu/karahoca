@@ -54,9 +54,9 @@ const SEO: React.FC<SEOProps> = ({
 
       {/* hreflang — all 4 languages + x-default */}
       {SUPPORTED_LANGS.map(lang => (
-        <link key={lang} rel="alternate" hreflang={lang} href={`${siteUrl}${pagePath}`} />
+        <link key={lang} rel="alternate" hrefLang={lang} href={`${siteUrl}${pagePath}`} />
       ))}
-      <link rel="alternate" hreflang="x-default" href={`${siteUrl}${pagePath}`} />
+      <link rel="alternate" hrefLang="x-default" href={`${siteUrl}${pagePath}`} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type"              content={ogType} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { adminApi, type AdminAnalytics, type GaData } from '../utils/adminApi';
+import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
 
@@ -237,7 +237,7 @@ const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export const AdminAnalytics: React.FC = () => {
-  const internal = useAsync<AdminAnalytics>(() => adminApi.getAnalytics(), []);
+  const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(), []);
   const ga       = useAsync<GaData>(() => adminApi.getGaData(), []);
   const gad      = ga.data;
   const s        = internal.data?.summary;

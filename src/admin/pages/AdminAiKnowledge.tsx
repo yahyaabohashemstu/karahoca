@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi, type AiQA, type AiQuestion } from '../utils/adminApi';
+import { adminApi, type AiQA } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
 
