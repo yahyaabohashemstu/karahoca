@@ -1,5 +1,5 @@
 import React from 'react';
-import { adminApi, type AdminAnalytics } from '../utils/adminApi';
+import { adminApi, type AdminAnalytics as AdminAnalyticsData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
@@ -33,7 +33,7 @@ const MiniBar: React.FC<{ items: Array<{ date: string; count: number }>; color?:
 };
 
 export const AdminAnalytics: React.FC = () => {
-  const { data, loading, error } = useAsync<AdminAnalytics>(() => adminApi.getAnalytics(), []);
+  const { data, loading, error } = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(), []);
 
   if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>;
   if (error) return <div className="adm-alert adm-alert-error">⚠ {error}</div>;

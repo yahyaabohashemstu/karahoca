@@ -277,11 +277,11 @@ const mapApiNewsItem = (item: ApiNewsItem, lang: SupportedLanguageCode): Localiz
     image: item.image,
     publishedAt: item.published_at,
     dateLabel: formatNewsDate(item.published_at, lang),
-    category: (item as Record<string, string>)[`category_${l}`] || item.category_en,
-    title: (item as Record<string, string>)[`title_${l}`] || item.title_en,
-    excerpt: (item as Record<string, string>)[`excerpt_${l}`] || item.excerpt_en,
-    body: ((item as Record<string, string[]>)[`body_${l}`] || item.body_en) ?? [],
-    alt: (item as Record<string, string>)[`title_${l}`] || item.title_en,
+    category: (item as unknown as Record<string, string>)[`category_${l}`] || item.category_en,
+    title: (item as unknown as Record<string, string>)[`title_${l}`] || item.title_en,
+    excerpt: (item as unknown as Record<string, string>)[`excerpt_${l}`] || item.excerpt_en,
+    body: ((item as unknown as Record<string, string[]>)[`body_${l}`] || item.body_en) ?? [],
+    alt: (item as unknown as Record<string, string>)[`title_${l}`] || item.title_en,
   };
 };
 

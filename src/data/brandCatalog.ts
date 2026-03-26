@@ -528,16 +528,16 @@ interface ApiCategory {
 const langKey = (lang: SupportedLanguageCode) => lang as string;
 
 const mapApiCategory = (cat: ApiCategory, lang: SupportedLanguageCode): BrandCategoryData => ({
-  title: (cat as Record<string, string>)[`title_${langKey(lang)}`] || cat.title_en,
+  title: (cat as unknown as Record<string, string>)[`title_${langKey(lang)}`] || cat.title_en,
   products: cat.products.map(p => ({
-    name: (p as Record<string, string>)[`name_${langKey(lang)}`] || p.name_en,
-    description: (p as Record<string, string>)[`description_${langKey(lang)}`] || p.description_en,
+    name: (p as unknown as Record<string, string>)[`name_${langKey(lang)}`] || p.name_en,
+    description: (p as unknown as Record<string, string>)[`description_${langKey(lang)}`] || p.description_en,
     image: p.image,
-    alt: (p as Record<string, string>)[`alt_${langKey(lang)}`] || p.alt_en,
+    alt: (p as unknown as Record<string, string>)[`alt_${langKey(lang)}`] || p.alt_en,
     details: {
       weight: p.weight || undefined,
-      material: (p as Record<string, string>)[`material_${langKey(lang)}`] || undefined,
-      count: (p as Record<string, string>)[`count_${langKey(lang)}`] || undefined,
+      material: (p as unknown as Record<string, string>)[`material_${langKey(lang)}`] || undefined,
+      count: (p as unknown as Record<string, string>)[`count_${langKey(lang)}`] || undefined,
     },
   })),
 });
