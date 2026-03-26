@@ -1,4 +1,5 @@
 import type { SupportedLanguageCode } from '../utils/language';
+import { buildApiUrl } from '../utils/api';
 
 interface LocalizedTextMap {
   ar: string;
@@ -257,3 +258,41 @@ export const getLocalizedNewsItems = (
       body: item.body[language],
       alt: item.title[language]
     }));
+
+// ─── API-based fetching (primary source when server is available) ────────────
+
+interface ApiNewsItem {
+  id: string; slug: string; image: string; published_at: string;
+  category_ar: string; category_en: string; category_tr: string; category_ru: string;
+  title_ar: string; title_en: string; title_tr: string; title_ru: string;
+  excerpt_ar: string; excerpt_en: string; excerpt_tr: string; excerpt_ru: string;
+  body_ar: string[]; body_en: string[]; body_tr: string[]; body_ru: string[];
+}
+
+const mapApiNewsItem = (item: ApiNewsItem, lang: SupportedLanguageCode): LocalizedNewsItem => {
+  const l = lang as string;
+  return {
+    id: item.id,
+    slug: item.slug,
+    image: item.image,
+    publishedAt: item.published_at,
+    dateLabel: formatNewsDate(item.published_at, lang),
+    category: (item as Record<string, string>)[`category_${l}`] || item.category_en,
+    title: (item as Record<string, string>)[`title_${l}`] || item.title_en,
+    excerpt: (item as Record<string, string>)[`excerpt_${l}`] || item.excerpt_en,
+    body: ((item as Record<string, string[]>)[`body_${l}`] || item.body_en) ?? [],
+    alt: (item as Record<string, string>)[`title_${l}`] || item.title_en,
+  };
+};
+
+export const fetchNewsFromApi = async (language: SupportedLanguageCode): Promise<LocalizedNewsItem[] | null> => {
+  try {
+    const res = await fetch(buildApiUrl(`/api/news?lang=${language}`));
+    if (!res.ok) return null;
+    const data = await res.json() as { success: boolean; items: ApiNewsItem[] };
+    if (!data.success) return null;
+    return data.items.map(item => mapApiNewsItem(item, language));
+  } catch {
+    return null;
+  }
+};
