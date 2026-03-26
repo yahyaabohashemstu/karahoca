@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BrandPageSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getDioxCategories } from '../data/brandCatalog';
 
 const DioxPage: React.FC = () => {
   const { t } = useTranslation();
-  
+
   return (
     <>
       <SEO
@@ -15,6 +16,11 @@ const DioxPage: React.FC = () => {
         keywords={t('diox.seo.keywords')}
         ogImage="/Diox-logo.png.webp"
         canonicalUrl="https://karahoca.com/diox"
+      />
+      <BrandPageSchema
+        brand="DIOX"
+        description={t('diox.seo.description')}
+        image="/Diox-logo.png.webp"
       />
       <DioxPageContent />
     </>

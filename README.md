@@ -44,6 +44,42 @@ VITE_BACKEND_URL=http://localhost:5000
 
 > **مهم:** لم يعد مفتاح Gemini يُقرأ من الواجهة الأمامية. الواجهة تستدعي API محليًا أو عامًا، والخادم فقط هو الذي يستهلك GEMINI_API_KEY.
 
+## لوحة التحكم (المرحلة الأولى)
+
+تمت إضافة نواة لوحة تحكم أولية تشمل:
+- تسجيل دخول مدير واحد.
+- إدارة منتجات أساسية مع ترجمة تلقائية (Gemini) إلى `ar/en/tr/ru`.
+- تتبع مستخدمي محادثات البوت في قاعدة البيانات.
+
+المتغيرات المطلوبة في `.env`:
+
+`env
+DATABASE_URL=postgres://user:password@localhost:5432/karahoca
+ADMIN_JWT_SECRET=change_me_to_a_long_random_secret
+ADMIN_EMAIL=admin@karahoca.local
+ADMIN_PASSWORD=change_me_now
+`
+
+مسارات الواجهة:
+- `/admin/login`
+- `/admin/products`
+- `/admin/news`
+- `/admin/chats`
+
+واجهات API الإدارية:
+- `POST /admin/auth/login`
+- `GET /admin/products`
+- `POST /admin/products`
+- `PATCH /admin/products/:id`
+- `DELETE /admin/products/:id` (soft delete)
+- `GET /admin/news`
+- `POST /admin/news`
+- `PATCH /admin/news/:id`
+- `DELETE /admin/news/:id` (soft delete)
+- `GET /admin/chats/users`
+- `GET /admin/chats/users/:id/conversations`
+- `GET /admin/chats/conversations/:id/messages`
+
 ## تخصيص قاعدة المعرفة
 
 - قم بتعديل ملف src/data/aiKnowledge.ts لتحديث المعلومات التي يعتمد عليها المساعد.
