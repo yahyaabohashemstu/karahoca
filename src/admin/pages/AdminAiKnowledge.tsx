@@ -133,7 +133,7 @@ export const AdminAiKnowledge: React.FC = () => {
     const r = await adminApi.getAiPreview(l);
     setPreview(r);
   };
-  useEffect(() => { if (tab === 'preview') loadPreview(previewLang); }, [tab]);
+  useEffect(() => { if (tab === 'preview') loadPreview(previewLang); }, [tab, previewLang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveQA = async (data: Partial<AiQA>) => {
     if (editing === 'new') {

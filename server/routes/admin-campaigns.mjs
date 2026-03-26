@@ -119,7 +119,6 @@ export const dispatchCampaign = async (campaignId) => {
     return { sent: 0 };
   }
 
-  const LANGS = ['ar', 'en', 'tr', 'ru'];
   // Map subscriber emails to a language (default ar)
   let sent = 0;
   const errors = [];
