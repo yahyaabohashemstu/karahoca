@@ -1,12 +1,13 @@
 ﻿import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BrandPageSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getAyluxCategories } from '../data/brandCatalog';
 
 const AyluxPage: React.FC = () => {
   const { t } = useTranslation();
-  
+
   return (
     <>
       <SEO
@@ -15,6 +16,11 @@ const AyluxPage: React.FC = () => {
         keywords={t('aylux.seo.keywords')}
         ogImage="/Aylux-logo.png.webp"
         canonicalUrl="https://karahoca.com/aylux"
+      />
+      <BrandPageSchema
+        brand="AYLUX"
+        description={t('aylux.seo.description')}
+        image="/Aylux-logo.png.webp"
       />
       <AyluxPageContent />
     </>

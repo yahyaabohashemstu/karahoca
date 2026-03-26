@@ -32,8 +32,8 @@ export const handleAdminChats = (req, res, { sendJson, origin, url }) => {
 
   // GET /api/admin/chats
   if (req.method === 'GET') {
-    const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
-    const limit = parseInt(urlObj.searchParams.get('limit') || '20', 10);
+    const page  = Math.max(1, parseInt(urlObj.searchParams.get('page')  || '1',  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(urlObj.searchParams.get('limit') || '20', 10) || 20));
     const offset = (page - 1) * limit;
     const lang = urlObj.searchParams.get('lang');
 

@@ -7,16 +7,20 @@ interface SidebarProps {
 
 const NAV = [
   { group: 'Overview', items: [
-    { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-    { to: '/admin/analytics', label: 'Analytics', icon: '📈' },
+    { to: '/admin/dashboard',  label: 'Dashboard',  icon: '📊' },
+    { to: '/admin/analytics',  label: 'Analytics',  icon: '📈' },
   ]},
   { group: 'Content', items: [
-    { to: '/admin/products', label: 'Products', icon: '🧴' },
-    { to: '/admin/news', label: 'News', icon: '📰' },
+    { to: '/admin/products',   label: 'Products',   icon: '🧴' },
+    { to: '/admin/news',       label: 'News',        icon: '📰' },
   ]},
-  { group: 'Users', items: [
-    { to: '/admin/chats', label: 'Chat History', icon: '💬' },
+  { group: 'Marketing', items: [
+    { to: '/admin/campaigns',  label: 'Campaigns',  icon: '📧' },
     { to: '/admin/newsletter', label: 'Newsletter', icon: '✉️' },
+  ]},
+  { group: 'AI & Users', items: [
+    { to: '/admin/ai-knowledge', label: 'AI Knowledge', icon: '🤖' },
+    { to: '/admin/chats',        label: 'Chat History', icon: '💬' },
   ]},
 ];
 

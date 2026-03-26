@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { AboutPageSchema, BreadcrumbSchema } from '../components/SchemaOrg';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -9,11 +10,16 @@ const AboutPage: React.FC = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title={t('aboutPage.seo.title')}
         description={t('aboutPage.seo.description')}
         keywords={t('aboutPage.seo.keywords')}
       />
+      <AboutPageSchema />
+      <BreadcrumbSchema items={[
+        { name: 'KARAHOCA', url: '/' },
+        { name: t('aboutPage.seo.title'), url: '/about' },
+      ]} />
       
       <div className="about-page">
         <div className="bg-elements">

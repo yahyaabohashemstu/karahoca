@@ -14,12 +14,17 @@ export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => 
 
   const { username, password } = body;
 
-  if (!username || !password) {
+  // Type + length validation (prevents bcrypt timing issues with non-string inputs)
+  if (
+    typeof username !== 'string' || typeof password !== 'string' ||
+    !username.trim() || !password ||
+    username.length > 128 || password.length > 256
+  ) {
     sendJson(res, 400, { success: false, error: 'Username and password required.' }, origin);
     return;
   }
 
-  const valid = verifyLogin(username, password);
+  const valid = verifyLogin(username.trim(), password);
 
   if (!valid) {
     sendJson(res, 401, { success: false, error: 'Invalid credentials.' }, origin);

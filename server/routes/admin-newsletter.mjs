@@ -21,8 +21,8 @@ export const handleAdminNewsletter = (req, res, { sendJson, origin, url }) => {
   }
 
   if (req.method === 'GET') {
-    const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
-    const limit = parseInt(urlObj.searchParams.get('limit') || '50', 10);
+    const page  = Math.max(1, parseInt(urlObj.searchParams.get('page')  || '1',  10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(urlObj.searchParams.get('limit') || '50', 10) || 50));
     const offset = (page - 1) * limit;
 
     const total = db.prepare('SELECT COUNT(*) as c FROM newsletter_subscribers WHERE active=1').get().c;
@@ -39,6 +39,11 @@ export const handleAdminNewsletter = (req, res, { sendJson, origin, url }) => {
     const emailMatch = url.match(/^\/api\/admin\/newsletter\/(.+)$/);
     if (emailMatch) {
       const email = decodeURIComponent(emailMatch[1]);
+      // Validate email length and format before DB operation
+      if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        sendJson(res, 400, { success: false, error: 'Invalid email.' }, origin);
+        return;
+      }
       db.prepare("UPDATE newsletter_subscribers SET active=0 WHERE email=?").run(email);
       sendJson(res, 200, { success: true }, origin);
       return;

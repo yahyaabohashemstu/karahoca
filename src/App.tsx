@@ -15,6 +15,7 @@ import AboutPage from './pages/AboutPage';
 import NewsPage from './pages/NewsPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
+import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import MobileLayout from './mobile/MobileLayout';
 import MobileHome from './mobile/MobileHome';
 import MobileAboutPage from './mobile/MobileAboutPage';
@@ -61,6 +62,8 @@ function MainSite() {
   return (
     <>
       <GoogleAnalytics />
+      <OrganizationSchema />
+      <WebsiteSchema />
       {isLoading && <PageLoader hiding={isHiding} />}
 
       {!isLoading && (

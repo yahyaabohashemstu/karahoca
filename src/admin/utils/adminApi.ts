@@ -41,6 +41,8 @@ export const adminApi = {
 
   getAnalytics: () => request<AdminAnalytics>('GET', '/api/admin/analytics'),
 
+  getGaData: () => request<GaData>('GET', '/api/admin/ga'),
+
   // Chats
   getChats: (params?: { page?: number; lang?: string }) => {
     const q = new URLSearchParams();
@@ -102,6 +104,44 @@ export const adminApi = {
   // AI Translation
   translate: (data: TranslateRequest) =>
     request<{ success: boolean; translations: Record<string, unknown> }>('POST', '/api/admin/translate', data),
+
+  // Email Campaigns
+  getCampaigns: () =>
+    request<{ success: boolean; campaigns: Campaign[] }>('GET', '/api/admin/campaigns'),
+  getCampaign: (id: number) =>
+    request<{ success: boolean; campaign: Campaign }>('GET', `/api/admin/campaigns/${id}`),
+  createCampaign: (data: Partial<Campaign>) =>
+    request<{ success: boolean; campaign: Campaign }>('POST', '/api/admin/campaigns', data),
+  updateCampaign: (id: number, data: Partial<Campaign>) =>
+    request<{ success: boolean; campaign: Campaign }>('PUT', `/api/admin/campaigns/${id}`, data),
+  deleteCampaign: (id: number) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
+  sendCampaign: (id: number) =>
+    request<{ success: boolean; sent: number; errors: unknown[] }>('POST', `/api/admin/campaigns/${id}/send`),
+  scheduleCampaign: (id: number, scheduledAt: string) =>
+    request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt }),
+  getCampaignStats: (id: number) =>
+    request<{ success: boolean; campaign: Campaign; sends: CampaignSend[] }>('GET', `/api/admin/campaigns/${id}/stats`),
+
+  // AI Knowledge Base
+  getAiKnowledge: () =>
+    request<{ success: boolean; entries: AiQA[] }>('GET', '/api/admin/ai-knowledge'),
+  createAiQA: (data: Partial<AiQA>) =>
+    request<{ success: boolean; entry: AiQA }>('POST', '/api/admin/ai-knowledge', data),
+  updateAiQA: (id: number, data: Partial<AiQA>) =>
+    request<{ success: boolean; entry: AiQA }>('PUT', `/api/admin/ai-knowledge/${id}`, data),
+  deleteAiQA: (id: number) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/ai-knowledge/${id}`),
+  getAiQuestions: (status?: string) =>
+    request<{ success: boolean; questions: AiQuestion[]; counts: { status: string; c: number }[] }>(
+      'GET', `/api/admin/ai-knowledge/questions${status ? `?status=${status}` : ''}`
+    ),
+  reviewAiQuestions: (ids: number[], status: string) =>
+    request<{ success: boolean }>('PUT', '/api/admin/ai-knowledge/questions', { ids, status }),
+  getAiPreview: (lang: string) =>
+    request<{ success: boolean; productContext: string; customQA: string }>(
+      'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
+    ),
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -214,4 +254,59 @@ export interface TranslateRequest {
   text?: string;
   fields?: Record<string, string>;
   sourceLang?: string;
+}
+
+// ── Email Campaigns ──────────────────────────────────────────────────────────
+export interface Campaign {
+  id: number;
+  title: string;
+  template_type: 'custom' | 'new_product' | 'offer' | 'news';
+  subject_ar: string; subject_en: string; subject_tr: string; subject_ru: string;
+  body_ar: string; body_en: string; body_tr: string; body_ru: string;
+  status: 'draft' | 'scheduled' | 'sent';
+  scheduled_at?: string;
+  sent_at?: string;
+  recipient_count: number;
+  open_count: number;
+  created_at: string;
+  updated_at: string;
+}
+export interface CampaignSend {
+  id: number; email: string; opened: number; opened_at?: string; created_at: string;
+}
+
+// ── AI Knowledge ─────────────────────────────────────────────────────────────
+export interface AiQA {
+  id: number;
+  question_ar: string; question_en: string; question_tr: string; question_ru: string;
+  answer_ar: string; answer_en: string; answer_tr: string; answer_ru: string;
+  tags: string;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+export interface AiQuestion {
+  id: number; question: string; language: string; user_id?: string;
+  status: 'new' | 'reviewed' | 'ignored'; created_at: string;
+}
+
+// ── Google Analytics ────────────────────────────────────────────────────────
+export interface GaData {
+  configured: boolean;
+  message?: string;
+  steps?: string[];
+  error?: string;
+  summary?: {
+    sessions: number;
+    activeUsers: number;
+    newUsers: number;
+    pageViews: number;
+    bounceRate: number;
+    avgSessionDuration: number;
+  };
+  byDay?: Array<{ date: string; sessions: number; users: number }>;
+  byCountry?: Array<{ country: string; sessions: number }>;
+  byPage?: Array<{ page: string; views: number }>;
+  byDevice?: Array<{ device: string; sessions: number }>;
+  bySource?: Array<{ source: string; sessions: number }>;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BreadcrumbSchema } from '../components/SchemaOrg';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import NewsPageContent from '../components/NewsPageContent';
@@ -17,6 +18,10 @@ const NewsPage: React.FC = () => {
         ogImage="/KARAHOCA-1-newPhoto.webp"
         canonicalUrl="https://karahoca.com/news"
       />
+      <BreadcrumbSchema items={[
+        { name: 'KARAHOCA', url: '/' },
+        { name: t('newsPage.seo.title'), url: '/news' },
+      ]} />
 
       <div className="bg-elements">
         <div className="floating-orb orb-1"></div>

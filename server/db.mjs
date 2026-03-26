@@ -125,6 +125,54 @@ const createSchema = () => {
       PRIMARY KEY (date, metric)
     );
 
+    -- ── Email Campaigns ────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS email_campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      template_type TEXT DEFAULT 'custom',
+      subject_ar TEXT, subject_en TEXT, subject_tr TEXT, subject_ru TEXT,
+      body_ar TEXT, body_en TEXT, body_tr TEXT, body_ru TEXT,
+      status TEXT DEFAULT 'draft',
+      scheduled_at TEXT,
+      sent_at TEXT,
+      recipient_count INTEGER DEFAULT 0,
+      open_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS email_sends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER REFERENCES email_campaigns(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      opened INTEGER DEFAULT 0,
+      opened_at TEXT,
+      resend_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_sends_campaign ON email_sends(campaign_id);
+
+    -- ── AI Knowledge Base ───────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS ai_custom_qa (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question_ar TEXT, question_en TEXT, question_tr TEXT, question_ru TEXT,
+      answer_ar TEXT, answer_en TEXT, answer_tr TEXT, answer_ru TEXT,
+      tags TEXT DEFAULT '',
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_user_questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question TEXT NOT NULL,
+      language TEXT DEFAULT 'ar',
+      user_id TEXT,
+      status TEXT DEFAULT 'new',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_questions_status ON ai_user_questions(status);
+
     CREATE TABLE IF NOT EXISTS migrations (
       name TEXT PRIMARY KEY,
       applied_at TEXT DEFAULT (datetime('now'))
