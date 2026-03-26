@@ -30,7 +30,13 @@ export const AdminCampaigns: React.FC = () => {
     setSending(id); setMsg('');
     try {
       const res = await adminApi.sendCampaign(id);
-      setMsg(`✅ Sent to ${res.sent} subscribers!`);
+      if (res.sent === 0 && res.errors?.length) {
+        setMsg(`❌ Send failed: ${res.errors[0]?.error || 'Unknown error'}`);
+      } else if (res.sent === 0) {
+        setMsg('⚠️ No subscribers to send to, or RESEND_API_KEY not configured in server .env');
+      } else {
+        setMsg(`✅ Sent to ${res.sent} subscribers!${res.errors?.length ? ` (${res.errors.length} failed)` : ''}`);
+      }
       reload();
     } catch (e: unknown) {
       setMsg(`❌ ${e instanceof Error ? e.message : 'Send failed'}`);
