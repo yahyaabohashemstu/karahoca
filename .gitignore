@@ -35,3 +35,17 @@ server/data/
 
 *.rar
 *.zip
+
+# Claude Code worktrees and local tools
+.claude/
+.claire/
+.continue/
+
+# Windows reserved device names accidentally created
+nul
+
+# Local test/scratch files
+api.js
+blaze_api_try_all.js
+blaze_test_payload.json
+blazeai.http

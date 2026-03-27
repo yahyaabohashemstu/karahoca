@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
@@ -25,8 +25,10 @@ export const AdminProductEdit: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [activeLang, setActiveLang] = useState<Lang>('ar');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
@@ -75,6 +77,32 @@ export const AdminProductEdit: React.FC = () => {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const token = localStorage.getItem('adm_token') || '';
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: base64, fileName: file.name }),
+      });
+      const data = await res.json() as { success?: boolean; path?: string; error?: string };
+      if (!data.success) throw new Error(data.error || 'Upload failed');
+      set('image', data.path!);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filteredCategories = categories.filter(c => !form.brand || c.brand === form.brand);
 
   if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>;
@@ -115,8 +143,32 @@ export const AdminProductEdit: React.FC = () => {
               </select>
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Image URL</label>
-              <input className="adm-input" value={form.image ?? ''} onChange={e => set('image', e.target.value)} placeholder="/products/image.webp" />
+              <label className="adm-label">Image</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <input
+                  className="adm-input"
+                  value={form.image ?? ''}
+                  onChange={e => set('image', e.target.value)}
+                  placeholder="/products/image.webp or paste URL"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-secondary adm-btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading...</> : '📁 Upload'}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+              />
             </div>
             <div className="adm-form-group">
               <label className="adm-label">Weight / Volume</label>

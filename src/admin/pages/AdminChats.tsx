@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type ChatUser } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtDate } from '../utils/dateUtils';
 
 export const AdminChats: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -64,15 +65,24 @@ export const AdminChats: React.FC = () => {
           <div className="adm-card" style={{ padding: 0 }}>
             <div className="adm-table-wrap">
               <table className="adm-table">
+                <colgroup>
+                  <col style={{ width: '18%' }} />  {/* User ID */}
+                  <col style={{ width: '8%'  }} />  {/* Language */}
+                  <col style={{ width: '8%'  }} />  {/* Messages */}
+                  <col style={{ width: '11%' }} />  {/* First Seen */}
+                  <col style={{ width: '11%' }} />  {/* Last Active */}
+                  <col style={{ width: '32%' }} />  {/* Last Message */}
+                  <col style={{ width: '12%' }} />  {/* Actions */}
+                </colgroup>
                 <thead>
                   <tr>
-                    <th>User ID</th>
-                    <th>Language</th>
-                    <th>Messages</th>
-                    <th>First Seen</th>
-                    <th>Last Active</th>
-                    <th>Last Message</th>
-                    <th></th>
+                    <th style={{ textAlign: 'left'   }}>User ID</th>
+                    <th style={{ textAlign: 'center' }}>Language</th>
+                    <th style={{ textAlign: 'center' }}>Messages</th>
+                    <th style={{ textAlign: 'center' }}>First Seen</th>
+                    <th style={{ textAlign: 'center' }}>Last Active</th>
+                    <th style={{ textAlign: 'left'   }}>Last Message</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -80,18 +90,30 @@ export const AdminChats: React.FC = () => {
                     <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>No users found.</td></tr>
                   ) : data.users.map((u: ChatUser) => (
                     <tr key={u.id}>
-                      <td className="adm-mono adm-text-muted adm-truncate" style={{ maxWidth: 120 }}>
-                        {u.id.slice(0, 14)}…
+                      <td style={{ textAlign: 'left' }}>
+                        <span className="adm-mono adm-text-sm" style={{ color: 'var(--adm-text-muted)' }}>
+                          {u.id.slice(0, 16)}…
+                        </span>
                       </td>
-                      <td><span className="adm-badge adm-badge-blue">{u.language}</span></td>
-                      <td><strong>{u.message_count}</strong></td>
-                      <td className="adm-text-muted adm-text-sm">{new Date(u.first_seen).toLocaleDateString()}</td>
-                      <td className="adm-text-muted adm-text-sm">{new Date(u.last_seen).toLocaleDateString()}</td>
-                      <td className="adm-truncate adm-text-sm" style={{ maxWidth: 220 }}>
-                        {u.last_user_message || u.last_message || '—'}
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="adm-badge adm-badge-blue">{u.language}</span>
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
+                        <strong>{u.message_count}</strong>
+                      </td>
+                      <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
+                        {fmtDate(u.first_seen)}
+                      </td>
+                      <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
+                        {fmtDate(u.last_seen)}
+                      </td>
+                      <td style={{ textAlign: 'left', maxWidth: 0 }} className="adm-text-sm">
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {u.last_user_message || u.last_message || '—'}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: 6, justifyContent: 'center' }}>
                           <Link to={`/admin/chats/${encodeURIComponent(u.id)}`} className="adm-btn adm-btn-ghost adm-btn-sm">
                             View →
                           </Link>

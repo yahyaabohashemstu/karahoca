@@ -117,7 +117,7 @@ export const adminApi = {
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
   sendCampaign: (id: number) =>
-    request<{ success: boolean; sent: number; errors: unknown[] }>('POST', `/api/admin/campaigns/${id}/send`),
+    request<{ success: boolean; sent: number; errors: Array<{ email: string; error: string }> }>('POST', `/api/admin/campaigns/${id}/send`),
   scheduleCampaign: (id: number, scheduledAt: string) =>
     request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt }),
   getCampaignStats: (id: number) =>
@@ -263,6 +263,7 @@ export interface Campaign {
   template_type: 'custom' | 'new_product' | 'offer' | 'news';
   subject_ar: string; subject_en: string; subject_tr: string; subject_ru: string;
   body_ar: string; body_en: string; body_tr: string; body_ru: string;
+  image_url?: string;
   status: 'draft' | 'scheduled' | 'sent';
   scheduled_at?: string;
   sent_at?: string;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi, type Campaign, type CampaignSend } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
@@ -38,6 +38,7 @@ const empty = (): Partial<Campaign> => ({
   title: '', template_type: 'custom',
   subject_ar: '', subject_en: '', subject_tr: '', subject_ru: '',
   body_ar: '', body_en: '', body_tr: '', body_ru: '',
+  image_url: '',
 });
 
 export const AdminCampaignEdit: React.FC = () => {
@@ -52,6 +53,8 @@ export const AdminCampaignEdit: React.FC = () => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving]   = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sends, setSends]     = useState<CampaignSend[]>([]);
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [error, setError]   = useState('');
@@ -119,6 +122,29 @@ export const AdminCampaignEdit: React.FC = () => {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally { setSaving(false); }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true); setError('');
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const token = localStorage.getItem('adm_token') || '';
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: base64, fileName: file.name }),
+      });
+      const data = await res.json() as { success?: boolean; path?: string; error?: string };
+      if (!data.success) throw new Error(data.error || 'Upload failed');
+      set('image_url', data.path!);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally { setUploading(false); }
   };
 
   const sendNow = async () => {
@@ -208,6 +234,35 @@ export const AdminCampaignEdit: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Campaign Image */}
+          <div className="adm-card">
+            <div className="adm-card-title" style={{ marginBottom: 12 }}>Campaign Image <span style={{ fontSize: 11, color: 'var(--adm-text-dim)', fontWeight: 400, textTransform: 'none' }}>(optional — shown at top of email)</span></div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                className="adm-input"
+                value={(form as Record<string, string>).image_url || ''}
+                onChange={e => set('image_url', e.target.value)}
+                placeholder="https://... or upload from device"
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="adm-btn adm-btn-secondary adm-btn-sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading…</> : '📁 Upload'}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }} />
+            </div>
+            {(form as Record<string, string>).image_url && (
+              <img src={(form as Record<string, string>).image_url} alt="preview"
+                style={{ marginTop: 10, maxHeight: 160, maxWidth: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid var(--adm-border)' }} />
+            )}
           </div>
 
           {/* AI Translation */}

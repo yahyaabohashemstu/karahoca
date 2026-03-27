@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtDate } from '../utils/dateUtils';
 
 export const AdminNews: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export const AdminNews: React.FC = () => {
                     <td dir="rtl" className="adm-truncate" style={{ maxWidth: 180 }}>{item.title_ar}</td>
                     <td className="adm-truncate" style={{ maxWidth: 200 }}>{item.title_en}</td>
                     <td className="adm-text-sm adm-text-muted">{item.category_en}</td>
-                    <td className="adm-text-sm adm-text-muted">{item.published_at ? new Date(item.published_at).toLocaleDateString() : '—'}</td>
+                    <td className="adm-text-sm adm-text-muted">{fmtDate(item.published_at)}</td>
                     <td>
                       <span className={`adm-badge ${item.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
                         {item.active ? 'Published' : 'Hidden'}

@@ -132,6 +132,7 @@ const createSchema = () => {
       template_type TEXT DEFAULT 'custom',
       subject_ar TEXT, subject_en TEXT, subject_tr TEXT, subject_ru TEXT,
       body_ar TEXT, body_en TEXT, body_tr TEXT, body_ru TEXT,
+      image_url TEXT,
       status TEXT DEFAULT 'draft',
       scheduled_at TEXT,
       sent_at TEXT,
@@ -192,6 +193,8 @@ const migrateInitialData = () => {
   migrateProducts();
   migrateNews();
   migrateNewsletter();
+  // Add image_url column to email_campaigns if missing
+  try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────

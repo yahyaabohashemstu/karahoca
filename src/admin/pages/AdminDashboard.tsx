@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type AdminStats, type ChatUser } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtDate } from '../utils/dateUtils';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 const GA_LINK = GA_MEASUREMENT_ID && GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX'
@@ -71,7 +72,7 @@ export const AdminDashboard: React.FC = () => {
                     <td className="adm-mono adm-text-muted">{u.id.slice(0, 12)}…</td>
                     <td><span className="adm-badge adm-badge-blue">{u.language}</span></td>
                     <td>{u.message_count}</td>
-                    <td className="adm-text-muted adm-text-sm">{new Date(u.last_seen).toLocaleDateString()}</td>
+                    <td className="adm-text-muted adm-text-sm">{fmtDate(u.last_seen)}</td>
                     <td className="adm-truncate" style={{ maxWidth: 240 }}>{u.last_message || u.last_user_message || '—'}</td>
                     <td>
                       <Link to={`/admin/chats/${encodeURIComponent(u.id)}`} className="adm-btn adm-btn-ghost adm-btn-sm">View →</Link>

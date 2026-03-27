@@ -51,7 +51,8 @@ const DioxPageContent: React.FC = () => {
     categories: getDioxCategories(t),
     contactId: 'contact-diox',
     aboutId: 'about-diox',
-    pageClass: 'diox-page'
+    pageClass: 'diox-page',
+    flipbookUrl: 'https://heyzine.com/flip-book/962ea2a11d.html'
   };
 
   return <BrandPageTemplate {...dioxData} />;

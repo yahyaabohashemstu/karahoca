@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { adminApi } from '../utils/adminApi';
+import { adminApi, getToken } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { buildApiUrl } from '../../utils/api';
-import { getToken } from '../utils/adminApi';
+import { fmtDate } from '../utils/dateUtils';
 
 export const AdminNewsletter: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -71,7 +71,7 @@ export const AdminNewsletter: React.FC = () => {
                     <tr key={sub.email}>
                       <td className="adm-mono">{sub.email}</td>
                       <td className="adm-text-muted adm-text-sm">
-                        {sub.subscribed_at ? new Date(sub.subscribed_at).toLocaleDateString() : '—'}
+                        {fmtDate(sub.subscribed_at)}
                       </td>
                       <td>
                         <button

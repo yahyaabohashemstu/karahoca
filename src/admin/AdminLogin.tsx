@@ -11,7 +11,7 @@ export const AdminLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await login(username, password);
-    if (ok) navigate('/admin/dashboard');
+    if (ok) navigate('/admin/dashboard', { replace: true });
   };
 
   return (
