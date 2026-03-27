@@ -33,19 +33,25 @@ const geminiEndpoint =
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
-const configuredAllowedOrigins = new Set(
-  (process.env.ALLOWED_ORIGINS || '')
+const explicitOriginCandidates = [
+  ...(process.env.ALLOWED_ORIGINS || '')
     .split(',')
-    .map((origin) => trimTrailingSlash(origin.trim()))
-    .filter(Boolean)
-);
+    .map((origin) => origin.trim()),
+  process.env.SITE_URL || '',
+  process.env.FRONTEND_URL || '',
+  process.env.PUBLIC_SITE_URL || '',
+  process.env.PUBLIC_APP_URL || '',
+  process.env.APP_URL || ''
+]
+  .map((origin) => trimTrailingSlash(origin))
+  .filter(Boolean);
+const configuredAllowedOrigins = new Set(explicitOriginCandidates);
 const localDevelopmentOrigins = new Set([
   'http://localhost:4173',
   'http://127.0.0.1:4173',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ]);
-
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -91,15 +97,35 @@ const getRequestHostOrigin = (request) => {
   return protocol + '://' + host;
 };
 
+const isCoolifySiblingOrigin = (requestOrigin, requestHostOrigin) => {
+  try {
+    const originUrl = new URL(requestOrigin);
+    const hostUrl = new URL(requestHostOrigin);
+    if (originUrl.protocol !== hostUrl.protocol) return false;
+
+    const originHost = originUrl.hostname.toLowerCase();
+    const hostHost = hostUrl.hostname.toLowerCase();
+    if (!originHost.includes('.coolify.') || !hostHost.includes('.coolify.')) return false;
+
+    const originParts = originHost.split('.').filter(Boolean);
+    const hostParts = hostHost.split('.').filter(Boolean);
+    if (originParts.length < 4 || hostParts.length < 4) return false;
+
+    return originParts.slice(1).join('.') === hostParts.slice(1).join('.');
+  } catch {
+    return false;
+  }
+};
+
 const isOriginAllowed = (requestOrigin, requestHostOrigin) => {
   if (!requestOrigin) return !isProduction;
   return (
     requestOrigin === requestHostOrigin ||
     configuredAllowedOrigins.has(requestOrigin) ||
+    (isProduction && isCoolifySiblingOrigin(requestOrigin, requestHostOrigin)) ||
     (!isProduction && localDevelopmentOrigins.has(requestOrigin))
   );
 };
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ensureDataDirectories = async () => {
@@ -525,6 +551,8 @@ setInterval(async () => {
 server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
+
+
 
 
 
