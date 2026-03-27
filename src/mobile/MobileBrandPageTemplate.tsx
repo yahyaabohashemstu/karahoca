@@ -29,6 +29,7 @@ interface MobileBrandPageTemplateProps {
   productsSubtitle: string;
   categories: BrandCategoryData[];
   aboutId: string;
+  flipbookUrl?: string;
 }
 
 export default function MobileBrandPageTemplate({
@@ -52,6 +53,7 @@ export default function MobileBrandPageTemplate({
   productsSubtitle,
   categories,
   aboutId,
+  flipbookUrl,
 }: MobileBrandPageTemplateProps) {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<BrandProductInfo | null>(
@@ -146,6 +148,33 @@ export default function MobileBrandPageTemplate({
           </div>
         </section>
 
+        {/* ── Flipbook Catalog — BEFORE products ───────────────────────── */}
+        {flipbookUrl && (
+          <section id="catalog" className="m-pageSection m-container m-bfbSection">
+            <div className="m-section-header">
+              <h2 className="m-section-title">
+                كتالوج <span style={{ color: 'var(--accent, #f54b1a)' }}>{brandName}</span> التفاعلي
+              </h2>
+              <p className="m-section-subtitle">
+                تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة
+              </p>
+            </div>
+            <div className="m-bfbFrame">
+              <div className="m-bfbFrame__bar">
+                <div className="m-bfbFrame__dots"><span/><span/><span/></div>
+                <span className="m-bfbFrame__label">📖 {brandName}</span>
+              </div>
+              <iframe
+                src={flipbookUrl}
+                allowFullScreen
+                allow="clipboard-write; fullscreen"
+                title={`${brandName} Catalog`}
+                className="m-bfbIframe"
+              />
+            </div>
+          </section>
+        )}
+
         <section id="products" className="m-pageSection m-container">
           <div className="m-section-header">
             <h2 className="m-section-title">{productsTitle}</h2>
@@ -208,6 +237,7 @@ export default function MobileBrandPageTemplate({
             ))}
           </div>
         </section>
+
       </main>
 
       {selectedProduct && (

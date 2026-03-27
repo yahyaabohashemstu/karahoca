@@ -16,6 +16,7 @@ import { handleAdminTranslate } from './routes/admin-translate.mjs';
 import { handleAdminGa } from './routes/admin-ga.mjs';
 import { handleAdminCampaigns, handleEmailOpen, dispatchCampaign } from './routes/admin-campaigns.mjs';
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
+import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -377,6 +378,12 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // ── Catalog route (self-authenticates via query token for new-tab PDF) ──
+    if (url.startsWith('/api/admin/catalog')) {
+      handleAdminCatalog(request, response, { ...ctx, url: request.url });
+      return;
+    }
+
     // ── Protected admin routes ─────────────────────────────────────────────
 
     if (url.startsWith('/api/admin/')) {
@@ -460,6 +467,11 @@ const server = createServer(async (request, response) => {
         await mkdir(uploadDir, { recursive: true });
         await writeFile(path.join(uploadDir, unique), buf);
         sendJson(response, 200, { success: true, path: `/uploads/${unique}` }, origin);
+        return;
+      }
+
+      if (url.startsWith('/api/admin/catalog')) {
+        handleAdminCatalog(request, response, { ...ctx, url });
         return;
       }
 

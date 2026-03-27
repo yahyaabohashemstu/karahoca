@@ -41,6 +41,7 @@ interface BrandPageProps {
   categories: CategoryData[];
   pageClass: string;
   aboutId: string;
+  flipbookUrl?: string;
 }
 
 const BrandPageTemplate: React.FC<BrandPageProps> = ({
@@ -59,7 +60,8 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   productsSubtitle,
   categories,
   pageClass,
-  aboutId
+  aboutId,
+  flipbookUrl
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
@@ -145,13 +147,58 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
           </div>
         </section>
 
+        {/* ── Flipbook Catalog — BEFORE products ──────────────────────── */}
+        {flipbookUrl && (
+          <section id="catalog" className="section bfb-section">
+            <div className="section-divider"></div>
+
+            {/* header row */}
+            <div className="container bfb-header fx-reveal">
+              <div className="bfb-header__left">
+                <span className="bfb-eyebrow">Interactive Catalog</span>
+                <h2 className="bfb-title">
+                  كتالوج <span className="gradient-text">{brandName}</span> التفاعلي
+                </h2>
+                <p className="bfb-subtitle">
+                  تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات، كبّر، وشاهد بوضع ملء الشاشة
+                </p>
+              </div>
+              <div className="bfb-header__badges">
+                <span className="bfb-badge"><span className="bfb-badge__dot bfb-badge__dot--green"></span>متاح الآن</span>
+                <span className="bfb-badge">⛶ ملء الشاشة</span>
+                <span className="bfb-badge">🔊 صوت التقليب</span>
+              </div>
+            </div>
+
+            {/* iframe frame */}
+            <div className="container bfb-frame-wrap fx-reveal">
+              <div className="bfb-frame">
+                <div className="bfb-frame__topbar">
+                  <div className="bfb-frame__dots">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <span className="bfb-frame__label">📖 {brandName} — Catalog</span>
+                  <span className="bfb-frame__hint">انقر على ⛶ لعرض ملء الشاشة</span>
+                </div>
+                <iframe
+                  src={flipbookUrl}
+                  allowFullScreen
+                  allow="clipboard-write; fullscreen"
+                  title={`${brandName} Catalog`}
+                  className="bfb-iframe"
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
         <section id="products" className="section glass-section">
           <div className="section-divider"></div>
           <div className="container section__head fx-reveal">
             <h2 className="section-title">{productsTitle}</h2>
             <p className="section-subtitle">{productsSubtitle}</p>
           </div>
-          
+
           {categories.map((category, categoryIndex) => (
             <div key={categoryIndex} className="container">
               <h3 className="category-title gradient-heading">{category.title}</h3>
@@ -203,8 +250,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             </div>
           ))}
         </section>
+
       </main>
-      
+
       {/* Image Popup */}
       {selectedProduct && (
         <div className="image-popup-overlay" onClick={closeImagePopup}>
