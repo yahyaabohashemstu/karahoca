@@ -45,7 +45,7 @@ export const AdminNews: React.FC = () => {
               <thead>
                 <tr>
                   <th>Image</th>
-                  <th>Title (AR)</th>
+                  <th style={{ textAlign: 'right' }}>Title (AR)</th>
                   <th>Title (EN)</th>
                   <th>Category</th>
                   <th>Date</th>
@@ -77,15 +77,17 @@ export const AdminNews: React.FC = () => {
                         {item.active ? 'Published' : 'Hidden'}
                       </span>
                     </td>
-                    <td style={{ display: 'flex', gap: 6 }}>
-                      <Link to={`/admin/news/${item.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
-                      <button
-                        className="adm-btn adm-btn-danger adm-btn-sm"
-                        onClick={() => handleDelete(item.id)}
-                        disabled={deleting === item.id}
-                      >
-                        {deleting === item.id ? '…' : '🗑'}
-                      </button>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <Link to={`/admin/news/${item.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
+                        <button
+                          className="adm-btn adm-btn-danger adm-btn-sm"
+                          onClick={() => handleDelete(item.id)}
+                          disabled={deleting === item.id}
+                        >
+                          {deleting === item.id ? '…' : '🗑'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
