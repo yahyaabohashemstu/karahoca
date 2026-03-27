@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
 
-// ── Format helpers ─────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
-  : n >= 1_000   ? `${(n / 1_000).toFixed(1)}K`
+  : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K`
   : String(n);
 
 const fmtDuration = (s: number) => {
@@ -16,130 +15,161 @@ const fmtDuration = (s: number) => {
 };
 
 const COUNTRY_FLAG: Record<string, string> = {
-  'Turkey': '🇹🇷', 'Türkiye': '🇹🇷', 'United States': '🇺🇸', 'Saudi Arabia': '🇸🇦',
-  'Germany': '🇩🇪', 'France': '🇫🇷', 'United Kingdom': '🇬🇧', 'UAE': '🇦🇪',
-  'Russia': '🇷🇺', 'Iraq': '🇮🇶', 'Egypt': '🇪🇬', 'Jordan': '🇯🇴',
-  'Kuwait': '🇰🇼', 'Qatar': '🇶🇦', 'Netherlands': '🇳🇱', 'Spain': '🇪🇸',
-  'Italy': '🇮🇹', 'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Brazil': '🇧🇷',
-  'Iceland': '🇮🇸', 'Ireland': '🇮🇪',
+  Turkey: '🇹🇷', Türkiye: '🇹🇷', 'United States': '🇺🇸', 'Saudi Arabia': '🇸🇦',
+  Germany: '🇩🇪', France: '🇫🇷', 'United Kingdom': '🇬🇧', UAE: '🇦🇪',
+  Russia: '🇷🇺', Iraq: '🇮🇶', Egypt: '🇪🇬', Jordan: '🇯🇴',
+  Kuwait: '🇰🇼', Qatar: '🇶🇦', Netherlands: '🇳🇱', Spain: '🇪🇸',
+  Italy: '🇮🇹', Canada: '🇨🇦', Australia: '🇦🇺', Brazil: '🇧🇷',
+  Iceland: '🇮🇸', Ireland: '🇮🇪',
 };
 
 const SOURCE_COLOR: Record<string, string> = {
-  'Organic Search': '#22c55e', 'Direct': '#4f6ef7', 'Referral': '#f59e0b',
-  'Organic Social': '#ec4899', 'Email': '#06b6d4', 'Paid Search': '#f97316',
-  'Display': '#8b5cf6', 'Unassigned': '#6b7280',
+  'Organic Search': '#22c55e', Direct: '#4f6ef7', Referral: '#f59e0b',
+  'Organic Social': '#ec4899', Email: '#06b6d4', 'Paid Search': '#f97316',
+  Display: '#8b5cf6', Unassigned: '#6b7280',
 };
+
 const SOURCE_ICON: Record<string, string> = {
-  'Organic Search': '🔍', 'Direct': '🔗', 'Referral': '↗️',
-  'Organic Social': '📲', 'Email': '📧', 'Paid Search': '💰',
-  'Display': '🖼️', 'Unassigned': '❓',
+  'Organic Search': '🔍', Direct: '🔗', Referral: '↗️',
+  'Organic Social': '📲', Email: '📧', 'Paid Search': '💰',
+  Display: '🖼️', Unassigned: '❓',
 };
+
 const DEVICE_COLOR: Record<string, string> = {
   mobile: '#4f6ef7', desktop: '#22c55e', tablet: '#f59e0b',
 };
+
 const DEVICE_ICON: Record<string, string> = {
   mobile: '📱', desktop: '🖥️', tablet: '📟',
 };
 
-// ── Sessions Sparkline ─────────────────────────────────────────────────────────
-const SessionsChart: React.FC<{ data: Array<{ date: string; sessions: number; users: number }> }> = ({ data }) => {
-  const [hovered, setHovered] = useState<number | null>(null);
-  if (!data.length) return <p style={{ color: 'var(--adm-text-muted)', fontSize: 13 }}>No data yet.</p>;
-  const max = Math.max(...data.map(d => d.sessions), 1);
-  const totalSessions = data.reduce((s, d) => s + d.sessions, 0);
+type TrendDatum = { label: string; value: number; helper?: string };
+
+const TrendChart: React.FC<{
+  id: string;
+  data: TrendDatum[];
+  accent: string;
+  summary: string;
+}> = ({ id, data, accent, summary }) => {
+  if (!data.length) {
+    return <div className="adm-analytics-empty">No data yet.</div>;
+  }
+
+  const width = 720;
+  const height = 240;
+  const padding = { top: 18, right: 18, bottom: 32, left: 18 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const max = Math.max(...data.map((item) => item.value), 1);
+  const midpoint = Math.round(max / 2);
+  const points = data.map((item, index) => {
+    const x = padding.left + (chartWidth * index) / Math.max(data.length - 1, 1);
+    const y = padding.top + chartHeight - (item.value / max) * chartHeight;
+    return { ...item, x, y };
+  });
+  const line = points.map((point) => `${point.x},${point.y}`).join(' ');
+  const area = `${['M', points[0].x, height - padding.bottom, 'L', ...points.flatMap((point) => [point.x, point.y]), 'L', points[points.length - 1].x, height - padding.bottom, 'Z'].join(' ')}`;
+  const gradientId = `${id}-gradient`;
 
   return (
-    <div>
-      {/* Bar chart */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, padding: '0 4px', position: 'relative' }}>
-        {data.map((d, i) => {
-          const h = Math.max(4, (d.sessions / max) * 130);
-          const isH = hovered === i;
-          return (
-            <div
-              key={i}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'default', position: 'relative' }}
-            >
-              {isH && (
-                <div style={{
-                  position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)',
-                  background: 'var(--adm-surface2)', border: '1px solid var(--adm-border)',
-                  borderRadius: 6, padding: '5px 10px', fontSize: 11, whiteSpace: 'nowrap',
-                  zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                }}>
-                  <div style={{ fontWeight: 700, color: 'var(--adm-accent)' }}>{d.sessions} sessions</div>
-                  <div style={{ color: 'var(--adm-text-muted)', marginTop: 1 }}>{d.users} users · {d.date}</div>
-                </div>
-              )}
-              <div style={{
-                width: '100%', height: h,
-                background: isH
-                  ? 'linear-gradient(180deg, #6b84ff, #4f6ef7)'
-                  : 'linear-gradient(180deg, rgba(79,110,247,0.7), rgba(79,110,247,0.3))',
-                borderRadius: '4px 4px 0 0',
-                transition: 'all 0.15s ease',
-                minWidth: 3,
-              }} />
-            </div>
-          );
-        })}
+    <div className="adm-trend-chart">
+      <div className="adm-trend-chart-stage">
+        <div className="adm-trend-axis">
+          <span>{fmt(max)}</span>
+          <span>{fmt(midpoint)}</span>
+          <span>0</span>
+        </div>
+        <svg viewBox={`0 0 ${width} ${height}`} className="adm-trend-svg" role="img" aria-label={summary}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accent} stopOpacity="0.35" />
+              <stop offset="100%" stopColor={accent} stopOpacity="0.03" />
+            </linearGradient>
+          </defs>
+
+          {[0, 0.5, 1].map((step) => {
+            const y = padding.top + chartHeight * step;
+            return (
+              <line
+                key={step}
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                stroke="rgba(255,255,255,0.08)"
+                strokeDasharray="4 6"
+              />
+            );
+          })}
+
+          <path d={area} fill={`url(#${gradientId})`} />
+          <polyline points={line} fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          {points.map((point, index) => (
+            <g key={index}>
+              <circle cx={point.x} cy={point.y} r="5" fill={accent} fillOpacity="0.16" />
+              <circle cx={point.x} cy={point.y} r="2.6" fill={accent} />
+            </g>
+          ))}
+        </svg>
       </div>
-      {/* X-axis */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--adm-text-dim)', padding: '0 4px' }}>
-        <span>{data[0]?.date}</span>
-        <span style={{ color: 'var(--adm-text-muted)' }}>
-          {totalSessions.toLocaleString()} total sessions in 30 days
-        </span>
-        <span>{data[data.length - 1]?.date}</span>
+      <div className="adm-trend-footer">
+        <span>{data[0]?.label}</span>
+        <span>{summary}</span>
+        <span>{data[data.length - 1]?.label}</span>
       </div>
     </div>
   );
 };
 
-// ── Donut chart (devices) ──────────────────────────────────────────────────────
 const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> }> = ({ items }) => {
-  const total = items.reduce((s, i) => s + i.sessions, 0);
-  if (!total) return null;
+  const total = items.reduce((sum, item) => sum + item.sessions, 0);
+  if (!total) return <div className="adm-analytics-empty">No device data yet.</div>;
+
   let offset = 0;
-  const r = 52, cx = 64, cy = 64, circumference = 2 * Math.PI * r;
+  const radius = 56;
+  const center = 72;
+  const circumference = 2 * Math.PI * radius;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-      <svg width={128} height={128} viewBox="0 0 128 128" style={{ flexShrink: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--adm-surface2)" strokeWidth={16} />
-        {items.map((item, i) => {
-          const pct = item.sessions / total;
-          const dash = pct * circumference;
-          const gap  = circumference - dash;
+    <div className="adm-device-layout">
+      <svg viewBox="0 0 144 144" className="adm-device-chart" aria-label="Device sessions">
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="16" />
+        {items.map((item, index) => {
+          const portion = item.sessions / total;
+          const dash = portion * circumference;
+          const gap = circumference - dash;
           const color = DEVICE_COLOR[item.device.toLowerCase()] ?? '#6b7280';
-          const el = (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
-              stroke={color} strokeWidth={16}
+          const circle = (
+            <circle
+              key={index}
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke={color}
+              strokeWidth="16"
               strokeDasharray={`${dash} ${gap}`}
               strokeDashoffset={-offset * circumference}
-              style={{ transition: 'stroke-dasharray 0.5s ease', transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
+              style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
             />
           );
-          offset += pct;
-          return el;
+          offset += portion;
+          return circle;
         })}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--adm-text)" fontSize={18} fontWeight={700}>{fmt(total)}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle" fill="var(--adm-text-muted)" fontSize={10}>sessions</text>
+        <text x={center} y={center - 4} textAnchor="middle" fill="var(--adm-text)" fontSize="22" fontWeight="700">{fmt(total)}</text>
+        <text x={center} y={center + 18} textAnchor="middle" fill="var(--adm-text-muted)" fontSize="11">sessions</text>
       </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {items.map((item, i) => {
-          const pct = Math.round((item.sessions / total) * 100);
+
+      <div className="adm-device-legend">
+        {items.map((item) => {
+          const percentage = Math.round((item.sessions / total) * 100);
           const color = DEVICE_COLOR[item.device.toLowerCase()] ?? '#6b7280';
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>{DEVICE_ICON[item.device.toLowerCase()] ?? '💻'}</span>
+            <div key={item.device} className="adm-device-legend-item">
+              <span className="adm-device-legend-icon">{DEVICE_ICON[item.device.toLowerCase()] ?? '💻'}</span>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--adm-text)', textTransform: 'capitalize' }}>{item.device}</div>
-                <div style={{ fontSize: 11, color }}>
-                  {pct}% · {item.sessions.toLocaleString()}
-                </div>
+                <strong>{item.device}</strong>
+                <span style={{ color }}>{percentage}% · {item.sessions.toLocaleString()} sessions</span>
               </div>
             </div>
           );
@@ -149,343 +179,287 @@ const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> 
   );
 };
 
-// ── Horizontal bar row ─────────────────────────────────────────────────────────
-const HRow: React.FC<{ label: string; value: number; max: number; color: string; icon?: string; rank?: number }> = ({
-  label, value, max, color, icon, rank,
-}) => {
-  const pct = max > 0 ? (value / max) * 100 : 0;
+const RankingRow: React.FC<{
+  label: string;
+  value: number;
+  max: number;
+  color: string;
+  icon?: string;
+  rank?: number;
+}> = ({ label, value, max, color, icon, rank }) => {
+  const width = max > 0 ? (value / max) * 100 : 0;
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          {rank !== undefined && (
-            <span style={{ fontSize: 11, color: 'var(--adm-text-dim)', width: 16, textAlign: 'right', flexShrink: 0 }}>#{rank}</span>
-          )}
-          {icon && <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>}
-          <span style={{ fontSize: 13, color: 'var(--adm-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    <div className="adm-ranking-row">
+      <div className="adm-ranking-top">
+        <div className="adm-ranking-label-wrap">
+          {rank !== undefined && <span className="adm-ranking-rank">#{rank}</span>}
+          {icon && <span className="adm-ranking-icon">{icon}</span>}
+          <span className="adm-ranking-label">{label}</span>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color, flexShrink: 0, marginLeft: 12 }}>{value.toLocaleString()}</span>
+        <strong style={{ color }}>{value.toLocaleString()}</strong>
       </div>
-      <div style={{ height: 5, background: 'var(--adm-surface2)', borderRadius: 4, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
+      <div className="adm-ranking-track">
+        <div className="adm-ranking-fill" style={{ width: `${width}%`, background: color }} />
       </div>
     </div>
   );
 };
 
-// ── KPI Metric Card ────────────────────────────────────────────────────────────
 const MetricCard: React.FC<{
-  icon: string; label: string; value: string; sub?: string;
-  gradient: string; border: string;
+  icon: string;
+  label: string;
+  value: string;
+  sub?: string;
+  gradient: string;
+  border: string;
 }> = ({ icon, label, value, sub, gradient, border }) => (
-  <div style={{
-    background: gradient,
-    border: `1px solid ${border}`,
-    borderRadius: 14,
-    padding: '20px 22px',
-    position: 'relative',
-    overflow: 'hidden',
-  }}>
-    <div style={{ position: 'absolute', top: -20, right: -16, fontSize: 80, opacity: 0.07, lineHeight: 1 }}>{icon}</div>
-    <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
-    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--adm-text-muted)', marginBottom: 4 }}>{label}</div>
-    <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--adm-text)', lineHeight: 1.1 }}>{value}</div>
-    {sub && <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 5 }}>{sub}</div>}
+  <div className="adm-analytics-metric-card" style={{ background: gradient, borderColor: border }}>
+    <div className="adm-analytics-metric-icon">{icon}</div>
+    <div className="adm-analytics-metric-label">{label}</div>
+    <div className="adm-analytics-metric-value">{value}</div>
+    {sub && <div className="adm-analytics-metric-sub">{sub}</div>}
   </div>
 );
 
-// ── Section card ───────────────────────────────────────────────────────────────
-const SCard: React.FC<{ title: string; icon: string; children: React.ReactNode; accent?: string }> = ({
-  title, icon, children, accent = 'var(--adm-accent)',
-}) => (
-  <div style={{
-    background: 'var(--adm-surface)',
-    border: '1px solid var(--adm-border)',
-    borderRadius: 14,
-    padding: '20px 22px',
-    borderTop: `3px solid ${accent}`,
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--adm-text-muted)' }}>{title}</span>
-    </div>
-    {children}
-  </div>
-);
-
-// ── Setup Guide ────────────────────────────────────────────────────────────────
-const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
-  <div style={{
-    background: 'linear-gradient(135deg, rgba(245,166,35,0.08), transparent)',
-    border: '1px solid rgba(245,166,35,0.3)',
-    borderRadius: 14, padding: 24, marginBottom: 24,
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-      <span style={{ fontSize: 22 }}>⚙️</span>
+const Panel: React.FC<{
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  accent?: string;
+  copy?: string;
+  className?: string;
+}> = ({ title, icon, children, accent = 'var(--adm-accent)', copy, className }) => (
+  <section className={`adm-analytics-panel${className ? ` ${className}` : ''}`} style={{ borderTopColor: accent }}>
+    <div className="adm-analytics-panel-head">
       <div>
-        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--adm-text)' }}>Google Analytics 4 — Setup Required</div>
-        <div style={{ fontSize: 12, color: 'var(--adm-text-muted)', marginTop: 2 }}>Follow these steps to connect your GA4 property</div>
+        <div className="adm-card-title">{icon} {title}</div>
+        {copy && <p className="adm-analytics-panel-copy">{copy}</p>}
       </div>
     </div>
-    <ol style={{ paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {steps.map((s, i) => (
-        <li key={i} style={{ fontSize: 13, color: 'var(--adm-text-muted)', lineHeight: 1.6 }}>{s}</li>
+    {children}
+  </section>
+);
+
+const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
+  <div className="adm-analytics-rich-alert warning">
+    <div className="adm-analytics-rich-alert-head">
+      <span>⚙️</span>
+      <div>
+        <strong>Google Analytics 4 setup required</strong>
+        <p>Complete the following steps to connect the property cleanly.</p>
+      </div>
+    </div>
+    <ol className="adm-analytics-steps">
+      {steps.map((step, index) => (
+        <li key={index}>{step}</li>
       ))}
     </ol>
   </div>
 );
 
-// ── Main component ─────────────────────────────────────────────────────────────
 export const AdminAnalytics: React.FC = () => {
   const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(), []);
-  const ga       = useAsync<GaData>(() => adminApi.getGaData(), []);
-  const gad      = ga.data;
-  const s        = internal.data?.summary;
+  const ga = useAsync<GaData>(() => adminApi.getGaData(), []);
+  const gad = ga.data;
+  const summary = internal.data?.summary;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-      {/* ── Page Header ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+    <div className="adm-analytics-page">
+      <section className="adm-card adm-analytics-hero">
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--adm-text)', letterSpacing: -0.5 }}>Analytics</h1>
-          <p style={{ color: 'var(--adm-text-muted)', fontSize: 13, marginTop: 3 }}>
-            Real-time insights from Google Analytics 4 + internal bot statistics
+          <span className="adm-dashboard-eyebrow">Performance Overview</span>
+          <h1 className="adm-analytics-hero-title">Analytics</h1>
+          <p className="adm-analytics-hero-text">
+            A cleaner view of Google Analytics 4 plus internal bot and newsletter activity, organized for faster reading and comparison.
           </p>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
-          borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--adm-text-muted)',
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: gad?.configured ? '#22c55e' : '#f59e0b', flexShrink: 0, boxShadow: gad?.configured ? '0 0 6px #22c55e' : 'none' }} />
-          {gad?.configured ? 'GA4 Connected' : 'GA4 Not configured'}
+        <div className="adm-analytics-status-card">
+          <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
+          <div>
+            <strong>{gad?.configured ? 'GA4 connected' : 'GA4 not configured'}</strong>
+            <span>{gad?.configured ? 'Traffic and device insights are available below.' : 'Add the property configuration to unlock reporting.'}</span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── GA Loading ────────────────────────────────────────────────── */}
-      {ga.loading && (
-        <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 40, textAlign: 'center' }}>
-          <span className="adm-spinner" style={{ width: 28, height: 28 }} />
-          <p style={{ color: 'var(--adm-text-muted)', marginTop: 12, fontSize: 13 }}>Loading Google Analytics data…</p>
-        </div>
-      )}
+      {ga.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading Google Analytics data…</div>}
 
-      {/* ── GA Error ──────────────────────────────────────────────────── */}
       {!ga.loading && ga.error && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(224,82,82,0.08), transparent)',
-          border: '1px solid rgba(224,82,82,0.3)',
-          borderRadius: 14, padding: 20,
-        }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 24 }}>⚠️</span>
+        <div className="adm-analytics-rich-alert error">
+          <div className="adm-analytics-rich-alert-head">
+            <span>⚠️</span>
             <div>
-              <div style={{ fontWeight: 700, color: '#e05252', marginBottom: 4 }}>GA4 API Error</div>
-              <div style={{ fontSize: 13, color: 'var(--adm-text-muted)' }}>{ga.error}</div>
-              <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 6 }}>
-                Make sure the service account email is added as Viewer in GA4 → Admin → Property Access Management
-              </div>
+              <strong>GA4 API error</strong>
+              <p>{ga.error}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Setup guide ───────────────────────────────────────────────── */}
       {!ga.loading && gad && !gad.configured && gad.steps && <SetupGuide steps={gad.steps} />}
 
-      {/* ══════════════════════════════════════════════════════════════
-          GA4 DATA SECTION
-      ══════════════════════════════════════════════════════════════ */}
       {gad?.configured && gad.summary && (() => {
         const sm = gad.summary;
         return (
           <>
-            {/* KPI row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-              <MetricCard icon="🔗" label="Sessions"       value={fmt(sm.sessions)}       gradient="linear-gradient(135deg,rgba(79,110,247,0.15),rgba(79,110,247,0.04))"  border="rgba(79,110,247,0.3)" />
-              <MetricCard icon="🟢" label="Active Users"   value={fmt(sm.activeUsers)}    gradient="linear-gradient(135deg,rgba(34,197,94,0.15),rgba(34,197,94,0.04))"    border="rgba(34,197,94,0.3)"  />
-              <MetricCard icon="✨" label="New Users"      value={fmt(sm.newUsers)}       gradient="linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.04))"  border="rgba(245,158,11,0.3)" />
-              <MetricCard icon="📄" label="Page Views"     value={fmt(sm.pageViews)}      gradient="linear-gradient(135deg,rgba(139,92,246,0.15),rgba(139,92,246,0.04))"  border="rgba(139,92,246,0.3)" />
-              <MetricCard icon="↩️" label="Bounce Rate"   value={`${sm.bounceRate}%`}    gradient="linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.04))"    border="rgba(239,68,68,0.25)" />
-              <MetricCard icon="⏱️" label="Avg Session"   value={fmtDuration(sm.avgSessionDuration)} sub="per session" gradient="linear-gradient(135deg,rgba(6,182,212,0.12),rgba(6,182,212,0.04))" border="rgba(6,182,212,0.25)" />
+            <div className="adm-analytics-kpi-grid">
+              <MetricCard icon="🔗" label="Sessions" value={fmt(sm.sessions)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
+              <MetricCard icon="🟢" label="Active Users" value={fmt(sm.activeUsers)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
+              <MetricCard icon="✨" label="New Users" value={fmt(sm.newUsers)} gradient="linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.28)" />
+              <MetricCard icon="📄" label="Page Views" value={fmt(sm.pageViews)} gradient="linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.28)" />
+              <MetricCard icon="↩️" label="Bounce Rate" value={`${sm.bounceRate}%`} gradient="linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05))" border="rgba(239,68,68,0.24)" />
+              <MetricCard icon="⏱️" label="Avg Session" value={fmtDuration(sm.avgSessionDuration)} sub="per session" gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
             </div>
 
-            {/* Sessions chart */}
             {(gad.byDay?.length ?? 0) > 0 && (
-              <SCard title="Sessions / Day — Last 30 Days" icon="📈">
-                <SessionsChart data={gad.byDay!} />
-              </SCard>
+              <Panel title="Sessions per day" icon="📈" accent="#4f6ef7" copy="A smoother 30-day trend view for sessions and audience behavior.">
+                <TrendChart
+                  id="ga-sessions"
+                  data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: `${item.users} users` }))}
+                  accent="#6b84ff"
+                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days`}
+                />
+              </Panel>
             )}
 
-            {/* 3-column grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            <div className="adm-analytics-grid-3">
+              <Panel title="Top countries" icon="🌍" accent="#4f6ef7" copy="Markets generating the highest session volume.">
+                <div className="adm-ranking-list">
+                  {(gad.byCountry ?? []).map((item, index) => (
+                    <RankingRow
+                      key={item.country}
+                      rank={index + 1}
+                      label={item.country}
+                      icon={COUNTRY_FLAG[item.country] ?? '🌐'}
+                      value={item.sessions}
+                      max={gad.byCountry?.[0]?.sessions ?? 1}
+                      color="#4f6ef7"
+                    />
+                  ))}
+                </div>
+              </Panel>
 
-              {/* Countries */}
-              <SCard title="Top Countries" icon="🌍" accent="#4f6ef7">
-                {(gad.byCountry ?? []).map((r, i) => (
-                  <HRow key={i} rank={i + 1}
-                    label={r.country}
-                    icon={COUNTRY_FLAG[r.country] ?? '🌐'}
-                    value={r.sessions}
-                    max={gad.byCountry![0]?.sessions ?? 1}
-                    color="#4f6ef7"
-                  />
-                ))}
-              </SCard>
-
-              {/* Devices */}
-              <SCard title="Devices" icon="📱" accent="#8b5cf6">
+              <Panel title="Devices" icon="📱" accent="#8b5cf6" copy="Traffic split by device family for responsive planning.">
                 <DonutChart items={gad.byDevice ?? []} />
-              </SCard>
+              </Panel>
 
-              {/* Sources */}
-              <SCard title="Traffic Sources" icon="🔀" accent="#f59e0b">
-                {(gad.bySource ?? []).map((r, i) => (
-                  <HRow key={i}
-                    label={r.source}
-                    icon={SOURCE_ICON[r.source] ?? '🌐'}
-                    value={r.sessions}
-                    max={gad.bySource![0]?.sessions ?? 1}
-                    color={SOURCE_COLOR[r.source] ?? '#6b7280'}
-                  />
-                ))}
-              </SCard>
+              <Panel title="Traffic sources" icon="🔀" accent="#f59e0b" copy="How visitors are discovering the website.">
+                <div className="adm-ranking-list">
+                  {(gad.bySource ?? []).map((item) => (
+                    <RankingRow
+                      key={item.source}
+                      label={item.source}
+                      icon={SOURCE_ICON[item.source] ?? '🌐'}
+                      value={item.sessions}
+                      max={gad.bySource?.[0]?.sessions ?? 1}
+                      color={SOURCE_COLOR[item.source] ?? '#6b7280'}
+                    />
+                  ))}
+                </div>
+              </Panel>
             </div>
 
-            {/* Top pages */}
             {(gad.byPage?.length ?? 0) > 0 && (
-              <SCard title="Top Pages" icon="📑" accent="#22c55e">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0 32px' }}>
-                  {gad.byPage!.map((r, i) => (
-                    <HRow key={i} rank={i + 1}
-                      label={r.page}
-                      value={r.views}
-                      max={gad.byPage![0]?.views ?? 1}
+              <Panel title="Top pages" icon="📑" accent="#22c55e" copy="The most viewed destinations across the site." className="adm-analytics-panel-wide">
+                <div className="adm-analytics-grid-2 compact">
+                  {gad.byPage!.map((item, index) => (
+                    <RankingRow
+                      key={item.page}
+                      rank={index + 1}
+                      label={item.page}
+                      value={item.views}
+                      max={gad.byPage?.[0]?.views ?? 1}
                       color="#22c55e"
                     />
                   ))}
                 </div>
-              </SCard>
+              </Panel>
             )}
           </>
         );
       })()}
 
-      {/* ══════════════════════════════════════════════════════════════
-          INTERNAL STATS SECTION
-      ══════════════════════════════════════════════════════════════ */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        borderTop: '1px solid var(--adm-border)', paddingTop: 20, marginTop: 4,
-      }}>
-        <span style={{ fontSize: 16 }}>💬</span>
-        <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--adm-text-muted)' }}>
-          Internal Stats — Bot & Newsletter
-        </span>
-        <div style={{ flex: 1, height: 1, background: 'var(--adm-border)' }} />
+      <div className="adm-analytics-section-divider">
+        <span>💬</span>
+        <strong>Internal Stats — Bot & Newsletter</strong>
       </div>
 
-      {internal.loading && (
-        <div style={{ textAlign: 'center', padding: 24 }}><span className="adm-spinner" /></div>
-      )}
-      {internal.error && (
-        <div className="adm-alert adm-alert-error">⚠ {internal.error}</div>
-      )}
+      {internal.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading internal analytics…</div>}
+      {internal.error && <div className="adm-alert adm-alert-error">⚠ {internal.error}</div>}
 
-      {s && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-          {[
-            { icon: '💬', label: 'Messages',      value: s.total_messages,    g: 'rgba(79,110,247,0.12)',  b: 'rgba(79,110,247,0.25)' },
-            { icon: '👤', label: 'Chat Users',    value: s.total_users,       g: 'rgba(34,197,94,0.1)',   b: 'rgba(34,197,94,0.25)'  },
-            { icon: '✉️', label: 'Subscribers',   value: s.total_subscribers, g: 'rgba(6,182,212,0.1)',   b: 'rgba(6,182,212,0.25)'  },
-            { icon: '📰', label: 'News Articles', value: s.total_news,        g: 'rgba(245,158,11,0.1)',  b: 'rgba(245,158,11,0.25)' },
-            { icon: '🧴', label: 'Products',      value: s.total_products,    g: 'rgba(139,92,246,0.1)',  b: 'rgba(139,92,246,0.25)' },
-          ].map(item => (
-            <MetricCard key={item.label} icon={item.icon} label={item.label}
-              value={String(item.value)} gradient={`linear-gradient(135deg,${item.g},transparent)`}
-              border={item.b}
-            />
-          ))}
+      {summary && (
+        <div className="adm-analytics-kpi-grid compact">
+          <MetricCard icon="💬" label="Messages" value={String(summary.total_messages)} gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
+          <MetricCard icon="👤" label="Chat Users" value={String(summary.total_users)} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
+          <MetricCard icon="✉️" label="Subscribers" value={String(summary.total_subscribers)} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
+          <MetricCard icon="📰" label="News Articles" value={String(summary.total_news)} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
+          <MetricCard icon="🧴" label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.24)" />
         </div>
       )}
 
       {internal.data && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          <div className="adm-analytics-grid-2">
+            <Panel title="Chat messages per day" icon="💬" accent="#4f6ef7" copy="Daily message activity captured by the assistant.">
+              <TrendChart
+                id="chat-per-day"
+                data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
+                accent="#5eaeff"
+                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the selected period`}
+              />
+            </Panel>
 
-            {/* Chat per day */}
-            <SCard title="Chat Messages / Day" icon="💬" accent="#4f6ef7">
-              {!(internal.data.chatPerDay?.length)
-                ? <p style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>No data yet.</p>
-                : <SessionsChart data={internal.data.chatPerDay.map(d => ({ date: d.date, sessions: d.count, users: 0 }))} />
-              }
-            </SCard>
-
-            {/* Newsletter per day */}
-            <SCard title="Newsletter Signups / Day" icon="✉️" accent="#22c55e">
-              {!(internal.data.newsletterPerDay?.length)
-                ? <p style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>No data yet.</p>
-                : <SessionsChart data={internal.data.newsletterPerDay.map(d => ({ date: d.date, sessions: d.count, users: 0 }))} />
-              }
-            </SCard>
+            <Panel title="Newsletter signups per day" icon="✉️" accent="#22c55e" copy="Daily subscription growth across the current period.">
+              <TrendChart
+                id="newsletter-per-day"
+                data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
+                accent="#34d399"
+                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the selected period`}
+              />
+            </Panel>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-
-            {/* Language distribution */}
-            <SCard title="Chat Language Distribution" icon="🌐" accent="#8b5cf6">
-              {!(internal.data.langDistribution?.length)
-                ? <p style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>No data yet.</p>
-                : (() => {
-                    const total = internal.data.langDistribution.reduce((s, i) => s + i.count, 0);
-                    const LANG_COLORS = ['#4f6ef7', '#22c55e', '#f59e0b', '#ec4899'];
-                    return internal.data.langDistribution.map((d, i) => (
-                      <HRow key={d.language}
-                        label={`${d.language.toUpperCase()}  (${Math.round((d.count / total) * 100)}%)`}
-                        value={d.count} max={total}
-                        color={LANG_COLORS[i % LANG_COLORS.length]}
+          <div className="adm-analytics-grid-2">
+            <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="How users are distributed by conversation language.">
+              <div className="adm-ranking-list">
+                {(internal.data.langDistribution ?? []).length ? (
+                  (() => {
+                    const total = internal.data.langDistribution.reduce((sum, item) => sum + item.count, 0);
+                    const colors = ['#8b5cf6', '#4f6ef7', '#22c55e', '#f59e0b'];
+                    return internal.data.langDistribution.map((item, index) => (
+                      <RankingRow
+                        key={item.language}
+                        label={`${item.language.toUpperCase()} (${Math.round((item.count / total) * 100)}%)`}
+                        value={item.count}
+                        max={total}
+                        color={colors[index % colors.length]}
                       />
                     ));
                   })()
-              }
-            </SCard>
+                ) : <div className="adm-analytics-empty">No language data yet.</div>}
+              </div>
+            </Panel>
 
-            {/* Top users */}
-            <SCard title="Most Active Users" icon="🔥" accent="#f59e0b">
-              {!(internal.data.topUsers?.length)
-                ? <p style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>No users yet.</p>
-                : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {internal.data.topUsers.map((u, i) => (
-                      <div key={u.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'var(--adm-surface2)', borderRadius: 10, padding: '10px 14px',
-                      }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                          background: `linear-gradient(135deg, hsl(${(i * 60 + 200) % 360}, 70%, 55%), hsl(${(i * 60 + 240) % 360}, 70%, 45%))`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 13, fontWeight: 700, color: '#fff',
-                        }}>{i + 1}</div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 11, color: 'var(--adm-text-muted)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {u.id.slice(0, 20)}…
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 2 }}>
-                            Last seen: {fmtDate(u.last_seen)}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--adm-text)' }}>{u.message_count}</div>
-                          <div style={{ fontSize: 10, color: 'var(--adm-text-dim)' }}>msgs</div>
-                        </div>
-                        <span className="adm-badge adm-badge-blue" style={{ flexShrink: 0 }}>{u.language}</span>
+            <Panel title="Most active users" icon="🔥" accent="#f59e0b" copy="Users generating the heaviest conversation load right now.">
+              {(internal.data.topUsers ?? []).length ? (
+                <div className="adm-analytics-user-stack">
+                  {internal.data.topUsers.map((user, index) => (
+                    <div key={user.id} className="adm-analytics-user-row">
+                      <div className="adm-analytics-user-rank">{index + 1}</div>
+                      <div className="adm-analytics-user-copy">
+                        <strong>{user.id.slice(0, 20)}…</strong>
+                        <span>Last seen: {fmtDate(user.last_seen)}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-            </SCard>
+                      <div className="adm-analytics-user-metric">
+                        <strong>{user.message_count}</strong>
+                        <span>msgs</span>
+                      </div>
+                      <span className="adm-badge adm-badge-blue">{user.language}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="adm-analytics-empty">No users yet.</div>}
+            </Panel>
           </div>
         </>
       )}
