@@ -9,7 +9,7 @@ const FROM = () => process.env.FROM_EMAIL || 'KARAHOCA <noreply@karahoca.com>';
 const SITE_URL = process.env.SITE_URL || 'https://karahoca.com';
 
 // ── HTML email template ───────────────────────────────────────────────────────
-const buildHtml = ({ subject, body, lang, sendId, email }) => {
+const buildHtml = ({ subject, body, lang, sendId, email, imageUrl }) => {
   const isRtl = lang === 'ar';
   const dir   = isRtl ? 'rtl' : 'ltr';
   const font  = isRtl
@@ -22,6 +22,17 @@ const buildHtml = ({ subject, body, lang, sendId, email }) => {
     .filter(l => l.trim())
     .map(l => `<p style="margin:0 0 14px">${l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`)
     .join('');
+
+  // Optional campaign image
+  const resolvedImageUrl = imageUrl
+    ? (imageUrl.startsWith('http') ? imageUrl : `${SITE_URL}${imageUrl}`)
+    : null;
+  const imageBlock = resolvedImageUrl
+    ? `<tr><td style="padding:0 40px 24px;text-align:center">
+        <img src="${resolvedImageUrl}" alt="${subject}"
+          style="max-width:100%;height:auto;border-radius:10px;display:block;margin:0 auto" />
+      </td></tr>`
+    : '';
 
   const unsub = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(email)}&lang=${lang}`;
   const pixel = `${SITE_URL}/api/email/open?id=${sendId}`;
@@ -48,6 +59,8 @@ const buildHtml = ({ subject, body, lang, sendId, email }) => {
             </div>
           </td>
         </tr>
+
+        ${imageBlock}
 
         <!-- Body -->
         <tr>
@@ -138,7 +151,7 @@ export const dispatchCampaign = async (campaignId) => {
       const resendId = await sendEmail({
         to: email,
         subject,
-        html: buildHtml({ subject, body, lang, sendId, email }),
+        html: buildHtml({ subject, body, lang, sendId, email, imageUrl: campaign.image_url }),
       });
       db.prepare('UPDATE email_sends SET resend_id=? WHERE id=?').run(resendId, sendId);
       sent++;
@@ -223,7 +236,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     }
 
     if (req.method === 'PUT') {
-      const fields = ['title','template_type','subject_ar','subject_en','subject_tr','subject_ru','body_ar','body_en','body_tr','body_ru'];
+      const fields = ['title','template_type','subject_ar','subject_en','subject_tr','subject_ru','body_ar','body_en','body_tr','body_ru','image_url'];
       const sets = fields.filter(f => body[f] !== undefined).map(f => `${f}=@${f}`).join(', ');
       if (sets) db.prepare(`UPDATE email_campaigns SET ${sets}, updated_at=datetime('now') WHERE id=@id`).run({ ...body, id });
       sendJson(res, 200, { success: true, campaign: db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id) }, origin);
@@ -248,8 +261,8 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   if (req.method === 'POST') {
     if (!body.title) { sendJson(res, 400, { error: 'title required' }, origin); return; }
     const info = db.prepare(`
-      INSERT INTO email_campaigns(title,template_type,subject_ar,subject_en,subject_tr,subject_ru,body_ar,body_en,body_tr,body_ru)
-      VALUES(@title,@template_type,@subject_ar,@subject_en,@subject_tr,@subject_ru,@body_ar,@body_en,@body_tr,@body_ru)
+      INSERT INTO email_campaigns(title,template_type,subject_ar,subject_en,subject_tr,subject_ru,body_ar,body_en,body_tr,body_ru,image_url)
+      VALUES(@title,@template_type,@subject_ar,@subject_en,@subject_tr,@subject_ru,@body_ar,@body_en,@body_tr,@body_ru,@image_url)
     `).run({
       title:         body.title,
       template_type: body.template_type || 'custom',
@@ -257,6 +270,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
       subject_tr:    body.subject_tr || '', subject_ru: body.subject_ru || '',
       body_ar:       body.body_ar || '', body_en: body.body_en || '',
       body_tr:       body.body_tr || '', body_ru: body.body_ru || '',
+      image_url:     body.image_url || null,
     });
     sendJson(res, 201, { success: true, campaign: db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(info.lastInsertRowid) }, origin);
     return;

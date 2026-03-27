@@ -215,6 +215,8 @@
   padding: 24px;
   max-width: 1400px;
   width: 100%;
+  margin: 0 auto;
+  align-self: flex-start;
 }
 
 /* ─── Cards ──────────────────────────────────────────────────── */
@@ -291,7 +293,7 @@
 .adm-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .adm-table th {
@@ -305,6 +307,7 @@
   letter-spacing: 0.5px;
   white-space: nowrap;
   border-bottom: 1px solid var(--adm-border);
+  vertical-align: middle;
 }
 
 .adm-table td {
@@ -312,6 +315,7 @@
   border-bottom: 1px solid var(--adm-border);
   color: var(--adm-text);
   font-size: 13.5px;
+  vertical-align: middle;
 }
 
 .adm-table tr:last-child td { border-bottom: none; }
@@ -322,6 +326,13 @@
   text-align: center;
   padding: 40px;
   color: var(--adm-text-dim);
+}
+
+.adm-table td.adm-truncate {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Forms ──────────────────────────────────────────────────── */

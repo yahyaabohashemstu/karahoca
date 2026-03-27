@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -435,6 +435,31 @@ const server = createServer(async (request, response) => {
 
       if (url.startsWith('/api/admin/ai-knowledge')) {
         handleAdminAiKnowledge(request, response, { ...ctx, body });
+        return;
+      }
+
+      // ── Image upload ──────────────────────────────────────────────────────────
+      if (url === '/api/admin/upload-image' && request.method === 'POST') {
+        const { imageBase64, fileName } = body;
+        if (!imageBase64 || !fileName) {
+          sendJson(response, 400, { error: 'imageBase64 and fileName required' }, origin);
+          return;
+        }
+        const ext = (fileName.split('.').pop() || '').toLowerCase();
+        if (!['jpg','jpeg','png','webp','gif'].includes(ext)) {
+          sendJson(response, 400, { error: 'Unsupported file type' }, origin);
+          return;
+        }
+        const buf = Buffer.from(imageBase64, 'base64');
+        if (buf.length > 5 * 1024 * 1024) {
+          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, origin);
+          return;
+        }
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+        await mkdir(uploadDir, { recursive: true });
+        await writeFile(path.join(uploadDir, unique), buf);
+        sendJson(response, 200, { success: true, path: `/uploads/${unique}` }, origin);
         return;
       }
 
