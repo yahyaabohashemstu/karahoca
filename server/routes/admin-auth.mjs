@@ -1,4 +1,4 @@
-import { verifyLogin, signToken, isRateLimited, resetRateLimit } from '../auth.mjs';
+import { verifyLogin, signToken, isRateLimited, resetRateLimit, getJwtConfigError } from '../auth.mjs';
 
 const getIp = (req) =>
   (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
@@ -9,6 +9,12 @@ export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => 
 
   if (isRateLimited(ip)) {
     sendJson(res, 429, { success: false, error: 'Too many login attempts. Try again in 15 minutes.' }, origin);
+    return;
+  }
+
+  const jwtConfigError = getJwtConfigError();
+  if (jwtConfigError) {
+    sendJson(res, 500, { success: false, error: jwtConfigError }, origin);
     return;
   }
 
@@ -35,3 +41,4 @@ export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => 
   const token = signToken({ username, role: 'admin' });
   sendJson(res, 200, { success: true, token }, origin);
 };
+

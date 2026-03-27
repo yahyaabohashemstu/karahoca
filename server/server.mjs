@@ -291,7 +291,7 @@ setInterval(() => {
 
 const requireAdminAuth = (request, response, requestOrigin) => {
   const user = requireAuth(request);
-  if (!user) {
+  if (!user || user.role !== 'admin') {
     sendJson(response, 401, { success: false, error: 'Unauthorized.' }, requestOrigin);
     return null;
   }
@@ -461,17 +461,17 @@ const server = createServer(async (request, response) => {
       if (url === '/api/admin/upload-image' && request.method === 'POST') {
         const { imageBase64, fileName } = body;
         if (!imageBase64 || !fileName) {
-          sendJson(response, 400, { error: 'imageBase64 and fileName required' }, origin);
+          sendJson(response, 400, { error: 'imageBase64 and fileName required' }, requestOrigin);
           return;
         }
         const ext = (fileName.split('.').pop() || '').toLowerCase();
         if (!['jpg','jpeg','png','webp','gif'].includes(ext)) {
-          sendJson(response, 400, { error: 'Unsupported file type' }, origin);
+          sendJson(response, 400, { error: 'Unsupported file type' }, requestOrigin);
           return;
         }
         const buf = Buffer.from(imageBase64, 'base64');
         if (buf.length > 5 * 1024 * 1024) {
-          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, origin);
+          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, requestOrigin);
           return;
         }
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -525,3 +525,6 @@ setInterval(async () => {
 server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
+
+
+

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { getToken } from '../utils/adminApi';
+import { hasValidToken } from '../utils/adminApi';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (!getToken()) {
+  if (!hasValidToken()) {
     return <Navigate to="/admin" replace />;
   }
   return <>{children}</>;
 };
+

@@ -34,14 +34,18 @@ export const AdminProducts: React.FC = () => {
           <h1 className="adm-page-title">Products</h1>
           <p className="adm-page-subtitle">Manage DIOX and AYLUX product catalog</p>
         </div>
-        <Link to="/admin/products/new" className="adm-btn adm-btn-primary adm-btn-sm">
-          + Add Product
-        </Link>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link to="/admin/categories" className="adm-btn adm-btn-secondary adm-btn-sm">
+            🗂️ Manage Categories
+          </Link>
+          <Link to="/admin/products/new" className="adm-btn adm-btn-primary adm-btn-sm">
+            + Add Product
+          </Link>
+        </div>
       </div>
 
-      {/* Brand filter */}
       <div className="adm-card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-        {(['', 'DIOX', 'AYLUX'] as const).map(b => (
+        {(['', 'DIOX', 'AYLUX'] as const).map((b) => (
           <button
             key={b || 'all'}
             className={`adm-btn adm-btn-sm ${brand === b ? 'adm-btn-primary' : 'adm-btn-ghost'}`}

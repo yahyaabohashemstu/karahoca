@@ -4,8 +4,10 @@ const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'karahoca_admin_secret_change_in_production';
+const DEFAULT_JWT_SECRET = 'karahoca_admin_secret_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Rate limiting (in-memory)
 const loginAttempts = new Map(); // ip -> { count, resetAt }
@@ -31,6 +33,13 @@ const resetRateLimit = (ip) => {
 
 export const hashPassword = (plain) => bcrypt.hashSync(plain, 10);
 
+export const getJwtConfigError = () => {
+  if (isProduction && JWT_SECRET === DEFAULT_JWT_SECRET) {
+    return 'JWT_SECRET must be set to a non-default value in production.';
+  }
+  return null;
+};
+
 export const verifyLogin = (username, password) => {
   const expectedUsername = process.env.ADMIN_USERNAME || 'admin';
   const expectedHash = process.env.ADMIN_PASSWORD_HASH || '';
@@ -44,10 +53,17 @@ export const verifyLogin = (username, password) => {
   return bcrypt.compareSync(password, expectedHash);
 };
 
-export const signToken = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+export const signToken = (payload) => {
+  const configError = getJwtConfigError();
+  if (configError) {
+    throw new Error(configError);
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+};
 
 export const verifyToken = (token) => {
   try {
+    if (getJwtConfigError()) return null;
     return jwt.verify(token, JWT_SECRET);
   } catch {
     return null;
@@ -65,3 +81,5 @@ export const requireAuth = (request) => {
 };
 
 export { isRateLimited, resetRateLimit };
+
+

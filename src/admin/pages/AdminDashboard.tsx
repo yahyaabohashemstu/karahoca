@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { adminApi, type AdminStats, type ChatUser } from '../utils/adminApi';
+import { type AdminStats, type ChatUser } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { adminApi } from '../utils/adminApi';
 import { fmtDate } from '../utils/dateUtils';
 
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
-const GA_LINK = GA_MEASUREMENT_ID && GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX'
-  ? `https://analytics.google.com/analytics/web/#/p${GA_MEASUREMENT_ID}/reports/overview`
+const GA_PROPERTY_ID = import.meta.env.VITE_GA_PROPERTY_ID;
+const GA_LINK = GA_PROPERTY_ID
+  ? `https://analytics.google.com/analytics/web/#/p${GA_PROPERTY_ID}/reports/intelligenthome`
   : 'https://analytics.google.com/';
 
 const StatCard: React.FC<{ icon: string; label: string; value: number | string; sub?: string; to?: string }> = ({ icon, label, value, sub, to }) => {

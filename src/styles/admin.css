@@ -30,6 +30,11 @@
   --adm-glass-border-strong: rgba(255,255,255,0.16);
   --adm-blur:          blur(12px) saturate(150%);
 
+  /* Admin surfaces */
+  --adm-surface:       rgba(255,255,255,0.045);
+  --adm-surface2:      rgba(255,255,255,0.07);
+  --adm-border:        rgba(255,255,255,0.12);
+
   /* Accent */
   --adm-accent:        var(--adm-orange);
   --adm-accent-hover:  var(--adm-orange-light);
@@ -1091,3 +1096,4 @@
 .adm-dot-red    { background: var(--adm-danger);  box-shadow: 0 0 6px rgba(240,77,77,0.50); }
 .adm-dot-orange { background: var(--adm-orange);  box-shadow: 0 0 6px rgba(255,91,46,0.50); }
 .adm-dot-blue   { background: var(--adm-info);    box-shadow: 0 0 6px rgba(94,174,255,0.50); }
+

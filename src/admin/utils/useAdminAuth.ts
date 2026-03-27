@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getToken, clearToken, setToken, adminApi } from './adminApi';
+import { hasValidToken, clearToken, setToken, adminApi } from './adminApi';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,7 +9,7 @@ interface AuthState {
 
 export const useAdminAuth = () => {
   const [state, setState] = useState<AuthState>({
-    isAuthenticated: !!getToken(),
+    isAuthenticated: hasValidToken(),
     isLoading: false,
     error: null,
   });
@@ -57,3 +57,4 @@ export const useAsync = <T>(fn: () => Promise<T>, deps: unknown[] = []) => {
 
   return { data, loading, error, reload: load };
 };
+

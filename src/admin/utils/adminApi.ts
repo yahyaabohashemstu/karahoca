@@ -2,15 +2,50 @@ import { buildApiUrl } from '../../utils/api';
 
 const TOKEN_KEY = 'karahoca_admin_token';
 
-export const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
-export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
+const decodeBase64Url = (value: string) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = normalized.length % 4;
+  const padded = padding ? normalized.padEnd(normalized.length + (4 - padding), '=') : normalized;
+  return window.atob(padded);
+};
+
+const parseTokenPayload = (token: string): { exp?: number; role?: string } | null => {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+    return JSON.parse(decodeBase64Url(payload)) as { exp?: number; role?: string };
+  } catch {
+    return null;
+  }
+};
+
+const isTokenUsable = (token: string | null) => {
+  if (!token) return false;
+  const payload = parseTokenPayload(token);
+  if (!payload) return false;
+  if (payload.role && payload.role !== 'admin') return false;
+  if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) return false;
+  return true;
+};
+
+const readStoredToken = () => localStorage.getItem(TOKEN_KEY);
+
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+export const getToken = (): string | null => {
+  const token = readStoredToken();
+  if (!isTokenUsable(token)) {
+    clearToken();
+    return null;
+  }
+  return token;
+};
+export const hasValidToken = () => !!getToken();
+export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
 
 const authHeaders = (): Record<string, string> => ({
   'Content-Type': 'application/json',
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
-
 const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
   const response = await fetch(buildApiUrl(path), {
     method,
@@ -142,7 +177,8 @@ export const adminApi = {
     request<{ success: boolean; productContext: string; customQA: string }>(
       'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
     ),
-};
+  uploadImage: (imageBase64: string, fileName: string) =>
+    request<{ success: boolean; path: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -311,3 +347,5 @@ export interface GaData {
   byDevice?: Array<{ device: string; sessions: number }>;
   bySource?: Array<{ source: string; sessions: number }>;
 }
+
+

@@ -87,15 +87,9 @@ export const AdminProductEdit: React.FC = () => {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      const token = localStorage.getItem('adm_token') || '';
-      const res = await fetch('/api/admin/upload-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ imageBase64: base64, fileName: file.name }),
-      });
-      const data = await res.json() as { success?: boolean; path?: string; error?: string };
-      if (!data.success) throw new Error(data.error || 'Upload failed');
-      set('image', data.path!);
+      const data = await adminApi.uploadImage(base64, file.name);
+      if (!data.success) throw new Error('Upload failed');
+      set('image', data.path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
@@ -273,3 +267,5 @@ export const AdminProductEdit: React.FC = () => {
     </div>
   );
 };
+
+
