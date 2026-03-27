@@ -90,17 +90,19 @@ export const AdminChats: React.FC = () => {
                       <td className="adm-truncate adm-text-sm" style={{ maxWidth: 220 }}>
                         {u.last_user_message || u.last_message || '—'}
                       </td>
-                      <td style={{ display: 'flex', gap: 6 }}>
-                        <Link to={`/admin/chats/${encodeURIComponent(u.id)}`} className="adm-btn adm-btn-ghost adm-btn-sm">
-                          View →
-                        </Link>
-                        <button
-                          className="adm-btn adm-btn-danger adm-btn-sm"
-                          onClick={() => handleDelete(u.id)}
-                          disabled={deleting === u.id}
-                        >
-                          {deleting === u.id ? '…' : '🗑'}
-                        </button>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <Link to={`/admin/chats/${encodeURIComponent(u.id)}`} className="adm-btn adm-btn-ghost adm-btn-sm">
+                            View →
+                          </Link>
+                          <button
+                            className="adm-btn adm-btn-danger adm-btn-sm"
+                            onClick={() => handleDelete(u.id)}
+                            disabled={deleting === u.id}
+                          >
+                            {deleting === u.id ? '…' : '🗑'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

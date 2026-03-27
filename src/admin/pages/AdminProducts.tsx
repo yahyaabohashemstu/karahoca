@@ -65,7 +65,7 @@ export const AdminProducts: React.FC = () => {
               <thead>
                 <tr>
                   <th>Image</th>
-                  <th>Name (AR)</th>
+                  <th style={{ textAlign: 'right' }}>Name (AR)</th>
                   <th>Name (EN)</th>
                   <th>Brand</th>
                   <th>Category</th>
@@ -97,15 +97,17 @@ export const AdminProducts: React.FC = () => {
                         {p.active ? 'Active' : 'Hidden'}
                       </span>
                     </td>
-                    <td style={{ display: 'flex', gap: 6 }}>
-                      <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
-                      <button
-                        className="adm-btn adm-btn-danger adm-btn-sm"
-                        onClick={() => handleDelete(p.id)}
-                        disabled={deleting === p.id}
-                      >
-                        {deleting === p.id ? '…' : '🗑'}
-                      </button>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
+                        <button
+                          className="adm-btn adm-btn-danger adm-btn-sm"
+                          onClick={() => handleDelete(p.id)}
+                          disabled={deleting === p.id}
+                        >
+                          {deleting === p.id ? '…' : '🗑'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
