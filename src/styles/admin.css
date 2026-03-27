@@ -2142,3 +2142,47 @@
     justify-self: start;
   }
 }
+
+/* ─── Admin shell alignment fixes ───────────────────────────── */
+.adm-main {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .adm-main {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (min-width: 769px) {
+  .adm-layout {
+    align-items: stretch;
+  }
+
+  .adm-sidebar-wrap {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: var(--adm-sidebar-w);
+    min-width: var(--adm-sidebar-w);
+    flex: 0 0 var(--adm-sidebar-w);
+    height: auto;
+    transform: none;
+    z-index: 20;
+  }
+
+  .adm-sidebar {
+    position: sticky;
+    top: 0;
+    left: auto;
+    width: var(--adm-sidebar-w);
+    height: 100vh;
+  }
+
+  .adm-main {
+    margin-left: 0;
+    width: auto;
+    flex: 1 1 auto;
+  }
+}
