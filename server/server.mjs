@@ -74,7 +74,14 @@ const getRequestOrigin = (request) => {
 };
 
 const getRequestHostOrigin = (request) => {
-  const host = typeof request.headers.host === 'string' ? request.headers.host.trim() : '';
+  // Prefer X-Forwarded-Host set by reverse proxies (Traefik / Nginx / Coolify)
+  // so that origin comparison works correctly in production behind a proxy.
+  const forwardedHost = request.headers['x-forwarded-host'];
+  const host = (typeof forwardedHost === 'string' && forwardedHost.trim())
+    ? forwardedHost.split(',')[0].trim()
+    : typeof request.headers.host === 'string'
+      ? request.headers.host.trim()
+      : '';
   if (!host) return '';
   const forwardedProto = request.headers['x-forwarded-proto'];
   const protocol =
@@ -169,7 +176,12 @@ const subscribeNewsletter = async ({ email }) => {
   const alreadySubscribed = subscribers.some((entry) => entry.email === normalizedEmail);
   if (!alreadySubscribed) {
     subscribers.push({ email: normalizedEmail, subscribedAt: new Date().toISOString() });
-    await writeFile(newsletterFile, JSON.stringify(subscribers, null, 2), 'utf8');
+    // Backup JSON write is non-fatal — DB is the primary store.
+    try {
+      await writeFile(newsletterFile, JSON.stringify(subscribers, null, 2), 'utf8');
+    } catch (e) {
+      console.warn('[newsletter] Could not write backup JSON file:', e.message);
+    }
   }
 
   return { success: true, alreadySubscribed: !!exists };
