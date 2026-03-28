@@ -134,15 +134,21 @@ const ensureDataDirectories = async () => {
 };
 
 const MAX_BODY_BYTES = Number.parseInt(process.env.MAX_REQUEST_BODY_BYTES || '524288', 10); // 512 KB
+// Base64 inflates by ~33 %, so 8 MB here covers a decoded 5 MB image comfortably.
+const MAX_UPLOAD_BODY_BYTES = 8 * 1024 * 1024; // 8 MB for image uploads
 
-const readRequestBody = async (request) =>
+const readRequestBody = async (request, maxBytes = MAX_BODY_BYTES) =>
   new Promise((resolve, reject) => {
     let rawBody = '';
     let totalBytes = 0;
+    let tooLarge = false;
     request.on('data', (chunk) => {
+      if (tooLarge) return;
       totalBytes += chunk.length;
-      if (totalBytes > MAX_BODY_BYTES) {
-        request.destroy();
+      if (totalBytes > maxBytes) {
+        tooLarge = true;
+        // Drain remaining data so the socket stays alive for a response
+        request.resume();
         const err = new Error('Request body too large.');
         err.statusCode = 413;
         reject(err);
@@ -151,10 +157,11 @@ const readRequestBody = async (request) =>
       rawBody += chunk;
     });
     request.on('end', () => {
+      if (tooLarge) return; // already rejected
       try { resolve(rawBody ? JSON.parse(rawBody) : {}); }
       catch { reject(new Error('Invalid JSON payload.')); }
     });
-    request.on('error', reject);
+    request.on('error', (err) => { if (!tooLarge) reject(err); });
   });
 
 const sendJson = (response, statusCode, payload, requestOrigin = '') => {
@@ -473,7 +480,10 @@ const server = createServer(async (request, response) => {
 
     if (url.startsWith('/api/admin/')) {
       if (!requireAdminAuth(request, response, requestOrigin)) return;
-      const body = ['POST','PUT','PATCH'].includes(request.method) ? await readRequestBody(request) : {};
+      const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
+      const body = ['POST','PUT','PATCH'].includes(request.method)
+        ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
+        : {};
 
       if (url === '/api/admin/stats' && request.method === 'GET') {
         handleAdminStats(request, response, ctx);
