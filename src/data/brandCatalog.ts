@@ -9,18 +9,12 @@ export interface BrandProductDetails {
   count?: string;
 }
 
-export interface ProductSize {
-  label: string;   // e.g. "700ml", "3L"
-  image?: string;  // optional per-size image; falls back to product.image
-}
-
 export interface BrandProductInfo {
   name: string;
   description: string;
   image: string;
   alt: string;
   details?: BrandProductDetails;
-  sizes?: ProductSize[] | null;
 }
 
 export interface BrandCategoryData {
@@ -526,7 +520,6 @@ interface PublicApiProduct {
   description: string;
   image: string;
   alt: string;
-  sizes?: ProductSize[] | null;
   details?: {
     weight?: string;
     material?: string;
@@ -548,7 +541,6 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
     description: p.description,
     image: p.image,
     alt: p.alt,
-    sizes: p.sizes && p.sizes.length > 0 ? p.sizes : null,
     details: {
       weight:   p.details?.weight   || undefined,
       material: p.details?.material || undefined,

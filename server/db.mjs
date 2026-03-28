@@ -195,8 +195,6 @@ const migrateInitialData = () => {
   migrateNewsletter();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
-  // Add sizes column to products (product size variants as JSON)
-  try { db.exec("ALTER TABLE products ADD COLUMN sizes TEXT"); } catch { /* already exists */ }
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────

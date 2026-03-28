@@ -3,17 +3,11 @@ import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-interface ProductSize {
-  label: string;
-  image?: string;
-}
-
 interface ProductInfo {
   name: string;
   description: string;
   image: string;
   alt: string;
-  sizes?: ProductSize[] | null;
   details?: {
     weight?: string;
     material?: string;
@@ -71,31 +65,13 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
-  const [popupSizeIdx, setPopupSizeIdx] = useState(0);
-  // key: `${catIdx}-${prodIdx}`, value: selected size index
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, number>>({});
 
-  const getSizeIdx = (key: string) => selectedSizes[key] ?? 0;
-
-  const getActiveImage = (product: ProductInfo, sizeIdx: number): string => {
-    if (!product.sizes?.length) return product.image;
-    const sz = product.sizes[sizeIdx];
-    return (sz?.image?.trim()) ? sz.image : product.image;
-  };
-
-  const getActiveWeight = (product: ProductInfo, sizeIdx: number): string => {
-    if (!product.sizes?.length) return product.details?.weight || '';
-    return product.sizes[sizeIdx]?.label || '';
-  };
-
-  const openImagePopup = (product: ProductInfo, sizeIdx = 0) => {
+  const openImagePopup = (product: ProductInfo) => {
     setSelectedProduct(product);
-    setPopupSizeIdx(sizeIdx);
   };
 
   const closeImagePopup = () => {
     setSelectedProduct(null);
-    setPopupSizeIdx(0);
   };
   return (
     <div className={pageClass}>
@@ -227,82 +203,49 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             <div key={categoryIndex} className="container">
               <h3 className="category-title gradient-heading">{category.title}</h3>
               <div className="products-grid-compact">
-                {category.products.map((product, productIndex) => {
-                  const cardKey = `${categoryIndex}-${productIndex}`;
-                  const sizeIdx = getSizeIdx(cardKey);
-                  const hasSizes = !!(product.sizes?.length);
-                  const activeImage = getActiveImage(product, sizeIdx);
-                  const activeWeight = getActiveWeight(product, sizeIdx);
-                  return (
-                    <div
-                      key={productIndex}
-                      className="product-card-flip-container product-auto-reveal"
-                      style={{ animationDelay: `${productIndex * 0.05}s` }}
-                    >
-                      <div className="product-card-mini glass-card">
-                        <div className="product-card-front">
-                          <img src={activeImage} alt={product.alt} className="product-mini-image" loading="lazy" />
-                          <div className="product-mini-info">
-                            <h4>{product.name}</h4>
-                            <p>{product.description}</p>
-                          </div>
-                          {hasSizes && (
-                            <div className="product-size-pills" onClick={e => e.stopPropagation()}>
-                              {product.sizes!.map((sz, si) => (
-                                <button
-                                  key={si}
-                                  className={`product-size-pill${sizeIdx === si ? ' active' : ''}`}
-                                  onClick={() => setSelectedSizes(prev => ({ ...prev, [cardKey]: si }))}
-                                >
-                                  {sz.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                {category.products.map((product, productIndex) => (
+                  <div 
+                    key={productIndex} 
+                    className="product-card-flip-container product-auto-reveal"
+                    style={{ animationDelay: `${productIndex * 0.05}s` }}
+                  >
+                    <div className="product-card-mini glass-card">
+                      <div className="product-card-front">
+                        <img src={product.image} alt={product.alt} className="product-mini-image" loading="lazy" />
+                        <div className="product-mini-info">
+                          <h4>{product.name}</h4>
+                          <p>{product.description}</p>
                         </div>
-                        <div className="product-card-back">
-                          <div className="product-details">
-                            <h4 className="details-title">{product.name}</h4>
-                            {hasSizes && (
-                              <div className="product-size-pills product-size-pills--back" onClick={e => e.stopPropagation()}>
-                                {product.sizes!.map((sz, si) => (
-                                  <button
-                                    key={si}
-                                    className={`product-size-pill${sizeIdx === si ? ' active' : ''}`}
-                                    onClick={() => setSelectedSizes(prev => ({ ...prev, [cardKey]: si }))}
-                                  >
-                                    {sz.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            <div className="details-stack">
-                              <div className="detail-item-full">
-                                <span className="detail-label">{t('brandPage.weight')}</span>
-                                <span className="detail-value">{activeWeight || t('brandPage.notSpecified')}</span>
-                              </div>
-                              <div className="detail-item-full">
-                                <span className="detail-label">{t('brandPage.material')}</span>
-                                <span className="detail-value">{product.details?.material || t('brandPage.notSpecified')}</span>
-                              </div>
-                              <div className="detail-item-full">
-                                <span className="detail-label">{t('brandPage.count')}</span>
-                                <span className="detail-value">{product.details?.count || t('brandPage.notSpecified')}</span>
-                              </div>
+                      </div>
+                      <div className="product-card-back">
+                        <div className="product-details">
+                          <h4 className="details-title">{product.name}</h4>
+                          <div className="details-stack">
+                            <div className="detail-item-full">
+                              <span className="detail-label">{t('brandPage.weight')}</span>
+                              <span className="detail-value">{product.details?.weight || t('brandPage.notSpecified')}</span>
                             </div>
-                            <button
-                              className="image-preview-btn"
-                              onClick={() => openImagePopup(product, sizeIdx)}
-                              aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
-                            >
-                              {t('brandPage.viewImage')}
-                            </button>
+                            <div className="detail-item-full">
+                              <span className="detail-label">{t('brandPage.material')}</span>
+                              <span className="detail-value">{product.details?.material || t('brandPage.notSpecified')}</span>
+                            </div>
+                            <div className="detail-item-full">
+                              <span className="detail-label">{t('brandPage.count')}</span>
+                              <span className="detail-value">{product.details?.count || t('brandPage.notSpecified')}</span>
+                            </div>
                           </div>
+                          <button 
+                            className="image-preview-btn"
+                            onClick={() => openImagePopup(product)}
+                            aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
+                          >
+                            {t('brandPage.viewImage')}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -320,54 +263,41 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             
             <div className="popup-layout">
               <div className="popup-image-section">
-                <img
-                  src={getActiveImage(selectedProduct, popupSizeIdx)}
-                  alt={selectedProduct.alt}
+                <img 
+                  src={selectedProduct.image} 
+                  alt={selectedProduct.alt} 
                   className="image-popup-img"
                 />
-                {selectedProduct.sizes?.length && (
-                  <div className="product-size-pills product-size-pills--popup" style={{ justifyContent: 'center', marginTop: 12 }}>
-                    {selectedProduct.sizes.map((sz, si) => (
-                      <button
-                        key={si}
-                        className={`product-size-pill${popupSizeIdx === si ? ' active' : ''}`}
-                        onClick={() => setPopupSizeIdx(si)}
-                      >
-                        {sz.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-
+              
               <div className="popup-info-section">
                 <div className="image-popup-title">{selectedProduct.name}</div>
                 <div className="image-popup-description">{selectedProduct.description}</div>
-
-                <div className="image-popup-details">
-                  <div className="popup-details-grid">
-                    {(getActiveWeight(selectedProduct, popupSizeIdx) || selectedProduct.details?.weight) && (
-                      <div className="popup-detail-item">
-                        <span className="popup-detail-label">{t('brandPage.weight')}</span>
-                        <span className="popup-detail-value">
-                          {getActiveWeight(selectedProduct, popupSizeIdx) || selectedProduct.details?.weight}
-                        </span>
-                      </div>
-                    )}
-                    {selectedProduct.details?.material && (
-                      <div className="popup-detail-item">
-                        <span className="popup-detail-label">{t('brandPage.material')}</span>
-                        <span className="popup-detail-value">{selectedProduct.details.material}</span>
-                      </div>
-                    )}
-                    {selectedProduct.details?.count && (
-                      <div className="popup-detail-item">
-                        <span className="popup-detail-label">{t('brandPage.count')}</span>
-                        <span className="popup-detail-value">{selectedProduct.details.count}</span>
-                      </div>
-                    )}
+                
+                {selectedProduct.details && (
+                  <div className="image-popup-details">
+                    <div className="popup-details-grid">
+                      {selectedProduct.details.weight && (
+                        <div className="popup-detail-item">
+                          <span className="popup-detail-label">{t('brandPage.weight')}</span>
+                          <span className="popup-detail-value">{selectedProduct.details.weight}</span>
+                        </div>
+                      )}
+                      {selectedProduct.details.material && (
+                        <div className="popup-detail-item">
+                          <span className="popup-detail-label">{t('brandPage.material')}</span>
+                          <span className="popup-detail-value">{selectedProduct.details.material}</span>
+                        </div>
+                      )}
+                      {selectedProduct.details.count && (
+                        <div className="popup-detail-item">
+                          <span className="popup-detail-label">{t('brandPage.count')}</span>
+                          <span className="popup-detail-value">{selectedProduct.details.count}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
