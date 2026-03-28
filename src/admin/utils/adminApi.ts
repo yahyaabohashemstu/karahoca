@@ -248,6 +248,7 @@ export interface Product {
   weight: string;
   material_ar: string; material_en: string; material_tr: string; material_ru: string;
   count_ar: string; count_en: string; count_tr: string; count_ru: string;
+  sizes?: Array<{ label: string; image?: string }> | null;
   display_order: number;
   active: number;
   created_at: string;
