@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
+import type { ProductSize } from '../../data/brandCatalog';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -26,15 +27,19 @@ export const AdminProductEdit: React.FC = () => {
   const [activeLang, setActiveLang] = useState<Lang>('ar');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingSize, setUploadingSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  const [sizes, setSizes] = useState<ProductSize[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sizeFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
     if (!isNew) {
       adminApi.getProduct(id!).then(r => {
         setForm(r.product);
+        setSizes(Array.isArray(r.product.sizes) ? r.product.sizes : []);
         setLoading(false);
       }).catch(e => {
         setError(e.message);
@@ -64,10 +69,11 @@ export const AdminProductEdit: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
+      const payload = { ...form, sizes: sizes.length > 0 ? sizes : null };
       if (isNew) {
-        await adminApi.createProduct(form);
+        await adminApi.createProduct(payload);
       } else {
-        await adminApi.updateProduct(id!, form);
+        await adminApi.updateProduct(id!, payload);
       }
       navigate('/admin/products');
     } catch (e) {
@@ -94,6 +100,31 @@ export const AdminProductEdit: React.FC = () => {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ── Sizes helpers ────────────────────────────────────────────────────────
+  const addSize = () => setSizes(s => [...s, { label: '', image: '' }]);
+  const removeSize = (i: number) => setSizes(s => s.filter((_, idx) => idx !== i));
+  const setSize = (i: number, field: keyof ProductSize, value: string) =>
+    setSizes(s => s.map((sz, idx) => idx === i ? { ...sz, [field]: value } : sz));
+
+  const handleSizeImageUpload = async (file: File, index: number) => {
+    setUploadingSize(index);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const data = await adminApi.uploadImage(base64, file.name);
+      if (!data.success) throw new Error('Upload failed');
+      setSize(index, 'image', data.path);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploadingSize(null);
     }
   };
 
@@ -165,7 +196,72 @@ export const AdminProductEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Weight / Volume</label>
+              <label className="adm-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📦 Size Variants <span className="adm-text-muted adm-text-sm">(optional — use when one product comes in multiple sizes)</span></span>
+                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm" onClick={addSize}>+ Add Size</button>
+              </label>
+
+              {sizes.length === 0 && (
+                <p className="adm-text-muted adm-text-sm" style={{ marginTop: 4 }}>
+                  No sizes set — the Weight field below will be used instead.
+                </p>
+              )}
+
+              {sizes.map((sz, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, padding: '10px 12px', background: 'var(--adm-surface2)', borderRadius: 8, border: '1px solid var(--adm-glass-border)' }}>
+                  <div style={{ flex: '0 0 110px' }}>
+                    <div className="adm-text-sm adm-text-muted" style={{ marginBottom: 3 }}>Label *</div>
+                    <input
+                      className="adm-input adm-input-sm"
+                      value={sz.label}
+                      onChange={e => setSize(i, 'label', e.target.value)}
+                      placeholder="700ml"
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="adm-text-sm adm-text-muted" style={{ marginBottom: 3 }}>Image (optional)</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        className="adm-input adm-input-sm"
+                        value={sz.image ?? ''}
+                        onChange={e => setSize(i, 'image', e.target.value)}
+                        placeholder="Leave blank to use main image"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="adm-btn adm-btn-secondary adm-btn-sm"
+                        disabled={uploadingSize === i}
+                        onClick={() => sizeFileRefs.current[i]?.click()}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {uploadingSize === i ? <span className="adm-spinner" style={{ width: 12, height: 12 }} /> : '📁'}
+                      </button>
+                      <input
+                        ref={el => { sizeFileRefs.current[i] = el; }}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleSizeImageUpload(f, i); e.target.value = ''; }}
+                      />
+                    </div>
+                  </div>
+                  {sz.image && (
+                    <img src={sz.image} alt={sz.label} style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, background: 'var(--adm-surface)', flexShrink: 0 }} />
+                  )}
+                  <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => removeSize(i)} style={{ flexShrink: 0 }}>🗑</button>
+                </div>
+              ))}
+
+              {sizes.length > 0 && (
+                <p className="adm-text-muted adm-text-sm" style={{ marginTop: 6 }}>
+                  ℹ️ When sizes are set, the Weight field below is ignored on the website.
+                </p>
+              )}
+            </div>
+
+            <div className="adm-form-group">
+              <label className="adm-label">Weight / Volume <span className="adm-text-muted adm-text-sm">(used only if no sizes above)</span></label>
               <input className="adm-input" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder="e.g. 500ml" />
             </div>
             <div className="adm-form-group">

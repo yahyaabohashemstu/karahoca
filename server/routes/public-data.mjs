@@ -25,6 +25,7 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         image,
         alt_${l} as alt,
         weight,
+        sizes,
         material_${l} as material,
         count_${l} as count
       FROM products
@@ -36,18 +37,23 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
       id: cat.id,
       key: cat.key,
       title: cat[`title_${l}`] || cat.title_ar,
-      products: products.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        image: p.image,
-        alt: p.alt,
-        details: {
-          weight: p.weight,
-          material: p.material,
-          count: p.count,
-        }
-      }))
+      products: products.map(p => {
+        let sizes = null;
+        try { sizes = p.sizes ? JSON.parse(p.sizes) : null; } catch { sizes = null; }
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          image: p.image,
+          alt: p.alt,
+          sizes,
+          details: {
+            weight: p.weight,
+            material: p.material,
+            count: p.count,
+          }
+        };
+      })
     };
   });
 
