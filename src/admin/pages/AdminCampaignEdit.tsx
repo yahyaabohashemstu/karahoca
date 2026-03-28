@@ -41,12 +41,13 @@ const empty = (): Partial<Campaign> => ({
   image_url: '',
 });
 
-const toDatetimeLocal = (value?: string | null) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+const toDatetimeLocal = (value?: string | null): { date: string; time: string } => {
+  if (!value) return { date: '', time: '10:00' };
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return { date: '', time: '10:00' };
+  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+  const local = new Date(d.getTime() - offsetMs).toISOString();
+  return { date: local.slice(0, 10), time: local.slice(11, 16) };
 };
 
 export const AdminCampaignEdit: React.FC = () => {
@@ -63,7 +64,8 @@ export const AdminCampaignEdit: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [scheduling, setScheduling] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [scheduleValue, setScheduleValue] = useState('');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('10:00');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sends, setSends] = useState<CampaignSend[]>([]);
   const [statsLoaded, setStatsLoaded] = useState(false);
@@ -75,7 +77,9 @@ export const AdminCampaignEdit: React.FC = () => {
       adminApi.getCampaign(parseInt(id, 10))
         .then((r) => {
           setForm(r.campaign);
-          setScheduleValue(toDatetimeLocal(r.campaign.scheduled_at));
+          const { date, time } = toDatetimeLocal(r.campaign.scheduled_at);
+          setScheduleDate(date);
+          setScheduleTime(time);
           setLoading(false);
         })
         .catch((e) => {
@@ -136,7 +140,9 @@ export const AdminCampaignEdit: React.FC = () => {
     if (!id || isNew) return;
     const updated = await adminApi.getCampaign(parseInt(id, 10));
     setForm(updated.campaign);
-    setScheduleValue(toDatetimeLocal(updated.campaign.scheduled_at));
+    const { date, time } = toDatetimeLocal(updated.campaign.scheduled_at);
+    setScheduleDate(date);
+    setScheduleTime(time);
   };
 
   const save = async () => {
@@ -188,15 +194,15 @@ export const AdminCampaignEdit: React.FC = () => {
       setError('Save the campaign first before scheduling it.');
       return;
     }
-    if (!scheduleValue) {
-      setError('Choose a date and time to schedule this campaign.');
+    if (!scheduleDate) {
+      setError('Choose a date to schedule this campaign.');
       return;
     }
     setScheduling(true);
     setError('');
     setSuccess('');
     try {
-      const scheduledAt = new Date(scheduleValue);
+      const scheduledAt = new Date(`${scheduleDate}T${scheduleTime || '10:00'}`);
       if (Number.isNaN(scheduledAt.getTime())) {
         throw new Error('Invalid schedule date.');
       }
@@ -346,14 +352,25 @@ export const AdminCampaignEdit: React.FC = () => {
                 {' '} {isNew ? '(save first to enable scheduling)' : '(optional scheduled send)'}
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
               <div className="adm-form-group" style={{ marginBottom: 0 }}>
-                <label className="adm-label">Scheduled send time</label>
+                <label className="adm-label">Date</label>
                 <input
                   className="adm-input"
-                  type="datetime-local"
-                  value={scheduleValue}
-                  onChange={(e) => setScheduleValue(e.target.value)}
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  disabled={isNew || form.status === 'sent'}
+                  min={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+              <div className="adm-form-group" style={{ marginBottom: 0 }}>
+                <label className="adm-label">Time</label>
+                <input
+                  className="adm-input"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
                   disabled={isNew || form.status === 'sent'}
                 />
               </div>

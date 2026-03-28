@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
-import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createReadStream, existsSync } from 'node:fs';
 
 import { initDb, getDb, incrementStat } from './db.mjs';
 import { requireAuth } from './auth.mjs';
@@ -324,6 +325,31 @@ const requireAdminAuth = (request, response, requestOrigin) => {
   return user;
 };
 
+// ─── Static file MIME types ───────────────────────────────────────────────────
+const STATIC_MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.mjs':  'application/javascript',
+  '.css':  'text/css',
+  '.json': 'application/json',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif':  'image/gif',
+  '.svg':  'image/svg+xml',
+  '.ico':  'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.ttf':  'font/ttf',
+  '.otf':  'font/otf',
+  '.txt':  'text/plain',
+  '.xml':  'application/xml',
+  '.webmanifest': 'application/manifest+json',
+};
+const distDir = path.join(__dirname, '..', 'dist');
+const spaIndex = path.join(distDir, 'index.html');
+
 // ─── Server ───────────────────────────────────────────────────────────────────
 
 const server = createServer(async (request, response) => {
@@ -389,6 +415,27 @@ const server = createServer(async (request, response) => {
         return;
       }
       await handleChatLog(request, response, { ...ctx, body });
+      return;
+    }
+
+    // ── Uploaded images (public — no auth needed) ─────────────────────────────
+    if (request.method === 'GET' && url.startsWith('/api/uploads/')) {
+      const fileName = path.basename(url.replace('/api/uploads/', ''));
+      const filePath = path.join(__dirname, 'data', 'uploads', fileName);
+      try {
+        const s = await stat(filePath);
+        if (!s.isFile()) throw new Error('not a file');
+        const ext = path.extname(filePath).toLowerCase();
+        const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
+        response.writeHead(200, {
+          'Content-Type': mime,
+          'Content-Length': String(s.size),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        });
+        createReadStream(filePath).pipe(response);
+      } catch {
+        sendJson(response, 404, { error: 'Not found' }, requestOrigin);
+      }
       return;
     }
 
@@ -501,10 +548,10 @@ const server = createServer(async (request, response) => {
           return;
         }
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+        const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
         await writeFile(path.join(uploadDir, unique), buf);
-        sendJson(response, 200, { success: true, path: `/uploads/${unique}` }, origin);
+        sendJson(response, 200, { success: true, path: `/api/uploads/${unique}` }, origin);
         return;
       }
 
@@ -515,6 +562,46 @@ const server = createServer(async (request, response) => {
 
       sendJson(response, 404, { success: false, error: 'Admin route not found.' }, requestOrigin);
       return;
+    }
+
+    // ── Static file serving (production SPA) ──────────────────────────────────
+    if (request.method === 'GET' && existsSync(distDir)) {
+      const resolved = path.resolve(distDir, url.replace(/^\//, ''));
+      if (!resolved.startsWith(distDir + path.sep) && resolved !== distDir) {
+        sendJson(response, 403, { success: false, error: 'Forbidden.' }, requestOrigin);
+        return;
+      }
+      const filePath = resolved;
+
+      const tryServeFile = async (fp) => {
+        try {
+          const s = await stat(fp);
+          if (!s.isFile()) return false;
+          const ext = path.extname(fp).toLowerCase();
+          const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
+          const headers = { 'Content-Type': mime, 'Content-Length': String(s.size) };
+          if (ext !== '.html') headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+          response.writeHead(200, headers);
+          createReadStream(fp).pipe(response);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      if (await tryServeFile(filePath)) return;
+      if (await tryServeFile(path.join(filePath, 'index.html'))) return;
+
+      // SPA fallback — serve index.html for all unmatched GET routes
+      if (existsSync(spaIndex)) {
+        const s = await stat(spaIndex);
+        response.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': String(s.size),
+        });
+        createReadStream(spaIndex).pipe(response);
+        return;
+      }
     }
 
     sendJson(response, 404, { success: false, error: 'Route not found.' }, requestOrigin);
