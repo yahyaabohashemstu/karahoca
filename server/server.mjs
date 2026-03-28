@@ -218,6 +218,53 @@ const subscribeNewsletter = async ({ email }) => {
     }
   }
 
+  // Send welcome email to new subscribers (fire-and-forget — non-fatal)
+  if (!exists) {
+    const resendKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.FROM_EMAIL || 'KARAHOCA <noreply@karahoca.com>';
+    const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
+    if (resendKey) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [normalizedEmail],
+          subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
+          html: `<!DOCTYPE html><html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:linear-gradient(135deg,#1a1f3c,#2d3561);padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700">KARAHOCA</h1>
+        </td></tr>
+        <tr><td style="padding:36px 40px;text-align:right">
+          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">مرحباً بك! 🎉</h2>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">
+            شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.
+          </p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">
+            ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.
+          </p>
+          <p style="margin:24px 0 0;color:#888;font-size:12px">
+            إذا لم تشترك بنفسك، يمكنك
+            <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f8f9fb;padding:16px 40px;text-align:center">
+          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA · <a href="${siteUrl}" style="color:#aaa">${siteUrl}</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+        }),
+      }).catch((e) => console.warn('[welcome-email] Failed to send:', e.message));
+    }
+  }
+
   return { success: true, alreadySubscribed: !!exists };
 };
 
