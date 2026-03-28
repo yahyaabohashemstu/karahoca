@@ -260,38 +260,16 @@ export const getLocalizedNewsItems = (
     }));
 
 // ─── API-based fetching (primary source when server is available) ────────────
-
-interface ApiNewsItem {
-  id: string; slug: string; image: string; published_at: string;
-  category_ar: string; category_en: string; category_tr: string; category_ru: string;
-  title_ar: string; title_en: string; title_tr: string; title_ru: string;
-  excerpt_ar: string; excerpt_en: string; excerpt_tr: string; excerpt_ru: string;
-  body_ar: string[]; body_en: string[]; body_tr: string[]; body_ru: string[];
-}
-
-const mapApiNewsItem = (item: ApiNewsItem, lang: SupportedLanguageCode): LocalizedNewsItem => {
-  const l = lang as string;
-  return {
-    id: item.id,
-    slug: item.slug,
-    image: item.image,
-    publishedAt: item.published_at,
-    dateLabel: formatNewsDate(item.published_at, lang),
-    category: (item as unknown as Record<string, string>)[`category_${l}`] || item.category_en,
-    title: (item as unknown as Record<string, string>)[`title_${l}`] || item.title_en,
-    excerpt: (item as unknown as Record<string, string>)[`excerpt_${l}`] || item.excerpt_en,
-    body: ((item as unknown as Record<string, string[]>)[`body_${l}`] || item.body_en) ?? [],
-    alt: (item as unknown as Record<string, string>)[`title_${l}`] || item.title_en,
-  };
-};
+// The public API (/api/news?lang=xx) already returns fully translated, ready-to-use
+// LocalizedNewsItem objects — no further mapping is needed.
 
 export const fetchNewsFromApi = async (language: SupportedLanguageCode): Promise<LocalizedNewsItem[] | null> => {
   try {
     const res = await fetch(buildApiUrl(`/api/news?lang=${language}`));
     if (!res.ok) return null;
-    const data = await res.json() as { success: boolean; items: ApiNewsItem[] };
-    if (!data.success) return null;
-    return data.items.map(item => mapApiNewsItem(item, language));
+    const data = await res.json() as { success: boolean; items: LocalizedNewsItem[] };
+    if (!data.success || !Array.isArray(data.items)) return null;
+    return data.items;
   } catch {
     return null;
   }

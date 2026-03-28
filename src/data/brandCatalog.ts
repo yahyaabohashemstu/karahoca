@@ -511,33 +511,40 @@ export const getBrandCatalogs = (t: TFunction): BrandCatalogData[] => [
 ];
 
 // ─── API-based fetching (primary source when server is available) ────────────
+// The public API (/api/products/:brand?lang=xx) returns already-translated
+// fields: { title, products: [{ name, description, image, alt, details: { weight, material, count } }] }
 
-interface ApiCategory {
-  title_ar: string; title_en: string; title_tr: string; title_ru: string;
-  products: Array<{
-    name_ar: string; name_en: string; name_tr: string; name_ru: string;
-    description_ar: string; description_en: string; description_tr: string; description_ru: string;
-    image: string;
-    alt_ar: string; alt_en: string; alt_tr: string; alt_ru: string;
-    weight: string;
-    material_ar: string; material_en: string; material_tr: string; material_ru: string;
-    count_ar: string; count_en: string; count_tr: string; count_ru: string;
-  }>;
+interface PublicApiProduct {
+  id?: string;
+  name: string;
+  description: string;
+  image: string;
+  alt: string;
+  details?: {
+    weight?: string;
+    material?: string;
+    count?: string;
+  };
 }
 
-const langKey = (lang: SupportedLanguageCode) => lang as string;
+interface PublicApiCategory {
+  id?: string;
+  key?: string;
+  title: string;
+  products: PublicApiProduct[];
+}
 
-const mapApiCategory = (cat: ApiCategory, lang: SupportedLanguageCode): BrandCategoryData => ({
-  title: (cat as unknown as Record<string, string>)[`title_${langKey(lang)}`] || cat.title_en,
+const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
+  title: cat.title,
   products: cat.products.map(p => ({
-    name: (p as unknown as Record<string, string>)[`name_${langKey(lang)}`] || p.name_en,
-    description: (p as unknown as Record<string, string>)[`description_${langKey(lang)}`] || p.description_en,
+    name: p.name,
+    description: p.description,
     image: p.image,
-    alt: (p as unknown as Record<string, string>)[`alt_${langKey(lang)}`] || p.alt_en,
+    alt: p.alt,
     details: {
-      weight: p.weight || undefined,
-      material: (p as unknown as Record<string, string>)[`material_${langKey(lang)}`] || undefined,
-      count: (p as unknown as Record<string, string>)[`count_${langKey(lang)}`] || undefined,
+      weight:   p.details?.weight   || undefined,
+      material: p.details?.material || undefined,
+      count:    p.details?.count    || undefined,
     },
   })),
 });
@@ -549,9 +556,9 @@ export const fetchBrandCatalogFromApi = async (
   try {
     const res = await fetch(buildApiUrl(`/api/products/${brand}?lang=${lang}`));
     if (!res.ok) return null;
-    const data = await res.json() as { success: boolean; categories: ApiCategory[] };
-    if (!data.success) return null;
-    return data.categories.map(cat => mapApiCategory(cat, lang));
+    const data = await res.json() as { success: boolean; categories: PublicApiCategory[] };
+    if (!data.success || !Array.isArray(data.categories)) return null;
+    return data.categories.map(mapPublicCategory);
   } catch {
     return null;
   }
