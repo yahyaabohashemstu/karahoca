@@ -223,7 +223,9 @@ const subscribeNewsletter = async ({ email }) => {
     const resendKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL || 'KARAHOCA <noreply@karahoca.com>';
     const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
-    if (resendKey) {
+    if (!resendKey) {
+      console.warn('[welcome-email] RESEND_API_KEY is not set — skipping welcome email.');
+    } else {
       fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -261,7 +263,11 @@ const subscribeNewsletter = async ({ email }) => {
   </table>
 </body></html>`,
         }),
-      }).catch((e) => console.warn('[welcome-email] Failed to send:', e.message));
+      }).then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) console.warn('[welcome-email] Resend error:', JSON.stringify(d));
+        else        console.log('[welcome-email] Sent OK, id:', d.id);
+      }).catch((e) => console.warn('[welcome-email] Network error:', e.message));
     }
   }
 
