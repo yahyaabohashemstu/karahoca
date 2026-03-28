@@ -170,17 +170,37 @@ export const AdminCampaignEdit: React.FC = () => {
     }
   };
 
+  const compressImage = (file: File, maxPx = 1400, quality = 0.82): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+        if (width > maxPx || height > maxPx) {
+          if (width >= height) { height = Math.round((height / width) * maxPx); width = maxPx; }
+          else                 { width  = Math.round((width  / height) * maxPx); height = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx2d = canvas.getContext('2d');
+        if (!ctx2d) { reject(new Error('Canvas not supported')); return; }
+        ctx2d.drawImage(img, 0, 0, width, height);
+        const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(mime, quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
+      img.src = objectUrl;
+    });
+
   const handleImageUpload = async (file: File) => {
     setUploading(true);
     setError('');
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const data = await adminApi.uploadImage(base64, file.name);
+      const base64 = await compressImage(file);
+      const ext = file.name.includes('.') ? file.name : `${file.name}.jpg`;
+      const data = await adminApi.uploadImage(base64, ext);
       set('image_url', data.path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
@@ -346,44 +366,48 @@ export const AdminCampaignEdit: React.FC = () => {
           </div>
 
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 12 }}>
-              Campaign Timing
-              <span style={{ fontSize: 11, color: 'var(--adm-text-dim)', fontWeight: 400, textTransform: 'none' }}>
-                {' '} {isNew ? '(save first to enable scheduling)' : '(optional scheduled send)'}
-              </span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-              <div className="adm-form-group" style={{ marginBottom: 0 }}>
-                <label className="adm-label">Date</label>
-                <input
-                  className="adm-input"
-                  type="date"
-                  value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                  disabled={isNew || form.status === 'sent'}
-                  min={new Date().toISOString().slice(0, 10)}
-                />
+            <div className="adm-card-title" style={{ marginBottom: 12 }}>Campaign Timing</div>
+
+            {isNew ? (
+              <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
+                💾 Save the campaign first, then you can set a scheduled send time.
               </div>
-              <div className="adm-form-group" style={{ marginBottom: 0 }}>
-                <label className="adm-label">Time</label>
-                <input
-                  className="adm-input"
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.target.value)}
-                  disabled={isNew || form.status === 'sent'}
-                />
+            ) : form.status === 'sent' ? (
+              <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
+                ✅ Campaign already sent on {form.scheduled_at ? fmtDate(form.scheduled_at) : '—'}.
               </div>
-              {!isNew && form.status !== 'sent' && (
-                <button type="button" className="adm-btn adm-btn-secondary" onClick={scheduleLater} disabled={scheduling}>
-                  {scheduling ? 'Scheduling…' : 'Save schedule'}
-                </button>
-              )}
-            </div>
-            {form.status === 'scheduled' && form.scheduled_at && (
-              <div className="adm-text-muted adm-text-sm" style={{ marginTop: 8 }}>
-                Currently scheduled for {fmtDate(form.scheduled_at)}.
-              </div>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
+                  <div className="adm-form-group" style={{ marginBottom: 0 }}>
+                    <label className="adm-label">Date</label>
+                    <input
+                      className="adm-input"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                    />
+                  </div>
+                  <div className="adm-form-group" style={{ marginBottom: 0 }}>
+                    <label className="adm-label">Time</label>
+                    <input
+                      className="adm-input"
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                    />
+                  </div>
+                  <button type="button" className="adm-btn adm-btn-secondary" onClick={scheduleLater} disabled={scheduling}>
+                    {scheduling ? 'Scheduling…' : 'Save schedule'}
+                  </button>
+                </div>
+                {form.status === 'scheduled' && form.scheduled_at && (
+                  <div className="adm-text-muted adm-text-sm" style={{ marginTop: 8 }}>
+                    Currently scheduled for {fmtDate(form.scheduled_at)}.
+                  </div>
+                )}
+              </>
             )}
           </div>
 

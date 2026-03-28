@@ -561,7 +561,7 @@ const server = createServer(async (request, response) => {
         const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
         await writeFile(path.join(uploadDir, unique), buf);
-        sendJson(response, 200, { success: true, path: `/api/uploads/${unique}` }, origin);
+        sendJson(response, 200, { success: true, path: `/api/uploads/${unique}` }, requestOrigin);
         return;
       }
 
