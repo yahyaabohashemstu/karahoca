@@ -6,6 +6,12 @@ import { buildApiUrl } from "../utils/api";
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
+interface WelcomeEmailStatus {
+  sent: boolean;
+  id?: string;
+  error?: string;
+}
+
 export default function MobileFooter() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -13,6 +19,7 @@ export default function MobileFooter() {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
+  const [welcomeEmailStatus, setWelcomeEmailStatus] = useState<WelcomeEmailStatus | null>(null);
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
   const aboutHref = isHomePage ? '#about' : '/about';
@@ -68,13 +75,17 @@ export default function MobileFooter() {
         throw new Error('Newsletter subscription failed');
       }
 
+      const data = await response.json().catch(() => ({}));
+      setWelcomeEmailStatus(data.welcomeEmail ?? null);
+
       setSubmissionState('success');
       setEmail('');
       trackFormSubmit('Newsletter Subscription', true);
 
       setTimeout(() => {
         setSubmissionState('idle');
-      }, 3000);
+        setWelcomeEmailStatus(null);
+      }, 8000);
     } catch {
       setSubmissionState('error');
       setEmailError(t('footer.newsletter.error.failed'));
@@ -169,6 +180,20 @@ export default function MobileFooter() {
               {submissionState === 'success' && (
                 <span className="newsletter__success" role="status">
                   {t('footer.newsletter.success')}
+                  {welcomeEmailStatus && (
+                    <span style={{
+                      display: 'block',
+                      fontSize: '0.75em',
+                      marginTop: '4px',
+                      color: welcomeEmailStatus.sent ? '#22c55e' : '#f87171',
+                      direction: 'ltr',
+                      textAlign: 'left'
+                    }}>
+                      {welcomeEmailStatus.sent
+                        ? `✅ Welcome email sent (id: ${welcomeEmailStatus.id})`
+                        : `⚠️ Email error: ${welcomeEmailStatus.error}`}
+                    </span>
+                  )}
                 </span>
               )}
             </div>

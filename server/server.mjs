@@ -218,22 +218,30 @@ const subscribeNewsletter = async ({ email }) => {
     }
   }
 
-  // Send welcome email to new subscribers (fire-and-forget — non-fatal)
+  // ── Welcome email — awaited so errors surface in the response ────────────────
+  let welcomeEmailStatus = null; // null = not attempted (already subscribed)
+
   if (!exists) {
     const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.FROM_EMAIL || 'KARAHOCA <noreply@karahoca.com>';
+    const fromEmail = process.env.FROM_EMAIL || '';
     const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
+
     if (!resendKey) {
-      console.warn('[welcome-email] RESEND_API_KEY is not set — skipping welcome email.');
+      welcomeEmailStatus = { sent: false, error: 'RESEND_API_KEY is not configured on the server.' };
+      console.warn('[welcome-email] RESEND_API_KEY is not set.');
+    } else if (!fromEmail) {
+      welcomeEmailStatus = { sent: false, error: 'FROM_EMAIL is not configured on the server.' };
+      console.warn('[welcome-email] FROM_EMAIL is not set.');
     } else {
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [normalizedEmail],
-          subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
-          html: `<!DOCTYPE html><html lang="ar" dir="rtl">
+      try {
+        const resp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [normalizedEmail],
+            subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
+            html: `<!DOCTYPE html><html lang="ar" dir="rtl">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px">
@@ -244,34 +252,35 @@ const subscribeNewsletter = async ({ email }) => {
         </td></tr>
         <tr><td style="padding:36px 40px;text-align:right">
           <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">مرحباً بك! 🎉</h2>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">
-            شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.
-          </p>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">
-            ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.
-          </p>
-          <p style="margin:24px 0 0;color:#888;font-size:12px">
-            إذا لم تشترك بنفسك، يمكنك
-            <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.
-          </p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.</p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.</p>
+          <p style="margin:24px 0 0;color:#888;font-size:12px">إذا لم تشترك بنفسك، يمكنك <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.</p>
         </td></tr>
         <tr><td style="background:#f8f9fb;padding:16px 40px;text-align:center">
-          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA · <a href="${siteUrl}" style="color:#aaa">${siteUrl}</a></p>
+          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body></html>`,
-        }),
-      }).then(async (r) => {
-        const d = await r.json().catch(() => ({}));
-        if (!r.ok) console.warn('[welcome-email] Resend error:', JSON.stringify(d));
-        else        console.log('[welcome-email] Sent OK, id:', d.id);
-      }).catch((e) => console.warn('[welcome-email] Network error:', e.message));
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          welcomeEmailStatus = { sent: true, id: data.id };
+          console.log('[welcome-email] Sent OK, id:', data.id);
+        } else {
+          welcomeEmailStatus = { sent: false, error: data.message || data.name || `Resend HTTP ${resp.status}`, details: data };
+          console.warn('[welcome-email] Resend error:', JSON.stringify(data));
+        }
+      } catch (e) {
+        welcomeEmailStatus = { sent: false, error: e.message };
+        console.warn('[welcome-email] Network error:', e.message);
+      }
     }
   }
 
-  return { success: true, alreadySubscribed: !!exists };
+  return { success: true, alreadySubscribed: !!exists, welcomeEmail: welcomeEmailStatus };
 };
 
 /** Build enriched prompt: append live DB products + custom Q&A */
