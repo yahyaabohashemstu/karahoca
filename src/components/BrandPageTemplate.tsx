@@ -211,7 +211,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                   >
                     <div className="product-card-mini glass-card">
                       <div className="product-card-front">
-                        <img src={product.image} alt={product.alt} className="product-mini-image" />
+                        <img src={product.image} alt={product.alt} className="product-mini-image" loading="lazy" />
                         <div className="product-mini-info">
                           <h4>{product.name}</h4>
                           <p>{product.description}</p>

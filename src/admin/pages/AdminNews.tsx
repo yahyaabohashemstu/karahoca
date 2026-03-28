@@ -6,6 +6,7 @@ import { fmtDate } from '../utils/dateUtils';
 
 export const AdminNews: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { data, loading, error, reload } = useAsync(() => adminApi.getNews(true), []);
 
   const handleDelete = async (id: string) => {
@@ -22,6 +23,15 @@ export const AdminNews: React.FC = () => {
   };
 
   const items = data?.items ?? [];
+  const filtered = items.filter((item: NewsItem) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (item.title_en || '').toLowerCase().includes(q) ||
+      (item.title_ar || '').includes(q) ||
+      (item.category_en || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div>
@@ -30,9 +40,19 @@ export const AdminNews: React.FC = () => {
           <h1 className="adm-page-title">News</h1>
           <p className="adm-page-subtitle">Manage news articles — {items.length} total</p>
         </div>
-        <Link to="/admin/news/new" className="adm-btn adm-btn-primary adm-btn-sm">
-          + Add Article
-        </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="search"
+            className="adm-input adm-input-sm"
+            placeholder="Search by title or category…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ width: 220 }}
+          />
+          <Link to="/admin/news/new" className="adm-btn adm-btn-primary adm-btn-sm">
+            + Add Article
+          </Link>
+        </div>
       </div>
 
       {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>}
@@ -54,9 +74,9 @@ export const AdminNews: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.length === 0 ? (
+                {filtered.length === 0 ? (
                   <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>No articles yet.</td></tr>
-                ) : items.map((item: NewsItem) => (
+                ) : filtered.map((item: NewsItem) => (
                   <tr key={item.id}>
                     <td>
                       {item.image ? (

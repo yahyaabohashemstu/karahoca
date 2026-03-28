@@ -26,6 +26,17 @@ export const AdminProducts: React.FC = () => {
   };
 
   const products = data?.products ?? [];
+  const [searchQuery, setSearchQuery] = useState('');
+  const filtered = products.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (p.name_en || '').toLowerCase().includes(q) ||
+      (p.name_ar || '').includes(q) ||
+      (p.category_title_en || '').toLowerCase().includes(q) ||
+      (p.brand || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div>
@@ -54,8 +65,16 @@ export const AdminProducts: React.FC = () => {
             {b || 'All Brands'}
           </button>
         ))}
-        <span className="adm-text-muted adm-text-sm" style={{ marginLeft: 'auto' }}>
-          {products.length} products
+        <input
+          type="search"
+          className="adm-input adm-input-sm"
+          placeholder="Search by name, category, brand…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ marginLeft: 'auto', width: 220 }}
+        />
+        <span className="adm-text-muted adm-text-sm">
+          {filtered.length} of {products.length}
         </span>
       </div>
 
@@ -78,9 +97,9 @@ export const AdminProducts: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {products.length === 0 ? (
+                {filtered.length === 0 ? (
                   <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>No products found.</td></tr>
-                ) : products.map((p: Product) => (
+                ) : filtered.map((p: Product) => (
                   <tr key={p.id}>
                     <td>
                       {p.image ? (

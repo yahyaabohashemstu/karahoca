@@ -19,6 +19,8 @@ import { handleAdminCampaigns, handleEmailOpen, dispatchCampaign } from './route
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
+import { startAutoBackup } from './backup.mjs';
+import { handleSitemap } from './routes/sitemap.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -358,6 +360,31 @@ const generateAiReply = async ({ prompt, lang }) => {
   return { success: true, reply };
 };
 
+// ─── Gemini response cache ────────────────────────────────────────────────────
+const geminiCache = new Map(); // key → { reply, expiresAt }
+const GEMINI_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCachedReply = (prompt, lang) => {
+  const key = lang + ':' + prompt;
+  const entry = geminiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    geminiCache.delete(key);
+    return null;
+  }
+  return entry.reply;
+};
+
+const setCachedReply = (prompt, lang, reply) => {
+  const key = lang + ':' + prompt;
+  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL });
+  // Limit cache size to 200 entries
+  if (geminiCache.size > 200) {
+    const firstKey = geminiCache.keys().next().value;
+    geminiCache.delete(firstKey);
+  }
+};
+
 // ─── Chat rate limiter (prevents Gemini quota abuse) ─────────────────────────
 const chatRateMap = new Map(); // ip → { count, resetAt }
 const CHAT_LIMIT = 30;         // max requests per window
@@ -464,7 +491,14 @@ const server = createServer(async (request, response) => {
           logUserQuestion(q, body.lang || 'ar', null);
         }
       }
+      // Check cache first
+      const cachedReply = getCachedReply(body.prompt, body.lang || 'ar');
+      if (cachedReply) {
+        sendJson(response, 200, { success: true, reply: cachedReply }, requestOrigin);
+        return;
+      }
       const result = await generateAiReply(body);
+      if (result?.reply) setCachedReply(body.prompt, body.lang || 'ar', result.reply);
       sendJson(response, 200, result, requestOrigin);
       return;
     }
@@ -636,6 +670,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && url === '/sitemap.xml') {
+      handleSitemap(request, response);
+      return;
+    }
+
     // ── Static file serving (production SPA) ──────────────────────────────────
     if (request.method === 'GET' && existsSync(distDir)) {
       const resolved = path.resolve(distDir, url.replace(/^\//, ''));
@@ -710,6 +749,8 @@ setInterval(async () => {
 server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
+
+startAutoBackup();
 
 
 
