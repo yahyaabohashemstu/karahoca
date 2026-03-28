@@ -200,7 +200,7 @@ export const AdminCategories: React.FC = () => {
                       </span>
                     </td>
                     <td className="adm-mono">{category.key}</td>
-                    <td dir="rtl">{category.title_ar}</td>
+                    <td dir="rtl" style={{ textAlign: 'right' }}>{category.title_ar}</td>
                     <td>{category.title_en}</td>
                     <td>{category.display_order}</td>
                     <td>

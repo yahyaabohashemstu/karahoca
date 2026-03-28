@@ -464,6 +464,12 @@
   color: var(--adm-text);
   font-size: 13.5px;
   vertical-align: middle;
+  text-align: left;
+}
+
+/* Arabic columns — explicit RTL alignment so header & cell match */
+.adm-table td[dir="rtl"] {
+  text-align: right;
 }
 
 .adm-table tr:last-child td { border-bottom: none; }

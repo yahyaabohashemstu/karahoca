@@ -92,7 +92,7 @@ export const AdminProducts: React.FC = () => {
                         />
                       ) : <span className="adm-text-muted">—</span>}
                     </td>
-                    <td dir="rtl" style={{ maxWidth: 160 }} className="adm-truncate">{p.name_ar}</td>
+                    <td dir="rtl" style={{ maxWidth: 160, textAlign: 'right' }} className="adm-truncate">{p.name_ar}</td>
                     <td style={{ maxWidth: 160 }} className="adm-truncate">{p.name_en}</td>
                     <td><span className={`adm-badge ${p.brand === 'DIOX' ? 'adm-badge-blue' : 'adm-badge-green'}`}>{p.brand}</span></td>
                     <td className="adm-text-sm adm-text-muted">{p.category_title_en || p.category_id}</td>

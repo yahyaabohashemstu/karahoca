@@ -68,7 +68,7 @@ export const AdminNews: React.FC = () => {
                         />
                       ) : <span className="adm-text-muted">—</span>}
                     </td>
-                    <td dir="rtl" className="adm-truncate" style={{ maxWidth: 180 }}>{item.title_ar}</td>
+                    <td dir="rtl" className="adm-truncate" style={{ maxWidth: 180, textAlign: 'right' }}>{item.title_ar}</td>
                     <td className="adm-truncate" style={{ maxWidth: 200 }}>{item.title_en}</td>
                     <td className="adm-text-sm adm-text-muted">{item.category_en}</td>
                     <td className="adm-text-sm adm-text-muted">{fmtDate(item.published_at)}</td>
