@@ -2669,7 +2669,7 @@ html[lang="ru"] .site-header .menu {
   background: rgba(255, 91, 46, 0.14);
   border: 1px solid rgba(255, 91, 46, 0.24);
   color: #ffd8cc;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -2841,7 +2841,7 @@ html[dir="ltr"] .news-card {
   background: rgba(21, 61, 122, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.94);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -3178,7 +3178,7 @@ body.light-mode .news-modal__close {
   border-radius: 50px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   opacity: 0.85;
 }
@@ -3237,7 +3237,7 @@ body.light-mode .news-modal__close {
 
 .bfb-eyebrow {
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -3367,7 +3367,7 @@ body.light-mode .news-modal__close {
 }
 
 .bfb-frame__hint {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   opacity: .45;
   white-space: nowrap;
   flex-shrink: 0;
