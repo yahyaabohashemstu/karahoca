@@ -80,7 +80,7 @@
 .adm-root {
   direction: ltr;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   color: var(--adm-text);
   min-height: 100vh;
   background:
@@ -147,7 +147,7 @@
 }
 
 .adm-login-logo span {
-  font-size: 18px;
+  font-size: 12px;
   color: var(--adm-accent);
   display: block;
   margin-top: 6px;
@@ -205,7 +205,7 @@
 }
 
 .adm-sidebar-logo h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 1.5px;
   background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.70) 100%);
@@ -215,7 +215,7 @@
 }
 
 .adm-sidebar-logo span {
-  font-size: 14px;
+  font-size: 10.5px;
   color: var(--adm-accent);
   display: block;
   margin-top: 3px;
@@ -231,7 +231,7 @@
 
 .adm-nav-section {
   padding: 14px 10px 6px;
-  font-size: 10px;
+  font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 2px;
   color: var(--adm-text-dim);
@@ -241,12 +241,11 @@
   gap: 8px;
   opacity: 0.55;
 }
-.adm-nav-section::before {
+.adm-nav-section::after {
   content: '';
   flex: 1;
   height: 1px;
   background: var(--adm-border);
-  order: 2;
 }
 
 .adm-nav-link {
@@ -262,7 +261,7 @@
   border: none;
   background: none;
   width: 100%;
-  font-size: 16px;
+  font-size: 13.5px;
   font-family: inherit;
   font-weight: 500;
   margin-bottom: 2px;
@@ -326,7 +325,7 @@
 }
 
 .adm-header-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--adm-text);
   letter-spacing: 0.3px;
@@ -364,7 +363,7 @@
 }
 
 .adm-card-title {
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--adm-text-muted);
   text-transform: uppercase;
@@ -416,7 +415,7 @@
 }
 
 .adm-stat-label {
-  font-size: 14px;
+  font-size: 11.5px;
   color: var(--adm-text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -436,7 +435,7 @@
 }
 
 .adm-stat-sub {
-  font-size: 14px;
+  font-size: 11.5px;
   color: var(--adm-text-dim);
 }
 
@@ -459,7 +458,7 @@
   background: rgba(255,255,255,0.04);
   padding: 13px 16px;
   text-align: left;
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--adm-text-muted);
   text-transform: uppercase;
@@ -473,7 +472,7 @@
   padding: 13px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   color: var(--adm-text);
-  font-size: 16px;
+  font-size: 13.5px;
   vertical-align: middle;
   text-align: left;
 }
@@ -497,7 +496,7 @@
   text-align: center;
   padding: 60px 40px;
   color: var(--adm-text-dim);
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .adm-table td.adm-truncate {
@@ -512,7 +511,7 @@
 
 .adm-label {
   display: block;
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--adm-text-muted);
   margin-bottom: 7px;
@@ -526,7 +525,7 @@
   color: var(--adm-accent);
   border-radius: 4px;
   padding: 1px 7px;
-  font-size: 18px;
+  font-size: 10px;
   margin-right: 6px;
 }
 
@@ -537,7 +536,7 @@
   border-radius: var(--adm-radius-sm);
   padding: 10px 14px;
   color: var(--adm-text);
-  font-size: 18px;
+  font-size: 14px;
   font-family: inherit;
   transition: border-color var(--adm-transition), box-shadow var(--adm-transition), background var(--adm-transition);
   outline: none;
@@ -568,7 +567,7 @@
 .adm-textarea { min-height: 90px; resize: vertical; line-height: 1.6; }
 
 .adm-input-error  { border-color: var(--adm-danger) !important; }
-.adm-error-msg    { font-size: 18px; color: var(--adm-danger); margin-top: 5px; }
+.adm-error-msg    { font-size: 12px; color: var(--adm-danger); margin-top: 5px; }
 
 /* Lang tabs */
 .adm-lang-tabs {
@@ -585,7 +584,7 @@
 .adm-lang-tab {
   padding: 6px 16px;
   border-radius: 5px;
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -608,7 +607,7 @@
   gap: 7px;
   padding: 10px 20px;
   border-radius: var(--adm-radius-sm);
-  font-size: 16px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -676,7 +675,7 @@
 }
 
 /* Small */
-.adm-btn-sm { padding: 6px 14px; font-size: 18px; }
+.adm-btn-sm { padding: 6px 14px; font-size: 12px; }
 
 /* ─── Tab Navigation ─────────────────────────────────────────── */
 .adm-tabs {
@@ -688,7 +687,6 @@
   padding: 0 2px;
   flex-wrap: wrap;
 }
-
 .adm-tab-btn {
   position: relative;
   display: inline-flex;
@@ -698,7 +696,7 @@
   border: none;
   background: none;
   color: var(--adm-text-dim);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -707,7 +705,6 @@
   white-space: nowrap;
   letter-spacing: 0.2px;
 }
-
 .adm-tab-btn::after {
   content: '';
   position: absolute;
@@ -718,22 +715,18 @@
   border-radius: 2px 2px 0 0;
   transition: background 0.18s;
 }
-
 .adm-tab-btn:hover {
   color: var(--adm-text);
   background: rgba(255,255,255,0.04);
 }
-
 .adm-tab-btn.active {
   color: var(--adm-orange-light);
   font-weight: 700;
   background: rgba(255, 91, 46, 0.07);
 }
-
 .adm-tab-btn.active::after {
   background: var(--adm-accent);
 }
-
 .adm-tab-btn .adm-tab-badge {
   display: inline-flex;
   align-items: center;
@@ -803,7 +796,7 @@
 }
 
 .adm-page-subtitle {
-  font-size: 18px;
+  font-size: 13px;
   color: var(--adm-text-muted);
   margin-top: 6px;
 }
@@ -814,7 +807,7 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -829,7 +822,7 @@
 .adm-alert {
   padding: 13px 16px;
   border-radius: var(--adm-radius-sm);
-  font-size: 18px;
+  font-size: 13px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -883,14 +876,14 @@
   align-items: center;
   margin-bottom: 5px;
   flex-wrap: wrap;
-  font-size: 18px;
+  font-size: 11px;
   opacity: 0.75;
 }
 
 .adm-chat-row-assistant .adm-chat-meta { justify-content: flex-end; }
 
 .adm-chat-content {
-  font-size: 16px;
+  font-size: 13.5px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -918,7 +911,7 @@
   padding: 70px 40px;
   gap: 12px;
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 14px;
 }
 
 /* ─── Charts ─────────────────────────────────────────────────── */
@@ -952,7 +945,7 @@
   bottom: calc(100% + 5px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
+  font-size: 10px;
   color: var(--adm-text-muted);
   white-space: nowrap;
   pointer-events: none;
@@ -981,7 +974,7 @@
   background: var(--adm-glass);
   color: var(--adm-text-muted);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 13px;
   font-family: inherit;
   transition: all var(--adm-transition);
   backdrop-filter: blur(6px);
@@ -1027,14 +1020,14 @@
 
 /* ─── Utilities ──────────────────────────────────────────────── */
 .adm-text-muted  { color: var(--adm-text-muted); }
-.adm-text-sm     { font-size: 18px; }
+.adm-text-sm     { font-size: 12px; }
 .adm-mt-16       { margin-top: 16px; }
 .adm-mb-16       { margin-bottom: 16px; }
 .adm-flex        { display: flex; align-items: center; gap: 8px; }
 .adm-flex-between{ display: flex; align-items: center; justify-content: space-between; }
 .adm-gap-8       { gap: 8px; }
 .adm-truncate    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-mono        { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 18px; }
+.adm-mono        { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 12px; }
 
 /* Brand colors */
 .adm-brand-diox  { color: #60a5fa; }
@@ -1104,7 +1097,7 @@
   background: none;
   border: none;
   color: var(--adm-text);
-  font-size: 16px;
+  font-size: 13.5px;
   padding: 10px 0;
   outline: none;
   width: 100%;
@@ -1112,7 +1105,7 @@
 }
 
 .adm-search input::placeholder { color: var(--adm-text-dim); }
-.adm-search-icon { color: var(--adm-text-dim); font-size: 18px; }
+.adm-search-icon { color: var(--adm-text-dim); font-size: 14px; }
 
 /* ─── Mobile sidebar ─────────────────────────────────────────── */
 .adm-sidebar-wrap {
@@ -1204,7 +1197,7 @@
   background: rgba(255, 91, 46, 0.1);
   border: 1px solid rgba(255, 91, 46, 0.18);
   color: var(--adm-accent-hover);
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.1px;
   text-transform: uppercase;
@@ -1247,7 +1240,7 @@
   max-width: 680px;
   color: var(--adm-text-muted);
   line-height: 1.8;
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .adm-dashboard-hero-actions {
@@ -1281,7 +1274,7 @@
 }
 
 .adm-dashboard-hero-metric-label {
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -1337,7 +1330,7 @@
 .adm-dashboard-panel-copy,
 .adm-analytics-panel-copy {
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 13px;
   line-height: 1.65;
   margin-top: 6px;
 }
@@ -1389,20 +1382,20 @@
   justify-content: center;
   background: rgba(255, 91, 46, 0.12);
   border: 1px solid rgba(255, 91, 46, 0.18);
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .adm-dashboard-shortcut strong {
   display: block;
   color: var(--adm-text);
-  font-size: 18px;
+  font-size: 14px;
   margin-bottom: 4px;
 }
 
 .adm-dashboard-shortcut span {
   display: block;
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -1427,7 +1420,7 @@
 
 .adm-dashboard-summary-item span {
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 13px;
 }
 
 .adm-dashboard-summary-item strong {
@@ -1454,13 +1447,13 @@
   display: block;
   color: var(--adm-text);
   margin-bottom: 6px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .adm-analytics-status-card span {
   display: block;
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 13px;
   line-height: 1.65;
 }
 
@@ -1495,13 +1488,13 @@
 .adm-analytics-rich-alert-head strong {
   display: block;
   color: var(--adm-text);
-  font-size: 18px;
+  font-size: 16px;
   margin-bottom: 4px;
 }
 
 .adm-analytics-rich-alert-head p {
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -1510,7 +1503,7 @@
   display: grid;
   gap: 10px;
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 13px;
   line-height: 1.65;
 }
 
@@ -1549,7 +1542,7 @@
 }
 
 .adm-analytics-metric-label {
-  font-size: 18px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--adm-text-muted);
@@ -1566,7 +1559,7 @@
 
 .adm-analytics-metric-sub {
   margin-top: 8px;
-  font-size: 18px;
+  font-size: 12px;
   color: var(--adm-text-dim);
 }
 
@@ -1616,7 +1609,7 @@
   justify-content: space-between;
   padding: 10px 0 18px;
   color: var(--adm-text-dim);
-  font-size: 18px;
+  font-size: 11px;
   text-align: right;
 }
 
@@ -1632,7 +1625,7 @@
   justify-content: space-between;
   gap: 16px;
   color: var(--adm-text-dim);
-  font-size: 18px;
+  font-size: 11px;
 }
 
 .adm-trend-footer span:nth-child(2) {
@@ -1668,19 +1661,19 @@
 .adm-ranking-rank {
   width: 20px;
   color: var(--adm-text-dim);
-  font-size: 18px;
+  font-size: 11px;
   text-align: right;
   flex-shrink: 0;
 }
 
 .adm-ranking-icon {
-  font-size: 18px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 
 .adm-ranking-label {
   color: var(--adm-text);
-  font-size: 18px;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1727,21 +1720,21 @@
 }
 
 .adm-device-legend-icon {
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
 .adm-device-legend-item strong {
   display: block;
   color: var(--adm-text);
-  font-size: 18px;
+  font-size: 13px;
   margin-bottom: 4px;
   text-transform: capitalize;
 }
 
 .adm-device-legend-item span:last-child {
   display: block;
-  font-size: 18px;
+  font-size: 12px;
 }
 
 .adm-analytics-section-divider {
@@ -1750,7 +1743,7 @@
   gap: 10px;
   padding-top: 2px;
   color: var(--adm-text-muted);
-  font-size: 18px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 700;
@@ -1798,7 +1791,7 @@
 
 .adm-analytics-user-copy strong {
   display: block;
-  font-size: 18px;
+  font-size: 12px;
   color: var(--adm-text);
   font-family: 'Fira Code', 'Cascadia Code', monospace;
   overflow: hidden;
@@ -1809,7 +1802,7 @@
 .adm-analytics-user-copy span {
   display: block;
   margin-top: 4px;
-  font-size: 18px;
+  font-size: 11px;
   color: var(--adm-text-dim);
 }
 
@@ -1820,7 +1813,7 @@
 .adm-analytics-user-metric strong {
   display: block;
   color: var(--adm-text);
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 
@@ -1828,7 +1821,7 @@
   display: block;
   margin-top: 4px;
   color: var(--adm-text-dim);
-  font-size: 18px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -2060,7 +2053,7 @@
 
 .adm-trend-axis {
   padding: 6px 0 8px;
-  font-size: 18px;
+  font-size: 10px;
   letter-spacing: 0.04em;
 }
 
