@@ -527,7 +527,7 @@ body {
 }
 
 .lead {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: var(--text-muted);
   max-width: 50ch;
   margin-bottom: 2rem;
@@ -550,7 +550,7 @@ body {
 .chip {
   padding: 8px 16px;
   border-radius: 50px;
-  font-size: 0.875rem;
+  font-size: 1.275rem;
   color: var(--text-muted);
   transition: all 0.3s ease;
 }
@@ -707,7 +707,7 @@ body {
 }
 
 .section-subtitle {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   color: var(--text-muted);
 }
 
@@ -904,7 +904,7 @@ body {
 }
 
 .product-mini-info h4 {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
   line-height: 1.35;
@@ -924,7 +924,7 @@ body {
 }
 
 .product-mini-info p {
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.4;
   margin: 0;
@@ -965,7 +965,7 @@ body.light-mode .product-mini-info p {
 }
 
 .details-title {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 600;
   margin: 0 0 1.5rem 0;
   color: #ffffff;
@@ -998,7 +998,7 @@ body.light-mode .product-mini-info p {
 }
 
 .detail-value {
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -1008,7 +1008,7 @@ body.light-mode .product-mini-info p {
 }
 
 .detail-label {
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   color: #ffffff;
   font-weight: 600;
   text-align: center;
@@ -1070,7 +1070,7 @@ body.light-mode .detail-label {
 }
 
 .detail-item-full .detail-label {
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   color: #ffffff;
   font-weight: 600;
   text-align: center;
@@ -1078,7 +1078,7 @@ body.light-mode .detail-label {
 }
 
 .detail-item-full .detail-value {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -1114,7 +1114,7 @@ body.light-mode .detail-item-full .detail-label {
   border: none;
   color: var(--primary);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -1126,7 +1126,7 @@ body.light-mode .detail-item-full .detail-label {
 
 .image-preview-btn::after {
   content: "←";
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   transition: transform 0.3s ease;
 }
 
@@ -1178,7 +1178,7 @@ body.light-mode .detail-item-full .detail-label {
   width: 40px;
   height: 40px;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -1230,7 +1230,7 @@ body.light-mode .detail-item-full .detail-label {
 }
 
 .image-popup-description {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1.5rem;
   text-align: center;
@@ -1264,13 +1264,13 @@ body.light-mode .detail-item-full .detail-label {
 }
 
 .popup-detail-label {
-  font-size: 1rem;
+  font-size: 1.3rem;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
 
 .popup-detail-value {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -1330,7 +1330,7 @@ body.light-mode .detail-item-full .detail-label {
   color: white;
   font-weight: 600;
   margin-bottom: 1rem;
-  font-size: 1rem;
+  font-size: 1.3rem;
 }
 
 .popup-details-grid {
@@ -1425,7 +1425,7 @@ body.light-mode .popup-detail-value {
 }
 
 .no-details-text {
-  font-size: 1rem;
+  font-size: 1.3rem;
   color: rgba(255, 255, 255, 0.6);
   font-style: italic;
 }
@@ -1726,7 +1726,7 @@ body.light-mode .no-details-text {
 
 .kpi__label {
   color: var(--text-muted);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   position: relative;
   z-index: 2;
 }
@@ -1866,7 +1866,7 @@ body.light-mode .no-details-text {
 .footer__contact strong {
   color: var(--text);
   margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
 }
 
 .footer-link {
@@ -1929,7 +1929,7 @@ body.light-mode .no-details-text {
   text-align: center;
   color: var(--text-muted);
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 1.275rem;
 }
 
 /* Theme toggle */
@@ -2067,11 +2067,11 @@ html[dir="ltr"] .theme-toggle {
   }
 
   .product-mini-info h4 {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
   }
 
   .product-mini-info p {
-    font-size: 0.8rem;
+    font-size: 1.3rem;
   }
 
   .category-title {
@@ -2187,7 +2187,7 @@ html[dir="ltr"] .theme-toggle {
 }
 
 .newsletter__error {
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   color: #ff4757;
   margin-top: 0.25rem;
   display: flex;
@@ -2198,11 +2198,11 @@ html[dir="ltr"] .theme-toggle {
 
 .newsletter__error::before {
   content: '⚠';
-  font-size: 1rem;
+  font-size: 1.3rem;
 }
 
 .newsletter__success {
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   color: #2ecc71;
   margin-top: 0.25rem;
   display: flex;
@@ -2841,7 +2841,7 @@ html[dir="ltr"] .news-card {
   background: rgba(21, 61, 122, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.94);
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -2849,7 +2849,7 @@ html[dir="ltr"] .news-card {
 .news-card__date,
 .news-page__heroDate {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 1.3rem;
 }
 
 .news-card__title,
@@ -2885,7 +2885,7 @@ html[dir="ltr"] .news-card {
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255, 91, 46, 0.16), rgba(255, 91, 46, 0.1));
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   font-weight: 800;
   cursor: pointer;
   transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
@@ -3109,7 +3109,7 @@ body.light-mode .news-modal__close {
   border-radius: 50px;
   background: linear-gradient(135deg, var(--accent, #f54b1a), #ff8c42);
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   font-weight: 600;
   text-decoration: none;
   letter-spacing: 0.3px;
@@ -3158,7 +3158,7 @@ body.light-mode .news-modal__close {
 }
 
 .brand-catalog-card__desc {
-  font-size: 1rem;
+  font-size: 1.3rem;
   opacity: 0.78;
   margin: 0 0 16px;
   line-height: 1.7;
@@ -3178,7 +3178,7 @@ body.light-mode .news-modal__close {
   border-radius: 50px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   font-weight: 600;
   opacity: 0.85;
 }
@@ -3186,7 +3186,7 @@ body.light-mode .news-modal__close {
 .brand-catalog-card__btn {
   flex-shrink: 0;
   white-space: nowrap;
-  font-size: 1rem;
+  font-size: 1.3rem;
   padding: 14px 28px;
 }
 
@@ -3237,7 +3237,7 @@ body.light-mode .news-modal__close {
 
 .bfb-eyebrow {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -3257,7 +3257,7 @@ body.light-mode .news-modal__close {
 }
 
 .bfb-subtitle {
-  font-size: 1rem;
+  font-size: 1.3rem;
   opacity: .72;
   line-height: 1.7;
   max-width: 520px;
@@ -3280,7 +3280,7 @@ body.light-mode .news-modal__close {
   border-radius: 50px;
   background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.13);
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   font-weight: 600;
   backdrop-filter: blur(6px);
   white-space: nowrap;
@@ -3360,14 +3360,14 @@ body.light-mode .news-modal__close {
 .bfb-frame__label {
   flex: 1;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   font-weight: 600;
   opacity: .7;
   letter-spacing: .4px;
 }
 
 .bfb-frame__hint {
-  font-size: 0.8rem;
+  font-size: 1.3rem;
   opacity: .45;
   white-space: nowrap;
   flex-shrink: 0;
