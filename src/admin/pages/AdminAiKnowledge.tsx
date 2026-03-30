@@ -228,7 +228,7 @@ export const AdminAiKnowledge: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--adm-border)', marginBottom: 24, paddingBottom: 4, flexWrap: 'wrap' }}>
+      <div className="adm-tabs">
         {[
           { key: 'qa', label: '💡 Custom Q&A', badge: qaList.data?.entries?.length },
           { key: 'questions', label: '❓ User Questions', badge: getCount('new') || undefined },
@@ -237,39 +237,11 @@ export const AdminAiKnowledge: React.FC = () => {
           <button
             key={t.key}
             onClick={() => setTab(t.key as typeof tab)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px 8px 0 0',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 13,
-              background: tab === t.key ? 'var(--adm-accent)' : 'transparent',
-              color: tab === t.key ? '#fff' : 'var(--adm-text-muted)',
-              fontWeight: tab === t.key ? 700 : 400,
-              position: 'relative',
-            }}
+            className={`adm-tab-btn${tab === t.key ? ' active' : ''}`}
           >
             {t.label}
             {t.badge !== undefined && t.badge > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 2,
-                  background: '#ef4444',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  width: 16,
-                  height: 16,
-                  fontSize: 9,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                }}
-              >
-                {t.badge}
-              </span>
+              <span className="adm-tab-badge">{t.badge}</span>
             )}
           </button>
         ))}

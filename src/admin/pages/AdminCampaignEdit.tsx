@@ -307,22 +307,12 @@ export const AdminCampaignEdit: React.FC = () => {
       {success && <div className="adm-alert adm-alert-success" style={{ marginBottom: 16 }}>✅ {success}</div>}
 
       {!isNew && (
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--adm-border)', paddingBottom: 4 }}>
+        <div className="adm-tabs">
           {['edit', 'stats'].map((t) => (
             <button
               key={t}
               onClick={() => navigate(`/admin/campaigns/${id}?tab=${t}`, { replace: true })}
-              style={{
-                padding: '8px 18px',
-                borderRadius: '8px 8px 0 0',
-                border: 'none',
-                cursor: 'pointer',
-                background: activeTab === t ? 'var(--adm-accent)' : 'transparent',
-                color: activeTab === t ? '#fff' : 'var(--adm-text-muted)',
-                fontWeight: activeTab === t ? 700 : 400,
-                fontSize: 13,
-                textTransform: 'capitalize',
-              }}
+              className={`adm-tab-btn${activeTab === t ? ' active' : ''}`}
             >
               {t === 'edit' ? '✏️ Edit' : '📊 Stats'}
             </button>
@@ -464,21 +454,12 @@ export const AdminCampaignEdit: React.FC = () => {
 
           <div className="adm-card">
             <div className="adm-card-title" style={{ marginBottom: 16 }}>Content</div>
-            <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--adm-border)', paddingBottom: 8, flexWrap: 'wrap' }}>
+            <div className="adm-tabs" style={{ marginBottom: 16 }}>
               {LANGS.map((l) => (
                 <button
                   key={l.key}
                   onClick={() => setLang(l.key)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: lang === l.key ? 'var(--adm-accent)' : 'var(--adm-surface2)',
-                    color: lang === l.key ? '#fff' : 'var(--adm-text-muted)',
-                    fontWeight: 600,
-                    fontSize: 12,
-                  }}
+                  className={`adm-tab-btn${lang === l.key ? ' active' : ''}`}
                 >
                   {l.label}
                 </button>

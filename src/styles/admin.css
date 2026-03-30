@@ -230,12 +230,23 @@
 }
 
 .adm-nav-section {
-  padding: 12px 10px 5px;
-  font-size: 14px;
+  padding: 14px 10px 6px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--adm-text-dim);
-  font-weight: 700;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.55;
+}
+.adm-nav-section::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--adm-border);
+  order: 2;
 }
 
 .adm-nav-link {
@@ -666,6 +677,77 @@
 
 /* Small */
 .adm-btn-sm { padding: 6px 14px; font-size: 18px; }
+
+/* ─── Tab Navigation ─────────────────────────────────────────── */
+.adm-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  border-bottom: 2px solid var(--adm-border);
+  margin-bottom: 24px;
+  padding: 0 2px;
+  flex-wrap: wrap;
+}
+
+.adm-tab-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px 11px;
+  border: none;
+  background: none;
+  color: var(--adm-text-dim);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: color 0.18s, background 0.18s;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.adm-tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+  border-radius: 2px 2px 0 0;
+  transition: background 0.18s;
+}
+
+.adm-tab-btn:hover {
+  color: var(--adm-text);
+  background: rgba(255,255,255,0.04);
+}
+
+.adm-tab-btn.active {
+  color: var(--adm-orange-light);
+  font-weight: 700;
+  background: rgba(255, 91, 46, 0.07);
+}
+
+.adm-tab-btn.active::after {
+  background: var(--adm-accent);
+}
+
+.adm-tab-btn .adm-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--adm-danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
 
 /* Ghost */
 .adm-btn-ghost {
