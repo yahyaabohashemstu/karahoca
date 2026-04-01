@@ -677,7 +677,9 @@ const server = createServer(async (request, response) => {
 
     // ── Static file serving (production SPA) ──────────────────────────────────
     if (request.method === 'GET' && existsSync(distDir)) {
-      const resolved = path.resolve(distDir, url.replace(/^\//, ''));
+      let decodedUrl = url;
+      try { decodedUrl = decodeURIComponent(url); } catch { decodedUrl = url; }
+      const resolved = path.resolve(distDir, decodedUrl.replace(/^\//, ''));
       if (!resolved.startsWith(distDir + path.sep) && resolved !== distDir) {
         sendJson(response, 403, { success: false, error: 'Forbidden.' }, requestOrigin);
         return;
