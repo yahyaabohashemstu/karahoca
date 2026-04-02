@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import FlipBook from './FlipBook';
 
 interface ProductInfo {
   name: string;
@@ -41,7 +42,7 @@ interface BrandPageProps {
   categories: CategoryData[];
   pageClass: string;
   aboutId: string;
-  flipbookUrl?: string;
+  pdfUrl?: string;
 }
 
 const BrandPageTemplate: React.FC<BrandPageProps> = ({
@@ -61,7 +62,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   categories,
   pageClass,
   aboutId,
-  flipbookUrl
+  pdfUrl
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
@@ -148,11 +149,10 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
         </section>
 
         {/* ── Flipbook Catalog — BEFORE products ──────────────────────── */}
-        {flipbookUrl && (
+        {pdfUrl && (
           <section id="catalog" className="section bfb-section">
             <div className="section-divider"></div>
 
-            {/* header row */}
             <div className="container bfb-header fx-reveal">
               <div className="bfb-header__left">
                 <span className="bfb-eyebrow">Interactive Catalog</span>
@@ -160,34 +160,17 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                   كتالوج <span className="gradient-text">{brandName}</span> التفاعلي
                 </h2>
                 <p className="bfb-subtitle">
-                  تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات، كبّر، وشاهد بوضع ملء الشاشة
+                  تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة
                 </p>
               </div>
               <div className="bfb-header__badges">
                 <span className="bfb-badge"><span className="bfb-badge__dot bfb-badge__dot--green"></span>متاح الآن</span>
                 <span className="bfb-badge">⛶ ملء الشاشة</span>
-                <span className="bfb-badge">🔊 صوت التقليب</span>
               </div>
             </div>
 
-            {/* iframe frame */}
             <div className="container bfb-frame-wrap fx-reveal">
-              <div className="bfb-frame">
-                <div className="bfb-frame__topbar">
-                  <div className="bfb-frame__dots">
-                    <span></span><span></span><span></span>
-                  </div>
-                  <span className="bfb-frame__label">📖 {brandName} — Catalog</span>
-                  <span className="bfb-frame__hint">انقر على ⛶ لعرض ملء الشاشة</span>
-                </div>
-                <iframe
-                  src={flipbookUrl}
-                  allowFullScreen
-                  allow="clipboard-write; fullscreen"
-                  title={`${brandName} Catalog`}
-                  className="bfb-iframe"
-                />
-              </div>
+              <FlipBook pdfUrl={pdfUrl} brandName={brandName} />
             </div>
           </section>
         )}
