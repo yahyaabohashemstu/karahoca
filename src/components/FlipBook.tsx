@@ -7,23 +7,6 @@ import '../styles/flipbook.css';
 // spread 0 → left = null (empty/brand),  right = pages[0]  (cover)
 // spread k → left = pages[2k-1],         right = pages[2k]
 // maxSpread = Math.floor(totalPages / 2)
-//
-// During NEXT flip (spread → spread+1):
-//   Static left     (z:2) shows cL = currentLeft   [stays unchanged]
-//   Static right    (z:1) shows nR = nextRight      [revealed underneath flip]
-//   Flip overlay    (z:3) right-half, rotates -180° around left edge (spine)
-//     Front face         shows cR = currentRight
-//     Back face          shows nL = nextLeft
-//
-// During PREV flip (spread → spread-1):
-//   Static left     (z:1) shows pL = prevLeft       [revealed underneath flip]
-//   Static right    (z:2) shows cR = currentRight   [stays unchanged]
-//   Flip overlay    (z:3) left-half, rotates +180° around right edge (spine)
-//     Front face         shows cL = currentLeft
-//     Back face          shows pR = prevRight
-//
-// After the animation timer fires, setSpread is called and overlays disappear.
-// The static halves then show the exact same images → seamless transition.
 
 function getSpreadPages(
   spread: number,
@@ -36,13 +19,31 @@ function getSpreadPages(
   return [l < total ? l : null, r < total ? r : null];
 }
 
+// ── Pan clamping (pure function, outside component) ───────────────────────────
+// Constrains the pan offset so the user cannot drag the book outside its
+// zoomed bounds. offsetWidth/Height give layout size (pre-transform).
+function clampPan(
+  book: HTMLDivElement | null,
+  x: number,
+  y: number,
+  z: number,
+): [number, number] {
+  if (!book || z <= 1) return [0, 0];
+  const maxX = (book.offsetWidth  * (z - 1)) / 2;
+  const maxY = (book.offsetHeight * (z - 1)) / 2;
+  return [
+    Math.max(-maxX, Math.min(maxX, x)),
+    Math.max(-maxY, Math.min(maxY, y)),
+  ];
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
-const RENDER_SCALE = 1.5;    // canvas render DPI multiplier
-const FLIP_MS      = 620;    // animation duration in ms (must match CSS)
-const MIN_ZOOM     = 0.5;    // minimum zoom level (50%)
-const MAX_ZOOM     = 2.0;    // maximum zoom level (200%)
-const ZOOM_STEP    = 0.15;   // zoom increment per step
-const AUTO_MS      = 3500;   // auto-play interval in ms
+const RENDER_SCALE = 1.5;
+const FLIP_MS      = 620;
+const MIN_ZOOM     = 0.5;
+const MAX_ZOOM     = 2.0;
+const ZOOM_STEP    = 0.15;
+const AUTO_MS      = 3500;
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface FlipBookProps {
@@ -52,34 +53,54 @@ interface FlipBookProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
-  const [pages, setPages]           = useState<string[]>([]);
-  const [loadPct, setLoadPct]       = useState(0);
-  const [loading, setLoading]       = useState(true);
-  const [loadErr, setLoadErr]       = useState<string | null>(null);
-  const [spread, setSpread]         = useState(0);
-  const [flipping, setFlipping]     = useState(false);
-  const [flipDir, setFlipDir]       = useState<'next' | 'prev'>('next');
+
+  // ── Page data ───────────────────────────────────────────────────────────────
+  const [pages, setPages]   = useState<string[]>([]);
+  const [loadPct, setLoadPct] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  const [spread, setSpread]     = useState(0);
+  const [flipping, setFlipping] = useState(false);
+  const [flipDir, setFlipDir]   = useState<'next' | 'prev'>('next');
+
+  // ── UI state ────────────────────────────────────────────────────────────────
   const [fullscreen, setFullscreen] = useState(false);
-  // ── New controls state ─────────────────────────────────────────────────────
-  const [zoom,      setZoom]      = useState(1);
-  const [autoPlay,  setAutoPlay]  = useState(false);
-  const [jumpInput, setJumpInput] = useState('');
+  const [zoom,       setZoom]       = useState(1);
+  const [panX,       setPanX]       = useState(0);
+  const [panY,       setPanY]       = useState(0);
+  const [isDragging, setIsDragging] = useState(false);   // for cursor only
+  const [autoPlay,   setAutoPlay]   = useState(false);
+  const [jumpInput,  setJumpInput]  = useState('');
 
-  const wrapRef  = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  // ── Refs ────────────────────────────────────────────────────────────────────
+  const wrapRef       = useRef<HTMLDivElement>(null);
+  const bookRef       = useRef<HTMLDivElement>(null);
+  const timerRef      = useRef<ReturnType<typeof setTimeout>  | null>(null);
+  const autoRef       = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Refs for stale-closure-safe access inside intervals/callbacks
-  const canNextRef  = useRef(false);
-  const flippingRef = useRef(false);
-  const goNextRef   = useRef<() => void>(() => {});
+  // Refs used inside global event listeners (stale-closure-safe)
+  const isDraggingRef = useRef(false);
+  const dragStartRef  = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const panXRef       = useRef(0);
+  const panYRef       = useRef(0);
+  const zoomRef       = useRef(zoom);
+  const canNextRef    = useRef(false);
+  const flippingRef   = useRef(false);
+  const goNextRef     = useRef<() => void>(() => {});
 
+  // Keep live refs in sync
+  panXRef.current     = panX;
+  panYRef.current     = panY;
+  zoomRef.current     = zoom;
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
   const total   = pages.length;
   const maxSpr  = Math.floor(total / 2);
   const canNext = spread < maxSpr;
   const canPrev = spread > 0;
 
-  // Keep refs in sync with current render values
   canNextRef.current  = canNext;
   flippingRef.current = flipping;
 
@@ -94,11 +115,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
 
     (async () => {
       try {
-        // Dynamically import pdfjs-dist so it is split into its own chunk
-        // and does not bloat the initial bundle.
         const pdfjsLib = await import('pdfjs-dist');
-        // Use CDN worker to avoid nginx MIME-type issue with .mjs files on Coolify.
-        // jsDelivr serves the file with correct application/javascript MIME type.
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
@@ -115,11 +132,9 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
           const cvs  = document.createElement('canvas');
           cvs.width  = vp.width;
           cvs.height = vp.height;
-          // pdfjs-dist v5 API: pass canvas element directly (canvasContext is deprecated)
           await page.render({ canvas: cvs, viewport: vp }).promise;
           rendered.push(cvs.toDataURL('image/jpeg', 0.85));
           setLoadPct(Math.round((i / n) * 100));
-          // Progressive: expose first two pages quickly for fast first render
           if (i <= 2 || i % 5 === 0) setPages([...rendered]);
         }
 
@@ -162,16 +177,70 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
     }, FLIP_MS);
   }, [flipping, canPrev]);
 
-  // Keep goNext ref in sync (used by auto-play interval)
   goNextRef.current = goNext;
 
   // ── Zoom controls ─────────────────────────────────────────────────────────
-  const zoomIn    = useCallback(() => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2)))), []);
-  const zoomOut   = useCallback(() => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2)))), []);
-  const zoomReset = useCallback(() => setZoom(1), []);
+  const zoomIn  = useCallback(() => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2)))), []);
+  const zoomOut = useCallback(() => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2)))), []);
+  const zoomReset = useCallback(() => { setZoom(1); setPanX(0); setPanY(0); }, []);
+
+  // Reset pan when spread changes (new page → center the view)
+  useEffect(() => { setPanX(0); setPanY(0); }, [spread]);
+
+  // Reset pan when zoom goes back to 1
+  useEffect(() => { if (zoom === 1) { setPanX(0); setPanY(0); } }, [zoom]);
+
+  // ── Drag-to-pan (global listeners, only active when zoom > 1) ────────────
+  const startDrag = useCallback((clientX: number, clientY: number) => {
+    if (zoomRef.current <= 1) return;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      panX: panXRef.current,
+      panY: panYRef.current,
+    };
+  }, []);
+
+  useEffect(() => {
+    const onMove = (clientX: number, clientY: number) => {
+      if (!isDraggingRef.current) return;
+      const dx = clientX - dragStartRef.current.x;
+      const dy = clientY - dragStartRef.current.y;
+      const [cx, cy] = clampPan(
+        bookRef.current,
+        dragStartRef.current.panX + dx,
+        dragStartRef.current.panY + dy,
+        zoomRef.current,
+      );
+      setPanX(cx);
+      setPanY(cy);
+    };
+
+    const onEnd = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      setIsDragging(false);
+    };
+
+    const onMouseMove  = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    const onTouchMove  = (e: TouchEvent) => onMove(e.touches[0].clientX, e.touches[0].clientY);
+
+    document.addEventListener('mousemove',  onMouseMove);
+    document.addEventListener('mouseup',    onEnd);
+    document.addEventListener('touchmove',  onTouchMove, { passive: true });
+    document.addEventListener('touchend',   onEnd);
+
+    return () => {
+      document.removeEventListener('mousemove',  onMouseMove);
+      document.removeEventListener('mouseup',    onEnd);
+      document.removeEventListener('touchmove',  onTouchMove);
+      document.removeEventListener('touchend',   onEnd);
+    };
+  }, []); // mount once — reads current values via refs
 
   // ── Jump to page ──────────────────────────────────────────────────────────
-  // PDF pages are 1-based. Page p → spread: p=1→0, p>1 → floor(p/2)
   const doJump = useCallback(() => {
     const n = parseInt(jumpInput, 10);
     if (isNaN(n) || n < 1 || n > total) return;
@@ -187,17 +256,13 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       return;
     }
     autoRef.current = setInterval(() => {
-      if (flippingRef.current) return;   // wait for current flip to finish
-      if (canNextRef.current) {
-        goNextRef.current();
-      } else {
-        setAutoPlay(false);              // reached last spread — stop
-      }
+      if (flippingRef.current) return;
+      if (canNextRef.current) goNextRef.current();
+      else setAutoPlay(false);
     }, AUTO_MS);
     return () => { if (autoRef.current) clearInterval(autoRef.current); };
   }, [autoPlay]);
 
-  // Stop auto-play when component unmounts
   useEffect(() => () => { if (autoRef.current) clearInterval(autoRef.current); }, []);
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
@@ -232,11 +297,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
     }
   };
 
-  // ── Page image helper ────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────
   const pg = (idx: number | null) =>
     idx !== null && idx < pages.length ? pages[idx] : null;
 
-  // ── Spread index tuples ──────────────────────────────────────────────────
   const [cL, cR] = getSpreadPages(spread,     total);
   const [nL, nR] = getSpreadPages(spread + 1, total);
   const [pL, pR] = getSpreadPages(spread - 1, total);
@@ -244,7 +308,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const isFlippingNext = flipping && flipDir === 'next';
   const isFlippingPrev = flipping && flipDir === 'prev';
 
-  // ── Page image element ───────────────────────────────────────────────────
   const PageImg = ({ idx }: { idx: number | null }) =>
     pg(idx) ? (
       <img src={pg(idx)!} alt="" className="fb-pg-img" draggable={false} />
@@ -256,7 +319,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       </div>
     );
 
-  // ── Page count label ────────────────────────────────────────────────────
   const pageLabel = (() => {
     if (!total) return '';
     if (spread === 0) return `غلاف — ${total} صفحة`;
@@ -264,6 +326,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
     const hi = Math.min(lo + 1, total - 1);
     return lo === hi ? `${lo + 1} / ${total}` : `${lo + 1}–${hi + 1} / ${total}`;
   })();
+
+  // ── Book transform: pan + zoom ────────────────────────────────────────────
+  // translate() applied first in CSS so it offsets in screen-space after scaling.
+  const bookTransform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  const bookCursor    = zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : undefined;
+  const bookTouchAction = zoom > 1 ? 'none' : undefined;   // disables native scroll when panning
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -278,7 +346,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         </button>
       </div>
 
-      {/* ── Toolbar (controls) ─────────────────────────────────────────── */}
+      {/* ── Toolbar ────────────────────────────────────────────────────── */}
       {!loading && !loadErr && (
         <div className="fb-toolbar" dir="rtl">
 
@@ -295,7 +363,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               className="fb-tbtn fb-tbtn--zoom-val"
               onClick={zoomReset}
               title="إعادة الضبط إلى 100% (Ctrl + 0)"
-              aria-label="إعادة ضبط التكبير"
             >
               {Math.round(zoom * 100)}%
             </button>
@@ -321,7 +388,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               max={total}
               value={jumpInput}
               placeholder="صفحة"
-              aria-label="رقم الصفحة للانتقال"
+              aria-label="رقم الصفحة"
               onChange={e => setJumpInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doJump()}
             />
@@ -337,14 +404,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             <button
               className={`fb-tbtn fb-tbtn--auto${autoPlay ? ' fb-tbtn--active' : ''}`}
               onClick={() => setAutoPlay(a => !a)}
-              title={autoPlay ? 'إيقاف التشغيل التلقائي' : 'تشغيل تلقائي (كل 3.5 ثانية)'}
+              title={autoPlay ? 'إيقاف التشغيل التلقائي' : 'تشغيل تلقائي'}
               aria-label={autoPlay ? 'إيقاف' : 'تشغيل تلقائي'}
             >
-              {autoPlay ? (
-                <><span className="fb-tbtn__icon">⏹</span> إيقاف</>
-              ) : (
-                <><span className="fb-tbtn__icon">▶</span> تلقائي</>
-              )}
+              {autoPlay
+                ? <><span className="fb-tbtn__icon">⏹</span> إيقاف</>
+                : <><span className="fb-tbtn__icon">▶</span> تلقائي</>}
             </button>
           </div>
 
@@ -357,15 +422,13 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               href={pdfUrl}
               download={`${brandName || 'catalog'}-katalog.pdf`}
               title="تحميل ملف PDF الأصلي"
-              aria-label="تحميل الكتالوج"
             >
               <span className="fb-tbtn__icon">⬇</span> تحميل
             </a>
             <button
               className="fb-tbtn"
               onClick={() => window.open(pdfUrl, '_blank')}
-              title="فتح PDF في تبويب جديد للطباعة"
-              aria-label="طباعة"
+              title="فتح PDF للطباعة"
             >
               <span className="fb-tbtn__icon">🖨</span> طباعة
             </button>
@@ -392,17 +455,33 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       {!loading && !loadErr && (
         <div className="fb-scene">
 
-          {/* ← Prev arrow */}
+          {/* ← Prev arrow — absolutely positioned at left edge */}
           <button
             className={`fb-nav fb-nav--l${!canPrev || flipping ? ' fb-nav--off' : ''}`}
-            onClick={goPrev} disabled={!canPrev || flipping}
+            onClick={goPrev}
+            disabled={!canPrev || flipping}
             aria-label="الصفحة السابقة"
           >‹</button>
 
-          {/* Book stage — zoom applied via transform */}
+          {/* Book stage */}
           <div
+            ref={bookRef}
             className="fb-book"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+            style={{
+              transform: bookTransform,
+              transformOrigin: 'center center',
+              cursor: bookCursor,
+              touchAction: bookTouchAction,
+            }}
+            onMouseDown={e => {
+              if (zoom <= 1) return;
+              e.preventDefault();   // prevent native image/text drag
+              startDrag(e.clientX, e.clientY);
+            }}
+            onTouchStart={e => {
+              if (zoom <= 1) return;
+              startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }}
           >
             {/* Left half */}
             <div className={`fb-half fb-half--l${isFlippingPrev ? ' fb-half--under' : ''}`}>
@@ -416,7 +495,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               <div className="fb-pgshad fb-pgshad--l" />
             </div>
 
-            {/* NEXT flip overlay: right page rotates -180° around left edge (spine) */}
+            {/* NEXT flip overlay */}
             {isFlippingNext && (
               <div className="fb-flip fb-flip--next">
                 <div className="fb-face fb-face--front"><PageImg idx={cR} /></div>
@@ -425,7 +504,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               </div>
             )}
 
-            {/* PREV flip overlay: left page rotates +180° around right edge (spine) */}
+            {/* PREV flip overlay */}
             {isFlippingPrev && (
               <div className="fb-flip fb-flip--prev">
                 <div className="fb-face fb-face--front"><PageImg idx={cL} /></div>
@@ -438,10 +517,11 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             <div className="fb-spine" />
           </div>
 
-          {/* Next arrow → */}
+          {/* → Next arrow — absolutely positioned at right edge */}
           <button
             className={`fb-nav fb-nav--r${!canNext || flipping ? ' fb-nav--off' : ''}`}
-            onClick={goNext} disabled={!canNext || flipping}
+            onClick={goNext}
+            disabled={!canNext || flipping}
             aria-label="الصفحة التالية"
           >›</button>
 

@@ -305,45 +305,76 @@
 .fb-tinput::placeholder { color: rgba(255,255,255,.3); }
 
 /* ── Scene (prev-btn | book | next-btn) ─────────────────────────────────────── */
+/*
+ * position:relative → nav arrows are absolute children.
+ * padding: 20px — top/bottom only; horizontal padding not needed since
+ *   arrows are positioned absolute at the edges and book uses flex:1.
+ */
 .fb-scene {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 20px 12px;
+  padding: 20px 16px;
   flex: 1;
   background: radial-gradient(ellipse at center, #1a1a2e 0%, #0d0d18 100%);
   overflow: hidden;   /* clips the book when zoom > 1 */
 }
 
-/* ── Navigation arrows ──────────────────────────────────────────────────────── */
+/* ── Navigation arrows — absolutely positioned at far edges ─────────────────── */
+/*
+ * Arrows float over the scene at the vertical center of each edge.
+ * z-index: 10 ensures they always render above the book content.
+ * backdrop-filter adds a subtle glass blur for readability on any background.
+ */
 .fb-nav {
-  flex-shrink: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.07);
-  color: rgba(255,255,255,.85);
+  border: 1.5px solid rgba(255,255,255,.28);
+  background: rgba(0,0,0,.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(255,255,255,.9);
   font-size: 1.6rem;
   line-height: 1;
   cursor: pointer;
-  transition: background .18s, transform .12s, opacity .18s, border-color .18s;
-  position: relative;
-  z-index: 1;
+  transition: background .18s, border-color .18s, opacity .18s, transform .14s;
 }
+.fb-nav--l { left: 10px; }
+.fb-nav--r { right: 10px; }
+
 .fb-nav:hover:not(.fb-nav--off) {
-  background: rgba(255,255,255,.16);
-  border-color: rgba(255,255,255,.4);
-  transform: scale(1.1);
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.5);
+  transform: translateY(-50%) scale(1.12);  /* preserve vertical centering */
 }
 .fb-nav--off {
-  opacity: .2;
+  opacity: .18;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ── Fullscreen: larger arrows further from content ─────────────────────────── */
+.fb--fs .fb-nav {
+  width: 54px;
+  height: 54px;
+  font-size: 2rem;
+  background: rgba(0,0,0,.5);
+  border-color: rgba(255,255,255,.35);
+}
+.fb--fs .fb-nav--l { left: 18px; }
+.fb--fs .fb-nav--r { right: 18px; }
+.fb--fs .fb-nav:hover:not(.fb-nav--off) {
+  transform: translateY(-50%) scale(1.1);
+  background: rgba(255,255,255,.2);
 }
 
 /* ── Book stage ─────────────────────────────────────────────────────────────── */
@@ -364,7 +395,12 @@
     0 10px 40px rgba(0,0,0,.6),
     0 2px 8px rgba(0,0,0,.4);
   border-radius: 2px 4px 4px 2px;
+  user-select: none;            /* prevent text selection during drag */
+  -webkit-user-select: none;
 }
+/* Drag cursor states (applied via inline style from React) */
+.fb-book--grab    { cursor: grab; }
+.fb-book--grabbing { cursor: grabbing; }
 
 /* ── Page halves (static) ────────────────────────────────────────────────────── */
 /*
@@ -592,8 +628,7 @@
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .fb-scene {
-    padding: 12px 4px;
-    gap: 6px;
+    padding: 12px 8px;
   }
 
   .fb-nav {
@@ -601,6 +636,8 @@
     height: 36px;
     font-size: 1.3rem;
   }
+  .fb-nav--l { left: 4px; }
+  .fb-nav--r { right: 4px; }
 
   .fb-book {
     aspect-ratio: 37.47 / 23.68;  /* Single landscape page on mobile */
