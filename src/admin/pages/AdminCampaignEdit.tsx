@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi, type Campaign, type CampaignSend } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
 import { fmtDate } from '../utils/dateUtils';
+import { buildApiUrl } from '../../utils/api';
 
 const TEMPLATES = [
   { value: 'custom',      label: 'Custom',          icon: '✏️' },
@@ -33,6 +34,7 @@ const LANGS: Array<{ key: 'ar' | 'en' | 'tr' | 'ru'; label: string; dir: 'rtl' |
 ];
 
 type LangKey = 'ar' | 'en' | 'tr' | 'ru';
+type CompressedImage = { base64: string; fileName: string };
 
 const empty = (): Partial<Campaign> => ({
   title: '', template_type: 'custom',
@@ -170,7 +172,12 @@ export const AdminCampaignEdit: React.FC = () => {
     }
   };
 
-  const compressImage = (file: File, maxPx = 1400, quality = 0.82): Promise<string> =>
+  const getPreviewImageUrl = (value?: string) => {
+    if (!value) return '';
+    return value.startsWith('/') ? buildApiUrl(value) : value;
+  };
+
+  const compressImage = (file: File, maxPx = 1400, quality = 0.82): Promise<CompressedImage> =>
     new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
@@ -187,8 +194,13 @@ export const AdminCampaignEdit: React.FC = () => {
         if (!ctx2d) { reject(new Error('Canvas not supported')); return; }
         ctx2d.drawImage(img, 0, 0, width, height);
         const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const extension = mime === 'image/png' ? 'png' : 'jpg';
+        const originalBaseName = file.name.replace(/\.[^.]+$/, '').trim() || 'campaign-image';
         const dataUrl = canvas.toDataURL(mime, quality);
-        resolve(dataUrl.split(',')[1]);
+        resolve({
+          base64: dataUrl.split(',')[1],
+          fileName: `${originalBaseName}.${extension}`,
+        });
       };
       img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
       img.src = objectUrl;
@@ -198,9 +210,10 @@ export const AdminCampaignEdit: React.FC = () => {
     setUploading(true);
     setError('');
     try {
-      const base64 = await compressImage(file);
-      const ext = file.name.includes('.') ? file.name : `${file.name}.jpg`;
-      const data = await adminApi.uploadImage(base64, ext);
+      const compressed = await compressImage(file);
+      const data = await adminApi.uploadImage(compressed.base64, compressed.fileName);
+      // Store the stable relative API path in the campaign record.
+      // The server will expand it to the correct public URL when sending emails.
       set('image_url', data.path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
@@ -436,7 +449,7 @@ export const AdminCampaignEdit: React.FC = () => {
             </div>
             {(form as Record<string, string>).image_url && (
               <img
-                src={(form as Record<string, string>).image_url}
+                src={getPreviewImageUrl((form as Record<string, string>).image_url)}
                 alt="preview"
                 style={{ marginTop: 10, maxHeight: 160, maxWidth: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid var(--adm-border)' }}
               />

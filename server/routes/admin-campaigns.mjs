@@ -79,7 +79,7 @@ const resolveLocalAssetPath = (assetRef) => {
   return null;
 };
 
-const resolvePublicAssetUrl = (assetRef) => {
+const resolvePublicAssetUrl = (assetRef, apiBaseUrl = '') => {
   if (typeof assetRef !== 'string' || !assetRef.trim()) {
     return null;
   }
@@ -89,7 +89,7 @@ const resolvePublicAssetUrl = (assetRef) => {
     try {
       const parsed = new URL(value);
       if (parsed.pathname.startsWith('/api/')) {
-        return joinUrl(API_PUBLIC_URL || parsed.origin, `${parsed.pathname}${parsed.search}`);
+        return joinUrl(API_PUBLIC_URL || trimTrailingSlash(apiBaseUrl) || parsed.origin, `${parsed.pathname}${parsed.search}`);
       }
       return value;
     } catch {
@@ -102,15 +102,21 @@ const resolvePublicAssetUrl = (assetRef) => {
   }
 
   if (value.startsWith('/api/')) {
-    return API_PUBLIC_URL ? joinUrl(API_PUBLIC_URL, value) : null;
+    const resolvedApiBase = trimTrailingSlash(API_PUBLIC_URL || apiBaseUrl || SITE_URL);
+    return resolvedApiBase ? joinUrl(resolvedApiBase, value) : null;
   }
 
   return EMAIL_ASSETS_BASE_URL ? joinUrl(EMAIL_ASSETS_BASE_URL, value) : null;
 };
 
-const buildInlineImage = (assetRef, contentId) => {
+const buildEmailImage = (assetRef, contentId, apiBaseUrl = '') => {
   if (!assetRef) {
     return null;
+  }
+
+  const publicUrl = resolvePublicAssetUrl(assetRef, apiBaseUrl);
+  if (publicUrl) {
+    return { src: publicUrl, attachment: null };
   }
 
   const localAssetPath = resolveLocalAssetPath(assetRef);
@@ -127,26 +133,7 @@ const buildInlineImage = (assetRef, contentId) => {
     };
   }
 
-  const publicUrl = resolvePublicAssetUrl(assetRef);
-  if (!publicUrl) {
-    return null;
-  }
-
-  let filename = `${contentId}.img`;
-  try {
-    filename = path.basename(new URL(publicUrl).pathname) || filename;
-  } catch {
-    // Keep default filename when the URL cannot be parsed.
-  }
-
-  return {
-    src: `cid:${contentId}`,
-    attachment: {
-      path: publicUrl,
-      filename,
-      contentId,
-    },
-  };
+  return null;
 };
 
 const escapeHtmlAttribute = (value = '') =>
@@ -157,7 +144,7 @@ const escapeHtmlAttribute = (value = '') =>
     .replace(/>/g, '&gt;');
 
 // ── HTML email template ───────────────────────────────────────────────────────
-const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl }) => {
+const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, requestHostOrigin = '' }) => {
   const isRtl = lang === 'ar';
   const dir   = isRtl ? 'rtl' : 'ltr';
   const font  = isRtl
@@ -172,17 +159,13 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl }) => 
     .join('');
 
   const attachments = [];
-  const logoImage = buildInlineImage('/karahoca-logo-1-Photoroom.webp', 'karahoca-logo');
-  const campaignImage = buildInlineImage(imageUrl, 'campaign-image');
+  const campaignImage = buildEmailImage(imageUrl, 'campaign-image', requestHostOrigin);
 
-  if (logoImage?.attachment) {
-    attachments.push(logoImage.attachment);
-  }
   if (campaignImage?.attachment) {
     attachments.push(campaignImage.attachment);
   }
 
-  const resolvedImageUrl = campaignImage?.src || resolvePublicAssetUrl(imageUrl);
+  const resolvedImageUrl = campaignImage?.src || resolvePublicAssetUrl(imageUrl, requestHostOrigin);
   const imageBlock = resolvedImageUrl
     ? `<tr><td style="padding:0 40px 24px;text-align:center">
         <img src="${resolvedImageUrl}" alt="${escapeHtmlAttribute(subject)}"
@@ -191,12 +174,9 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl }) => 
     : '';
 
   const unsub = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(email)}&lang=${lang}`;
-  const pixelBaseUrl = API_PUBLIC_URL || SITE_URL;
+  const pixelBaseUrl = trimTrailingSlash(API_PUBLIC_URL || requestHostOrigin || SITE_URL);
   const pixel = pixelBaseUrl ? `${pixelBaseUrl}/api/email/open?id=${sendId}` : '';
-  const logoBlock = logoImage?.src
-    ? `<img src="${logoImage.src}" alt="KARAHOCA" height="50"
-                 style="height:50px;display:inline-block" />`
-    : `<div style="color:#ffffff;font-size:28px;font-weight:700;letter-spacing:1px">KARAHOCA</div>`;
+  const logoBlock = `<div style="color:#ffffff;font-size:28px;font-weight:700;letter-spacing:1px">KARAHOCA</div>`;
 
   const html = `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}">
@@ -283,9 +263,33 @@ const sendEmail = async ({ to, subject, html, replyTo, attachments = [] }) => {
   return data?.id; // resend message id
 };
 
+const getRequestHostOrigin = (req) => {
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const host = (typeof forwardedHost === 'string' && forwardedHost.trim())
+    ? forwardedHost.split(',')[0].trim()
+    : typeof req.headers.host === 'string'
+      ? req.headers.host.trim()
+      : '';
+
+  if (!host) {
+    return '';
+  }
+
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol =
+    typeof forwardedProto === 'string' && forwardedProto.trim()
+      ? forwardedProto.split(',')[0].trim()
+      : req.socket?.encrypted ? 'https' : 'http';
+
+  return `${protocol}://${host}`;
+};
+
 // ── Dispatch a campaign ───────────────────────────────────────────────────────
-export const dispatchCampaign = async (campaignId) => {
+export const dispatchCampaign = async (campaignId, options = {}) => {
   const db = getDb();
+  const requestHostOrigin = typeof options.requestHostOrigin === 'string'
+    ? trimTrailingSlash(options.requestHostOrigin)
+    : '';
   const campaign = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(campaignId);
   if (!campaign) throw new Error('Campaign not found');
   if (campaign.status === 'sent') throw new Error('Campaign already sent');
@@ -315,7 +319,15 @@ export const dispatchCampaign = async (campaignId) => {
     const sendId = info.lastInsertRowid;
 
     try {
-      const emailContent = buildEmailContent({ subject, body, lang, sendId, email, imageUrl: campaign.image_url });
+      const emailContent = buildEmailContent({
+        subject,
+        body,
+        lang,
+        sendId,
+        email,
+        imageUrl: campaign.image_url,
+        requestHostOrigin,
+      });
       const resendId = await sendEmail({
         to: email,
         subject,
@@ -375,7 +387,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   const sendMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/send$/);
   if (sendMatch && req.method === 'POST') {
     const id = parseInt(sendMatch[1], 10);
-    const result = await dispatchCampaign(id);
+    const result = await dispatchCampaign(id, { requestHostOrigin: getRequestHostOrigin(req) });
     sendJson(res, 200, { success: true, ...result }, origin);
     return;
   }
