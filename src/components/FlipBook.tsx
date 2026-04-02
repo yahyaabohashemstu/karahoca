@@ -37,8 +37,12 @@ function getSpreadPages(
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const RENDER_SCALE = 1.5;   // canvas render DPI multiplier
-const FLIP_MS     = 620;    // animation duration in ms (must match CSS)
+const RENDER_SCALE = 1.5;    // canvas render DPI multiplier
+const FLIP_MS      = 620;    // animation duration in ms (must match CSS)
+const MIN_ZOOM     = 0.5;    // minimum zoom level (50%)
+const MAX_ZOOM     = 2.0;    // maximum zoom level (200%)
+const ZOOM_STEP    = 0.15;   // zoom increment per step
+const AUTO_MS      = 3500;   // auto-play interval in ms
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface FlipBookProps {
@@ -56,14 +60,28 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const [flipping, setFlipping]     = useState(false);
   const [flipDir, setFlipDir]       = useState<'next' | 'prev'>('next');
   const [fullscreen, setFullscreen] = useState(false);
+  // ── New controls state ─────────────────────────────────────────────────────
+  const [zoom,      setZoom]      = useState(1);
+  const [autoPlay,  setAutoPlay]  = useState(false);
+  const [jumpInput, setJumpInput] = useState('');
 
   const wrapRef  = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const total    = pages.length;
-  const maxSpr   = Math.floor(total / 2);
-  const canNext  = spread < maxSpr;
-  const canPrev  = spread > 0;
+  // Refs for stale-closure-safe access inside intervals/callbacks
+  const canNextRef  = useRef(false);
+  const flippingRef = useRef(false);
+  const goNextRef   = useRef<() => void>(() => {});
+
+  const total   = pages.length;
+  const maxSpr  = Math.floor(total / 2);
+  const canNext = spread < maxSpr;
+  const canPrev = spread > 0;
+
+  // Keep refs in sync with current render values
+  canNextRef.current  = canNext;
+  flippingRef.current = flipping;
 
   // ── PDF loading & rendering ────────────────────────────────────────────────
   useEffect(() => {
@@ -144,18 +162,59 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
     }, FLIP_MS);
   }, [flipping, canPrev]);
 
-  // ── Keyboard ────────────────────────────────────────────────────────────
+  // Keep goNext ref in sync (used by auto-play interval)
+  goNextRef.current = goNext;
+
+  // ── Zoom controls ─────────────────────────────────────────────────────────
+  const zoomIn    = useCallback(() => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2)))), []);
+  const zoomOut   = useCallback(() => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2)))), []);
+  const zoomReset = useCallback(() => setZoom(1), []);
+
+  // ── Jump to page ──────────────────────────────────────────────────────────
+  // PDF pages are 1-based. Page p → spread: p=1→0, p>1 → floor(p/2)
+  const doJump = useCallback(() => {
+    const n = parseInt(jumpInput, 10);
+    if (isNaN(n) || n < 1 || n > total) return;
+    const target = n <= 1 ? 0 : Math.floor(n / 2);
+    setSpread(Math.min(Math.max(0, target), maxSpr));
+    setJumpInput('');
+  }, [jumpInput, total, maxSpr]);
+
+  // ── Auto-play slideshow ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!autoPlay) {
+      if (autoRef.current) clearInterval(autoRef.current);
+      return;
+    }
+    autoRef.current = setInterval(() => {
+      if (flippingRef.current) return;   // wait for current flip to finish
+      if (canNextRef.current) {
+        goNextRef.current();
+      } else {
+        setAutoPlay(false);              // reached last spread — stop
+      }
+    }, AUTO_MS);
+    return () => { if (autoRef.current) clearInterval(autoRef.current); };
+  }, [autoPlay]);
+
+  // Stop auto-play when component unmounts
+  useEffect(() => () => { if (autoRef.current) clearInterval(autoRef.current); }, []);
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') goNext();
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') goPrev();
+      if      (e.key === 'ArrowRight' || e.key === 'PageDown') goNext();
+      else if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   goPrev();
       else if (e.key === 'Escape' && fullscreen) setFullscreen(false);
+      else if (e.ctrlKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomIn(); }
+      else if (e.ctrlKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomOut(); }
+      else if (e.ctrlKey &&  e.key === '0')                   { e.preventDefault(); zoomReset(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [goNext, goPrev, fullscreen]);
+  }, [goNext, goPrev, fullscreen, zoomIn, zoomOut, zoomReset]);
 
   // ── Fullscreen ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -210,7 +269,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   return (
     <div ref={wrapRef} className={`fb${fullscreen ? ' fb--fs' : ''}`}>
 
-      {/* Top chrome bar */}
+      {/* ── Top chrome bar ─────────────────────────────────────────────── */}
       <div className="fb-chrome">
         <div className="fb-chrome__dots"><span /><span /><span /></div>
         <span className="fb-chrome__title">📖 {brandName} — الكتالوج التفاعلي</span>
@@ -219,7 +278,103 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         </button>
       </div>
 
-      {/* Loading */}
+      {/* ── Toolbar (controls) ─────────────────────────────────────────── */}
+      {!loading && !loadErr && (
+        <div className="fb-toolbar" dir="rtl">
+
+          {/* Group 1 — Zoom */}
+          <div className="fb-tg">
+            <button
+              className="fb-tbtn"
+              onClick={zoomOut}
+              disabled={zoom <= MIN_ZOOM}
+              title="تصغير (Ctrl + −)"
+              aria-label="تصغير"
+            >−</button>
+            <button
+              className="fb-tbtn fb-tbtn--zoom-val"
+              onClick={zoomReset}
+              title="إعادة الضبط إلى 100% (Ctrl + 0)"
+              aria-label="إعادة ضبط التكبير"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              className="fb-tbtn"
+              onClick={zoomIn}
+              disabled={zoom >= MAX_ZOOM}
+              title="تكبير (Ctrl + =)"
+              aria-label="تكبير"
+            >+</button>
+            <span className="fb-tg-label">تكبير</span>
+          </div>
+
+          <div className="fb-tsep" />
+
+          {/* Group 2 — Jump to page */}
+          <div className="fb-tg">
+            <span className="fb-tg-label">انتقال</span>
+            <input
+              className="fb-tinput"
+              type="number"
+              min={1}
+              max={total}
+              value={jumpInput}
+              placeholder="صفحة"
+              aria-label="رقم الصفحة للانتقال"
+              onChange={e => setJumpInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doJump()}
+            />
+            <button className="fb-tbtn fb-tbtn--go" onClick={doJump} aria-label="انتقل">
+              ↵
+            </button>
+          </div>
+
+          <div className="fb-tsep" />
+
+          {/* Group 3 — Auto-play */}
+          <div className="fb-tg">
+            <button
+              className={`fb-tbtn fb-tbtn--auto${autoPlay ? ' fb-tbtn--active' : ''}`}
+              onClick={() => setAutoPlay(a => !a)}
+              title={autoPlay ? 'إيقاف التشغيل التلقائي' : 'تشغيل تلقائي (كل 3.5 ثانية)'}
+              aria-label={autoPlay ? 'إيقاف' : 'تشغيل تلقائي'}
+            >
+              {autoPlay ? (
+                <><span className="fb-tbtn__icon">⏹</span> إيقاف</>
+              ) : (
+                <><span className="fb-tbtn__icon">▶</span> تلقائي</>
+              )}
+            </button>
+          </div>
+
+          <div className="fb-tsep" />
+
+          {/* Group 4 — Download & Print */}
+          <div className="fb-tg">
+            <a
+              className="fb-tbtn fb-tbtn--dl"
+              href={pdfUrl}
+              download={`${brandName || 'catalog'}-katalog.pdf`}
+              title="تحميل ملف PDF الأصلي"
+              aria-label="تحميل الكتالوج"
+            >
+              <span className="fb-tbtn__icon">⬇</span> تحميل
+            </a>
+            <button
+              className="fb-tbtn"
+              onClick={() => window.open(pdfUrl, '_blank')}
+              title="فتح PDF في تبويب جديد للطباعة"
+              aria-label="طباعة"
+            >
+              <span className="fb-tbtn__icon">🖨</span> طباعة
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── Loading ─────────────────────────────────────────────────────── */}
       {loading && (
         <div className="fb-loading">
           <div className="fb-loading__ring" />
@@ -230,10 +385,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         </div>
       )}
 
-      {/* Error */}
+      {/* ── Error ───────────────────────────────────────────────────────── */}
       {loadErr && <div className="fb-error">تعذّر تحميل الكتالوج: {loadErr}</div>}
 
-      {/* Book */}
+      {/* ── Book ────────────────────────────────────────────────────────── */}
       {!loading && !loadErr && (
         <div className="fb-scene">
 
@@ -244,9 +399,11 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             aria-label="الصفحة السابقة"
           >‹</button>
 
-          {/* Book stage */}
-          <div className="fb-book">
-
+          {/* Book stage — zoom applied via transform */}
+          <div
+            className="fb-book"
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+          >
             {/* Left half */}
             <div className={`fb-half fb-half--l${isFlippingPrev ? ' fb-half--under' : ''}`}>
               <PageImg idx={isFlippingPrev ? pL : cL} />
@@ -291,7 +448,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         </div>
       )}
 
-      {/* Controls bar */}
+      {/* ── Bottom controls bar ─────────────────────────────────────────── */}
       {!loading && !loadErr && (
         <div className="fb-bar">
           <span className="fb-bar__label">{pageLabel}</span>
