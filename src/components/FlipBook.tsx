@@ -1,7 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-// Worker URL is resolved by Vite at build time and copied to the output dir.
-// The ?url suffix tells Vite to treat this import as a static asset URL.
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import '../styles/flipbook.css';
 
 // ── Spread model ─────────────────────────────────────────────────────────────
@@ -82,7 +79,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         // Dynamically import pdfjs-dist so it is split into its own chunk
         // and does not bloat the initial bundle.
         const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+        // Use CDN worker to avoid nginx MIME-type issue with .mjs files on Coolify.
+        // jsDelivr serves the file with correct application/javascript MIME type.
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
         const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
         if (cancelled) return;
