@@ -278,7 +278,9 @@
       },
       "categories": {
         "homeCleaning": "Ev Temizliği",
+        "laundry": "Çamaşır Temizliği",
         "laundryCleaning": "Çamaşır Temizliği",
+        "personal": "Kişisel Hijyen",
         "personalHygiene": "Kişisel Hijyen"
       },
       "products": {

@@ -1,5 +1,21 @@
 import { getDb, incrementStat } from '../db.mjs';
 
+const normalizeLegacyAssetPath = (assetPath) => {
+  if (typeof assetPath !== 'string') {
+    return assetPath;
+  }
+
+  if (assetPath.startsWith('/diox/')) {
+    return assetPath.replace('/diox/', '/diox-images/');
+  }
+
+  if (assetPath.startsWith('/aylux/')) {
+    return assetPath.replace('/aylux/', '/aylux-images/');
+  }
+
+  return assetPath;
+};
+
 // ─── GET /api/products/:brand ────────────────────────────────────────────────
 
 export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
@@ -40,7 +56,7 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         id: p.id,
         name: p.name,
         description: p.description,
-        image: p.image,
+        image: normalizeLegacyAssetPath(p.image),
         alt: p.alt,
         details: {
           weight: p.weight,
@@ -83,7 +99,7 @@ export const handlePublicNews = (req, res, { sendJson, origin }) => {
     return {
       id: item.id,
       slug: item.slug,
-      image: item.image,
+      image: normalizeLegacyAssetPath(item.image),
       publishedAt: item.published_at,
       dateLabel: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' })
         .format(new Date(item.published_at)),

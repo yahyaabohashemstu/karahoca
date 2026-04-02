@@ -278,7 +278,9 @@
       },
       "categories": {
         "homeCleaning": "Уборка дома",
+        "laundry": "Стирка белья",
         "laundryCleaning": "Стирка белья",
+        "personal": "Личная гигиена",
         "personalHygiene": "Личная гигиена"
       },
       "products": {
