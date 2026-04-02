@@ -178,7 +178,7 @@ export const adminApi = {
       'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
     ),
   uploadImage: (imageBase64: string, fileName: string) =>
-    request<{ success: boolean; path: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
+    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

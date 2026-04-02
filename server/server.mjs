@@ -657,7 +657,13 @@ const server = createServer(async (request, response) => {
         const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
         await writeFile(path.join(uploadDir, unique), buf);
-        sendJson(response, 200, { success: true, path: `/api/uploads/${unique}` }, requestOrigin);
+        // API_PUBLIC_URL = the publicly accessible URL of this Node.js backend
+        // (needed so email clients can load uploaded images directly from the API server,
+        //  since the nginx frontend does NOT proxy /api/ routes)
+        const apiBase = (process.env.API_PUBLIC_URL || process.env.SITE_URL || '').replace(/\/+$/, '');
+        const relativePath = `/api/uploads/${unique}`;
+        const absoluteUrl = apiBase ? `${apiBase}${relativePath}` : relativePath;
+        sendJson(response, 200, { success: true, path: relativePath, url: absoluteUrl }, requestOrigin);
         return;
       }
 

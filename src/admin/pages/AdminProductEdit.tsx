@@ -89,7 +89,7 @@ export const AdminProductEdit: React.FC = () => {
       });
       const data = await adminApi.uploadImage(base64, file.name);
       if (!data.success) throw new Error('Upload failed');
-      set('image', data.path);
+      set('image', data.url || data.path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
