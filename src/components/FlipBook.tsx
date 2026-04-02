@@ -1,20 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+// Worker URL is resolved by Vite at build time and copied to the output dir.
+// The ?url suffix tells Vite to treat this import as a static asset URL.
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import '../styles/flipbook.css';
-
-// ── Type shim for pdf.mjs loaded at runtime from /public/pdf-viewer/build/ ──
-interface PdfViewport { width: number; height: number; }
-interface PdfPage {
-  getViewport(opts: { scale: number }): PdfViewport;
-  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }): { promise: Promise<void> };
-}
-interface PdfDoc {
-  numPages: number;
-  getPage(n: number): Promise<PdfPage>;
-}
-interface PdfjsLib {
-  GlobalWorkerOptions: { workerSrc: string };
-  getDocument(src: { url: string }): { promise: Promise<PdfDoc> };
-}
 
 // ── Spread model ─────────────────────────────────────────────────────────────
 // All page indices are 0-based. PDF pages are rendered in order 0…n-1.
@@ -91,14 +79,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
 
     (async () => {
       try {
-        // Use the pre-built pdf.js already in /public/pdf-viewer/build/.
-        // new Function() wraps the dynamic import so neither TypeScript nor
-        // Rollup try to statically resolve this runtime-only public/ URL.
-        const dynImport = new Function('u', 'return import(u)') as (u: string) => Promise<unknown>;
-        const pdfjs = (await dynImport('/pdf-viewer/build/pdf.mjs')) as PdfjsLib;
-        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf-viewer/build/pdf.worker.min.mjs';
+        // Dynamically import pdfjs-dist so it is split into its own chunk
+        // and does not bloat the initial bundle.
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
-        const pdf = await pdfjs.getDocument({ url: pdfUrl }).promise;
+        const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
         if (cancelled) return;
 
         const n = pdf.numPages;
@@ -111,8 +97,8 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
           const cvs  = document.createElement('canvas');
           cvs.width  = vp.width;
           cvs.height = vp.height;
-          const ctx  = cvs.getContext('2d')!;
-          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          // pdfjs-dist v5 API: pass canvas element directly (canvasContext is deprecated)
+          await page.render({ canvas: cvs, viewport: vp }).promise;
           rendered.push(cvs.toDataURL('image/jpeg', 0.85));
           setLoadPct(Math.round((i / n) * 100));
           // Progressive: expose first two pages quickly for fast first render
