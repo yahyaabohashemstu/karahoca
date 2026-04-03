@@ -393,16 +393,21 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   }
 
   // ── POST /api/admin/campaigns/:id/schedule
-  const schedMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/schedule$/);
-  if (schedMatch && req.method === 'POST') {
-    const id = parseInt(schedMatch[1], 10);
-    const { scheduledAt } = body;
-    if (!scheduledAt) { sendJson(res, 400, { error: 'scheduledAt required' }, origin); return; }
-    db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, updated_at=datetime('now') WHERE id=?")
-      .run(scheduledAt, id);
-    sendJson(res, 200, { success: true }, origin);
-    return;
-  }
+    const schedMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/schedule$/);
+    if (schedMatch && req.method === 'POST') {
+      const id = parseInt(schedMatch[1], 10);
+      const { scheduledAt } = body;
+      if (!scheduledAt) { sendJson(res, 400, { error: 'scheduledAt required' }, origin); return; }
+      const normalizedScheduledAt = db.prepare('SELECT datetime(?) as value').get(scheduledAt)?.value;
+      if (!normalizedScheduledAt) {
+        sendJson(res, 400, { error: 'Invalid scheduledAt value' }, origin);
+        return;
+      }
+      db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, updated_at=datetime('now') WHERE id=?")
+        .run(normalizedScheduledAt, id);
+      sendJson(res, 200, { success: true }, origin);
+      return;
+    }
 
   // ── /api/admin/campaigns/:id  (GET / PUT / DELETE)
   const idMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)$/);
