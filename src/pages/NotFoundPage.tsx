@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const NotFoundPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const lang = i18n.resolvedLanguage || i18n.language || 'ar';
 
   const messages: Record<string, { title: string; sub: string; btn: string }> = {

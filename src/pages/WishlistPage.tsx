@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import SEO from '../components/SEO';
 
 const WishlistPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { items, remove, clear } = useWishlist();
   const lang = (i18n.resolvedLanguage || i18n.language || 'ar').slice(0, 2);
 
