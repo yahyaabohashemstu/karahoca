@@ -3396,97 +3396,221 @@ body.light-mode .news-modal__close {
 }
 
 /* ════════════════════════════════════════════════════════
-   Custom Order / Private Label Section
+   Brands Partner Row (Custom Mfg + Marquee Logos)
+   Sits directly inside #brands section, full-width of cards
    ════════════════════════════════════════════════════════ */
-.custom-order-section {
-  padding: 28px 0;
+.brands-partner-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: linear-gradient(135deg,
+    rgba(79,110,247,0.13) 0%,
+    rgba(139,92,246,0.09) 50%,
+    rgba(6,182,212,0.06) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
 }
 
-.custom-order-inner {
+.brands-partner-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(700px circle at 15% 50%,
+    rgba(79,110,247,0.1), transparent 65%);
+  pointer-events: none;
+}
+
+/* ── Left: text content ── */
+.brands-partner-content {
+  flex: 0 0 42%;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 36px;
+  border-inline-end: 1px solid rgba(255,255,255,0.07);
+  position: relative;
+}
+
+.brands-partner-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #7b9cff;
+  background: rgba(79,110,247,0.15);
+  border: 1px solid rgba(79,110,247,0.28);
+  border-radius: 30px;
+  padding: 4px 12px;
+}
+
+.brands-partner-title {
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 800;
+  color: var(--text-primary, #eef2ff);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.brands-partner-desc {
+  font-size: 13.5px;
+  color: var(--text-secondary, rgba(190,205,240,0.72));
+  line-height: 1.75;
+  margin: 0;
+}
+
+.brands-partner-cta {
+  display: inline-flex;
+  align-self: flex-start;
   align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  background: linear-gradient(135deg, rgba(79,110,247,0.12), rgba(139,92,246,0.08));
-  border: 1px solid rgba(79,110,247,0.25);
-  border-radius: 20px;
-  padding: 32px 40px;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4f6ef7, #6d57e8);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 18px rgba(79,110,247,0.35);
+}
+
+.brands-partner-cta:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+/* ── Right: scrolling logos ── */
+.brands-partner-logos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 0 28px 24px;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.brands-logos-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(160,180,230,0.5);
+  padding-inline-start: 4px;
+  margin: 0;
+}
+
+/* marquee wrapper with fade masks */
+.brands-marquee-wrapper {
   position: relative;
   overflow: hidden;
 }
 
-.custom-order-inner::before {
-  content: '';
+.brands-marquee-fade {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(600px circle at 0% 50%, rgba(79,110,247,0.08), transparent 70%);
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  z-index: 2;
   pointer-events: none;
 }
 
-.custom-order-left {
-  flex: 1;
-  min-width: 0;
+.brands-marquee-fade--start {
+  inset-inline-start: 0;
+  background: linear-gradient(to right,
+    rgba(13,18,38,0.95) 0%,
+    transparent 100%);
 }
 
-.custom-order-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #4f6ef7;
-  background: rgba(79,110,247,0.12);
-  border: 1px solid rgba(79,110,247,0.3);
-  border-radius: 20px;
-  padding: 4px 12px;
-  margin-bottom: 12px;
+.brands-marquee-fade--end {
+  inset-inline-end: 0;
+  background: linear-gradient(to left,
+    rgba(13,18,38,0.95) 0%,
+    transparent 100%);
 }
 
-.custom-order-title {
-  font-size: clamp(20px, 2.5vw, 26px);
-  font-weight: 800;
-  color: var(--text-primary, #f0f4ff);
-  margin-bottom: 10px;
-  line-height: 1.2;
+/* the scrolling track */
+.brands-marquee {
+  overflow: hidden;
 }
 
-.custom-order-desc {
-  font-size: 14px;
-  color: var(--text-secondary, rgba(200,210,240,0.75));
-  line-height: 1.7;
-  max-width: 600px;
+@keyframes brands-marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
-.custom-order-cta {
-  display: inline-flex;
+.brands-marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: brands-marquee-scroll 22s linear infinite;
+}
+
+.brands-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* individual logo chip */
+.brands-logo-chip {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  padding: 13px 28px;
-  border-radius: 12px;
-  background: #4f6ef7;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: background 0.2s, transform 0.2s;
+  justify-content: center;
+  gap: 5px;
+  min-width: 90px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  cursor: default;
   flex-shrink: 0;
 }
 
-.custom-order-cta:hover {
-  background: #3a58d6;
-  transform: translateY(-2px);
+.brands-logo-chip:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-3px);
 }
 
+.brands-logo-abbr {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--chip-color, #7b9cff);
+  line-height: 1;
+}
+
+.brands-logo-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(180,200,240,0.65);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .custom-order-inner {
+  .brands-partner-row {
     flex-direction: column;
-    align-items: flex-start;
-    padding: 24px 22px;
-    gap: 20px;
   }
-  .custom-order-cta {
-    width: 100%;
-    justify-content: center;
+
+  .brands-partner-content {
+    flex: none;
+    border-inline-end: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 26px 22px;
+  }
+
+  .brands-partner-logos {
+    padding: 20px 0;
   }
 }
