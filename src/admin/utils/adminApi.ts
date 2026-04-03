@@ -151,8 +151,11 @@ export const adminApi = {
     request<{ success: boolean; campaign: Campaign }>('PUT', `/api/admin/campaigns/${id}`, data),
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
-  sendCampaign: (id: number) =>
-    request<{ success: boolean; sent: number; errors: Array<{ email: string; error: string }> }>('POST', `/api/admin/campaigns/${id}/send`),
+  sendCampaign: (id: number, opts?: { excludedEmails?: string[] }) =>
+    request<{ success: boolean; sent: number; errors: Array<{ email: string; error: string }> }>(
+      'POST', `/api/admin/campaigns/${id}/send`,
+      opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
+    ),
   scheduleCampaign: (id: number, scheduledAt: string) =>
     request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt }),
   getCampaignStats: (id: number) =>

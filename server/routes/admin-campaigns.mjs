@@ -290,13 +290,21 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   const requestHostOrigin = typeof options.requestHostOrigin === 'string'
     ? trimTrailingSlash(options.requestHostOrigin)
     : '';
+  const excludedEmails = Array.isArray(options.excludedEmails)
+    ? new Set(options.excludedEmails.map(e => String(e).toLowerCase().trim()))
+    : new Set();
+
   const campaign = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(campaignId);
   if (!campaign) throw new Error('Campaign not found');
   if (campaign.status === 'sent') throw new Error('Campaign already sent');
 
-  const subscribers = db.prepare(
+  let subscribers = db.prepare(
     "SELECT email FROM newsletter_subscribers WHERE active=1"
   ).all();
+
+  if (excludedEmails.size > 0) {
+    subscribers = subscribers.filter(s => !excludedEmails.has(s.email.toLowerCase().trim()));
+  }
 
   if (!subscribers.length) {
     db.prepare("UPDATE email_campaigns SET status='sent', sent_at=datetime('now'), recipient_count=0 WHERE id=?").run(campaignId);
@@ -387,7 +395,11 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   const sendMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/send$/);
   if (sendMatch && req.method === 'POST') {
     const id = parseInt(sendMatch[1], 10);
-    const result = await dispatchCampaign(id, { requestHostOrigin: getRequestHostOrigin(req) });
+    const excludedEmails = Array.isArray(body?.excludedEmails) ? body.excludedEmails : [];
+    const result = await dispatchCampaign(id, {
+      requestHostOrigin: getRequestHostOrigin(req),
+      excludedEmails,
+    });
     sendJson(res, 200, { success: true, ...result }, origin);
     return;
   }

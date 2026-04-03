@@ -93,6 +93,12 @@ export const AdminCampaignEdit: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Subscriber picker
+  const [allSubscribers, setAllSubscribers] = useState<string[]>([]);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+
   useEffect(() => {
     if (!isNew && id) {
       adminApi.getCampaign(parseInt(id, 10))
@@ -120,6 +126,13 @@ export const AdminCampaignEdit: React.FC = () => {
         .catch(() => {});
     }
   }, [activeTab, id, isNew, statsLoaded]);
+
+  useEffect(() => {
+    if (isNew) return;
+    adminApi.getNewsletter(1).then((r) => {
+      setAllSubscribers((r.subscribers ?? []).map((s: { email: string }) => s.email));
+    }).catch(() => {});
+  }, [isNew]);
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -269,13 +282,16 @@ export const AdminCampaignEdit: React.FC = () => {
   };
 
   const sendNow = async () => {
-    if (!confirm('Send this campaign to ALL active subscribers NOW?')) return;
+    const selectedCount = allSubscribers.length - excluded.size;
+    if (!confirm(`Send this campaign to ${selectedCount} subscriber${selectedCount !== 1 ? 's' : ''} NOW?`)) return;
     setSending(true);
     setError('');
     setSuccess('');
     try {
-      const r = await adminApi.sendCampaign(parseInt(id!, 10));
-      setSuccess(`✅ Sent to ${r.sent} subscribers!`);
+      const r = await adminApi.sendCampaign(parseInt(id!, 10), {
+        excludedEmails: excluded.size > 0 ? [...excluded] : [],
+      });
+      setSuccess(`✅ Sent to ${r.sent} subscriber${r.sent !== 1 ? 's' : ''}!`);
       await refreshCampaign();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Send failed');
@@ -474,6 +490,97 @@ export const AdminCampaignEdit: React.FC = () => {
               />
             )}
           </div>
+
+          {/* ── Subscriber Picker ─────────────────────────────────────────── */}
+          {!isNew && form.status !== 'sent' && allSubscribers.length > 0 && (
+            <div className="adm-card">
+              <div
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => setPickerOpen(o => !o)}
+              >
+                <div>
+                  <div className="adm-card-title" style={{ margin: 0 }}>Recipients</div>
+                  <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 3 }}>
+                    {allSubscribers.length - excluded.size} / {allSubscribers.length} selected
+                    {excluded.size > 0 && <span style={{ color: '#f59e0b', marginLeft: 8 }}>· {excluded.size} excluded</span>}
+                  </div>
+                </div>
+                <span style={{ fontSize: 18, color: 'var(--adm-text-dim)', transition: 'transform .2s', transform: pickerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+              </div>
+
+              {pickerOpen && (
+                <div style={{ marginTop: 14 }}>
+                  {/* Toolbar */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                    <input
+                      className="adm-input adm-input-sm"
+                      placeholder="Filter emails…"
+                      value={pickerSearch}
+                      onChange={e => setPickerSearch(e.target.value)}
+                      style={{ flex: 1, minWidth: 160 }}
+                      onClick={e => e.stopPropagation()}
+                    />
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-ghost adm-btn-sm"
+                      onClick={e => { e.stopPropagation(); setExcluded(new Set()); }}
+                    >Select All</button>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-ghost adm-btn-sm"
+                      style={{ color: '#f59e0b' }}
+                      onClick={e => { e.stopPropagation(); setExcluded(new Set(allSubscribers)); }}
+                    >Deselect All</button>
+                  </div>
+
+                  {/* List */}
+                  <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--adm-border)', borderRadius: 8 }}>
+                    {allSubscribers
+                      .filter(email => !pickerSearch.trim() || email.toLowerCase().includes(pickerSearch.toLowerCase()))
+                      .map(email => {
+                        const isExcluded = excluded.has(email);
+                        return (
+                          <label
+                            key={email}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '9px 14px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid var(--adm-border)',
+                              background: isExcluded ? 'rgba(245,158,11,0.06)' : 'transparent',
+                              transition: 'background .15s',
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!isExcluded}
+                              style={{ width: 15, height: 15, accentColor: 'var(--adm-accent)', flexShrink: 0 }}
+                              onChange={() => {
+                                setExcluded(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(email)) next.delete(email);
+                                  else next.add(email);
+                                  return next;
+                                });
+                              }}
+                            />
+                            <span
+                              className="adm-mono"
+                              style={{ fontSize: 13, color: isExcluded ? 'var(--adm-text-dim)' : 'var(--adm-text)', textDecoration: isExcluded ? 'line-through' : 'none' }}
+                            >
+                              {email}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <TranslationHelper
             fields={{
