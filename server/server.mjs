@@ -606,13 +606,13 @@ const server = createServer(async (request, response) => {
         return;
       }
 
-      if (url.startsWith('/api/admin/news')) {
-        handleAdminNews(request, response, { ...ctx, body });
+      if (url.startsWith('/api/admin/newsletter')) {
+        handleAdminNewsletter(request, response, { ...ctx, body });
         return;
       }
 
-      if (url.startsWith('/api/admin/newsletter')) {
-        handleAdminNewsletter(request, response, { ...ctx, body });
+      if (url.startsWith('/api/admin/news')) {
+        handleAdminNews(request, response, { ...ctx, body });
         return;
       }
 
