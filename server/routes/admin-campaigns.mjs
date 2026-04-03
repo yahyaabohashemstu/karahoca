@@ -409,7 +409,9 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     if (schedMatch && req.method === 'POST') {
       const id = parseInt(schedMatch[1], 10);
       const { scheduledAt } = body;
-      if (!scheduledAt) { sendJson(res, 400, { error: 'scheduledAt required' }, origin); return; }
+      if (!scheduledAt || typeof scheduledAt !== 'string') { sendJson(res, 400, { error: 'scheduledAt required' }, origin); return; }
+      // Validate format on JS side before passing to SQLite
+      if (isNaN(Date.parse(scheduledAt))) { sendJson(res, 400, { error: 'Invalid scheduledAt format' }, origin); return; }
       const normalizedScheduledAt = db.prepare('SELECT datetime(?) as value').get(scheduledAt)?.value;
       if (!normalizedScheduledAt) {
         sendJson(res, 400, { error: 'Invalid scheduledAt value' }, origin);

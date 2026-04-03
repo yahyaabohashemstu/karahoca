@@ -42,10 +42,13 @@ export const getToken = (): string | null => {
 export const hasValidToken = () => !!getToken();
 export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
 
-const authHeaders = (): Record<string, string> => ({
-  'Content-Type': 'application/json',
-  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-});
+const authHeaders = (): Record<string, string> => {
+  const token = getToken(); // call once to avoid race between check and use
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
   const response = await fetch(buildApiUrl(path), {
     method,

@@ -557,13 +557,19 @@ const AIChatWidget: React.FC = () => {
         currentLang,
         questionLanguageHint
       );
-      const response = await fetch(buildApiUrl('/api/ai/chat'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 s timeout
+      let response: Response;
+      try {
+        response = await fetch(buildApiUrl('/api/ai/chat'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
@@ -603,6 +609,12 @@ const AIChatWidget: React.FC = () => {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Gemini request failed:', getErrorMessage(error));
+      }
+      // Handle network timeout (AbortError) gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        setStatusMessage(uiText.fallbackReply);
+        setSuggestions([]);
+        return;
       }
       const errorMessage = getErrorMessage(error);
       const isEmptyReplyError = /empty response|empty reply/i.test(errorMessage);

@@ -2,6 +2,28 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../hooks/useIsMobile';
 
+/** Sanitize SVG using DOMParser — removes event handlers, scripts, and dangerous attributes */
+const sanitizeSvg = (rawSvg: string): string => {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+    doc.querySelectorAll('script, foreignObject').forEach(el => el.remove());
+    doc.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith('on')) { el.removeAttribute(attr.name); return; }
+        if ((name === 'href' || name === 'xlink:href' || name === 'src') &&
+            /^(javascript:|data:text)/i.test(attr.value.trim())) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+    return new XMLSerializer().serializeToString(doc.documentElement);
+  } catch {
+    return '';
+  }
+};
+
 const NumbersSection: React.FC = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile(768);
@@ -155,8 +177,7 @@ const NumbersSection: React.FC = () => {
           return;
         }
 
-        const sanitizedSvg = rawSvg.replace(/<script[\s\S]*?<\/script>/gi, '');
-        container.innerHTML = sanitizedSvg;
+        container.innerHTML = sanitizeSvg(rawSvg);
 
         const svgElement = container.querySelector('svg');
         const textElement = svgElement?.querySelector('#animated-number');

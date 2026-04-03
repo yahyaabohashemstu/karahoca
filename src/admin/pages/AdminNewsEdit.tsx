@@ -70,6 +70,15 @@ export const AdminNewsEdit: React.FC = () => {
   };
 
   const handleImageUpload = async (file: File) => {
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File too large. Maximum size is 5 MB.');
+      return;
+    }
     setUploading(true);
     setError(null);
     try {

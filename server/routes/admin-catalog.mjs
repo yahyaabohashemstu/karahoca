@@ -258,7 +258,8 @@ export function handleAdminCatalog(request, response, ctx) {
     response.writeHead(200, headers);
     response.end(html);
   } catch (err) {
+    console.error('[catalog] Error generating catalog:', err);
     response.writeHead(500, { 'Content-Type': 'text/plain' });
-    response.end('Internal error: ' + err.message);
+    response.end('An internal error occurred. Please try again later.');
   }
 }

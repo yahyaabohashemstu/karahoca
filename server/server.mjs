@@ -60,7 +60,9 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), accelerometer=(), gyroscope=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';",
 };
 
 const createJsonHeaders = (requestOrigin = '') => {
@@ -193,13 +195,12 @@ const subscribeNewsletter = async ({ email }) => {
 
   // Save to DB (primary)
   const db = getDb();
-  const exists = db.prepare('SELECT 1 FROM newsletter_subscribers WHERE email=?').get(normalizedEmail);
-  if (!exists) {
-    db.prepare('INSERT INTO newsletter_subscribers(email, subscribed_at) VALUES(?,?)').run(
-      normalizedEmail, new Date().toISOString()
-    );
-    incrementStat('newsletter_signups');
-  }
+  // Use INSERT OR IGNORE (email is PRIMARY KEY) to avoid race condition from concurrent requests
+  const result = db.prepare('INSERT OR IGNORE INTO newsletter_subscribers(email, subscribed_at) VALUES(?,?)').run(
+    normalizedEmail, new Date().toISOString()
+  );
+  const inserted = result.changes > 0;
+  if (inserted) incrementStat('newsletter_signups');
 
   // Also keep the JSON file as backup
   let subscribers = [];
@@ -223,7 +224,7 @@ const subscribeNewsletter = async ({ email }) => {
   // ── Welcome email — awaited so errors surface in the response ────────────────
   let welcomeEmailStatus = null; // null = not attempted (already subscribed)
 
-  if (!exists) {
+  if (inserted) {
     const resendKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL || '';
     const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
@@ -507,6 +508,21 @@ const server = createServer(async (request, response) => {
       const body = await readRequestBody(request);
       const result = await subscribeNewsletter(body);
       sendJson(response, 200, result, requestOrigin);
+      return;
+    }
+
+    // ── Frontend error reporting (non-fatal, no auth needed) ─────────────────
+    if (request.method === 'POST' && url === '/api/log-error') {
+      const body = await readRequestBody(request);
+      if (body?.message && typeof body.message === 'string') {
+        console.error('[client-error]', JSON.stringify({
+          message: String(body.message).slice(0, 300),
+          stack: typeof body.stack === 'string' ? body.stack.slice(0, 500) : undefined,
+          url: typeof body.url === 'string' ? body.url.slice(0, 200) : undefined,
+          ts: body.ts,
+        }));
+      }
+      sendJson(response, 200, { success: true }, requestOrigin);
       return;
     }
 
