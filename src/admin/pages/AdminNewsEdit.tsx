@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
@@ -23,8 +23,10 @@ export const AdminNewsEdit: React.FC = () => {
   const [form, setForm] = useState<Partial<NewsItem>>(EMPTY);
   const [activeLang, setActiveLang] = useState<Lang>('ar');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isNew) {
@@ -65,6 +67,26 @@ export const AdminNewsEdit: React.FC = () => {
       }
     }
     setForm(f => ({ ...f, ...updates }));
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const data = await adminApi.uploadImage(base64, file.name);
+      if (!data.success) throw new Error('Upload failed');
+      setStr('image', data.url || data.path);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -119,12 +141,31 @@ export const AdminNewsEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Image URL</label>
+              <label className="adm-label">Image</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <input
+                  className="adm-input"
+                  value={form.image ?? ''}
+                  onChange={e => setStr('image', e.target.value)}
+                  placeholder="/news/image.webp or paste URL"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-secondary adm-btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading...</> : '📁 Upload'}
+                </button>
+              </div>
               <input
-                className="adm-input"
-                value={form.image ?? ''}
-                onChange={e => setStr('image', e.target.value)}
-                placeholder="/news/image.webp"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
               />
             </div>
             <div className="adm-form-group">
