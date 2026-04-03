@@ -272,8 +272,26 @@ export const AdminAnalytics: React.FC = () => {
 
   const handlePrint = () => window.print();
 
+  const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
   return (
     <div className="adm-analytics-page">
+
+      {/* ── Print-only cover header (hidden on screen) ────────────────────── */}
+      <div className="analytics-print-header">
+        <div className="analytics-print-header-left">
+          <div className="analytics-print-brand">KARAHOCA</div>
+          <div className="analytics-print-tagline">Analytics Report</div>
+        </div>
+        <div className="analytics-print-header-right">
+          <div className="analytics-print-date">Generated: {printDate}</div>
+          <div className="analytics-print-period">Period: Last {period} days</div>
+          <div className={`analytics-print-status ${gad?.configured ? 'connected' : 'disconnected'}`}>
+            {gad?.configured ? '● GA4 Connected' : '○ GA4 Not Configured'}
+          </div>
+        </div>
+      </div>
+
       <section className="adm-card adm-analytics-hero">
         <div>
           <span className="adm-dashboard-eyebrow">Performance Overview</span>
@@ -420,9 +438,12 @@ export const AdminAnalytics: React.FC = () => {
         );
       })()}
 
+      {/* ── Page break before internal stats (print only) ─────────────────── */}
+      <div className="analytics-print-break" />
+
       <div className="adm-analytics-section-divider">
         <span>💬</span>
-        <strong>Internal Stats — Bot & Newsletter</strong>
+        <strong>Internal Stats — Bot &amp; Newsletter</strong>
       </div>
 
       {internal.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading internal analytics…</div>}
@@ -459,6 +480,9 @@ export const AdminAnalytics: React.FC = () => {
               />
             </Panel>
           </div>
+
+          {/* ── Page break before audience section (print only) ─────────────── */}
+          <div className="analytics-print-break" />
 
           <div className="adm-analytics-grid-2">
             <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="How users are distributed by conversation language.">

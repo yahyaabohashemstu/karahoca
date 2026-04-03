@@ -2268,42 +2268,573 @@
   }
 }
 
-/* ── Print / PDF Export ──────────────────────────────────────────────────── */
+/* ── Print-only elements (hidden on screen) ──────────────────────────────── */
+.analytics-print-header,
+.analytics-print-break {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRINT / PDF EXPORT  —  Professional Analytics Report
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media print {
+
+  /* ── Page setup ─────────────────────────────────────────────────────────── */
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 16mm 12mm;
+  }
+
+  /* ── Force colors (Chrome ignores background by default) ────────────────── */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* ── CSS variable override → light theme ────────────────────────────────── */
+  :root {
+    --adm-bg: #ffffff !important;
+    --adm-surface: #f5f7fc !important;
+    --adm-surface2: #edf0f8 !important;
+    --adm-border: #dde1ee !important;
+    --adm-text: #1a1d2e !important;
+    --adm-text-muted: #525c7a !important;
+    --adm-text-dim: #8892aa !important;
+    --adm-accent: #4f6ef7 !important;
+    --adm-shadow-sm: none !important;
+    --adm-sidebar-w: 0px !important;
+  }
+
+  /* ── Global resets ──────────────────────────────────────────────────────── */
+  body, html {
+    background: #fff !important;
+    color: #1a1d2e !important;
+    font-size: 9.5pt !important;
+  }
+
+  /* ── Hide all UI chrome ─────────────────────────────────────────────────── */
   .adm-sidebar,
   .adm-topbar,
+  .adm-topbar-spacer,
   .adm-btn,
   .adm-tabs,
-  button {
+  button,
+  .adm-analytics-hero,
+  .adm-loading-center,
+  .adm-spinner,
+  .adm-alert,
+  .adm-analytics-rich-alert {
     display: none !important;
   }
-  .adm-shell {
-    display: block !important;
-  }
+
+  /* ── Layout: collapse shell to full width ───────────────────────────────── */
+  .adm-shell { display: block !important; }
+  .adm-layout { display: block !important; }
   .adm-main {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-  }
-  body, .adm-analytics-page {
-    background: #fff !important;
-    color: #111 !important;
-  }
-  .adm-analytics-metric-card,
-  .adm-analytics-panel,
-  .adm-card {
-    break-inside: avoid;
-    border: 1px solid #ccc !important;
-    background: #fff !important;
-  }
-  .adm-trend-svg {
     max-width: 100% !important;
   }
-  .adm-analytics-kpi-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
+  .adm-analytics-page {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10pt !important;
+    background: #fff !important;
+    padding: 0 !important;
   }
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PRINT HEADER  (visible only in print)
+     ════════════════════════════════════════════════════════════════════════ */
+  .analytics-print-header {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    padding-bottom: 10pt !important;
+    margin-bottom: 14pt !important;
+    border-bottom: 2.5pt solid #4f6ef7 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .analytics-print-brand {
+    font-size: 24pt !important;
+    font-weight: 900 !important;
+    color: #4f6ef7 !important;
+    letter-spacing: 3pt !important;
+    line-height: 1 !important;
+  }
+
+  .analytics-print-tagline {
+    font-size: 9pt !important;
+    color: #525c7a !important;
+    font-weight: 500 !important;
+    letter-spacing: 1.5pt !important;
+    text-transform: uppercase !important;
+    margin-top: 3pt !important;
+  }
+
+  .analytics-print-header-right {
+    text-align: right !important;
+  }
+
+  .analytics-print-date {
+    font-size: 8.5pt !important;
+    color: #1a1d2e !important;
+    font-weight: 600 !important;
+  }
+
+  .analytics-print-period {
+    font-size: 8pt !important;
+    color: #525c7a !important;
+    margin-top: 2pt !important;
+  }
+
+  .analytics-print-status {
+    display: inline-block !important;
+    margin-top: 4pt !important;
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+    padding: 2pt 7pt !important;
+    border-radius: 3pt !important;
+  }
+
+  .analytics-print-status.connected {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+  }
+
+  .analytics-print-status.disconnected {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     PAGE BREAK MARKERS
+     ════════════════════════════════════════════════════════════════════════ */
+  .analytics-print-break {
+    display: block !important;
+    page-break-before: always !important;
+    break-before: page !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     KPI METRIC CARDS
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 7pt !important;
+    margin-bottom: 10pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .adm-analytics-kpi-grid.compact {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 5pt !important;
+  }
+
+  .adm-analytics-metric-card {
+    background: #f5f7fc !important;
+    border: 1.5pt solid #dde1ee !important;
+    border-radius: 7pt !important;
+    padding: 9pt 10pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .adm-analytics-metric-icon {
+    font-size: 14pt !important;
+    line-height: 1 !important;
+    margin-bottom: 5pt !important;
+  }
+
+  .adm-analytics-metric-label {
+    font-size: 6.5pt !important;
+    color: #525c7a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.6pt !important;
+    font-weight: 600 !important;
+    margin-bottom: 3pt !important;
+  }
+
+  .adm-analytics-metric-value {
+    font-size: 19pt !important;
+    font-weight: 900 !important;
+    color: #1a1d2e !important;
+    line-height: 1 !important;
+  }
+
+  .adm-analytics-metric-sub {
+    font-size: 6.5pt !important;
+    color: #8892aa !important;
+    margin-top: 2pt !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     ANALYTICS PANELS
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-panel {
+    background: #fff !important;
+    border: 1.5pt solid #dde1ee !important;
+    border-top-width: 3pt !important;
+    border-radius: 7pt !important;
+    padding: 10pt 12pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .adm-card {
+    background: #f5f7fc !important;
+    border: 1pt solid #dde1ee !important;
+    border-radius: 7pt !important;
+    padding: 10pt 12pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .adm-card-title {
+    color: #1a1d2e !important;
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+  }
+
+  .adm-analytics-panel-head {
+    margin-bottom: 7pt !important;
+  }
+
+  .adm-analytics-panel-copy {
+    font-size: 7.5pt !important;
+    color: #525c7a !important;
+    margin: 2pt 0 0 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     GRID LAYOUTS
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-grid-3 {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 7pt !important;
+    margin-bottom: 8pt !important;
+  }
+
+  .adm-analytics-grid-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 7pt !important;
+    margin-bottom: 8pt !important;
+  }
+
+  .adm-analytics-panel-wide {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     TREND CHARTS  (SVG renders natively in print)
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-trend-chart {
+    background: #fff !important;
+  }
+
+  .adm-trend-chart-stage {
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 6pt !important;
+  }
+
+  .adm-trend-axis {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    font-size: 6.5pt !important;
+    color: #8892aa !important;
+    min-width: 18pt !important;
+    text-align: right !important;
+  }
+
+  .adm-trend-svg {
+    flex: 1 !important;
+    width: 100% !important;
+    height: 130pt !important;
+  }
+
+  /* SVG gridlines: override rgba white → light grey */
+  .adm-trend-svg line[stroke="rgba(255,255,255,0.08)"] {
+    stroke: #e2e6f0 !important;
+  }
+
+  .adm-trend-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 7pt !important;
+    color: #8892aa !important;
+    margin-top: 4pt !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     RANKING ROWS  (countries, sources, pages)
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-ranking-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  .adm-ranking-row {
+    padding: 4pt 0 !important;
+    border-bottom: 0.5pt solid #edf0f8 !important;
+  }
+
+  .adm-ranking-row:last-child {
+    border-bottom: none !important;
+  }
+
+  .adm-ranking-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 3pt !important;
+  }
+
+  .adm-ranking-label-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4pt !important;
+  }
+
+  .adm-ranking-rank {
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    color: #8892aa !important;
+    min-width: 14pt !important;
+  }
+
+  .adm-ranking-icon {
+    font-size: 10pt !important;
+  }
+
+  .adm-ranking-label {
+    font-size: 8pt !important;
+    color: #1a1d2e !important;
+    font-weight: 500 !important;
+  }
+
+  .adm-ranking-top > strong {
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+  }
+
+  .adm-ranking-track {
+    height: 3pt !important;
+    background: #edf0f8 !important;
+    border-radius: 2pt !important;
+    overflow: hidden !important;
+  }
+
+  .adm-ranking-fill {
+    height: 3pt !important;
+    border-radius: 2pt !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     DEVICE DONUT CHART
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-device-layout {
+    display: flex !important;
+    gap: 10pt !important;
+    align-items: center !important;
+  }
+
+  .adm-device-chart {
+    width: 72pt !important;
+    height: 72pt !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* SVG donut background ring */
+  .adm-device-chart circle[stroke="rgba(255,255,255,0.08)"] {
+    stroke: #e2e6f0 !important;
+  }
+
+  .adm-device-chart text[fill="var(--adm-text)"] {
+    fill: #1a1d2e !important;
+  }
+
+  .adm-device-chart text[fill="var(--adm-text-muted)"] {
+    fill: #525c7a !important;
+  }
+
+  .adm-device-legend {
+    flex: 1 !important;
+  }
+
+  .adm-device-legend-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6pt !important;
+    padding: 3pt 0 !important;
+    border-bottom: 0.5pt solid #edf0f8 !important;
+  }
+
+  .adm-device-legend-item:last-child {
+    border-bottom: none !important;
+  }
+
+  .adm-device-legend-icon {
+    font-size: 10pt !important;
+    width: 14pt !important;
+    text-align: center !important;
+  }
+
+  .adm-device-legend-item > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1pt !important;
+  }
+
+  .adm-device-legend-item strong {
+    font-size: 8pt !important;
+    color: #1a1d2e !important;
+    font-weight: 700 !important;
+  }
+
+  .adm-device-legend-item span {
+    font-size: 7pt !important;
+    font-weight: 500 !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     SECTION DIVIDER (Internal Stats header)
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-section-divider {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8pt !important;
+    background: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%) !important;
+    color: #fff !important;
+    border-radius: 7pt !important;
+    padding: 8pt 14pt !important;
+    margin-bottom: 10pt !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .adm-analytics-section-divider span {
+    font-size: 12pt !important;
+  }
+
+  .adm-analytics-section-divider strong {
+    font-size: 10pt !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     ACTIVE USERS TABLE
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-user-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  .adm-analytics-user-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7pt !important;
+    padding: 5pt 0 !important;
+    border-bottom: 0.5pt solid #edf0f8 !important;
+    font-size: 7.5pt !important;
+  }
+
+  .adm-analytics-user-row:last-child {
+    border-bottom: none !important;
+  }
+
+  .adm-analytics-user-rank {
+    width: 15pt !important;
+    height: 15pt !important;
+    background: #4f6ef7 !important;
+    color: #fff !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 7pt !important;
+    font-weight: 800 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .adm-analytics-user-copy {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .adm-analytics-user-copy strong {
+    display: block !important;
+    font-size: 7.5pt !important;
+    color: #1a1d2e !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .adm-analytics-user-copy span {
+    font-size: 6.5pt !important;
+    color: #8892aa !important;
+  }
+
+  .adm-analytics-user-metric {
+    text-align: right !important;
+    flex-shrink: 0 !important;
+  }
+
+  .adm-analytics-user-metric strong {
+    display: block !important;
+    font-size: 10pt !important;
+    font-weight: 800 !important;
+    color: #4f6ef7 !important;
+  }
+
+  .adm-analytics-user-metric span {
+    font-size: 6pt !important;
+    color: #8892aa !important;
+    text-transform: uppercase !important;
+  }
+
+  .adm-badge,
+  .adm-badge-blue {
+    display: inline-block !important;
+    font-size: 6.5pt !important;
+    padding: 1.5pt 5pt !important;
+    border-radius: 3pt !important;
+    background: #dde8ff !important;
+    color: #4f6ef7 !important;
+    font-weight: 700 !important;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     EMPTY STATES
+     ════════════════════════════════════════════════════════════════════════ */
+  .adm-analytics-empty {
+    font-size: 8pt !important;
+    color: #8892aa !important;
+    text-align: center !important;
+    padding: 10pt !important;
+    min-height: auto !important;
+    border: 1pt dashed #dde1ee !important;
+    border-radius: 5pt !important;
   }
 }
