@@ -738,12 +738,15 @@ const server = createServer(async (request, response) => {
 await ensureDataDirectories();
 initDb();
 
-// ── Campaign scheduler — check every 5 minutes ────────────────────────────────
-setInterval(async () => {
+// ── Campaign scheduler ────────────────────────────────────────────────────────
+const dispatchDueCampaigns = async () => {
   try {
     const db = getDb();
     const due = db.prepare(
-      `SELECT id FROM email_campaigns WHERE status='scheduled' AND scheduled_at <= datetime('now')`
+      `SELECT id FROM email_campaigns
+       WHERE status='scheduled'
+         AND scheduled_at IS NOT NULL
+         AND datetime(scheduled_at) <= datetime('now')`
     ).all();
     for (const { id } of due) {
       console.log(`[scheduler] Dispatching campaign #${id}`);
@@ -752,7 +755,13 @@ setInterval(async () => {
   } catch (e) {
     console.error('[scheduler] error:', e.message);
   }
-}, 5 * 60 * 1000);
+};
+
+// Check immediately on boot, then every minute so scheduled sends do not lag.
+void dispatchDueCampaigns();
+setInterval(() => {
+  void dispatchDueCampaigns();
+}, 60 * 1000);
 
 server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);

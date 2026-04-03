@@ -43,10 +43,29 @@ const empty = (): Partial<Campaign> => ({
   image_url: '',
 });
 
+const parseServerDatetime = (value?: string | null) => {
+  if (!value) return null;
+
+  const normalizedValue = value.includes('T')
+    ? value
+    : value.includes(' ')
+      ? value.replace(' ', 'T') + 'Z'
+      : value;
+
+  const parsedDate = new Date(normalizedValue);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const getLocalDateInputMin = () => {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+};
+
 const toDatetimeLocal = (value?: string | null): { date: string; time: string } => {
   if (!value) return { date: '', time: '10:00' };
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return { date: '', time: '10:00' };
+  const d = parseServerDatetime(value);
+  if (!d) return { date: '', time: '10:00' };
   const offsetMs = d.getTimezoneOffset() * 60 * 1000;
   const local = new Date(d.getTime() - offsetMs).toISOString();
   return { date: local.slice(0, 10), time: local.slice(11, 16) };
@@ -384,13 +403,13 @@ export const AdminCampaignEdit: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
                   <div className="adm-form-group" style={{ marginBottom: 0 }}>
                     <label className="adm-label">Date</label>
-                    <input
-                      className="adm-input"
-                      type="date"
-                      value={scheduleDate}
-                      onChange={(e) => setScheduleDate(e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                    />
+                      <input
+                        className="adm-input"
+                        type="date"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        min={getLocalDateInputMin()}
+                      />
                   </div>
                   <div className="adm-form-group" style={{ marginBottom: 0 }}>
                     <label className="adm-label">Time</label>
