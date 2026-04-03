@@ -27,11 +27,13 @@ const NAV = [
 
 export const AdminSidebar: React.FC<SidebarProps> = ({ onLogout }) => (
   <aside className="adm-sidebar">
+    {/* Logo */}
     <div className="adm-sidebar-logo">
       <h2>KARAHOCA</h2>
       <span>Admin Dashboard</span>
     </div>
 
+    {/* Navigation */}
     <nav className="adm-nav">
       {NAV.map((group) => (
         <div key={group.group} style={{ marginBottom: 8 }}>
@@ -52,6 +54,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ onLogout }) => (
       ))}
     </nav>
 
+    {/* Footer */}
     <div className="adm-sidebar-footer">
       <button
         className="adm-nav-link adm-btn-ghost"
