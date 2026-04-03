@@ -29,7 +29,18 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
     try {
       const result = await adminApi.translate({ fields, sourceLang });
       if (result.success && result.translations) {
-        onTranslated(result.translations as Record<string, Record<string, string>>);
+        // Backend returns lang-first: { ar: { field: val }, en: { field: val } }
+        // Callbacks expect field-first: { field: { ar: val, en: val } }
+        const raw = result.translations as Record<string, Record<string, string>>;
+        const fieldFirst: Record<string, Record<string, string>> = {};
+        for (const [lang, fieldValues] of Object.entries(raw)) {
+          if (!fieldValues || typeof fieldValues !== 'object') continue;
+          for (const [field, value] of Object.entries(fieldValues)) {
+            if (!fieldFirst[field]) fieldFirst[field] = {};
+            fieldFirst[field][lang] = value;
+          }
+        }
+        onTranslated(fieldFirst);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
