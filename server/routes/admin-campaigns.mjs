@@ -174,8 +174,12 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, reque
     : '';
 
   const unsub = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(email)}&lang=${lang}`;
-  const pixelBaseUrl = trimTrailingSlash(API_PUBLIC_URL || requestHostOrigin || SITE_URL);
-  const pixel = pixelBaseUrl ? `${pixelBaseUrl}/api/email/open?id=${sendId}` : '';
+  const apiBaseUrl = trimTrailingSlash(API_PUBLIC_URL || requestHostOrigin || SITE_URL);
+  const pixel = apiBaseUrl ? `${apiBaseUrl}/api/email/open?id=${sendId}` : '';
+  // Wrap the main CTA link with click tracking redirect
+  const ctaHref = apiBaseUrl
+    ? `${apiBaseUrl}/api/email/click?id=${sendId}&url=${encodeURIComponent(SITE_URL)}`
+    : SITE_URL;
   const logoBlock = `<div style="color:#ffffff;font-size:28px;font-weight:700;letter-spacing:1px">KARAHOCA</div>`;
 
   const html = `<!DOCTYPE html>
@@ -207,7 +211,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, reque
           <td style="padding:40px;direction:${dir};text-align:${isRtl ? 'right' : 'left'};color:#1a1a2e;font-size:15px;line-height:1.7">
             ${bodyHtml}
             <div style="margin-top:28px;text-align:center">
-              <a href="${SITE_URL}" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#4f6ef7,#6b84ff);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
+              <a href="${ctaHref}" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#4f6ef7,#6b84ff);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
                 ${isRtl ? 'زيارة الموقع' : lang === 'tr' ? 'Siteyi Ziyaret Et' : lang === 'ru' ? 'Посетить сайт' : 'Visit Website'} →
               </a>
             </div>
@@ -308,22 +312,33 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
 
   if (!subscribers.length) {
     db.prepare("UPDATE email_campaigns SET status='sent', sent_at=datetime('now'), recipient_count=0 WHERE id=?").run(campaignId);
-    return { sent: 0 };
+    return { sent: 0, sentA: 0, sentB: 0, errors: [] };
   }
 
-  // Map subscriber emails to a language (default ar)
+  // Detect if A/B test is configured (subject_b_ar must be filled)
+  const hasAbTest = !!(campaign.subject_b_ar || campaign.subject_b_en);
+
   let sent = 0;
   const errors = [];
+  let sentA = 0;
+  let sentB = 0;
 
-  for (const { email } of subscribers) {
+  for (let i = 0; i < subscribers.length; i++) {
+    const { email } = subscribers[i];
     const lang = 'ar'; // default — future: store subscriber preferred language
-    const subject = campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title;
-    const body    = campaign[`body_${lang}`]    || campaign.body_ar    || '';
+
+    // Assign A/B variant: alternate evenly
+    const variant = (hasAbTest && i % 2 === 1) ? 'b' : 'a';
+
+    const subject = variant === 'b'
+      ? (campaign[`subject_b_${lang}`] || campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title)
+      : (campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title);
+    const body = campaign[`body_${lang}`] || campaign.body_ar || '';
 
     // Insert a send record first to get the ID for the tracking pixel
     const info = db.prepare(
-      'INSERT INTO email_sends(campaign_id, email) VALUES(?,?)'
-    ).run(campaignId, email);
+      'INSERT INTO email_sends(campaign_id, email, ab_variant) VALUES(?,?,?)'
+    ).run(campaignId, email, variant);
     const sendId = info.lastInsertRowid;
 
     try {
@@ -344,6 +359,7 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
       });
       db.prepare('UPDATE email_sends SET resend_id=? WHERE id=?').run(resendId, sendId);
       sent++;
+      if (variant === 'b') sentB++; else sentA++;
     } catch (err) {
       errors.push({ email, error: err.message });
     }
@@ -353,7 +369,28 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
     "UPDATE email_campaigns SET status='sent', sent_at=datetime('now'), recipient_count=? WHERE id=?"
   ).run(sent, campaignId);
 
-  return { sent, errors };
+  return { sent, sentA, sentB, errors };
+};
+
+// ── Click tracking redirect ───────────────────────────────────────────────────
+export const handleEmailClick = (req, res) => {
+  const u = new URL(req.url, 'http://localhost');
+  const sendId = parseInt(u.searchParams.get('id') || '0', 10);
+  const targetUrl = u.searchParams.get('url') || '';
+
+  if (sendId > 0 && targetUrl) {
+    try {
+      const db = getDb();
+      db.prepare(
+        'INSERT INTO email_link_clicks(send_id, url) VALUES(?,?)'
+      ).run(sendId, targetUrl.slice(0, 500));
+    } catch { /* non-fatal */ }
+  }
+
+  // Validate URL before redirecting (allow only http/https)
+  const safe = /^https?:\/\//i.test(targetUrl) ? targetUrl : '/';
+  res.writeHead(302, { Location: safe, 'Cache-Control': 'no-store' });
+  res.end();
 };
 
 // ── Open tracking pixel ───────────────────────────────────────────────────────
@@ -386,7 +423,21 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     const id = parseInt(statsMatch[1], 10);
     const campaign = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id);
     if (!campaign) { sendJson(res, 404, { error: 'Not found' }, origin); return; }
-    const sends = db.prepare('SELECT email, opened, opened_at, created_at FROM email_sends WHERE campaign_id=?').all(id);
+    const sends = db.prepare(`
+      SELECT
+        es.id,
+        es.email,
+        es.opened,
+        es.opened_at,
+        es.created_at,
+        es.ab_variant,
+        COUNT(lc.id) AS click_count
+      FROM email_sends es
+      LEFT JOIN email_link_clicks lc ON lc.send_id = es.id
+      WHERE es.campaign_id = ?
+      GROUP BY es.id
+      ORDER BY es.id
+    `).all(id);
     sendJson(res, 200, { success: true, campaign, sends }, origin);
     return;
   }
@@ -436,7 +487,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     }
 
     if (req.method === 'PUT') {
-      const fields = ['title','template_type','subject_ar','subject_en','subject_tr','subject_ru','body_ar','body_en','body_tr','body_ru','image_url'];
+      const fields = ['title','template_type','subject_ar','subject_en','subject_tr','subject_ru','subject_b_ar','subject_b_en','subject_b_tr','subject_b_ru','body_ar','body_en','body_tr','body_ru','image_url'];
       const sets = fields.filter(f => body[f] !== undefined).map(f => `${f}=@${f}`).join(', ');
       if (sets) db.prepare(`UPDATE email_campaigns SET ${sets}, updated_at=datetime('now') WHERE id=@id`).run({ ...body, id });
       sendJson(res, 200, { success: true, campaign: db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id) }, origin);
@@ -461,13 +512,24 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   if (req.method === 'POST') {
     if (!body.title) { sendJson(res, 400, { error: 'title required' }, origin); return; }
     const info = db.prepare(`
-      INSERT INTO email_campaigns(title,template_type,subject_ar,subject_en,subject_tr,subject_ru,body_ar,body_en,body_tr,body_ru,image_url)
-      VALUES(@title,@template_type,@subject_ar,@subject_en,@subject_tr,@subject_ru,@body_ar,@body_en,@body_tr,@body_ru,@image_url)
+      INSERT INTO email_campaigns(
+        title,template_type,
+        subject_ar,subject_en,subject_tr,subject_ru,
+        subject_b_ar,subject_b_en,subject_b_tr,subject_b_ru,
+        body_ar,body_en,body_tr,body_ru,image_url
+      ) VALUES(
+        @title,@template_type,
+        @subject_ar,@subject_en,@subject_tr,@subject_ru,
+        @subject_b_ar,@subject_b_en,@subject_b_tr,@subject_b_ru,
+        @body_ar,@body_en,@body_tr,@body_ru,@image_url
+      )
     `).run({
       title:         body.title,
       template_type: body.template_type || 'custom',
       subject_ar:    body.subject_ar || '', subject_en: body.subject_en || '',
       subject_tr:    body.subject_tr || '', subject_ru: body.subject_ru || '',
+      subject_b_ar:  body.subject_b_ar || '', subject_b_en: body.subject_b_en || '',
+      subject_b_tr:  body.subject_b_tr || '', subject_b_ru: body.subject_b_ru || '',
       body_ar:       body.body_ar || '', body_en: body.body_en || '',
       body_tr:       body.body_tr || '', body_ru: body.body_ru || '',
       image_url:     body.image_url || null,

@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 
 const DEFAULT_JWT_SECRET = 'karahoca_admin_secret_change_in_production';
 const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '365d'; // permanent session (1 year)
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Warn on startup if JWT_SECRET is weak

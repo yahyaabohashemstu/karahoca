@@ -3,22 +3,26 @@ import { getDb } from '../db.mjs';
 export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
   const db = getDb();
 
-  // Last 30 days of daily_stats
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  // Accept ?days=30|60|90 (default 30, capped at 365)
+  const urlObj = new URL(req.url, 'http://localhost');
+  const rawDays = parseInt(urlObj.searchParams.get('days') || '30', 10);
+  const days = Number.isFinite(rawDays) && rawDays > 0 ? Math.min(rawDays, 365) : 30;
+
+  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   const dailyData = db.prepare(`
     SELECT date, metric, value FROM daily_stats
     WHERE date >= ? ORDER BY date ASC
-  `).all(thirtyDaysAgo);
+  `).all(since);
 
-  // Chat messages per day (from chat_messages table)
+  // Chat messages per day
   const chatPerDay = db.prepare(`
     SELECT date(created_at) as date, COUNT(*) as count
     FROM chat_messages
     WHERE date(created_at) >= ?
     GROUP BY date(created_at)
     ORDER BY date ASC
-  `).all(thirtyDaysAgo);
+  `).all(since);
 
   // Newsletter signups per day
   const newsletterPerDay = db.prepare(`
@@ -27,7 +31,7 @@ export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
     WHERE date(subscribed_at) >= ? AND active=1
     GROUP BY date(subscribed_at)
     ORDER BY date ASC
-  `).all(thirtyDaysAgo);
+  `).all(since);
 
   // Language distribution of chat users
   const langDistribution = db.prepare(`
@@ -45,7 +49,7 @@ export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
     LIMIT 10
   `).all();
 
-  // Total stats summary
+  // Total stats summary (all-time)
   const summary = db.prepare(`
     SELECT
       (SELECT COUNT(*) FROM chat_messages) as total_messages,
@@ -57,6 +61,7 @@ export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
 
   sendJson(res, 200, {
     success: true,
+    days,
     summary,
     chatPerDay,
     newsletterPerDay,

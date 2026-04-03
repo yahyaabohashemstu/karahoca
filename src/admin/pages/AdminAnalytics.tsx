@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
@@ -257,11 +257,20 @@ const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
   </div>
 );
 
+const PERIOD_OPTIONS = [
+  { label: '30 days', days: 30 },
+  { label: '60 days', days: 60 },
+  { label: '90 days', days: 90 },
+];
+
 export const AdminAnalytics: React.FC = () => {
-  const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(), []);
+  const [period, setPeriod] = useState(30);
+  const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(period), [period]);
   const ga = useAsync<GaData>(() => adminApi.getGaData(), []);
   const gad = ga.data;
   const summary = internal.data?.summary;
+
+  const handlePrint = () => window.print();
 
   return (
     <div className="adm-analytics-page">
@@ -273,11 +282,43 @@ export const AdminAnalytics: React.FC = () => {
             A cleaner view of Google Analytics 4 plus internal bot and newsletter activity, organized for faster reading and comparison.
           </p>
         </div>
-        <div className="adm-analytics-status-card">
-          <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
-          <div>
-            <strong>{gad?.configured ? 'GA4 connected' : 'GA4 not configured'}</strong>
-            <span>{gad?.configured ? 'Traffic and device insights are available below.' : 'Add the property configuration to unlock reporting.'}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
+          {/* Period selector */}
+          <div style={{ display: 'flex', gap: 6, background: 'var(--adm-surface2)', borderRadius: 8, padding: 4 }}>
+            {PERIOD_OPTIONS.map(opt => (
+              <button
+                key={opt.days}
+                onClick={() => setPeriod(opt.days)}
+                style={{
+                  padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, transition: 'all .15s',
+                  background: period === opt.days ? 'var(--adm-accent)' : 'transparent',
+                  color: period === opt.days ? '#fff' : 'var(--adm-text-muted)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {/* Export PDF button */}
+          <button
+            onClick={handlePrint}
+            title="Export as PDF"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 8, border: '1px solid var(--adm-border)',
+              background: 'var(--adm-surface2)', color: 'var(--adm-text-muted)',
+              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}
+          >
+            🖨️ Export PDF
+          </button>
+          <div className="adm-analytics-status-card">
+            <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
+            <div>
+              <strong>{gad?.configured ? 'GA4 connected' : 'GA4 not configured'}</strong>
+              <span>{gad?.configured ? 'Traffic and device insights are available below.' : 'Add the property configuration to unlock reporting.'}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -317,7 +358,7 @@ export const AdminAnalytics: React.FC = () => {
                   id="ga-sessions"
                   data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: `${item.users} users` }))}
                   accent="#6b84ff"
-                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days`}
+                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days (GA4 window is fixed)`}
                 />
               </Panel>
             )}
@@ -405,7 +446,7 @@ export const AdminAnalytics: React.FC = () => {
                 id="chat-per-day"
                 data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#5eaeff"
-                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the selected period`}
+                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the last ${period} days`}
               />
             </Panel>
 
@@ -414,7 +455,7 @@ export const AdminAnalytics: React.FC = () => {
                 id="newsletter-per-day"
                 data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#34d399"
-                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the selected period`}
+                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the last ${period} days`}
               />
             </Panel>
           </div>

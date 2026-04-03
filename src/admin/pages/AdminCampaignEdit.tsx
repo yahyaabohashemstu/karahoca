@@ -39,6 +39,7 @@ type CompressedImage = { base64: string; fileName: string };
 const empty = (): Partial<Campaign> => ({
   title: '', template_type: 'custom',
   subject_ar: '', subject_en: '', subject_tr: '', subject_ru: '',
+  subject_b_ar: '', subject_b_en: '', subject_b_tr: '', subject_b_ru: '',
   body_ar: '', body_en: '', body_tr: '', body_ru: '',
   image_url: '',
 });
@@ -123,7 +124,10 @@ export const AdminCampaignEdit: React.FC = () => {
           setSends(r.sends);
           setStatsLoaded(true);
         })
-        .catch(() => {});
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Failed to load stats');
+          setStatsLoaded(true); // stop the spinner even on error
+        });
     }
   }, [activeTab, id, isNew, statsLoaded]);
 
@@ -150,6 +154,10 @@ export const AdminCampaignEdit: React.FC = () => {
         body_tr: '',
         subject_ru: '',
         body_ru: '',
+        subject_b_ar: '',
+        subject_b_en: '',
+        subject_b_tr: '',
+        subject_b_ru: '',
       }));
     } else {
       setForm((f) => ({ ...f, template_type: type as Campaign['template_type'] }));
@@ -300,7 +308,10 @@ export const AdminCampaignEdit: React.FC = () => {
       const r = await adminApi.sendCampaign(parseInt(id!, 10), {
         excludedEmails: excluded.size > 0 ? [...excluded] : [],
       });
-      setSuccess(`✅ Sent to ${r.sent} subscriber${r.sent !== 1 ? 's' : ''}!`);
+      const abNote = (r.sentA !== undefined && r.sentB !== undefined && r.sentB > 0)
+        ? ` (A: ${r.sentA}, B: ${r.sentB})`
+        : '';
+      setSuccess(`✅ Sent to ${r.sent} subscriber${r.sent !== 1 ? 's' : ''}${abNote}!`);
       await refreshCampaign();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Send failed');
@@ -617,14 +628,33 @@ export const AdminCampaignEdit: React.FC = () => {
             {LANGS.filter((l) => l.key === lang).map((l) => (
               <div key={l.key} style={{ direction: l.dir, textAlign: l.dir === 'rtl' ? 'right' : 'left' }}>
                 <div className="adm-form-group">
-                  <label className="adm-label">Subject Line</label>
+                  <label className="adm-label">Subject Line — Group A</label>
                   <input
                     className="adm-input"
                     value={(form as Record<string, string>)[`subject_${l.key}`] || ''}
                     onChange={(e) => set(`subject_${l.key}`, e.target.value)}
-                    placeholder="Email subject..."
+                    placeholder="Email subject for Group A (everyone if no B)..."
                     dir={l.dir}
                   />
+                </div>
+                <div className="adm-form-group">
+                  <label className="adm-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Subject Line — Group B
+                    <span style={{ fontSize: 10, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>A/B TEST</span>
+                  </label>
+                  <input
+                    className="adm-input"
+                    value={(form as Record<string, string>)[`subject_b_${l.key}`] || ''}
+                    onChange={(e) => set(`subject_b_${l.key}`, e.target.value)}
+                    placeholder="Leave empty to send same subject to everyone..."
+                    dir={l.dir}
+                    style={{ borderColor: (form as Record<string, string>)[`subject_b_${l.key}`] ? 'rgba(139,92,246,0.5)' : undefined }}
+                  />
+                  {(form as Record<string, string>)[`subject_b_${l.key}`] && (
+                    <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4 }}>
+                      ✓ A/B test active — odd-numbered subscribers will receive Subject B
+                    </div>
+                  )}
                 </div>
                 <div className="adm-form-group">
                   <label className="adm-label">Email Body</label>
@@ -649,7 +679,8 @@ export const AdminCampaignEdit: React.FC = () => {
 
       {activeTab === 'stats' && !isNew && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+          {/* ── Summary cards ─────────────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginBottom: 24 }}>
             <div className="adm-stat-card">
               <div className="adm-stat-icon">👥</div>
               <div className="adm-stat-label">Recipients</div>
@@ -667,33 +698,115 @@ export const AdminCampaignEdit: React.FC = () => {
                 {form.recipient_count ? `${Math.round((form.open_count! / form.recipient_count) * 100)}%` : '—'}
               </div>
             </div>
+            <div className="adm-stat-card">
+              <div className="adm-stat-icon">🔗</div>
+              <div className="adm-stat-label">Clicks</div>
+              <div className="adm-stat-value" style={{ color: '#f59e0b' }}>
+                {sends.reduce((sum, s) => sum + (s.click_count ?? 0), 0)}
+              </div>
+            </div>
           </div>
 
+          {/* ── A/B breakdown (shown only if variant data exists) ─────────── */}
+          {sends.some(s => s.ab_variant === 'b') && (() => {
+            const groupA = sends.filter(s => s.ab_variant !== 'b');
+            const groupB = sends.filter(s => s.ab_variant === 'b');
+            const rate = (group: typeof sends) =>
+              group.length ? `${Math.round((group.filter(s => s.opened).length / group.length) * 100)}%` : '—';
+            const clicks = (group: typeof sends) => group.reduce((n, s) => n + (s.click_count ?? 0), 0);
+            return (
+              <div className="adm-card" style={{ marginBottom: 24 }}>
+                <div className="adm-card-title" style={{ marginBottom: 14 }}>
+                  🧪 A/B Test Results
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[{ label: 'Group A', group: groupA, color: '#4f6ef7' }, { label: 'Group B', group: groupB, color: '#8b5cf6' }].map(({ label, group, color }) => (
+                    <div key={label} style={{ background: 'var(--adm-surface2)', borderRadius: 10, padding: '14px 18px', border: `1px solid ${color}40` }}>
+                      <div style={{ fontWeight: 700, color, marginBottom: 10, fontSize: 14 }}>{label}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span className="adm-text-muted">Recipients</span>
+                          <strong>{group.length}</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span className="adm-text-muted">Opens</span>
+                          <strong style={{ color: '#22c55e' }}>{group.filter(s => s.opened).length}</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span className="adm-text-muted">Open Rate</span>
+                          <strong style={{ color }}>{rate(group)}</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span className="adm-text-muted">Clicks</span>
+                          <strong style={{ color: '#f59e0b' }}>{clicks(group)}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Delivery table ─────────────────────────────────────────────── */}
           <div className="adm-card">
             <div className="adm-card-title" style={{ marginBottom: 14 }}>Delivery Details</div>
-            {!sends.length ? (
-              <p className="adm-text-muted adm-text-sm">Loading…</p>
-            ) : (
-              <table className="adm-table" style={{ fontSize: 12 }}>
-                <thead><tr><th>Email</th><th>Sent</th><th>Opened</th><th>Open Time</th></tr></thead>
-                <tbody>
-                  {sends.map((s) => (
-                    <tr key={s.id}>
-                      <td className="adm-mono">{s.email}</td>
-                      <td>{fmtDate(s.created_at)}</td>
-                      <td>
-                        {s.opened ? (
-                          <span style={{ color: '#22c55e', fontWeight: 700 }}>✅ Yes</span>
-                        ) : (
-                          <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
-                        )}
-                      </td>
-                      <td>{s.opened_at ? fmtDate(s.opened_at) : '—'}</td>
+            {!statsLoaded ? (
+              <p className="adm-text-muted adm-text-sm"><span className="adm-spinner" style={{ width: 14, height: 14, marginRight: 8 }} />Loading…</p>
+            ) : !sends.length ? (
+              <p className="adm-text-muted adm-text-sm">No emails sent yet for this campaign.</p>
+            ) : (() => {
+              // Compute once — avoids O(n²) inside the row map
+              const hasVariant = sends.some(s => s.ab_variant);
+              return (
+                <table className="adm-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      {hasVariant && <th>Variant</th>}
+                      <th>Sent</th>
+                      <th>Opened</th>
+                      <th>Clicks</th>
+                      <th>Open Time</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {sends.map((s) => (
+                      <tr key={s.id}>
+                        <td className="adm-mono">{s.email}</td>
+                        {hasVariant && (
+                          <td>
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+                              background: s.ab_variant === 'b' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
+                              color: s.ab_variant === 'b' ? '#8b5cf6' : '#4f6ef7',
+                            }}>
+                              {s.ab_variant?.toUpperCase() ?? 'A'}
+                            </span>
+                          </td>
+                        )}
+                        <td>{fmtDate(s.created_at)}</td>
+                        <td>
+                          {s.opened ? (
+                            <span style={{ color: '#22c55e', fontWeight: 700 }}>✅ Yes</span>
+                          ) : (
+                            <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
+                          )}
+                        </td>
+                        <td>
+                          {(s.click_count ?? 0) > 0 ? (
+                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{s.click_count}</span>
+                          ) : (
+                            <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
+                          )}
+                        </td>
+                        <td>{s.opened_at ? fmtDate(s.opened_at) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -13,8 +13,11 @@ import DryerPage from './pages/DryerPage';
 import AyluxPage from './pages/AyluxPage';
 import AboutPage from './pages/AboutPage';
 import NewsPage from './pages/NewsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import WishlistPage from './pages/WishlistPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
+import BackToTopButton from './components/BackToTopButton';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import MobileLayout from './mobile/MobileLayout';
 import MobileHome from './mobile/MobileHome';
@@ -80,11 +83,14 @@ function MainSite() {
                   <Route path="/production" element={<MobileProductionPage />} />
                   <Route path="/goal" element={<MobileGoalPage />} />
                   <Route path="/dryer" element={<MobileDryerPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </MobileLayout>
               <AIChatWidget />
               <ThemeToggle />
               <WhatsAppButton phoneNumber="905305914990" />
+              <BackToTopButton />
             </div>
           ) : (
             <div className="App" dir={currentDir} lang={currentLang}>
@@ -97,10 +103,13 @@ function MainSite() {
                 <Route path="/production" element={<ProductionPage />} />
                 <Route path="/goal" element={<GoalPage />} />
                 <Route path="/dryer" element={<DryerPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AIChatWidget />
               <ThemeToggle />
               <WhatsAppButton phoneNumber="905305914990" />
+              <BackToTopButton />
             </div>
           )}
         </>

@@ -2267,3 +2267,43 @@
     flex: 1 1 auto;
   }
 }
+
+/* ── Print / PDF Export ──────────────────────────────────────────────────── */
+@media print {
+  .adm-sidebar,
+  .adm-topbar,
+  .adm-btn,
+  .adm-tabs,
+  button {
+    display: none !important;
+  }
+  .adm-shell {
+    display: block !important;
+  }
+  .adm-main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  body, .adm-analytics-page {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .adm-analytics-metric-card,
+  .adm-analytics-panel,
+  .adm-card {
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+  }
+  .adm-trend-svg {
+    max-width: 100% !important;
+  }
+  .adm-analytics-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

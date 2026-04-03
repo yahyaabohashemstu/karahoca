@@ -77,7 +77,7 @@ export const adminApi = {
 
   getStats: () => request<AdminStats>('GET', '/api/admin/stats'),
 
-  getAnalytics: () => request<AdminAnalytics>('GET', '/api/admin/analytics'),
+  getAnalytics: (days?: number) => request<AdminAnalytics>('GET', `/api/admin/analytics${days ? `?days=${days}` : ''}`),
 
   getGaData: () => request<GaData>('GET', '/api/admin/ga'),
 
@@ -155,7 +155,7 @@ export const adminApi = {
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
   sendCampaign: (id: number, opts?: { excludedEmails?: string[] }) =>
-    request<{ success: boolean; sent: number; errors: Array<{ email: string; error: string }> }>(
+    request<{ success: boolean; sent: number; sentA?: number; sentB?: number; errors: Array<{ email: string; error: string }> }>(
       'POST', `/api/admin/campaigns/${id}/send`,
       opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
     ),
@@ -203,6 +203,7 @@ export interface AdminStats {
 
 export interface AdminAnalytics {
   success: boolean;
+  days?: number;
   summary: {
     total_messages: number;
     total_users: number;
@@ -304,6 +305,8 @@ export interface Campaign {
   title: string;
   template_type: 'custom' | 'new_product' | 'offer' | 'news';
   subject_ar: string; subject_en: string; subject_tr: string; subject_ru: string;
+  /** A/B testing: alternate subject lines for group B */
+  subject_b_ar?: string; subject_b_en?: string; subject_b_tr?: string; subject_b_ru?: string;
   body_ar: string; body_en: string; body_tr: string; body_ru: string;
   image_url?: string;
   status: 'draft' | 'scheduled' | 'sent';
@@ -315,7 +318,13 @@ export interface Campaign {
   updated_at: string;
 }
 export interface CampaignSend {
-  id: number; email: string; opened: number; opened_at?: string; created_at: string;
+  id: number;
+  email: string;
+  opened: number;
+  opened_at?: string;
+  created_at: string;
+  ab_variant?: 'a' | 'b';
+  click_count?: number;
 }
 
 // ── AI Knowledge ─────────────────────────────────────────────────────────────

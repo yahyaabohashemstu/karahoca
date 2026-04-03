@@ -15,7 +15,7 @@ import { handleAdminNews } from './routes/admin-news.mjs';
 import { handleAdminNewsletter } from './routes/admin-newsletter.mjs';
 import { handleAdminTranslate } from './routes/admin-translate.mjs';
 import { handleAdminGa } from './routes/admin-ga.mjs';
-import { handleAdminCampaigns, handleEmailOpen, dispatchCampaign } from './routes/admin-campaigns.mjs';
+import { handleAdminCampaigns, handleEmailOpen, handleEmailClick, dispatchCampaign } from './routes/admin-campaigns.mjs';
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
@@ -561,6 +561,12 @@ const server = createServer(async (request, response) => {
     // Open tracking pixel (public — no auth needed)
     if (request.method === 'GET' && url === '/api/email/open') {
       handleEmailOpen(request, response);
+      return;
+    }
+
+    // Click tracking redirect (public — no auth needed)
+    if (request.method === 'GET' && url.startsWith('/api/email/click')) {
+      handleEmailClick(request, response);
       return;
     }
 

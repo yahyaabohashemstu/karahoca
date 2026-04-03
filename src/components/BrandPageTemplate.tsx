@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FlipBook from './FlipBook';
+import { useWishlist } from '../hooks/useWishlist';
 
 interface ProductInfo {
   name: string;
@@ -66,6 +68,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
+  const { isInWishlist, toggle, items: wishlistItems } = useWishlist();
 
   const openImagePopup = (product: ProductInfo) => {
     setSelectedProduct(product);
@@ -177,9 +180,22 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
         <section id="products" className="section glass-section">
           <div className="section-divider"></div>
-          <div className="container section__head fx-reveal">
-            <h2 className="section-title">{productsTitle}</h2>
-            <p className="section-subtitle">{productsSubtitle}</p>
+          <div className="container section__head fx-reveal" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <h2 className="section-title">{productsTitle}</h2>
+              <p className="section-subtitle">{productsSubtitle}</p>
+            </div>
+            {wishlistItems.length > 0 && (
+              <Link
+                to="/wishlist"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1.25rem', borderRadius: 8, background: 'rgba(79,110,247,0.15)', border: '1px solid rgba(79,110,247,0.35)', color: '#6b84ff', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
+              >
+                ♥ {t('brandPage.wishlist', 'Wishlist')}
+                <span style={{ background: '#4f6ef7', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
+                  {wishlistItems.length}
+                </span>
+              </Link>
+            )}
           </div>
 
           {categories.map((category, categoryIndex) => (
@@ -217,13 +233,36 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                               <span className="detail-value">{product.details?.count || t('brandPage.notSpecified')}</span>
                             </div>
                           </div>
-                          <button 
-                            className="image-preview-btn"
-                            onClick={() => openImagePopup(product)}
-                            aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
-                          >
-                            {t('brandPage.viewImage')}
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button
+                              className="image-preview-btn"
+                              style={{ flex: 1 }}
+                              onClick={() => openImagePopup(product)}
+                              aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
+                            >
+                              {t('brandPage.viewImage')}
+                            </button>
+                            <button
+                              onClick={() => {
+                                const id = `${brandName}-${product.name}`;
+                                toggle({ id, name: product.name, description: product.description, image: product.image, alt: product.alt, brand: brandName, details: product.details });
+                              }}
+                              title={isInWishlist(`${brandName}-${product.name}`) ? t('brandPage.removeWishlist', 'Remove from Wishlist') : t('brandPage.addWishlist', 'Add to Wishlist')}
+                              aria-label={isInWishlist(`${brandName}-${product.name}`) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                              style={{
+                                padding: '0 12px',
+                                borderRadius: 8,
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: isInWishlist(`${brandName}-${product.name}`) ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
+                                color: isInWishlist(`${brandName}-${product.name}`) ? '#ef4444' : 'rgba(255,255,255,0.6)',
+                                cursor: 'pointer',
+                                fontSize: '1.1rem',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {isInWishlist(`${brandName}-${product.name}`) ? '♥' : '♡'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

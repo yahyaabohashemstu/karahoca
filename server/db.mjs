@@ -244,6 +244,25 @@ const migrateInitialData = () => {
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
+
+  // ── A/B Testing: add subject_b_* columns to email_campaigns ───────────────
+  for (const lang of ['ar', 'en', 'tr', 'ru']) {
+    try { db.exec(`ALTER TABLE email_campaigns ADD COLUMN subject_b_${lang} TEXT`); } catch { /* already exists */ }
+  }
+
+  // ── A/B Testing: add ab_variant column to email_sends ─────────────────────
+  try { db.exec("ALTER TABLE email_sends ADD COLUMN ab_variant TEXT DEFAULT 'a'"); } catch { /* already exists */ }
+
+  // ── Email click tracking table ─────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_link_clicks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      send_id INTEGER REFERENCES email_sends(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      clicked_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_link_clicks_send ON email_link_clicks(send_id);
+  `);
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
