@@ -454,7 +454,7 @@ const AIChatWidget: React.FC = () => {
       welcomeHintShownRef.current = true;
 
       try {
-        const audio = new Audio('/notification-sound.wav');
+        const audio = new Audio('/notification-sound.mp3');
         audio.volume = 0.5;
         audio.play().catch(() => {});
       } catch {

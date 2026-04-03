@@ -17,7 +17,6 @@ import NotFoundPage from './pages/NotFoundPage';
 import WishlistPage from './pages/WishlistPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
-import BackToTopButton from './components/BackToTopButton';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import MobileLayout from './mobile/MobileLayout';
 import MobileHome from './mobile/MobileHome';
@@ -90,7 +89,6 @@ function MainSite() {
               <AIChatWidget />
               <ThemeToggle />
               <WhatsAppButton phoneNumber="905305914990" />
-              <BackToTopButton />
             </div>
           ) : (
             <div className="App" dir={currentDir} lang={currentLang}>
@@ -109,7 +107,6 @@ function MainSite() {
               <AIChatWidget />
               <ThemeToggle />
               <WhatsAppButton phoneNumber="905305914990" />
-              <BackToTopButton />
             </div>
           )}
         </>
