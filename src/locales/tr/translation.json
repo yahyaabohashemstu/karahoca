@@ -56,6 +56,12 @@
         "satisfaction": "Müşteri Memnuniyeti"
       }
     },
+    "customOrder": {
+      "badge": "Özel Etiket & Sözleşmeli Üretim",
+      "title": "Markanız Altında Üretiyoruz",
+      "description": "Bir ürün fikriniz mi var? Sizin markanız ve etiketiniz altında üretiyoruz. Formülasyondan ambalaja kadar her şeyi 30+ yıllık üretim uzmanlığımızla yönetiyoruz.",
+      "cta": "Bize Ulaşın"
+    },
     "brands": {
       "title": "Markalarımız",
       "subtitle": "Farklı dünyalar, tek kalite.",

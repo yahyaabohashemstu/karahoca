@@ -3394,3 +3394,99 @@ body.light-mode .news-modal__close {
   .bfb-iframe { height: 380px; }
   .bfb-frame { border-radius: 14px; }
 }
+
+/* ════════════════════════════════════════════════════════
+   Custom Order / Private Label Section
+   ════════════════════════════════════════════════════════ */
+.custom-order-section {
+  padding: 28px 0;
+}
+
+.custom-order-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  background: linear-gradient(135deg, rgba(79,110,247,0.12), rgba(139,92,246,0.08));
+  border: 1px solid rgba(79,110,247,0.25);
+  border-radius: 20px;
+  padding: 32px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-order-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at 0% 50%, rgba(79,110,247,0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.custom-order-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-order-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4f6ef7;
+  background: rgba(79,110,247,0.12);
+  border: 1px solid rgba(79,110,247,0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  margin-bottom: 12px;
+}
+
+.custom-order-title {
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 800;
+  color: var(--text-primary, #f0f4ff);
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.custom-order-desc {
+  font-size: 14px;
+  color: var(--text-secondary, rgba(200,210,240,0.75));
+  line-height: 1.7;
+  max-width: 600px;
+}
+
+.custom-order-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 13px 28px;
+  border-radius: 12px;
+  background: #4f6ef7;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+
+.custom-order-cta:hover {
+  background: #3a58d6;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .custom-order-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 22px;
+    gap: 20px;
+  }
+  .custom-order-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}

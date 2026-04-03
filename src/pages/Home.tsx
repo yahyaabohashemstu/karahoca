@@ -4,6 +4,7 @@ import SEO from '../components/SEO';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import BrandsSection from '../components/BrandsSection';
+import CustomOrderSection from '../components/CustomOrderSection';
 import NewsSection from '../components/NewsSection';
 import WorkSection from '../components/WorkSection';
 import NumbersSection from '../components/NumbersSection';
@@ -33,6 +34,7 @@ const Home: React.FC = () => {
       <main>
         <Hero />
         <BrandsSection />
+        <CustomOrderSection />
         <NewsSection />
         <WorkSection />
         <NumbersSection />
