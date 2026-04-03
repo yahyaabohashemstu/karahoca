@@ -2339,11 +2339,14 @@
     max-width: 100% !important;
   }
   .adm-analytics-page {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10pt !important;
+    display: block !important;
     background: #fff !important;
     padding: 0 !important;
+  }
+
+  /* Spacing between direct page-level blocks */
+  .adm-analytics-page > * {
+    margin-bottom: 10pt !important;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -2489,8 +2492,11 @@
     border-top-width: 3pt !important;
     border-radius: 7pt !important;
     padding: 10pt 12pt !important;
+    display: block !important;
+    width: 100% !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    overflow: visible !important;
   }
 
   .adm-card {
