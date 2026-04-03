@@ -2522,23 +2522,57 @@
   /* ════════════════════════════════════════════════════════════════════════
      GRID LAYOUTS
      ════════════════════════════════════════════════════════════════════════ */
-  .adm-analytics-grid-3 {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 7pt !important;
+  /* Stack grids vertically in print — break-inside: avoid is unreliable on
+     CSS Grid children; block layout lets each card stay intact on one page */
+  .adm-analytics-grid-3,
+  .adm-analytics-grid-2 {
+    display: block !important;
     margin-bottom: 8pt !important;
   }
 
-  .adm-analytics-grid-2 {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 7pt !important;
+  .adm-analytics-grid-3 > *,
+  .adm-analytics-grid-2 > * {
+    display: block !important;
+    width: 100% !important;
     margin-bottom: 8pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .adm-analytics-panel-wide {
-    page-break-before: avoid !important;
-    break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* KPI row stays together: use flex so cards sit side-by-side on same page */
+  .adm-analytics-kpi-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6pt !important;
+    margin-bottom: 10pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .adm-analytics-kpi-grid.compact {
+    flex-wrap: wrap !important;
+    gap: 5pt !important;
+  }
+
+  .adm-analytics-kpi-grid > * {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Prevent any section wrapper from splitting across pages */
+  .adm-analytics-section,
+  .adm-analytics-hero,
+  .adm-analytics-hero-left,
+  .adm-analytics-hero-right {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
