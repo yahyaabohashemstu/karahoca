@@ -1256,6 +1256,71 @@
   gap: 12px;
 }
 
+/* ─── Analytics toolbar (period selector + export) ──────────────────── */
+.adm-analytics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--adm-border);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.adm-analytics-period-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--adm-surface2);
+  border-radius: 9px;
+  padding: 4px;
+}
+
+.adm-analytics-period-btn {
+  padding: 6px 18px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all .15s;
+  background: transparent;
+  color: var(--adm-text-muted);
+}
+
+.adm-analytics-period-btn.active {
+  background: var(--adm-accent);
+  color: #fff;
+}
+
+.adm-analytics-period-btn:not(.active):hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--adm-text);
+}
+
+.adm-analytics-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--adm-border);
+  background: var(--adm-surface2);
+  color: var(--adm-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.adm-analytics-export-btn:hover {
+  border-color: var(--adm-accent);
+  color: var(--adm-accent);
+  background: rgba(79,110,247,0.08);
+}
+
 .adm-dashboard-hero-metric,
 .adm-analytics-status-card {
   background: rgba(255,255,255,0.045);
@@ -1432,7 +1497,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 120px;
+  align-self: center;
 }
 
 .adm-analytics-status-dot {
@@ -2322,6 +2387,7 @@
   .adm-tabs,
   button,
   .adm-analytics-hero,
+  .adm-analytics-toolbar,
   .adm-loading-center,
   .adm-spinner,
   .adm-alert,

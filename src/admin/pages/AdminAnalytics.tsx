@@ -300,46 +300,32 @@ export const AdminAnalytics: React.FC = () => {
             A cleaner view of Google Analytics 4 plus internal bot and newsletter activity, organized for faster reading and comparison.
           </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
-          {/* Period selector */}
-          <div style={{ display: 'flex', gap: 6, background: 'var(--adm-surface2)', borderRadius: 8, padding: 4 }}>
-            {PERIOD_OPTIONS.map(opt => (
-              <button
-                key={opt.days}
-                onClick={() => setPeriod(opt.days)}
-                style={{
-                  padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 600, transition: 'all .15s',
-                  background: period === opt.days ? 'var(--adm-accent)' : 'transparent',
-                  color: period === opt.days ? '#fff' : 'var(--adm-text-muted)',
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {/* Export PDF button */}
-          <button
-            onClick={handlePrint}
-            title="Export as PDF"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 8, border: '1px solid var(--adm-border)',
-              background: 'var(--adm-surface2)', color: 'var(--adm-text-muted)',
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            }}
-          >
-            🖨️ Export PDF
-          </button>
-          <div className="adm-analytics-status-card">
-            <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
-            <div>
-              <strong>{gad?.configured ? 'GA4 connected' : 'GA4 not configured'}</strong>
-              <span>{gad?.configured ? 'Traffic and device insights are available below.' : 'Add the property configuration to unlock reporting.'}</span>
-            </div>
+        <div className="adm-analytics-status-card">
+          <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
+          <div>
+            <strong>{gad?.configured ? 'GA4 connected' : 'GA4 not configured'}</strong>
+            <span>{gad?.configured ? 'Traffic and device insights are available below.' : 'Add the property configuration to unlock reporting.'}</span>
           </div>
         </div>
       </section>
+
+      {/* ── Controls toolbar ─────────────────────────────────────────────────── */}
+      <div className="adm-analytics-toolbar">
+        <div className="adm-analytics-period-selector">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              key={opt.days}
+              onClick={() => setPeriod(opt.days)}
+              className={`adm-analytics-period-btn${period === opt.days ? ' active' : ''}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <button className="adm-analytics-export-btn" onClick={handlePrint} title="Export as PDF">
+          🖨️ Export PDF
+        </button>
+      </div>
 
       {ga.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading Google Analytics data…</div>}
 
