@@ -2330,14 +2330,31 @@
   }
 
   /* ── Layout: collapse shell to full width ───────────────────────────────── */
-  .adm-shell { display: block !important; }
-  .adm-layout { display: block !important; }
+  .adm-shell   { display: block !important; }
+  .adm-layout  { display: block !important; }
+
+  /* CRITICAL: adm-main is display:flex in screen CSS — must override to block
+     so that break-inside:avoid works on all descendants (Chrome ignores it
+     on flex items and their nested children) */
   .adm-main {
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-height: 0 !important;
   }
+
+  /* adm-content had no print rule at all — it's a flex child of adm-main
+     which caused break-inside to be ignored for all panels inside it */
+  .adm-content {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
   .adm-analytics-page {
     display: block !important;
     background: #fff !important;
