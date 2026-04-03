@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
-import { getLocalizedNewsItems, type LocalizedNewsItem } from '../data/news';
+import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
@@ -42,8 +42,18 @@ const NewsSection: React.FC = () => {
   const transitionTimeoutRef = useRef<number | null>(null);
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const newsItems = getLocalizedNewsItems(currentLanguage);
-  const marqueeItems = [...newsItems, ...newsItems, ...newsItems];
+  const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
+  const marqueeItems = useMemo(() => [...newsItems, ...newsItems, ...newsItems], [newsItems]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchNewsFromApi(currentLanguage).then(apiItems => {
+      if (cancelled) return;
+      if (apiItems && apiItems.length > 0) setNewsItems(apiItems);
+      else setNewsItems(getLocalizedNewsItems(currentLanguage));
+    });
+    return () => { cancelled = true; };
+  }, [currentLanguage]);
   const arrowLabels = useMemo(
     () => ARROW_LABELS[currentLanguage as keyof typeof ARROW_LABELS] ?? ARROW_LABELS.en,
     [currentLanguage]
