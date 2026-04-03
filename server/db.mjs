@@ -29,6 +29,54 @@ const loadLocale = (lang) => {
   }
 };
 
+const normalizeLegacyCatalogAssetPath = (assetPath) => {
+  if (typeof assetPath !== 'string') {
+    return assetPath;
+  }
+
+  if (assetPath.startsWith('/diox/')) {
+    return assetPath.replace('/diox/', '/diox-images/');
+  }
+
+  if (assetPath.startsWith('/aylux/')) {
+    return assetPath.replace('/aylux/', '/aylux-images/');
+  }
+
+  return assetPath;
+};
+
+const AYLUX_WEIGHT_BY_PRODUCT_ID = {
+  'aylux-general-cleaner': '750 ml',
+  'aylux-air-freshener': '400 ml',
+  'aylux-super-gel': '450 ml / 900 ml',
+  'aylux-floor-fragrance': '600 ml',
+  'aylux-glass-cleaner': '750 ml',
+  'aylux-chlorine': '900 ml / 5 L',
+  'aylux-oven-cleaner': '750 ml',
+  'aylux-flash': '900 ml',
+  'aylux-bathroom-cleaner': '750 ml',
+  'aylux-dish-gel': '1.5 kg',
+  'aylux-dish-liquid1': '700 ml',
+  'aylux-dish-liquid2': '3 L',
+  'aylux-auto-powder1': '150 g / 1.2 kg / 3.5 kg / 9 kg',
+  'aylux-auto-powder2': '2.25 kg / 3 kg',
+  'aylux-liquid-detergent': '900 ml',
+  'aylux-fabric-softener': '900 ml',
+  'aylux-stain-remover': '900 ml',
+  'aylux-regular-powder': '300 g / 600 g / 3 kg / 5 kg / 9 kg',
+  'aylux-liquid-soap1': '3 L',
+  'aylux-liquid-soap2': '400 ml',
+};
+
+const PRODUCT_CATEGORY_TITLE_KEYS = [
+  { id: 'diox-home', titleKey: 'diox.categories.homeCleaning' },
+  { id: 'diox-laundry', titleKey: 'diox.categories.laundryCleaning' },
+  { id: 'diox-personal', titleKey: 'diox.categories.personalHygiene' },
+  { id: 'aylux-home', titleKey: 'aylux.categories.homeCleaning' },
+  { id: 'aylux-laundry', titleKey: 'aylux.categories.laundry' },
+  { id: 'aylux-personal', titleKey: 'aylux.categories.personal' },
+];
+
 // ─── Init DB ────────────────────────────────────────────────────────────────
 
 let db;
@@ -193,6 +241,7 @@ const migrateInitialData = () => {
   migrateProducts();
   migrateNews();
   migrateNewsletter();
+  migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
 };
@@ -384,7 +433,7 @@ const migrateProducts = () => {
       name_tr: t('tr', `${p.k}.name`), name_ru: t('ru', `${p.k}.name`),
       desc_ar: t('ar', `${p.k}.description`), desc_en: t('en', `${p.k}.description`),
       desc_tr: t('tr', `${p.k}.description`), desc_ru: t('ru', `${p.k}.description`),
-      image: p.image,
+      image: normalizeLegacyCatalogAssetPath(p.image),
       alt_ar: t('ar', `${p.k}.alt`), alt_en: t('en', `${p.k}.alt`),
       alt_tr: t('tr', `${p.k}.alt`), alt_ru: t('ru', `${p.k}.alt`),
       weight: p.weight,
@@ -404,10 +453,10 @@ const migrateProducts = () => {
       name_tr: t('tr', `${p.k}.name`), name_ru: t('ru', `${p.k}.name`),
       desc_ar: t('ar', `${p.k}.description`), desc_en: t('en', `${p.k}.description`),
       desc_tr: t('tr', `${p.k}.description`), desc_ru: t('ru', `${p.k}.description`),
-      image: p.image,
+      image: normalizeLegacyCatalogAssetPath(p.image),
       alt_ar: t('ar', `${p.k}.alt`), alt_en: t('en', `${p.k}.alt`),
       alt_tr: t('tr', `${p.k}.alt`), alt_ru: t('ru', `${p.k}.alt`),
-      weight: t('ar', `${p.k}.weight`) !== `${p.k}.weight` ? t('ar', `${p.k}.weight`) : '',
+      weight: AYLUX_WEIGHT_BY_PRODUCT_ID[p.id] || '',
       mat_ar: t('ar', `${p.k}.material`), mat_en: t('en', `${p.k}.material`),
       mat_tr: t('tr', `${p.k}.material`), mat_ru: t('ru', `${p.k}.material`),
       cnt_ar: t('ar', `${p.k}.count`), cnt_en: t('en', `${p.k}.count`),
@@ -418,6 +467,92 @@ const migrateProducts = () => {
 
   markMigration('initial_products');
   console.log('[db] Products migration complete');
+};
+
+const migrateCatalogAssetPathsAndMetadata = () => {
+  if (hasMigration('catalog_asset_paths_and_metadata_v2')) return;
+
+  db.prepare(`
+    UPDATE products
+    SET image = REPLACE(image, '/diox/', '/diox-images/')
+    WHERE image LIKE '/diox/%'
+  `).run();
+
+  db.prepare(`
+    UPDATE products
+    SET image = REPLACE(image, '/aylux/', '/aylux-images/')
+    WHERE image LIKE '/aylux/%'
+  `).run();
+
+  db.prepare(`
+    UPDATE news
+    SET image = REPLACE(image, '/diox/', '/diox-images/')
+    WHERE image LIKE '/diox/%'
+  `).run();
+
+  db.prepare(`
+    UPDATE news
+    SET image = REPLACE(image, '/aylux/', '/aylux-images/')
+    WHERE image LIKE '/aylux/%'
+  `).run();
+
+  const updateWeight = db.prepare(`
+    UPDATE products
+    SET weight = ?
+    WHERE id = ?
+      AND (weight IS NULL OR TRIM(weight) = '')
+  `);
+
+  for (const [productId, weight] of Object.entries(AYLUX_WEIGHT_BY_PRODUCT_ID)) {
+    updateWeight.run(weight, productId);
+  }
+
+  const langs = ['ar', 'en', 'tr', 'ru'];
+  const locale = {};
+  for (const l of langs) locale[l] = loadLocale(l);
+  const t = (lang, key) => get(locale[lang], key) || key;
+
+  const readCategory = db.prepare(`
+    SELECT id, title_ar, title_en, title_tr, title_ru
+    FROM product_categories
+    WHERE id = ?
+  `);
+  const updateCategory = db.prepare(`
+    UPDATE product_categories
+    SET title_ar = @title_ar,
+        title_en = @title_en,
+        title_tr = @title_tr,
+        title_ru = @title_ru
+    WHERE id = @id
+  `);
+
+  for (const category of PRODUCT_CATEGORY_TITLE_KEYS) {
+    const existing = readCategory.get(category.id);
+    if (!existing) continue;
+
+    const shouldReplace = (value) =>
+      !value || value.trim().length === 0 || value === category.titleKey;
+
+    const next = {
+      id: category.id,
+      title_ar: shouldReplace(existing.title_ar) ? t('ar', category.titleKey) : existing.title_ar,
+      title_en: shouldReplace(existing.title_en) ? t('en', category.titleKey) : existing.title_en,
+      title_tr: shouldReplace(existing.title_tr) ? t('tr', category.titleKey) : existing.title_tr,
+      title_ru: shouldReplace(existing.title_ru) ? t('ru', category.titleKey) : existing.title_ru,
+    };
+
+    if (
+      next.title_ar !== existing.title_ar ||
+      next.title_en !== existing.title_en ||
+      next.title_tr !== existing.title_tr ||
+      next.title_ru !== existing.title_ru
+    ) {
+      updateCategory.run(next);
+    }
+  }
+
+  markMigration('catalog_asset_paths_and_metadata_v2');
+  console.log('[db] Catalog asset paths and metadata migration complete');
 };
 
 // ─── News Migration ──────────────────────────────────────────────────────────
@@ -540,7 +675,7 @@ const migrateNews = () => {
 
   for (const item of newsItems) {
     insertNews.run({
-      id: item.id, slug: item.slug, image: item.image, published_at: item.published_at,
+      id: item.id, slug: item.slug, image: normalizeLegacyCatalogAssetPath(item.image), published_at: item.published_at,
       cat_ar: item.category.ar, cat_en: item.category.en, cat_tr: item.category.tr, cat_ru: item.category.ru,
       title_ar: item.title.ar, title_en: item.title.en, title_tr: item.title.tr, title_ru: item.title.ru,
       excerpt_ar: item.excerpt.ar, excerpt_en: item.excerpt.en, excerpt_tr: item.excerpt.tr, excerpt_ru: item.excerpt.ru,

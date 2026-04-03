@@ -28,7 +28,8 @@ npm run start        # تشغيل API المحلي بعد البناء
 
 `nv
 GEMINI_API_KEY=ضع_المفتاح_هنا
-ALLOWED_ORIGINS=https://your-frontend-domain.com
+SITE_URL=https://your-frontend-domain.com
+FRONTEND_URL=https://your-frontend-domain.com
 `
 
 3. إذا كنت تشغّل الواجهة محليًا على 5173 والـ API على 5000، أضف أيضًا:
@@ -100,9 +101,10 @@ pm run build لإنشاء مجلد dist/.
 - استضف المجلد الناتج على أي خدمة استضافة ثابتة (Netlify، Vercel، Cloudflare Pages...).
 - شغّل server/server.mjs أو 
 pm run start في خدمة Node منفصلة إذا كنت تستخدم نطاق API مستقلًا.
-- إذا كان الـ frontend والـ API على نطاقين مختلفين، تأكد من ضبط ALLOWED_ORIGINS على نطاق الواجهة المنشور.
+- إذا كان الـ frontend والـ API على نطاقين مختلفين، اضبط FRONTEND_URL أو SITE_URL على نطاق الواجهة المنشور، ويمكن استخدام ALLOWED_ORIGINS للنطاقات الإضافية.
 
 ## الدعم والتواصل
 
 - البريد الرسمي: info@karahoca.com
 - واتساب خدمة العملاء: +90 530 591 4990
+

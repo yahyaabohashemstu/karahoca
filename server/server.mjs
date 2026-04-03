@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
-import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createReadStream, existsSync } from 'node:fs';
 
 import { initDb, getDb, incrementStat } from './db.mjs';
 import { requireAuth } from './auth.mjs';
@@ -18,6 +19,8 @@ import { handleAdminCampaigns, handleEmailOpen, dispatchCampaign } from './route
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
+import { startAutoBackup } from './backup.mjs';
+import { handleSitemap } from './routes/sitemap.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,19 +36,25 @@ const geminiEndpoint =
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
-const configuredAllowedOrigins = new Set(
-  (process.env.ALLOWED_ORIGINS || '')
+const explicitOriginCandidates = [
+  ...(process.env.ALLOWED_ORIGINS || '')
     .split(',')
-    .map((origin) => trimTrailingSlash(origin.trim()))
-    .filter(Boolean)
-);
+    .map((origin) => origin.trim()),
+  process.env.SITE_URL || '',
+  process.env.FRONTEND_URL || '',
+  process.env.PUBLIC_SITE_URL || '',
+  process.env.PUBLIC_APP_URL || '',
+  process.env.APP_URL || ''
+]
+  .map((origin) => trimTrailingSlash(origin))
+  .filter(Boolean);
+const configuredAllowedOrigins = new Set(explicitOriginCandidates);
 const localDevelopmentOrigins = new Set([
   'http://localhost:4173',
   'http://127.0.0.1:4173',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ]);
-
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -91,15 +100,35 @@ const getRequestHostOrigin = (request) => {
   return protocol + '://' + host;
 };
 
+const isCoolifySiblingOrigin = (requestOrigin, requestHostOrigin) => {
+  try {
+    const originUrl = new URL(requestOrigin);
+    const hostUrl = new URL(requestHostOrigin);
+    if (originUrl.protocol !== hostUrl.protocol) return false;
+
+    const originHost = originUrl.hostname.toLowerCase();
+    const hostHost = hostUrl.hostname.toLowerCase();
+    if (!originHost.includes('.coolify.') || !hostHost.includes('.coolify.')) return false;
+
+    const originParts = originHost.split('.').filter(Boolean);
+    const hostParts = hostHost.split('.').filter(Boolean);
+    if (originParts.length < 4 || hostParts.length < 4) return false;
+
+    return originParts.slice(1).join('.') === hostParts.slice(1).join('.');
+  } catch {
+    return false;
+  }
+};
+
 const isOriginAllowed = (requestOrigin, requestHostOrigin) => {
   if (!requestOrigin) return !isProduction;
   return (
     requestOrigin === requestHostOrigin ||
     configuredAllowedOrigins.has(requestOrigin) ||
+    (isProduction && isCoolifySiblingOrigin(requestOrigin, requestHostOrigin)) ||
     (!isProduction && localDevelopmentOrigins.has(requestOrigin))
   );
 };
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ensureDataDirectories = async () => {
@@ -107,15 +136,21 @@ const ensureDataDirectories = async () => {
 };
 
 const MAX_BODY_BYTES = Number.parseInt(process.env.MAX_REQUEST_BODY_BYTES || '524288', 10); // 512 KB
+// Base64 inflates by ~33 %, so 8 MB here covers a decoded 5 MB image comfortably.
+const MAX_UPLOAD_BODY_BYTES = 8 * 1024 * 1024; // 8 MB for image uploads
 
-const readRequestBody = async (request) =>
+const readRequestBody = async (request, maxBytes = MAX_BODY_BYTES) =>
   new Promise((resolve, reject) => {
     let rawBody = '';
     let totalBytes = 0;
+    let tooLarge = false;
     request.on('data', (chunk) => {
+      if (tooLarge) return;
       totalBytes += chunk.length;
-      if (totalBytes > MAX_BODY_BYTES) {
-        request.destroy();
+      if (totalBytes > maxBytes) {
+        tooLarge = true;
+        // Drain remaining data so the socket stays alive for a response
+        request.resume();
         const err = new Error('Request body too large.');
         err.statusCode = 413;
         reject(err);
@@ -124,10 +159,11 @@ const readRequestBody = async (request) =>
       rawBody += chunk;
     });
     request.on('end', () => {
+      if (tooLarge) return; // already rejected
       try { resolve(rawBody ? JSON.parse(rawBody) : {}); }
       catch { reject(new Error('Invalid JSON payload.')); }
     });
-    request.on('error', reject);
+    request.on('error', (err) => { if (!tooLarge) reject(err); });
   });
 
 const sendJson = (response, statusCode, payload, requestOrigin = '') => {
@@ -184,7 +220,69 @@ const subscribeNewsletter = async ({ email }) => {
     }
   }
 
-  return { success: true, alreadySubscribed: !!exists };
+  // ── Welcome email — awaited so errors surface in the response ────────────────
+  let welcomeEmailStatus = null; // null = not attempted (already subscribed)
+
+  if (!exists) {
+    const resendKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.FROM_EMAIL || '';
+    const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
+
+    if (!resendKey) {
+      welcomeEmailStatus = { sent: false, error: 'RESEND_API_KEY is not configured on the server.' };
+      console.warn('[welcome-email] RESEND_API_KEY is not set.');
+    } else if (!fromEmail) {
+      welcomeEmailStatus = { sent: false, error: 'FROM_EMAIL is not configured on the server.' };
+      console.warn('[welcome-email] FROM_EMAIL is not set.');
+    } else {
+      try {
+        const resp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [normalizedEmail],
+            subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
+            html: `<!DOCTYPE html><html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:linear-gradient(135deg,#1a1f3c,#2d3561);padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700">KARAHOCA</h1>
+        </td></tr>
+        <tr><td style="padding:36px 40px;text-align:right">
+          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">مرحباً بك! 🎉</h2>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.</p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.</p>
+          <p style="margin:24px 0 0;color:#888;font-size:12px">إذا لم تشترك بنفسك، يمكنك <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.</p>
+        </td></tr>
+        <tr><td style="background:#f8f9fb;padding:16px 40px;text-align:center">
+          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          welcomeEmailStatus = { sent: true, id: data.id };
+          console.log('[welcome-email] Sent OK, id:', data.id);
+        } else {
+          welcomeEmailStatus = { sent: false, error: data.message || data.name || `Resend HTTP ${resp.status}`, details: data };
+          console.warn('[welcome-email] Resend error:', JSON.stringify(data));
+        }
+      } catch (e) {
+        welcomeEmailStatus = { sent: false, error: e.message };
+        console.warn('[welcome-email] Network error:', e.message);
+      }
+    }
+  }
+
+  return { success: true, alreadySubscribed: !!exists, welcomeEmail: welcomeEmailStatus };
 };
 
 /** Build enriched prompt: append live DB products + custom Q&A */
@@ -262,6 +360,31 @@ const generateAiReply = async ({ prompt, lang }) => {
   return { success: true, reply };
 };
 
+// ─── Gemini response cache ────────────────────────────────────────────────────
+const geminiCache = new Map(); // key → { reply, expiresAt }
+const GEMINI_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCachedReply = (prompt, lang) => {
+  const key = lang + ':' + prompt;
+  const entry = geminiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    geminiCache.delete(key);
+    return null;
+  }
+  return entry.reply;
+};
+
+const setCachedReply = (prompt, lang, reply) => {
+  const key = lang + ':' + prompt;
+  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL });
+  // Limit cache size to 200 entries
+  if (geminiCache.size > 200) {
+    const firstKey = geminiCache.keys().next().value;
+    geminiCache.delete(firstKey);
+  }
+};
+
 // ─── Chat rate limiter (prevents Gemini quota abuse) ─────────────────────────
 const chatRateMap = new Map(); // ip → { count, resetAt }
 const CHAT_LIMIT = 30;         // max requests per window
@@ -291,12 +414,37 @@ setInterval(() => {
 
 const requireAdminAuth = (request, response, requestOrigin) => {
   const user = requireAuth(request);
-  if (!user) {
+  if (!user || user.role !== 'admin') {
     sendJson(response, 401, { success: false, error: 'Unauthorized.' }, requestOrigin);
     return null;
   }
   return user;
 };
+
+// ─── Static file MIME types ───────────────────────────────────────────────────
+const STATIC_MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.mjs':  'application/javascript',
+  '.css':  'text/css',
+  '.json': 'application/json',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif':  'image/gif',
+  '.svg':  'image/svg+xml',
+  '.ico':  'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.ttf':  'font/ttf',
+  '.otf':  'font/otf',
+  '.txt':  'text/plain',
+  '.xml':  'application/xml',
+  '.webmanifest': 'application/manifest+json',
+};
+const distDir = path.join(__dirname, '..', 'dist');
+const spaIndex = path.join(distDir, 'index.html');
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
@@ -343,7 +491,14 @@ const server = createServer(async (request, response) => {
           logUserQuestion(q, body.lang || 'ar', null);
         }
       }
+      // Check cache first
+      const cachedReply = getCachedReply(body.prompt, body.lang || 'ar');
+      if (cachedReply) {
+        sendJson(response, 200, { success: true, reply: cachedReply }, requestOrigin);
+        return;
+      }
       const result = await generateAiReply(body);
+      if (result?.reply) setCachedReply(body.prompt, body.lang || 'ar', result.reply);
       sendJson(response, 200, result, requestOrigin);
       return;
     }
@@ -363,6 +518,27 @@ const server = createServer(async (request, response) => {
         return;
       }
       await handleChatLog(request, response, { ...ctx, body });
+      return;
+    }
+
+    // ── Uploaded images (public — no auth needed) ─────────────────────────────
+    if (request.method === 'GET' && url.startsWith('/api/uploads/')) {
+      const fileName = path.basename(url.replace('/api/uploads/', ''));
+      const filePath = path.join(__dirname, 'data', 'uploads', fileName);
+      try {
+        const s = await stat(filePath);
+        if (!s.isFile()) throw new Error('not a file');
+        const ext = path.extname(filePath).toLowerCase();
+        const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
+        response.writeHead(200, {
+          'Content-Type': mime,
+          'Content-Length': String(s.size),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        });
+        createReadStream(filePath).pipe(response);
+      } catch {
+        sendJson(response, 404, { error: 'Not found' }, requestOrigin);
+      }
       return;
     }
 
@@ -400,7 +576,10 @@ const server = createServer(async (request, response) => {
 
     if (url.startsWith('/api/admin/')) {
       if (!requireAdminAuth(request, response, requestOrigin)) return;
-      const body = ['POST','PUT','PATCH'].includes(request.method) ? await readRequestBody(request) : {};
+      const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
+      const body = ['POST','PUT','PATCH'].includes(request.method)
+        ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
+        : {};
 
       if (url === '/api/admin/stats' && request.method === 'GET') {
         handleAdminStats(request, response, ctx);
@@ -461,24 +640,30 @@ const server = createServer(async (request, response) => {
       if (url === '/api/admin/upload-image' && request.method === 'POST') {
         const { imageBase64, fileName } = body;
         if (!imageBase64 || !fileName) {
-          sendJson(response, 400, { error: 'imageBase64 and fileName required' }, origin);
+          sendJson(response, 400, { error: 'imageBase64 and fileName required' }, requestOrigin);
           return;
         }
         const ext = (fileName.split('.').pop() || '').toLowerCase();
         if (!['jpg','jpeg','png','webp','gif'].includes(ext)) {
-          sendJson(response, 400, { error: 'Unsupported file type' }, origin);
+          sendJson(response, 400, { error: 'Unsupported file type' }, requestOrigin);
           return;
         }
         const buf = Buffer.from(imageBase64, 'base64');
         if (buf.length > 5 * 1024 * 1024) {
-          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, origin);
+          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, requestOrigin);
           return;
         }
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+        const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
         await writeFile(path.join(uploadDir, unique), buf);
-        sendJson(response, 200, { success: true, path: `/uploads/${unique}` }, origin);
+        // API_PUBLIC_URL = the publicly accessible URL of this Node.js backend
+        // (needed so email clients can load uploaded images directly from the API server,
+        //  since the nginx frontend does NOT proxy /api/ routes)
+        const apiBase = (process.env.API_PUBLIC_URL || process.env.SITE_URL || '').replace(/\/+$/, '');
+        const relativePath = `/api/uploads/${unique}`;
+        const absoluteUrl = apiBase ? `${apiBase}${relativePath}` : relativePath;
+        sendJson(response, 200, { success: true, path: relativePath, url: absoluteUrl }, requestOrigin);
         return;
       }
 
@@ -489,6 +674,53 @@ const server = createServer(async (request, response) => {
 
       sendJson(response, 404, { success: false, error: 'Admin route not found.' }, requestOrigin);
       return;
+    }
+
+    if (request.method === 'GET' && url === '/sitemap.xml') {
+      handleSitemap(request, response);
+      return;
+    }
+
+    // ── Static file serving (production SPA) ──────────────────────────────────
+    if (request.method === 'GET' && existsSync(distDir)) {
+      let decodedUrl = url;
+      try { decodedUrl = decodeURIComponent(url); } catch { decodedUrl = url; }
+      const resolved = path.resolve(distDir, decodedUrl.replace(/^\//, ''));
+      if (!resolved.startsWith(distDir + path.sep) && resolved !== distDir) {
+        sendJson(response, 403, { success: false, error: 'Forbidden.' }, requestOrigin);
+        return;
+      }
+      const filePath = resolved;
+
+      const tryServeFile = async (fp) => {
+        try {
+          const s = await stat(fp);
+          if (!s.isFile()) return false;
+          const ext = path.extname(fp).toLowerCase();
+          const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
+          const headers = { 'Content-Type': mime, 'Content-Length': String(s.size) };
+          if (ext !== '.html') headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+          response.writeHead(200, headers);
+          createReadStream(fp).pipe(response);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      if (await tryServeFile(filePath)) return;
+      if (await tryServeFile(path.join(filePath, 'index.html'))) return;
+
+      // SPA fallback — serve index.html for all unmatched GET routes
+      if (existsSync(spaIndex)) {
+        const s = await stat(spaIndex);
+        response.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': String(s.size),
+        });
+        createReadStream(spaIndex).pipe(response);
+        return;
+      }
     }
 
     sendJson(response, 404, { success: false, error: 'Route not found.' }, requestOrigin);
@@ -525,3 +757,10 @@ setInterval(async () => {
 server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
+
+startAutoBackup();
+
+
+
+
+

@@ -7,6 +7,7 @@ import { fmtDate } from '../utils/dateUtils';
 export const AdminNewsletter: React.FC = () => {
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const { data, loading, error, reload } = useAsync(
     () => adminApi.getNewsletter(page),
@@ -17,20 +18,50 @@ export const AdminNewsletter: React.FC = () => {
     if (!confirm(`Unsubscribe ${email}?`)) return;
     setDeleting(email);
     try {
-      await fetch(buildApiUrl(`/api/admin/newsletter/${encodeURIComponent(email)}`), {
+      const response = await fetch(buildApiUrl(`/api/admin/newsletter/${encodeURIComponent(email)}`), {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
       });
-      reload();
-    } catch {
-      alert('Failed to unsubscribe');
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to unsubscribe');
+      }
+      await reload();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to unsubscribe');
     } finally {
       setDeleting(null);
     }
   };
 
-  const handleExport = () => {
-    window.open(buildApiUrl('/api/admin/newsletter/export') + `?token=${getToken()}`, '_blank');
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(buildApiUrl('/api/admin/newsletter/export'), {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(payload.error || 'Failed to export subscribers');
+      }
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = 'subscribers.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to export subscribers');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const subscribers = data?.subscribers ?? [];
@@ -44,8 +75,8 @@ export const AdminNewsletter: React.FC = () => {
             {data ? `${data.total} total subscribers` : 'Loading...'}
           </p>
         </div>
-        <button className="adm-btn adm-btn-secondary adm-btn-sm" onClick={handleExport}>
-          ⬇ Export CSV
+        <button className="adm-btn adm-btn-secondary adm-btn-sm" onClick={handleExport} disabled={exporting}>
+          {exporting ? 'Exporting…' : '⬇ Export CSV'}
         </button>
       </div>
 

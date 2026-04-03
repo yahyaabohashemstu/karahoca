@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SEO from "../components/SEO";
 import type { BrandCategoryData, BrandProductInfo } from "../data/brandCatalog";
+import FlipBook from "../components/FlipBook";
 
 interface BrandAboutSection {
   title: string;
@@ -29,7 +30,7 @@ interface MobileBrandPageTemplateProps {
   productsSubtitle: string;
   categories: BrandCategoryData[];
   aboutId: string;
-  flipbookUrl?: string;
+  pdfUrl?: string;
 }
 
 export default function MobileBrandPageTemplate({
@@ -53,7 +54,7 @@ export default function MobileBrandPageTemplate({
   productsSubtitle,
   categories,
   aboutId,
-  flipbookUrl,
+  pdfUrl,
 }: MobileBrandPageTemplateProps) {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<BrandProductInfo | null>(
@@ -149,7 +150,7 @@ export default function MobileBrandPageTemplate({
         </section>
 
         {/* ── Flipbook Catalog — BEFORE products ───────────────────────── */}
-        {flipbookUrl && (
+        {pdfUrl && (
           <section id="catalog" className="m-pageSection m-container m-bfbSection">
             <div className="m-section-header">
               <h2 className="m-section-title">
@@ -159,19 +160,7 @@ export default function MobileBrandPageTemplate({
                 تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة
               </p>
             </div>
-            <div className="m-bfbFrame">
-              <div className="m-bfbFrame__bar">
-                <div className="m-bfbFrame__dots"><span/><span/><span/></div>
-                <span className="m-bfbFrame__label">📖 {brandName}</span>
-              </div>
-              <iframe
-                src={flipbookUrl}
-                allowFullScreen
-                allow="clipboard-write; fullscreen"
-                title={`${brandName} Catalog`}
-                className="m-bfbIframe"
-              />
-            </div>
+            <FlipBook pdfUrl={pdfUrl} brandName={brandName} />
           </section>
         )}
 

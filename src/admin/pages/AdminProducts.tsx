@@ -26,6 +26,17 @@ export const AdminProducts: React.FC = () => {
   };
 
   const products = data?.products ?? [];
+  const [searchQuery, setSearchQuery] = useState('');
+  const filtered = products.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (p.name_en || '').toLowerCase().includes(q) ||
+      (p.name_ar || '').includes(q) ||
+      (p.category_title_en || '').toLowerCase().includes(q) ||
+      (p.brand || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div>
@@ -34,14 +45,18 @@ export const AdminProducts: React.FC = () => {
           <h1 className="adm-page-title">Products</h1>
           <p className="adm-page-subtitle">Manage DIOX and AYLUX product catalog</p>
         </div>
-        <Link to="/admin/products/new" className="adm-btn adm-btn-primary adm-btn-sm">
-          + Add Product
-        </Link>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link to="/admin/categories" className="adm-btn adm-btn-secondary adm-btn-sm">
+            🗂️ Manage Categories
+          </Link>
+          <Link to="/admin/products/new" className="adm-btn adm-btn-primary adm-btn-sm">
+            + Add Product
+          </Link>
+        </div>
       </div>
 
-      {/* Brand filter */}
       <div className="adm-card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-        {(['', 'DIOX', 'AYLUX'] as const).map(b => (
+        {(['', 'DIOX', 'AYLUX'] as const).map((b) => (
           <button
             key={b || 'all'}
             className={`adm-btn adm-btn-sm ${brand === b ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
@@ -50,8 +65,16 @@ export const AdminProducts: React.FC = () => {
             {b || 'All Brands'}
           </button>
         ))}
-        <span className="adm-text-muted adm-text-sm" style={{ marginLeft: 'auto' }}>
-          {products.length} products
+        <input
+          type="search"
+          className="adm-input adm-input-sm"
+          placeholder="Search by name, category, brand…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ marginLeft: 'auto', width: 220 }}
+        />
+        <span className="adm-text-muted adm-text-sm">
+          {filtered.length} of {products.length}
         </span>
       </div>
 
@@ -74,9 +97,9 @@ export const AdminProducts: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {products.length === 0 ? (
+                {filtered.length === 0 ? (
                   <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>No products found.</td></tr>
-                ) : products.map((p: Product) => (
+                ) : filtered.map((p: Product) => (
                   <tr key={p.id}>
                     <td>
                       {p.image ? (
@@ -88,7 +111,7 @@ export const AdminProducts: React.FC = () => {
                         />
                       ) : <span className="adm-text-muted">—</span>}
                     </td>
-                    <td dir="rtl" style={{ maxWidth: 160 }} className="adm-truncate">{p.name_ar}</td>
+                    <td dir="rtl" style={{ maxWidth: 160, textAlign: 'right' }} className="adm-truncate">{p.name_ar}</td>
                     <td style={{ maxWidth: 160 }} className="adm-truncate">{p.name_en}</td>
                     <td><span className={`adm-badge ${p.brand === 'DIOX' ? 'adm-badge-blue' : 'adm-badge-green'}`}>{p.brand}</span></td>
                     <td className="adm-text-sm adm-text-muted">{p.category_title_en || p.category_id}</td>

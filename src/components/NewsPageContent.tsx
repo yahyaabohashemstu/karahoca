@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
-import { getLocalizedNewsItems, type LocalizedNewsItem } from '../data/news';
+import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
 
 const NewsPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const newsItems = getLocalizedNewsItems(currentLanguage);
+  const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
+  const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
   const featuredNews = newsItems[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchNewsFromApi(currentLanguage).then(apiItems => {
+      if (cancelled) return;
+      if (apiItems && apiItems.length > 0) {
+        setNewsItems(apiItems);
+      } else {
+        setNewsItems(getLocalizedNewsItems(currentLanguage));
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentLanguage]);
 
   return (
     <>

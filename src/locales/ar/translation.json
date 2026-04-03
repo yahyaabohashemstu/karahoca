@@ -287,7 +287,9 @@
       },
       "categories": {
         "homeCleaning": "تنظيف المنزل",
+        "laundry": "تنظيف الغسيل",
         "laundryCleaning": "تنظيف الغسيل",
+        "personal": "النظافة الشخصية",
         "personalHygiene": "النظافة الشخصية"
       },
       "products": {

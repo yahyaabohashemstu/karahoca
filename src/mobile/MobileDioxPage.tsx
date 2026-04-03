@@ -36,7 +36,7 @@ export default function MobileDioxPage() {
       productsSubtitle={t("diox.productsSection.subtitle")}
       categories={getDioxCategories(t)}
       aboutId="about-diox"
-      flipbookUrl="https://heyzine.com/flip-book/962ea2a11d.html"
+      pdfUrl="/Catalog/DIOX-KATALOG.pdf"
     />
   );
 }

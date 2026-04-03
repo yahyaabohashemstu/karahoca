@@ -278,7 +278,9 @@
       },
       "categories": {
         "homeCleaning": "Home Cleaning",
+        "laundry": "Laundry Cleaning",
         "laundryCleaning": "Laundry Cleaning",
+        "personal": "Personal Hygiene",
         "personalHygiene": "Personal Hygiene"
       },
       "products": {
