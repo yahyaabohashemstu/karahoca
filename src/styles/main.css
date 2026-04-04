@@ -112,6 +112,7 @@ body {
 .btn--ghost,
 .nav-link,
 .brands-partner-row,
+.brands-inner-card,
 .brands-logo-card {
   transition:
     background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),

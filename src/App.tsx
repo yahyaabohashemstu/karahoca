@@ -104,6 +104,7 @@ function MainSite() {
                 <Route path="/goal" element={<GoalPage />} />
                 <Route path="/dryer" element={<DryerPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AIChatWidget />

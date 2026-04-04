@@ -101,8 +101,8 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                 <a href="#contact" className="btn btn--ghost btn-hover-effect">{t('brandPage.requestQuote')}</a>
               </div>
               <ul className="hero__badges">
-                {badges.map((badge, index) => (
-                  <li key={index} className="chip glass-chip">{badge}</li>
+                {badges.map((badge) => (
+                  <li key={badge} className="chip glass-chip">{badge}</li>
                 ))}
               </ul>
             </div>
@@ -198,13 +198,13 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             )}
           </div>
 
-          {categories.map((category, categoryIndex) => (
-            <div key={categoryIndex} className="container">
+          {categories.map((category) => (
+            <div key={category.title} className="container">
               <h3 className="category-title gradient-heading">{category.title}</h3>
               <div className="products-grid-compact">
                 {category.products.map((product, productIndex) => (
-                  <div 
-                    key={productIndex} 
+                  <div
+                    key={product.name}
                     className="product-card-flip-container product-auto-reveal"
                     style={{ animationDelay: `${productIndex * 0.05}s` }}
                   >

@@ -778,9 +778,9 @@ const AIChatWidget: React.FC = () => {
 
           {suggestions.length > 0 && !isLoading && (
             <div className="ai-assistant__suggestions">
-              {suggestions.map((suggestion, index) => (
+              {suggestions.map((suggestion) => (
                 <button
-                  key={index}
+                  key={suggestion}
                   type="button"
                   className="ai-assistant__suggestion-btn"
                   onClick={() => handleSuggestionClick(suggestion)}
