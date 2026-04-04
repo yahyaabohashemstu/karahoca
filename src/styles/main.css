@@ -27,7 +27,8 @@ body.light-mode .glass-kpi,
 body.light-mode .glass-chip,
 body.light-mode .glass-form,
 body.light-mode .glass-input,
-body.light-mode .glass-media {
+body.light-mode .glass-media,
+body.light-mode .brands-partner-row {
   background: var(--glass-bg);
   box-shadow: var(--glass-shadow);
   color: var(--text);
@@ -70,10 +71,45 @@ body.light-mode .goal-subtitle {
 body.light-mode .work__grid,
 body.light-mode .kpis,
 body.light-mode .cards,
-body.light-mode .split {
+body.light-mode .split,
+body.light-mode .brands-partner-logos .brands-logo-chip {
   background: rgba(200, 210, 225, 0.10);
   backdrop-filter: blur(8px);
   border: 0px solid rgba(21, 61, 122, 0.3);
+}
+
+body.light-mode .brands-partner-divider {
+  background: linear-gradient(to right,
+    transparent,
+    rgba(21, 61, 122, 0.12) 20%,
+    rgba(21, 61, 122, 0.12) 80%,
+    transparent);
+}
+
+body.light-mode .brands-partner-badge {
+  color: #3a58d6;
+  background: rgba(79,110,247,0.08);
+  border-color: rgba(79,110,247,0.2);
+}
+
+body.light-mode .brands-partner-title {
+  color: var(--text);
+}
+
+body.light-mode .brands-partner-desc {
+  color: rgba(21, 24, 40, 0.65);
+}
+
+body.light-mode .brands-logos-label {
+  color: rgba(21, 61, 122, 0.35);
+}
+
+body.light-mode .brands-logo-abbr {
+  color: var(--chip-color, #3a58d6);
+}
+
+body.light-mode .brands-logo-name {
+  color: rgba(21, 40, 80, 0.55);
 }
 
 body.light-mode .site-header,
@@ -108,7 +144,9 @@ body {
 .btn,
 .btn--primary,
 .btn--ghost,
-.nav-link {
+.nav-link,
+.brands-partner-row,
+.brands-logo-chip {
   transition:
     background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
