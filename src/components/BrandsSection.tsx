@@ -9,6 +9,8 @@ const PARTNERS: { name: string; logo: string; featured?: boolean }[] = [
   { name: 'Moher Kimya',         logo: '/logos/moher-logo.png'                     },
   { name: 'M.O.K',              logo: '/logos/mok-logo.png'                       },
   { name: 'Dar Al Khairr',      logo: '/logos/dar-alkhairr-logo.png'              },
+  { name: 'Oroplus',            logo: '/logos/oroplus-logo.png'                   },
+  { name: 'Butter Fly',         logo: '/logos/butter-fly-logo.png'                },
 ];
 
 const BrandsSection: React.FC = () => {
