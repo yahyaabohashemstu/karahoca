@@ -63,6 +63,19 @@
       "cta": "WhatsApp'tan Yazın",
       "partnersLabel": "Önde gelen markalar bize güveniyor"
     },
+    "unsubscribe": {
+      "loading": "Abonelik iptal ediliyor...",
+      "loadingDesc": "Lütfen bir an bekleyin.",
+      "success": "Abonelik İptal Edildi",
+      "successDesc": "Posta listemizden çıkarıldınız. Artık bülten almayacaksınız.",
+      "already": "Zaten İptal Edilmiş",
+      "alreadyDesc": "Bu e-posta zaten posta listemizde abone değil.",
+      "notFound": "E-posta Bulunamadı",
+      "notFoundDesc": "Bu e-postayı posta listemizde bulamadık.",
+      "error": "Bir Hata Oluştu",
+      "errorDesc": "Abonelik iptal edilemedi. Lütfen daha sonra tekrar deneyin.",
+      "backHome": "Ana Sayfaya Dön"
+    },
     "brands": {
       "title": "Markalarımız",
       "subtitle": "Farklı dünyalar, tek kalite.",

@@ -13,7 +13,7 @@ interface WelcomeEmailStatus {
 }
 
 const Footer: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -68,7 +68,7 @@ const Footer: React.FC = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, lang: i18n.language })
       });
 
       if (!response.ok) {

@@ -45,7 +45,8 @@ export const runBackup = async () => {
 export const startAutoBackup = (intervalMs = BACKUP_INTERVAL_MS) => {
   // Initial backup after 30 seconds (let server fully start first)
   setTimeout(runBackup, 30_000);
-  // Then every 24 hours
-  setInterval(runBackup, intervalMs);
+  // Then every 24 hours — return interval ID for graceful shutdown
+  const id = setInterval(runBackup, intervalMs);
   console.log(`[backup] Auto-backup scheduled every ${Math.round(intervalMs / 3_600_000)}h, keeping last ${MAX_BACKUPS} copies.`);
+  return id;
 };

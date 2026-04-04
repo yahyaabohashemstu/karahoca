@@ -184,7 +184,47 @@ const extractModelText = (payload) => {
 
 // ─── Existing handlers ────────────────────────────────────────────────────────
 
-const subscribeNewsletter = async ({ email }) => {
+// ── Welcome email i18n strings ──────────────────────────────────────────────
+const WELCOME_EMAIL_I18N = {
+  ar: {
+    subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
+    greeting: 'مرحباً بك! 🎉',
+    thanks: 'شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.',
+    promise: 'ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.',
+    unsubNote: 'إذا لم تشترك بنفسك، يمكنك',
+    unsubLink: 'إلغاء الاشتراك',
+    dir: 'rtl', lang: 'ar',
+  },
+  en: {
+    subject: 'Welcome to KARAHOCA Newsletter! 🎉',
+    greeting: 'Welcome! 🎉',
+    thanks: 'Thank you for subscribing to the <strong>KARAHOCA</strong> newsletter.',
+    promise: 'You will receive the latest news and exclusive offers directly to your inbox.',
+    unsubNote: "If you didn't subscribe yourself, you can",
+    unsubLink: 'unsubscribe',
+    dir: 'ltr', lang: 'en',
+  },
+  tr: {
+    subject: "KARAHOCA Bültenine Hoş Geldiniz! 🎉",
+    greeting: 'Hoş Geldiniz! 🎉',
+    thanks: '<strong>KARAHOCA</strong> bültenine abone olduğunuz için teşekkürler.',
+    promise: 'En son haberler ve özel teklifler doğrudan e-postanıza gelecek.',
+    unsubNote: 'Kendiniz abone olmadıysanız',
+    unsubLink: 'abonelikten çıkabilirsiniz',
+    dir: 'ltr', lang: 'tr',
+  },
+  ru: {
+    subject: 'Добро пожаловать в рассылку KARAHOCA! 🎉',
+    greeting: 'Добро пожаловать! 🎉',
+    thanks: 'Спасибо за подписку на рассылку <strong>KARAHOCA</strong>.',
+    promise: 'Вы будете получать последние новости и эксклюзивные предложения.',
+    unsubNote: 'Если вы не подписывались сами, вы можете',
+    unsubLink: 'отписаться',
+    dir: 'ltr', lang: 'ru',
+  },
+};
+
+const subscribeNewsletter = async ({ email, lang }) => {
   if (typeof email !== 'string') throw new Error('Invalid email address.');
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail.length > 254) throw new Error('Email address too long.');
@@ -237,14 +277,20 @@ const subscribeNewsletter = async ({ email }) => {
       console.warn('[welcome-email] FROM_EMAIL is not set.');
     } else {
       try {
+        // Pick i18n strings based on subscriber's language (fallback: ar)
+        const userLang = (typeof lang === 'string' && WELCOME_EMAIL_I18N[lang]) ? lang : 'ar';
+        const i = WELCOME_EMAIL_I18N[userLang];
+        const textAlign = i.dir === 'rtl' ? 'right' : 'left';
+        const unsubUrl = `${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}`;
+
         const resp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: fromEmail,
             to: [normalizedEmail],
-            subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
-            html: `<!DOCTYPE html><html lang="ar" dir="rtl">
+            subject: i.subject,
+            html: `<!DOCTYPE html><html lang="${i.lang}" dir="${i.dir}">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px">
@@ -253,14 +299,14 @@ const subscribeNewsletter = async ({ email }) => {
         <tr><td style="background:linear-gradient(135deg,#1a1f3c,#2d3561);padding:32px 40px;text-align:center">
           <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700">KARAHOCA</h1>
         </td></tr>
-        <tr><td style="padding:36px 40px;text-align:right">
-          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">مرحباً بك! 🎉</h2>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.</p>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.</p>
-          <p style="margin:24px 0 0;color:#888;font-size:12px">إذا لم تشترك بنفسك، يمكنك <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.</p>
+        <tr><td style="padding:36px 40px;text-align:${textAlign}">
+          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">${i.greeting}</h2>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">${i.thanks}</p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">${i.promise}</p>
+          <p style="margin:24px 0 0;color:#888;font-size:12px">${i.unsubNote} <a href="${unsubUrl}" style="color:#4f6ef7">${i.unsubLink}</a>.</p>
         </td></tr>
         <tr><td style="background:#f8f9fb;padding:16px 40px;text-align:center">
-          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA</p>
+          <p style="margin:0;color:#aaa;font-size:11px">&copy; ${new Date().getFullYear()} KARAHOCA</p>
         </td></tr>
       </table>
     </td></tr>
@@ -404,7 +450,7 @@ const isChatRateLimited = (ip) => {
 };
 
 // Prune stale entries every 5 minutes
-setInterval(() => {
+const rateLimitPruneInterval = setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of chatRateMap) {
     if (now > rec.resetAt) chatRateMap.delete(ip);
@@ -508,6 +554,36 @@ const server = createServer(async (request, response) => {
       const body = await readRequestBody(request);
       const result = await subscribeNewsletter(body);
       sendJson(response, 200, result, requestOrigin);
+      return;
+    }
+
+    // ── Public newsletter unsubscribe (no auth needed) ──────────────────────
+    if (request.method === 'GET' && url === '/api/newsletter/unsubscribe') {
+      const queryUrl = new URL(request.url, 'http://localhost');
+      const email = queryUrl.searchParams.get('email');
+      if (!email || typeof email !== 'string') {
+        sendJson(response, 400, { success: false, error: 'Missing email parameter.' }, requestOrigin);
+        return;
+      }
+      const normalizedEmail = email.trim().toLowerCase();
+      try {
+        const db = getDb();
+        const row = db.prepare('SELECT email, active FROM newsletter_subscribers WHERE email = ?').get(normalizedEmail);
+        if (!row) {
+          sendJson(response, 404, { success: false, error: 'Email not found.' }, requestOrigin);
+          return;
+        }
+        if (row.active === 0) {
+          sendJson(response, 200, { success: true, alreadyUnsubscribed: true }, requestOrigin);
+          return;
+        }
+        db.prepare('UPDATE newsletter_subscribers SET active = 0 WHERE email = ?').run(normalizedEmail);
+        console.log('[newsletter] Unsubscribed:', normalizedEmail);
+        sendJson(response, 200, { success: true }, requestOrigin);
+      } catch (e) {
+        console.error('[newsletter] Unsubscribe error:', e.message);
+        sendJson(response, 500, { success: false, error: 'Server error.' }, requestOrigin);
+      }
       return;
     }
 
@@ -781,7 +857,7 @@ const dispatchDueCampaigns = async () => {
 
 // Check immediately on boot, then every minute so scheduled sends do not lag.
 void dispatchDueCampaigns();
-setInterval(() => {
+const campaignInterval = setInterval(() => {
   void dispatchDueCampaigns();
 }, 60 * 1000);
 
@@ -789,7 +865,23 @@ server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
 
-startAutoBackup();
+const backupInterval = startAutoBackup();
+
+// ── Graceful shutdown ───────────────────────────────────────────────────────
+const shutdown = (signal) => {
+  console.log(`[server] ${signal} received — shutting down gracefully.`);
+  clearInterval(campaignInterval);
+  clearInterval(rateLimitPruneInterval);
+  if (backupInterval) clearInterval(backupInterval);
+  server.close(() => {
+    console.log('[server] HTTP server closed.');
+    process.exit(0);
+  });
+  // Force exit after 5s if server.close hangs
+  setTimeout(() => process.exit(1), 5000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 
 

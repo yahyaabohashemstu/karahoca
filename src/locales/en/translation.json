@@ -63,6 +63,19 @@
       "cta": "Chat on WhatsApp",
       "partnersLabel": "Trusted by leading brands"
     },
+    "unsubscribe": {
+      "loading": "Unsubscribing...",
+      "loadingDesc": "Please wait a moment.",
+      "success": "Unsubscribed Successfully",
+      "successDesc": "You have been removed from our mailing list. You will no longer receive newsletters.",
+      "already": "Already Unsubscribed",
+      "alreadyDesc": "This email is already unsubscribed from our mailing list.",
+      "notFound": "Email Not Found",
+      "notFoundDesc": "We could not find this email in our mailing list.",
+      "error": "Something Went Wrong",
+      "errorDesc": "Could not unsubscribe. Please try again later.",
+      "backHome": "Back to Home"
+    },
     "brands": {
       "title": "Our Brands",
       "subtitle": "Different worlds, one quality.",

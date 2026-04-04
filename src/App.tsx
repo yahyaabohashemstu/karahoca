@@ -15,6 +15,7 @@ import AboutPage from './pages/AboutPage';
 import NewsPage from './pages/NewsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import WishlistPage from './pages/WishlistPage';
+import UnsubscribePage from './pages/UnsubscribePage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
@@ -83,6 +84,7 @@ function MainSite() {
                   <Route path="/goal" element={<MobileGoalPage />} />
                   <Route path="/dryer" element={<MobileDryerPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </MobileLayout>
