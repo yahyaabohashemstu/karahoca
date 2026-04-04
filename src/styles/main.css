@@ -71,8 +71,7 @@ body.light-mode .goal-subtitle {
 body.light-mode .work__grid,
 body.light-mode .kpis,
 body.light-mode .cards,
-body.light-mode .split,
-body.light-mode .brands-partner-logos .brands-logo-chip {
+body.light-mode .split {
   background: rgba(200, 210, 225, 0.10);
   backdrop-filter: blur(8px);
   border: 0px solid rgba(21, 61, 122, 0.3);
@@ -104,13 +103,6 @@ body.light-mode .brands-logos-label {
   color: rgba(21, 61, 122, 0.35);
 }
 
-body.light-mode .brands-logo-abbr {
-  color: var(--chip-color, #3a58d6);
-}
-
-body.light-mode .brands-logo-name {
-  color: rgba(21, 40, 80, 0.55);
-}
 
 body.light-mode .site-header,
 body.light-mode .site-footer {
@@ -146,7 +138,7 @@ body {
 .btn--ghost,
 .nav-link,
 .brands-partner-row,
-.brands-logo-chip {
+.brands-logo-card {
   transition:
     background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -3538,51 +3530,87 @@ body.light-mode .news-modal__close {
   margin: 0;
 }
 
+/* Logo grid — 5 cards, equal flex, centered */
 .brands-logos-grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 14px;
   width: 100%;
 }
 
-/* individual logo chip */
-.brands-logo-chip {
+/* ── Individual logo card ── */
+.brands-logo-card {
+  flex: 1 1 140px;
+  max-width: 190px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-width: 90px;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(8px);
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 3px solid transparent;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.28s ease;
   cursor: default;
+  min-height: 88px;
 }
 
-.brands-logo-chip:hover {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.2);
-  transform: translateY(-3px);
+.brands-logo-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.13);
 }
 
-.brands-logo-abbr {
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: 0.03em;
-  color: var(--chip-color, #7b9cff);
-  line-height: 1;
+/* Featured card (altunsa) — red top accent + subtle glow */
+.brands-logo-card--featured {
+  border-top-color: #cc2020;
+  box-shadow: 0 2px 16px rgba(204, 32, 32, 0.12);
 }
 
-.brands-logo-name {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: rgba(180,200,240,0.6);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+.brands-logo-card--featured:hover {
+  box-shadow: 0 16px 40px rgba(204, 32, 32, 0.22);
+}
+
+/* Logo image */
+.brands-logo-img {
+  display: block;
+  max-width: 100%;
+  max-height: 56px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Featured card gets a slightly larger image */
+.brands-logo-card--featured .brands-logo-img {
+  max-height: 68px;
+}
+
+/* Dar Al Khairr is circular — needs a bit more room */
+.brands-logo-card:last-child .brands-logo-img {
+  max-height: 68px;
+}
+
+/* ── Light-mode logo card overrides (already white, keep shadow color) ── */
+body.light-mode .brands-logo-card {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(21, 61, 122, 0.08);
+  box-shadow: 0 2px 12px rgba(21, 61, 122, 0.08);
+}
+
+body.light-mode .brands-logo-card--featured {
+  box-shadow: 0 2px 16px rgba(204, 32, 32, 0.14);
+}
+
+body.light-mode .brands-logo-card:hover {
+  box-shadow: 0 16px 36px rgba(21, 61, 122, 0.14);
+}
+
+body.light-mode .brands-logo-card--featured:hover {
+  box-shadow: 0 16px 40px rgba(204, 32, 32, 0.2);
 }
 
 /* ── Responsive ── */
@@ -3593,5 +3621,18 @@ body.light-mode .news-modal__close {
 
   .brands-partner-logos {
     padding: 18px 20px 24px;
+  }
+
+  .brands-logo-card {
+    flex: 1 1 120px;
+    max-width: 150px;
+    padding: 16px 18px;
+    min-height: 72px;
+  }
+
+  .brands-logo-img,
+  .brands-logo-card--featured .brands-logo-img,
+  .brands-logo-card:last-child .brands-logo-img {
+    max-height: 48px;
   }
 }

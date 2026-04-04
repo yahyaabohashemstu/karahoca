@@ -2,22 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-/* ─── Partner logo placeholders ─────────────────────────────────────────────
-   Replace src values with real logo paths once available, e.g. /partners/carrefour.png
-   ─────────────────────────────────────────────────────────────────────────── */
-const PARTNERS: { name: string; abbr: string; color: string }[] = [
-  { name: 'Carrefour',  abbr: 'CF',  color: '#004E9A' },
-  { name: 'Metro',      abbr: 'MT',  color: '#003087' },
-  { name: 'BIM',        abbr: 'BİM', color: '#E30613' },
-  { name: 'A101',       abbr: 'A101',color: '#F7941D' },
-  { name: 'Migros',     abbr: 'MG',  color: '#E2001A' },
-  { name: 'ŞOK',        abbr: 'ŞOK', color: '#FF6600' },
-  { name: 'Watsons',    abbr: 'WT',  color: '#00A651' },
-  { name: 'Gratis',     abbr: 'GR',  color: '#C8102E' },
+/* ─── Real partner logos ──────────────────────────────────────────────────── */
+const PARTNERS: { name: string; logo: string; featured?: boolean }[] = [
+  { name: 'Altunsa',              logo: '/logos/altunsa-logo.png',    featured: true },
+  { name: 'Aktürk',              logo: '/logos/akturk-logo.png'                    },
+  { name: 'Moher Kimya',         logo: '/logos/moher-logo.png'                     },
+  { name: 'M.O.K',              logo: '/logos/mok-logo.png'                       },
+  { name: 'Dar Al Khairr',      logo: '/logos/dar-alkhairr-logo.png'              },
 ];
-
-/* Duplicate the list so the CSS infinite-scroll loop is seamless */
-const MARQUEE_ITEMS = [...PARTNERS, ...PARTNERS];
 
 const BrandsSection: React.FC = () => {
   const { t } = useTranslation();
@@ -70,7 +62,7 @@ const BrandsSection: React.FC = () => {
       {/* ── Custom Manufacturing + Partner Logos ─────────────────── */}
       <div className="container brands-partner-row">
 
-        {/* Center: text + CTA */}
+        {/* Top: centered text + CTA */}
         <div className="brands-partner-content">
           <span className="brands-partner-badge">{t('customOrder.badge')}</span>
           <h3 className="brands-partner-title">{t('customOrder.title')}</h3>
@@ -83,19 +75,22 @@ const BrandsSection: React.FC = () => {
         {/* Divider */}
         <div className="brands-partner-divider" />
 
-        {/* Bottom: static partner logos */}
+        {/* Bottom: real partner logos */}
         <div className="brands-partner-logos">
           <p className="brands-logos-label">{t('customOrder.partnersLabel')}</p>
           <div className="brands-logos-grid">
-            {PARTNERS.map((p, i) => (
+            {PARTNERS.map((p) => (
               <div
-                key={i}
-                className="brands-logo-chip"
-                style={{ '--chip-color': p.color } as React.CSSProperties}
+                key={p.name}
+                className={`brands-logo-card${p.featured ? ' brands-logo-card--featured' : ''}`}
                 aria-label={p.name}
               >
-                <span className="brands-logo-abbr">{p.abbr}</span>
-                <span className="brands-logo-name">{p.name}</span>
+                <img
+                  src={p.logo}
+                  alt={p.name}
+                  className="brands-logo-img"
+                  loading="lazy"
+                />
               </div>
             ))}
           </div>
