@@ -27,8 +27,7 @@ body.light-mode .glass-kpi,
 body.light-mode .glass-chip,
 body.light-mode .glass-form,
 body.light-mode .glass-input,
-body.light-mode .glass-media,
-body.light-mode .brands-partner-row {
+body.light-mode .glass-media {
   background: var(--glass-bg);
   box-shadow: var(--glass-shadow);
   color: var(--text);
@@ -77,34 +76,6 @@ body.light-mode .split {
   border: 0px solid rgba(21, 61, 122, 0.3);
 }
 
-body.light-mode .brands-partner-divider {
-  background: linear-gradient(to right,
-    transparent,
-    rgba(21, 61, 122, 0.12) 20%,
-    rgba(21, 61, 122, 0.12) 80%,
-    transparent);
-}
-
-body.light-mode .brands-partner-badge {
-  color: rgba(180,210,255,0.9);
-  background: rgba(100,140,255,0.15);
-  border-color: rgba(100,140,255,0.3);
-}
-
-body.light-mode .brands-partner-title {
-  background: linear-gradient(135deg, #c8d8ff 0%, #a78bfa 40%, #67e8f9 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-body.light-mode .brands-partner-desc {
-  color: rgba(200,215,250,0.78);
-}
-
-body.light-mode .brands-logos-label {
-  color: rgba(21, 61, 122, 0.75);
-}
 
 
 body.light-mode .site-header,
@@ -3697,26 +3668,98 @@ body.light-mode .news-modal__close {
   object-fit: contain;
 }
 
-/* ── Override light-mode to keep luxury dark look ── */
+/* ── Light-mode luxury version ── */
 body.light-mode .brands-partner-row {
   background:
-    radial-gradient(ellipse 550px 320px at 80% 10%, rgba(79,110,247,0.2), transparent 65%),
-    radial-gradient(ellipse 420px 300px at 12% 90%, rgba(139,92,246,0.17), transparent 65%),
-    linear-gradient(145deg, #070a1c 0%, #0d0820 45%, #070d1a 100%);
+    radial-gradient(ellipse 550px 320px at 80% 10%, rgba(99,120,255,0.10), transparent 65%),
+    radial-gradient(ellipse 420px 300px at 12% 90%, rgba(139,92,246,0.09), transparent 65%),
+    radial-gradient(ellipse 300px 200px at 50% 50%, rgba(6,182,212,0.05), transparent 70%),
+    linear-gradient(145deg, #f6f8ff 0%, #f2eeff 45%, #edf5ff 100%);
+  border: 1px solid rgba(100,130,255,0.18);
   box-shadow:
-    0 0 0 1px rgba(139,92,246,0.2),
-    0 24px 64px rgba(0,0,0,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 0 0 1px rgba(139,92,246,0.1),
+    0 20px 56px rgba(79,110,247,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+}
+
+body.light-mode .brands-partner-row::before {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(79,110,247,0.08) 50%,
+    transparent 65%
+  );
+}
+
+body.light-mode .brands-partner-row::after {
+  background: linear-gradient(to right,
+    transparent,
+    rgba(99,120,255,0.5) 30%,
+    rgba(139,92,246,0.55) 50%,
+    rgba(99,120,255,0.5) 70%,
+    transparent);
+}
+
+body.light-mode .brands-partner-badge {
+  color: #4f6ef7;
+  background: rgba(79,110,247,0.08);
+  border-color: rgba(79,110,247,0.22);
+}
+
+body.light-mode .brands-partner-title {
+  background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 55%, #0e7490 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 8px rgba(79,110,247,0.18));
+}
+
+body.light-mode .brands-partner-desc {
+  color: rgba(25, 35, 75, 0.68);
+}
+
+body.light-mode .brands-partner-divider {
+  background: linear-gradient(to right,
+    transparent,
+    rgba(79,130,255,0.35) 25%,
+    rgba(139,92,246,0.4) 50%,
+    rgba(79,130,255,0.35) 75%,
+    transparent);
+  box-shadow: 0 0 10px rgba(100,130,255,0.10);
+}
+
+body.light-mode .brands-logos-label {
+  background: linear-gradient(90deg, #4f6ef7, #7c3aed, #4f6ef7);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: logo-card-shine 4s linear infinite;
 }
 
 body.light-mode .brands-logo-card {
-  background: rgba(255,255,255,0.94);
-  border-color: rgba(255,255,255,0.22);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.5) inset;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(100,130,255,0.14);
+  border-top: 2.5px solid rgba(100,130,255,0.32);
+  box-shadow:
+    0 4px 20px rgba(79,110,247,0.08),
+    0 1px 0 rgba(255,255,255,0.9) inset;
 }
 
 body.light-mode .brands-logo-card:hover {
-  box-shadow: 0 20px 50px rgba(0,0,0,0.35), 0 0 0 1px rgba(160,180,255,0.3), 0 1px 0 rgba(255,255,255,0.6) inset;
+  background: rgba(255,255,255,0.98);
+  box-shadow:
+    0 16px 40px rgba(79,110,247,0.14),
+    0 0 0 1px rgba(100,130,255,0.22),
+    0 1px 0 rgba(255,255,255,0.95) inset;
+}
+
+body.light-mode .brands-logo-card--featured {
+  border-top-color: rgba(224,36,36,0.5);
+  box-shadow:
+    0 4px 20px rgba(79,110,247,0.08),
+    0 0 16px rgba(220,40,40,0.08),
+    0 1px 0 rgba(255,255,255,0.9) inset;
 }
 
 /* ── Responsive ── */
