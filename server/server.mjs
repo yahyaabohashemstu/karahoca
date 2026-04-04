@@ -235,12 +235,24 @@ const subscribeNewsletter = async ({ email, lang }) => {
 
   // Save to DB (primary)
   const db = getDb();
-  // Use INSERT OR IGNORE (email is PRIMARY KEY) to avoid race condition from concurrent requests
-  const result = db.prepare('INSERT OR IGNORE INTO newsletter_subscribers(email, subscribed_at) VALUES(?,?)').run(
-    normalizedEmail, new Date().toISOString()
-  );
-  const inserted = result.changes > 0;
-  if (inserted) incrementStat('newsletter_signups');
+  const now = new Date().toISOString();
+
+  // Check if already exists (may be active or inactive from a past unsubscribe)
+  const existing = db.prepare('SELECT email, active FROM newsletter_subscribers WHERE email = ?').get(normalizedEmail);
+
+  let inserted = false;
+  if (!existing) {
+    // Brand new subscriber
+    db.prepare('INSERT INTO newsletter_subscribers(email, subscribed_at, active) VALUES(?,?,1)').run(normalizedEmail, now);
+    inserted = true;
+    incrementStat('newsletter_signups');
+  } else if (existing.active === 0) {
+    // Previously unsubscribed — reactivate
+    db.prepare('UPDATE newsletter_subscribers SET active = 1, subscribed_at = ? WHERE email = ?').run(now, normalizedEmail);
+    inserted = true; // treat as new so they get the welcome email
+    incrementStat('newsletter_signups');
+  }
+  // else: already active — do nothing (no duplicate welcome email)
 
   // Also keep the JSON file as backup
   let subscribers = [];
