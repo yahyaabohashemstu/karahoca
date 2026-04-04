@@ -3396,87 +3396,66 @@ body.light-mode .news-modal__close {
 }
 
 /* ════════════════════════════════════════════════════════
-   Brands Partner Row — vertical layout
-   Text on top · Partner logos marquee on bottom
+   Brands Partner Row — matches glass-card style of DIOX/AYLUX
+   Text centered · Static partner logos below
    ════════════════════════════════════════════════════════ */
 .brands-partner-row {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: linear-gradient(160deg,
-    rgba(79,110,247,0.13) 0%,
-    rgba(139,92,246,0.09) 55%,
-    rgba(6,182,212,0.06) 100%);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 22px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
   overflow: hidden;
   position: relative;
 }
 
-.brands-partner-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(800px circle at 50% 0%,
-    rgba(79,110,247,0.1), transparent 60%);
-  pointer-events: none;
-}
-
-/* ── Top: text + CTA in a single flex row ── */
+/* ── Center: text + CTA ── */
 .brands-partner-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  padding: 28px 36px 24px;
-  position: relative;
-}
-
-.brands-partner-text {
-  display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 40px 48px 32px;
 }
 
 .brands-partner-badge {
   display: inline-flex;
-  align-self: flex-start;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: #7b9cff;
-  background: rgba(79,110,247,0.15);
-  border: 1px solid rgba(79,110,247,0.28);
+  background: rgba(79,110,247,0.12);
+  border: 1px solid rgba(79,110,247,0.25);
   border-radius: 30px;
-  padding: 4px 12px;
+  padding: 4px 14px;
 }
 
 .brands-partner-title {
-  font-size: clamp(18px, 2vw, 23px);
+  font-size: clamp(20px, 2.2vw, 26px);
   font-weight: 800;
   color: var(--text-primary, #eef2ff);
-  line-height: 1.25;
+  line-height: 1.2;
   margin: 0;
 }
 
 .brands-partner-desc {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text-secondary, rgba(190,205,240,0.7));
-  line-height: 1.75;
+  line-height: 1.8;
   margin: 0;
-  max-width: 560px;
+  max-width: 520px;
 }
 
 .brands-partner-cta {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  flex-shrink: 0;
-  padding: 11px 26px;
+  margin-top: 4px;
+  padding: 11px 28px;
   border-radius: 11px;
   background: linear-gradient(135deg, #4f6ef7, #6d57e8);
   color: #fff;
@@ -3484,8 +3463,7 @@ body.light-mode .news-modal__close {
   font-weight: 700;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 4px 20px rgba(79,110,247,0.4);
-  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(79,110,247,0.35);
 }
 
 .brands-partner-cta:hover {
@@ -3493,24 +3471,24 @@ body.light-mode .news-modal__close {
   transform: translateY(-2px);
 }
 
-/* ── Horizontal divider ── */
+/* ── Divider ── */
 .brands-partner-divider {
   height: 1px;
   background: linear-gradient(to right,
     transparent,
-    rgba(255,255,255,0.1) 20%,
-    rgba(255,255,255,0.1) 80%,
+    var(--glass-border) 20%,
+    var(--glass-border) 80%,
     transparent);
-  margin: 0 24px;
+  margin: 0 32px;
 }
 
-/* ── Bottom: logos row ── */
+/* ── Static logos grid ── */
 .brands-partner-logos {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px 0 24px;
-  overflow: hidden;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 32px 32px;
 }
 
 .brands-logos-label {
@@ -3518,60 +3496,16 @@ body.light-mode .news-modal__close {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(160,180,230,0.45);
-  padding-inline-start: 36px;
+  color: rgba(160,180,230,0.4);
   margin: 0;
 }
 
-/* marquee wrapper with fade masks */
-.brands-marquee-wrapper {
-  position: relative;
-  overflow: hidden;
-}
-
-.brands-marquee-fade {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 80px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.brands-marquee-fade--start {
-  inset-inline-start: 0;
-  background: linear-gradient(to right,
-    rgba(10,14,35,0.98) 0%,
-    transparent 100%);
-}
-
-.brands-marquee-fade--end {
-  inset-inline-end: 0;
-  background: linear-gradient(to left,
-    rgba(10,14,35,0.98) 0%,
-    transparent 100%);
-}
-
-.brands-marquee {
-  overflow: hidden;
-  padding: 6px 0;
-}
-
-@keyframes brands-marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-.brands-marquee-track {
+.brands-logos-grid {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  width: max-content;
-  animation: brands-marquee-scroll 26s linear infinite;
-}
-
-.brands-marquee-track:hover {
-  animation-play-state: paused;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
 }
 
 /* individual logo chip */
@@ -3581,20 +3515,19 @@ body.light-mode .news-modal__close {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-width: 88px;
-  padding: 11px 16px;
+  min-width: 90px;
+  padding: 12px 18px;
   border-radius: 14px;
   background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--glass-border);
   backdrop-filter: blur(8px);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
   cursor: default;
-  flex-shrink: 0;
 }
 
 .brands-logo-chip:hover {
   background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.2);
   transform: translateY(-3px);
 }
 
@@ -3617,18 +3550,10 @@ body.light-mode .news-modal__close {
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .brands-partner-content {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 22px 20px 18px;
-    gap: 16px;
+    padding: 28px 22px 22px;
   }
 
-  .brands-partner-cta {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .brands-logos-label {
-    padding-inline-start: 20px;
+  .brands-partner-logos {
+    padding: 18px 20px 24px;
   }
 }
