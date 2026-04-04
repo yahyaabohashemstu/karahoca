@@ -199,6 +199,7 @@
       "description": "Yenilikçi çözümler, güvenilir performans ve küresel kaliteyle deterjan sektörüne öncülük ediyoruz.",
       "newsletter": {
         "title": "Haber Bülteni",
+        "description": "En son teklifler ve ürünler için abone olun",
         "placeholder": "E-posta adresiniz",
         "subscribe": "Abone Ol",
         "submitting": "Gönderiliyor...",

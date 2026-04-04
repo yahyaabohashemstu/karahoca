@@ -199,6 +199,7 @@
       "description": "Leading the detergent industry with innovative solutions, reliable performance, and global quality.",
       "newsletter": {
         "title": "Newsletter",
+        "description": "Subscribe for the latest offers and products",
         "placeholder": "Your email",
         "subscribe": "Subscribe",
         "submitting": "Submitting...",
