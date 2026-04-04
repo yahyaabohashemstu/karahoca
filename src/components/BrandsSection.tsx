@@ -70,19 +70,24 @@ const BrandsSection: React.FC = () => {
       {/* ── Custom Manufacturing + Partner Logos ─────────────────── */}
       <div className="container brands-partner-row">
 
-        {/* Left: text content */}
+        {/* Top: text + CTA */}
         <div className="brands-partner-content">
-          <span className="brands-partner-badge">{t('customOrder.badge')}</span>
-          <h3 className="brands-partner-title">{t('customOrder.title')}</h3>
-          <p className="brands-partner-desc">{t('customOrder.description')}</p>
+          <div className="brands-partner-text">
+            <span className="brands-partner-badge">{t('customOrder.badge')}</span>
+            <h3 className="brands-partner-title">{t('customOrder.title')}</h3>
+            <p className="brands-partner-desc">{t('customOrder.description')}</p>
+          </div>
           <a href="mailto:info@karahoca.com" className="brands-partner-cta">
             {t('customOrder.cta')} →
           </a>
         </div>
 
-        {/* Right: scrolling partner logos */}
+        {/* Divider */}
+        <div className="brands-partner-divider" />
+
+        {/* Bottom: scrolling partner logos */}
         <div className="brands-partner-logos">
-          <p className="brands-logos-label">{t('brands.title')}</p>
+          <p className="brands-logos-label">{t('customOrder.partnersLabel')}</p>
           <div className="brands-marquee-wrapper">
             <div className="brands-marquee-fade brands-marquee-fade--start" />
             <div className="brands-marquee">

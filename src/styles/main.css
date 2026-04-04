@@ -3396,17 +3396,17 @@ body.light-mode .news-modal__close {
 }
 
 /* ════════════════════════════════════════════════════════
-   Brands Partner Row (Custom Mfg + Marquee Logos)
-   Sits directly inside #brands section, full-width of cards
+   Brands Partner Row — vertical layout
+   Text on top · Partner logos marquee on bottom
    ════════════════════════════════════════════════════════ */
 .brands-partner-row {
   margin-top: 16px;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   gap: 0;
-  background: linear-gradient(135deg,
+  background: linear-gradient(160deg,
     rgba(79,110,247,0.13) 0%,
-    rgba(139,92,246,0.09) 50%,
+    rgba(139,92,246,0.09) 55%,
     rgba(6,182,212,0.06) 100%);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 22px;
@@ -3418,21 +3418,27 @@ body.light-mode .news-modal__close {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(700px circle at 15% 50%,
-    rgba(79,110,247,0.1), transparent 65%);
+  background: radial-gradient(800px circle at 50% 0%,
+    rgba(79,110,247,0.1), transparent 60%);
   pointer-events: none;
 }
 
-/* ── Left: text content ── */
+/* ── Top: text + CTA in a single flex row ── */
 .brands-partner-content {
-  flex: 0 0 42%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px 36px 24px;
+  position: relative;
+}
+
+.brands-partner-text {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 10px;
-  padding: 32px 36px;
-  border-inline-end: 1px solid rgba(255,255,255,0.07);
-  position: relative;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .brands-partner-badge {
@@ -3450,7 +3456,7 @@ body.light-mode .news-modal__close {
 }
 
 .brands-partner-title {
-  font-size: clamp(18px, 2vw, 24px);
+  font-size: clamp(18px, 2vw, 23px);
   font-weight: 800;
   color: var(--text-primary, #eef2ff);
   line-height: 1.25;
@@ -3458,27 +3464,28 @@ body.light-mode .news-modal__close {
 }
 
 .brands-partner-desc {
-  font-size: 13.5px;
-  color: var(--text-secondary, rgba(190,205,240,0.72));
+  font-size: 13px;
+  color: var(--text-secondary, rgba(190,205,240,0.7));
   line-height: 1.75;
   margin: 0;
+  max-width: 560px;
 }
 
 .brands-partner-cta {
   display: inline-flex;
-  align-self: flex-start;
   align-items: center;
   gap: 7px;
-  margin-top: 6px;
-  padding: 10px 22px;
-  border-radius: 10px;
+  flex-shrink: 0;
+  padding: 11px 26px;
+  border-radius: 11px;
   background: linear-gradient(135deg, #4f6ef7, #6d57e8);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 4px 18px rgba(79,110,247,0.35);
+  box-shadow: 0 4px 20px rgba(79,110,247,0.4);
+  white-space: nowrap;
 }
 
 .brands-partner-cta:hover {
@@ -3486,24 +3493,33 @@ body.light-mode .news-modal__close {
   transform: translateY(-2px);
 }
 
-/* ── Right: scrolling logos ── */
+/* ── Horizontal divider ── */
+.brands-partner-divider {
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent,
+    rgba(255,255,255,0.1) 20%,
+    rgba(255,255,255,0.1) 80%,
+    transparent);
+  margin: 0 24px;
+}
+
+/* ── Bottom: logos row ── */
 .brands-partner-logos {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 28px 0 28px 24px;
-  gap: 14px;
+  gap: 10px;
+  padding: 18px 0 24px;
   overflow: hidden;
 }
 
 .brands-logos-label {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(160,180,230,0.5);
-  padding-inline-start: 4px;
+  color: rgba(160,180,230,0.45);
+  padding-inline-start: 36px;
   margin: 0;
 }
 
@@ -3517,7 +3533,7 @@ body.light-mode .news-modal__close {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 60px;
+  width: 80px;
   z-index: 2;
   pointer-events: none;
 }
@@ -3525,20 +3541,20 @@ body.light-mode .news-modal__close {
 .brands-marquee-fade--start {
   inset-inline-start: 0;
   background: linear-gradient(to right,
-    rgba(13,18,38,0.95) 0%,
+    rgba(10,14,35,0.98) 0%,
     transparent 100%);
 }
 
 .brands-marquee-fade--end {
   inset-inline-end: 0;
   background: linear-gradient(to left,
-    rgba(13,18,38,0.95) 0%,
+    rgba(10,14,35,0.98) 0%,
     transparent 100%);
 }
 
-/* the scrolling track */
 .brands-marquee {
   overflow: hidden;
+  padding: 6px 0;
 }
 
 @keyframes brands-marquee-scroll {
@@ -3548,9 +3564,10 @@ body.light-mode .news-modal__close {
 
 .brands-marquee-track {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
   width: max-content;
-  animation: brands-marquee-scroll 22s linear infinite;
+  animation: brands-marquee-scroll 26s linear infinite;
 }
 
 .brands-marquee-track:hover {
@@ -3564,11 +3581,11 @@ body.light-mode .news-modal__close {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-width: 90px;
-  padding: 12px 16px;
+  min-width: 88px;
+  padding: 11px 16px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.055);
-  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(8px);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
   cursor: default;
@@ -3582,35 +3599,36 @@ body.light-mode .news-modal__close {
 }
 
 .brands-logo-abbr {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--chip-color, #7b9cff);
   line-height: 1;
 }
 
 .brands-logo-name {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  color: rgba(180,200,240,0.65);
+  color: rgba(180,200,240,0.6);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .brands-partner-row {
-    flex-direction: column;
-  }
-
   .brands-partner-content {
-    flex: none;
-    border-inline-end: none;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    padding: 26px 22px;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 22px 20px 18px;
+    gap: 16px;
   }
 
-  .brands-partner-logos {
-    padding: 20px 0;
+  .brands-partner-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .brands-logos-label {
+    padding-inline-start: 20px;
   }
 }
