@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { buildApiUrl } from '../utils/api';
+import SEO from '../components/SEO';
 
 type Status = 'loading' | 'success' | 'already' | 'not-found' | 'error';
 
@@ -76,6 +77,11 @@ const UnsubscribePage: React.FC = () => {
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
+      <SEO
+        title={`KARAHOCA — ${title[status]}`}
+        description={desc[status]}
+        noindex
+      />
       <div
         className="glass-panel"
         style={{

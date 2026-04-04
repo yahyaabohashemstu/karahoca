@@ -449,11 +449,30 @@ const isChatRateLimited = (ip) => {
   return false;
 };
 
+// ─── Unsubscribe rate limiter (prevents abuse/enumeration) ──────────────────
+const unsubRateMap = new Map(); // ip → { count, resetAt }
+const UNSUB_LIMIT  = 10;        // max requests per window
+const UNSUB_WINDOW = 5 * 60_000; // 5 minutes
+
+const isUnsubRateLimited = (ip) => {
+  const now = Date.now();
+  const rec = unsubRateMap.get(ip);
+  if (!rec || now > rec.resetAt) {
+    unsubRateMap.set(ip, { count: 1, resetAt: now + UNSUB_WINDOW });
+    return false;
+  }
+  rec.count++;
+  return rec.count > UNSUB_LIMIT;
+};
+
 // Prune stale entries every 5 minutes
 const rateLimitPruneInterval = setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of chatRateMap) {
     if (now > rec.resetAt) chatRateMap.delete(ip);
+  }
+  for (const [ip, rec] of unsubRateMap) {
+    if (now > rec.resetAt) unsubRateMap.delete(ip);
   }
 }, 300_000);
 
@@ -557,8 +576,14 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // ── Public newsletter unsubscribe (no auth needed) ──────────────────────
+    // ── Public newsletter unsubscribe (no auth needed, rate-limited) ───────
     if (request.method === 'GET' && url === '/api/newsletter/unsubscribe') {
+      const unsubIp = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown')
+        .split(',')[0].trim();
+      if (isUnsubRateLimited(unsubIp)) {
+        sendJson(response, 429, { success: false, error: 'Too many requests. Please try again later.' }, requestOrigin);
+        return;
+      }
       const queryUrl = new URL(request.url, 'http://localhost');
       const email = queryUrl.searchParams.get('email');
       if (!email || typeof email !== 'string') {

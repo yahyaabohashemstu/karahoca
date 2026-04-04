@@ -151,11 +151,14 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, reque
     ? "'Segoe UI', Tahoma, sans-serif"
     : "'Segoe UI', Arial, sans-serif";
 
-  // Convert newlines to <p> tags
+  // Convert newlines to <p> tags — escape HTML first to prevent injection
   const bodyHtml = body
     .split('\n')
     .filter(l => l.trim())
-    .map(l => `<p style="margin:0 0 14px">${l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`)
+    .map(l => {
+      const safe = escapeHtmlAttribute(l);
+      return `<p style="margin:0 0 14px">${safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`;
+    })
     .join('');
 
   const attachments = [];
