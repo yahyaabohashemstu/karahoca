@@ -3400,19 +3400,20 @@ body.light-mode .news-modal__close {
 }
 
 /* ════════════════════════════════════════════════════════
-   Brands Partner Row — site-identity edition
-   Matches the site's dark navy + orange glass aesthetic.
+   Brands Partner Row — crawling border glow edition
+   A glowing streak travels around the card perimeter.
    ════════════════════════════════════════════════════════ */
 
-/* ── Keyframes ── */
-@keyframes luxury-shimmer {
-  0%   { transform: translateX(-100%) rotate(15deg); }
-  100% { transform: translateX(200%)  rotate(15deg); }
+/* ── Animated CSS property for conic-gradient rotation ── */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 
-@keyframes luxury-border-pulse {
-  0%, 100% { opacity: 0.5; }
-  50%       { opacity: 1; }
+/* ── Keyframes ── */
+@keyframes border-spin {
+  to { --border-angle: 360deg; }
 }
 
 @keyframes cta-glow-pulse {
@@ -3435,51 +3436,29 @@ body.light-mode .news-modal__close {
   overflow: hidden;
   isolation: isolate;
 
-  /* Same glass style as DIOX/AYLUX cards */
-  background: rgba(255,255,255,0.08);
+  /* Glass background (padding-box) + crawling glow (border-box) */
+  background:
+    rgba(255,255,255,0.08) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      rgba(255,255,255,0.07)  0deg,
+      rgba(255, 91, 46, 0.0)  0deg,
+      rgba(255, 91, 46, 0.9) 40deg,
+      rgba(255,180,120, 1.0) 65deg,
+      rgba(255, 91, 46, 0.9) 90deg,
+      rgba(255, 91, 46, 0.0) 135deg,
+      rgba(255,255,255,0.07) 360deg
+    ) border-box;
+
+  border: 1.5px solid transparent;
   backdrop-filter: blur(10px) saturate(140%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.30);
 
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow:
-    0 0 0 1px rgba(255,91,46,0.10),
-    0 8px 32px rgba(0,0,0,0.30),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+  /* Spin the conic-gradient around the border */
+  animation: border-spin 4s linear infinite;
 }
 
-/* Sweeping shimmer overlay */
-.brands-partner-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 35%,
-    rgba(255,91,46,0.04) 50%,
-    transparent 65%
-  );
-  background-size: 250% 100%;
-  animation: luxury-shimmer 7s linear infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Top glowing border line — orange accent */
-.brands-partner-row::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 8%; right: 8%;
-  height: 1px;
-  background: linear-gradient(to right,
-    transparent,
-    rgba(255,91,46,0.7) 30%,
-    rgba(255,150,100,0.8) 60%,
-    transparent);
-  animation: luxury-border-pulse 3.5s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* All children sit above shimmer */
+/* All children above the border layer */
 .brands-partner-row > * { position: relative; z-index: 2; }
 
 /* ── Top: text + CTA ── */
@@ -3665,13 +3644,19 @@ body.light-mode .news-modal__close {
 
 /* ── Light-mode luxury version ── */
 body.light-mode .brands-partner-row {
-  background: var(--glass-bg);
-  backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid rgba(21,61,122,0.12);
-  box-shadow:
-    0 0 0 1px rgba(245,75,26,0.08),
-    0 8px 32px rgba(21,61,122,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.7);
+  background:
+    rgba(232,236,242,0.75) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      rgba(21, 61,122,0.06)  0deg,
+      rgba(245,75, 26,0.0)   0deg,
+      rgba(245,75, 26,0.85) 40deg,
+      rgba(255,140, 80,1.0) 65deg,
+      rgba(245,75, 26,0.85) 90deg,
+      rgba(245,75, 26,0.0) 135deg,
+      rgba(21, 61,122,0.06) 360deg
+    ) border-box;
+  box-shadow: 0 8px 32px rgba(21,61,122,0.08);
 }
 
 body.light-mode .brands-partner-row::before {
