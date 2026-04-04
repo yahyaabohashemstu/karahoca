@@ -100,7 +100,7 @@ body.light-mode .brands-partner-desc {
 }
 
 body.light-mode .brands-logos-label {
-  color: rgba(21, 61, 122, 0.35);
+  color: rgba(21, 61, 122, 0.75);
 }
 
 
@@ -3526,7 +3526,7 @@ body.light-mode .news-modal__close {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(160,180,230,0.4);
+  color: rgba(160,180,230,0.85);
   margin: 0;
 }
 
