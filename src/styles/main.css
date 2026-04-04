@@ -3453,7 +3453,7 @@ body.light-mode .news-modal__close {
 
 .brands-partner-badge {
   display: inline-flex;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3461,11 +3461,11 @@ body.light-mode .news-modal__close {
   background: rgba(79,110,247,0.12);
   border: 1px solid rgba(79,110,247,0.25);
   border-radius: 30px;
-  padding: 4px 14px;
+  padding: 5px 16px;
 }
 
 .brands-partner-title {
-  font-size: clamp(20px, 2.2vw, 26px);
+  font-size: clamp(26px, 3vw, 36px);
   font-weight: 800;
   color: var(--text-primary, #eef2ff);
   line-height: 1.2;
@@ -3473,11 +3473,11 @@ body.light-mode .news-modal__close {
 }
 
 .brands-partner-desc {
-  font-size: 13.5px;
+  font-size: 16px;
   color: var(--text-secondary, rgba(190,205,240,0.7));
   line-height: 1.8;
   margin: 0;
-  max-width: 520px;
+  max-width: 560px;
 }
 
 .brands-partner-cta {
@@ -3485,11 +3485,11 @@ body.light-mode .news-modal__close {
   align-items: center;
   gap: 7px;
   margin-top: 4px;
-  padding: 11px 28px;
-  border-radius: 11px;
+  padding: 13px 32px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #4f6ef7, #6d57e8);
   color: #fff;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s;
