@@ -319,6 +319,8 @@ const loadStoredMessages = () => {
   }
 };
 
+const MAX_STORED_MESSAGES = 100;
+
 const persistMessagesLocally = (messages: ChatMessage[]) => {
   if (typeof window === 'undefined') {
     return;
@@ -329,7 +331,13 @@ const persistMessagesLocally = (messages: ChatMessage[]) => {
     return;
   }
 
-  window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+  try {
+    const toStore = messages.slice(-MAX_STORED_MESSAGES);
+    window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toStore));
+  } catch {
+    // QuotaExceededError — clear old data to recover
+    try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* noop */ }
+  }
 };
 
 const getErrorMessage = (error: unknown) => {

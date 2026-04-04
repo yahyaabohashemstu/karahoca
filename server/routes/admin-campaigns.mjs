@@ -304,6 +304,13 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   const campaign = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(campaignId);
   if (!campaign) throw new Error('Campaign not found');
   if (campaign.status === 'sent') throw new Error('Campaign already sent');
+  if (campaign.status === 'sending') throw new Error('Campaign is already being dispatched');
+
+  // Atomically claim this campaign to prevent duplicate sends from the scheduler
+  const claimed = db.prepare(
+    "UPDATE email_campaigns SET status='sending' WHERE id=? AND status IN ('draft','scheduled')"
+  ).run(campaignId);
+  if (claimed.changes === 0) throw new Error('Campaign could not be claimed for sending');
 
   let subscribers = db.prepare(
     "SELECT email FROM newsletter_subscribers WHERE active=1"
