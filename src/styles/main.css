@@ -86,17 +86,20 @@ body.light-mode .brands-partner-divider {
 }
 
 body.light-mode .brands-partner-badge {
-  color: #3a58d6;
-  background: rgba(79,110,247,0.08);
-  border-color: rgba(79,110,247,0.2);
+  color: rgba(180,210,255,0.9);
+  background: rgba(100,140,255,0.15);
+  border-color: rgba(100,140,255,0.3);
 }
 
 body.light-mode .brands-partner-title {
-  color: var(--text);
+  background: linear-gradient(135deg, #c8d8ff 0%, #a78bfa 40%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 body.light-mode .brands-partner-desc {
-  color: rgba(21, 24, 40, 0.65);
+  color: rgba(200,215,250,0.78);
 }
 
 body.light-mode .brands-logos-label {
@@ -3633,14 +3636,14 @@ body.light-mode .news-modal__close {
 
 /* ── Logo card — frosted white on dark ── */
 .brands-logo-card {
-  flex: 1 1 140px;
-  max-width: 196px;
+  flex: 0 0 180px;
+  width: 180px;
+  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 22px 26px;
+  padding: 20px 24px;
   border-radius: 18px;
-  min-height: 92px;
   cursor: default;
 
   /* Frosted white glass */
@@ -3688,18 +3691,10 @@ body.light-mode .news-modal__close {
 .brands-logo-img {
   display: block;
   max-width: 100%;
-  max-height: 56px;
+  max-height: 62px;
   width: auto;
   height: auto;
   object-fit: contain;
-}
-
-.brands-logo-card--featured .brands-logo-img {
-  max-height: 70px;
-}
-
-.brands-logo-card:last-child .brands-logo-img {
-  max-height: 68px;
 }
 
 /* ── Override light-mode to keep luxury dark look ── */
@@ -3726,41 +3721,13 @@ body.light-mode .brands-logo-card:hover {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .brands-partner-content { padding: 36px 22px 26px; }
-  .brands-partner-logos   { padding: 20px 18px 30px; }
+  .brands-partner-content { padding: 28px 22px 22px; }
+  .brands-partner-logos   { padding: 18px 20px 24px; }
   .brands-logo-card {
-    flex: 1 1 120px;
-    max-width: 150px;
-    padding: 16px 18px;
-    min-height: 74px;
+    flex: 0 0 140px;
+    width: 140px;
+    height: 88px;
+    padding: 14px 16px;
   }
-  .brands-logo-img,
-  .brands-logo-card--featured .brands-logo-img,
-  .brands-logo-card:last-child .brands-logo-img {
-    max-height: 48px;
-  }
-}
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .brands-partner-content {
-    padding: 28px 22px 22px;
-  }
-
-  .brands-partner-logos {
-    padding: 18px 20px 24px;
-  }
-
-  .brands-logo-card {
-    flex: 1 1 120px;
-    max-width: 150px;
-    padding: 16px 18px;
-    min-height: 72px;
-  }
-
-  .brands-logo-img,
-  .brands-logo-card--featured .brands-logo-img,
-  .brands-logo-card:last-child .brands-logo-img {
-    max-height: 48px;
-  }
+  .brands-logo-img { max-height: 44px; }
 }
