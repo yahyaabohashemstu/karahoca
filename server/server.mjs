@@ -341,7 +341,7 @@ const subscribeNewsletter = async ({ email, lang }) => {
     }
   }
 
-  return { success: true, alreadySubscribed: !!exists, welcomeEmail: welcomeEmailStatus };
+  return { success: true, alreadySubscribed: !!existing, welcomeEmail: welcomeEmailStatus };
 };
 
 /** Build enriched prompt: append live DB products + custom Q&A */

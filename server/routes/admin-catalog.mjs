@@ -3,6 +3,15 @@ import { verifyToken } from '../auth.mjs';
 
 const LANG_LABELS = { ar: 'العربية', en: 'English', tr: 'Türkçe', ru: 'Русский' };
 const LANG_DIR = { ar: 'rtl', en: 'ltr', tr: 'ltr', ru: 'ltr' };
+const VALID_LANGS = ['ar', 'en', 'tr', 'ru', 'all'];
+
+/** Escape HTML special characters to prevent XSS */
+const esc = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 function buildCatalogHtml({ products, lang, siteUrl, autoprint }) {
   const isMulti = lang === 'all';
@@ -19,31 +28,31 @@ function buildCatalogHtml({ products, lang, siteUrl, autoprint }) {
       <div class="prod-card">
         ${imageHtml}
         <div class="prod-info">
-          <div class="prod-brand">${p.brand}</div>
+          <div class="prod-brand">${esc(p.brand)}</div>
           <div class="prod-names">
-            <span dir="rtl" lang="ar">${p.name_ar || ''}</span>
-            <span dir="ltr" lang="en">${p.name_en || ''}</span>
-            <span dir="ltr" lang="tr">${p.name_tr || ''}</span>
-            <span dir="ltr" lang="ru">${p.name_ru || ''}</span>
+            <span dir="rtl" lang="ar">${esc(p.name_ar)}</span>
+            <span dir="ltr" lang="en">${esc(p.name_en)}</span>
+            <span dir="ltr" lang="tr">${esc(p.name_tr)}</span>
+            <span dir="ltr" lang="ru">${esc(p.name_ru)}</span>
           </div>
-          ${p.weight ? `<div class="prod-meta">⚖️ ${p.weight}</div>` : ''}
-          ${p.description_en ? `<div class="prod-desc" dir="ltr">${p.description_en}</div>` : ''}
+          ${p.weight ? `<div class="prod-meta">⚖️ ${esc(p.weight)}</div>` : ''}
+          ${p.description_en ? `<div class="prod-desc" dir="ltr">${esc(p.description_en)}</div>` : ''}
         </div>
       </div>`;
     } else {
-      const name = p[`name_${lang}`] || p.name_en || '';
-      const desc = p[`description_${lang}`] || '';
-      const material = p[`material_${lang}`] || '';
-      const count = p[`count_${lang}`] || '';
+      const name = esc(p[`name_${lang}`] || p.name_en || '');
+      const desc = esc(p[`description_${lang}`] || '');
+      const material = esc(p[`material_${lang}`] || '');
+      const count = esc(p[`count_${lang}`] || '');
       return `
       <div class="prod-card">
         ${imageHtml}
         <div class="prod-info">
-          <div class="prod-brand">${p.brand}</div>
+          <div class="prod-brand">${esc(p.brand)}</div>
           <div class="prod-name" dir="${LANG_DIR[lang] || 'ltr'}">${name}</div>
           ${desc ? `<div class="prod-desc" dir="${LANG_DIR[lang] || 'ltr'}">${desc}</div>` : ''}
           <div class="prod-specs">
-            ${p.weight ? `<span>⚖️ ${p.weight}</span>` : ''}
+            ${p.weight ? `<span>⚖️ ${esc(p.weight)}</span>` : ''}
             ${material ? `<span>🔬 ${material}</span>` : ''}
             ${count ? `<span>📦 ${count}</span>` : ''}
           </div>
@@ -228,7 +237,8 @@ export function handleAdminCatalog(request, response, ctx) {
   try {
     const db = getDb();
     const productIds = (u.searchParams.get('products') || '').split(',').map(s => s.trim()).filter(Boolean);
-    const lang = u.searchParams.get('lang') || 'en';
+    const rawLang = u.searchParams.get('lang') || 'en';
+    const lang = VALID_LANGS.includes(rawLang) ? rawLang : 'en';
     const brand = u.searchParams.get('brand') || '';
     const autoprint = u.searchParams.get('autoprint') === '1';
     const siteUrl = process.env.SITE_URL || 'https://karahoca.com';

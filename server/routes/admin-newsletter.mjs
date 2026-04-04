@@ -10,7 +10,12 @@ export const handleAdminNewsletter = (req, res, { sendJson, origin, url }) => {
       'SELECT email, subscribed_at FROM newsletter_subscribers WHERE active=1 ORDER BY subscribed_at DESC'
     ).all();
 
-    const csv = ['email,subscribed_at', ...subscribers.map(s => `${s.email},${s.subscribed_at}`)].join('\n');
+    // Sanitize CSV cells: prefix dangerous chars to prevent Excel formula injection
+    const csvSafe = (v = '') => {
+      const s = String(v);
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    };
+    const csv = ['email,subscribed_at', ...subscribers.map(s => `${csvSafe(s.email)},${csvSafe(s.subscribed_at)}`)].join('\n');
 
     res.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
