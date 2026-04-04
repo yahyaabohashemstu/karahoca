@@ -3436,21 +3436,22 @@ body.light-mode .news-modal__close {
   overflow: hidden;
   isolation: isolate;
 
-  /* Glass background (padding-box) + crawling glow (border-box) */
+  /* Glass background (padding-box) + crawling glow (border-box).
+     Must use gradient (not plain color) so background-clip works per-layer. */
   background:
-    rgba(255,255,255,0.08) padding-box,
+    linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)) padding-box,
     conic-gradient(
       from var(--border-angle),
-      rgba(255,255,255,0.07)  0deg,
+      rgba(255,255,255,0.08)  0deg,
       rgba(255, 91, 46, 0.0)  0deg,
-      rgba(255, 91, 46, 0.9) 40deg,
+      rgba(255, 91, 46, 1.0) 40deg,
       rgba(255,180,120, 1.0) 65deg,
-      rgba(255, 91, 46, 0.9) 90deg,
+      rgba(255, 91, 46, 1.0) 90deg,
       rgba(255, 91, 46, 0.0) 135deg,
-      rgba(255,255,255,0.07) 360deg
+      rgba(255,255,255,0.08) 360deg
     ) border-box;
 
-  border: 1.5px solid transparent;
+  border: 2px solid transparent;
   backdrop-filter: blur(10px) saturate(140%);
   box-shadow: 0 8px 32px rgba(0,0,0,0.30);
 
@@ -3645,16 +3646,16 @@ body.light-mode .news-modal__close {
 /* ── Light-mode luxury version ── */
 body.light-mode .brands-partner-row {
   background:
-    rgba(232,236,242,0.75) padding-box,
+    linear-gradient(rgba(232,236,242,0.75), rgba(232,236,242,0.75)) padding-box,
     conic-gradient(
       from var(--border-angle),
-      rgba(21, 61,122,0.06)  0deg,
+      rgba(21, 61,122,0.08)  0deg,
       rgba(245,75, 26,0.0)   0deg,
-      rgba(245,75, 26,0.85) 40deg,
+      rgba(245,75, 26,1.0)  40deg,
       rgba(255,140, 80,1.0) 65deg,
-      rgba(245,75, 26,0.85) 90deg,
+      rgba(245,75, 26,1.0)  90deg,
       rgba(245,75, 26,0.0) 135deg,
-      rgba(21, 61,122,0.06) 360deg
+      rgba(21, 61,122,0.08) 360deg
     ) border-box;
   box-shadow: 0 8px 32px rgba(21,61,122,0.08);
 }
