@@ -788,6 +788,18 @@ const server = createServer(async (request, response) => {
           sendJson(response, 400, { error: 'File too large (max 5 MB)' }, requestOrigin);
           return;
         }
+
+        // Verify actual file content matches claimed extension (magic bytes)
+        const magicValid =
+          (ext === 'jpg' || ext === 'jpeg') && buf.length >= 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF ||
+          ext === 'png'  && buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 ||
+          ext === 'gif'  && buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 ||
+          ext === 'webp' && buf.length >= 12 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+        if (!magicValid) {
+          sendJson(response, 400, { error: 'File content does not match the declared image type' }, requestOrigin);
+          return;
+        }
+
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
