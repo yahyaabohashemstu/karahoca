@@ -3425,7 +3425,7 @@ body.light-mode .news-modal__close {
   100% { background-position: 200%  center; }
 }
 
-/* ── Main container ── */
+/* ── Outer card (frame) ── */
 .brands-partner-row {
   margin-top: 16px;
   display: flex;
@@ -3434,6 +3434,7 @@ body.light-mode .news-modal__close {
   border-radius: 28px;
   overflow: hidden;
   isolation: isolate;
+  padding: 18px;
 
   /* Same glass style as DIOX/AYLUX cards */
   background: rgba(255,255,255,0.08);
@@ -3445,6 +3446,53 @@ body.light-mode .news-modal__close {
     0 8px 32px rgba(0,0,0,0.30),
     inset 0 1px 0 rgba(255,255,255,0.08);
 }
+
+/* ── Inner card — identical glass-card style ── */
+.brands-inner-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 16px;   /* outer(28) − padding(18) + ~6 for visual balance */
+  overflow: hidden;
+  /* Glass identical to .glass-card */
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  z-index: 2;
+}
+
+/* gradient-glass overlay — same as glass-card::before */
+.brands-inner-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-glass);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* inner top highlight line */
+.brands-inner-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 6%; right: 6%;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent,
+    rgba(255,255,255,0.3) 30%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0.3) 70%,
+    transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* all inner-card children above overlays */
+.brands-inner-card > * { position: relative; z-index: 2; }
 
 /* Sweeping shimmer overlay */
 .brands-partner-row::before {
@@ -3479,8 +3527,8 @@ body.light-mode .news-modal__close {
   z-index: 1;
 }
 
-/* All children sit above shimmer */
-.brands-partner-row > * { position: relative; z-index: 2; }
+/* Inner card sits above outer shimmer */
+.brands-partner-row > .brands-inner-card { z-index: 2; }
 
 /* ── Top: text + CTA ── */
 .brands-partner-content {
@@ -3663,15 +3711,21 @@ body.light-mode .news-modal__close {
   object-fit: contain;
 }
 
-/* ── Light-mode luxury version ── */
+/* ── Light-mode ── */
 body.light-mode .brands-partner-row {
-  background: var(--glass-bg);
+  background: rgba(232,236,242,0.6);
   backdrop-filter: blur(10px) saturate(140%);
   border: 1px solid rgba(21,61,122,0.12);
   box-shadow:
     0 0 0 1px rgba(245,75,26,0.08),
     0 8px 32px rgba(21,61,122,0.08),
     inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+body.light-mode .brands-inner-card {
+  background: var(--glass-bg);
+  border-color: rgba(21,61,122,0.15);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 
 body.light-mode .brands-partner-row::before {
@@ -3756,6 +3810,7 @@ body.light-mode .brands-logo-card--featured {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
+  .brands-partner-row     { padding: 12px; }
   .brands-partner-content { padding: 28px 22px 22px; }
   .brands-partner-logos   { padding: 18px 20px 24px; }
   .brands-logo-card {
