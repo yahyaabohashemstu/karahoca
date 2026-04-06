@@ -706,16 +706,18 @@ const AIChatWidget: React.FC = () => {
         </div>
       )}
 
-      <button
-        type="button"
-        className="ai-assistant__toggle"
-        onClick={handleToggle}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? uiText.closeToggleLabel : uiText.openToggleLabel}
-        title={isOpen ? uiText.closeToggleLabel : uiText.openToggleLabel}
-      >
-        {isOpen ? '×' : '🤖'}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="ai-assistant__toggle"
+          onClick={handleToggle}
+          aria-expanded={false}
+          aria-label={uiText.openToggleLabel}
+          title={uiText.openToggleLabel}
+        >
+          🤖
+        </button>
+      )}
 
       {isOpen && (
         <div className="ai-assistant__window" data-lang={currentLang}>
