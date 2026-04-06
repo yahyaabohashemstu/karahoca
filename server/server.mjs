@@ -885,6 +885,28 @@ const server = createServer(async (request, response) => {
 await ensureDataDirectories();
 initDb();
 
+// ── News: auto-publish scheduled articles ────────────────────────────────────
+const publishDueNewsArticles = () => {
+  try {
+    const db = getDb();
+    const result = db.prepare(`
+      UPDATE news
+      SET status='published', active=1, updated_at=datetime('now')
+      WHERE status='scheduled'
+        AND publish_at IS NOT NULL
+        AND datetime(publish_at) <= datetime('now')
+        AND active=1
+    `).run();
+    if (result.changes > 0) {
+      console.log(`[news-scheduler] Published ${result.changes} scheduled article(s).`);
+    }
+  } catch (e) {
+    console.error('[news-scheduler] error:', e.message);
+  }
+};
+void publishDueNewsArticles();
+const newsSchedulerInterval = setInterval(publishDueNewsArticles, 60 * 1000);
+
 // ── Campaign scheduler ────────────────────────────────────────────────────────
 const dispatchDueCampaigns = async () => {
   try {
@@ -919,6 +941,7 @@ const backupInterval = startAutoBackup();
 // ── Graceful shutdown ───────────────────────────────────────────────────────
 const shutdown = (signal) => {
   console.log(`[server] ${signal} received — shutting down gracefully.`);
+  clearInterval(newsSchedulerInterval);
   clearInterval(campaignInterval);
   clearInterval(rateLimitPruneInterval);
   if (backupInterval) clearInterval(backupInterval);

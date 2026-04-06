@@ -753,6 +753,23 @@
       "readMore": "Read more",
       "viewAll": "All news",
       "modalClose": "Close article"
+    },
+    "cookie": {
+      "title": "We use cookies",
+      "description": "We use cookies and similar technologies to improve your experience and analyze site traffic. By clicking \"Accept All\", you agree to our use of analytics cookies.",
+      "acceptAll": "Accept All",
+      "essentialOnly": "Essential Only"
+    },
+    "catalog": {
+      "downloadBtn": "Download Catalog (PDF)",
+      "printTitle": "KARAHOCA — Product Catalog",
+      "printSubtitle": "Premium Cleaning Products",
+      "printContact": "Contact: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. All rights reserved.",
+      "printBrand": "Brand",
+      "printProducts": "Products",
+      "printCategory": "Category",
+      "printDate": "Catalog Date"
     }
   }
 }

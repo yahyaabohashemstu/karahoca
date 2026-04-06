@@ -753,6 +753,23 @@
       "readMore": "اقرأ المزيد",
       "viewAll": "جميع الأخبار",
       "modalClose": "إغلاق الخبر"
+    },
+    "cookie": {
+      "title": "نستخدم ملفات تعريف الارتباط",
+      "description": "نستخدم ملفات تعريف الارتباط وتقنيات مماثلة لتحسين تجربتك وتحليل حركة الموقع. بالنقر على \"قبول الكل\"، توافق على استخدامنا لملفات الارتباط التحليلية.",
+      "acceptAll": "قبول الكل",
+      "essentialOnly": "الأساسية فقط"
+    },
+    "catalog": {
+      "downloadBtn": "تحميل الكتالوج (PDF)",
+      "printTitle": "KARAHOCA — كتالوج المنتجات",
+      "printSubtitle": "منتجات تنظيف متميزة",
+      "printContact": "التواصل: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. جميع الحقوق محفوظة.",
+      "printBrand": "العلامة التجارية",
+      "printProducts": "المنتجات",
+      "printCategory": "الفئة",
+      "printDate": "تاريخ الكتالوج"
     }
   }
 }

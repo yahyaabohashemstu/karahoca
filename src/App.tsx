@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import WhatsAppButton from './components/WhatsAppButton';
 import GoogleAnalytics from './components/GoogleAnalytics';
+import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
 import DioxPage from './pages/DioxPage';
 import ProductionPage from './pages/ProductionPage';
@@ -65,6 +66,7 @@ function MainSite() {
   return (
     <>
       <GoogleAnalytics />
+      <CookieConsent />
       <OrganizationSchema />
       <WebsiteSchema />
       {isLoading && <PageLoader hiding={isHiding} />}

@@ -753,6 +753,23 @@
       "readMore": "Devamini oku",
       "viewAll": "Tum haberler",
       "modalClose": "Haberi kapat"
+    },
+    "cookie": {
+      "title": "Çerez kullanıyoruz",
+      "description": "Deneyiminizi geliştirmek ve site trafiğini analiz etmek için çerezler ve benzeri teknolojiler kullanıyoruz. \"Tümünü Kabul Et\" seçeneğine tıklayarak analitik çerezlerimizin kullanımını kabul etmiş olursunuz.",
+      "acceptAll": "Tümünü Kabul Et",
+      "essentialOnly": "Yalnızca Zorunlu"
+    },
+    "catalog": {
+      "downloadBtn": "Kataloğu İndir (PDF)",
+      "printTitle": "KARAHOCA — Ürün Kataloğu",
+      "printSubtitle": "Premium Temizlik Ürünleri",
+      "printContact": "İletişim: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. Tüm hakları saklıdır.",
+      "printBrand": "Marka",
+      "printProducts": "Ürünler",
+      "printCategory": "Kategori",
+      "printDate": "Katalog Tarihi"
     }
   }
 }

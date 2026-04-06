@@ -2,13 +2,15 @@ import { getDb } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 
 const NEWS_FIELDS = [
-  'slug', 'image', 'published_at',
+  'slug', 'image', 'published_at', 'status', 'publish_at',
   'category_ar', 'category_en', 'category_tr', 'category_ru',
   'title_ar', 'title_en', 'title_tr', 'title_ru',
   'excerpt_ar', 'excerpt_en', 'excerpt_tr', 'excerpt_ru',
   'body_ar', 'body_en', 'body_tr', 'body_ru',
   'active',
 ];
+
+const VALID_STATUSES = new Set(['draft', 'published', 'scheduled']);
 
 const serializeBody = (item) => {
   const result = { ...item };
@@ -39,6 +41,16 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
 
     if (req.method === 'PUT') {
       const updateBody = { ...body };
+      // Validate status if provided
+      if (updateBody.status !== undefined && !VALID_STATUSES.has(updateBody.status)) {
+        sendJson(res, 400, { success: false, error: 'Invalid status. Must be draft, published, or scheduled.' }, origin);
+        return;
+      }
+      // Auto-set active based on status
+      if (updateBody.status === 'draft') updateBody.active = 0;
+      else if (updateBody.status === 'published') updateBody.active = 1;
+      else if (updateBody.status === 'scheduled') updateBody.active = 1;
+
       // Serialize arrays to JSON strings for storage
       for (const lang of ['ar', 'en', 'tr', 'ru']) {
         const k = `body_${lang}`;
@@ -64,8 +76,9 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
 
   // /api/admin/news
   if (req.method === 'GET') {
-    const showInactive = urlObj.searchParams.get('all') === '1';
-    const where = showInactive ? '' : 'WHERE active=1';
+    // ?all=1 → return all statuses for admin panel
+    const showAll = urlObj.searchParams.get('all') === '1';
+    const where = showAll ? '' : "WHERE active=1 AND status='published'";
     const items = db.prepare(`SELECT * FROM news ${where} ORDER BY published_at DESC`).all();
     sendJson(res, 200, { success: true, items: items.map(serializeBody) }, origin);
     return;
@@ -77,30 +90,39 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
       return;
     }
 
+    const status = VALID_STATUSES.has(body.status) ? body.status : 'published';
+    // Scheduled articles must have a future publish_at date
+    if (status === 'scheduled' && !body.publish_at) {
+      sendJson(res, 400, { success: false, error: 'publish_at is required for scheduled articles.' }, origin);
+      return;
+    }
+
     const id = body.id || randomUUID().slice(0, 12);
     const slug = body.slug || body.title_ar.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').slice(0, 60) || id;
     const now = new Date().toISOString();
-
     const toJson = (v) => Array.isArray(v) ? JSON.stringify(v) : (typeof v === 'string' ? v : JSON.stringify([]));
+    // Draft articles are not publicly active
+    const active = status === 'draft' ? 0 : 1;
 
     db.prepare(`
       INSERT INTO news(
-        id, slug, image, published_at,
+        id, slug, image, published_at, status, publish_at,
         category_ar, category_en, category_tr, category_ru,
         title_ar, title_en, title_tr, title_ru,
         excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
         body_ar, body_en, body_tr, body_ru,
         active, created_at, updated_at
       ) VALUES(
-        @id, @slug, @image, @published_at,
+        @id, @slug, @image, @published_at, @status, @publish_at,
         @cat_ar, @cat_en, @cat_tr, @cat_ru,
         @title_ar, @title_en, @title_tr, @title_ru,
         @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
         @body_ar, @body_en, @body_tr, @body_ru,
-        1, @now, @now
+        @active, @now, @now
       )
     `).run({
       id, slug, image: body.image || '', published_at: body.published_at,
+      status, publish_at: body.publish_at || null,
       cat_ar: body.category_ar || '', cat_en: body.category_en || '',
       cat_tr: body.category_tr || '', cat_ru: body.category_ru || '',
       title_ar: body.title_ar, title_en: body.title_en || '',
@@ -109,7 +131,7 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
       excerpt_tr: body.excerpt_tr || '', excerpt_ru: body.excerpt_ru || '',
       body_ar: toJson(body.body_ar), body_en: toJson(body.body_en),
       body_tr: toJson(body.body_tr), body_ru: toJson(body.body_ru),
-      now,
+      active, now,
     });
 
     sendJson(res, 201, { success: true, item: serializeBody(db.prepare('SELECT * FROM news WHERE id=?').get(id)) }, origin);

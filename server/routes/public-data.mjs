@@ -85,7 +85,13 @@ export const handlePublicNews = (req, res, { sendJson, origin }) => {
       title_${l} as title,
       excerpt_${l} as excerpt,
       body_${l} as body
-    FROM news WHERE active=1
+    FROM news
+    WHERE active=1
+      AND (
+        status = 'published'
+        OR status IS NULL
+        OR (status = 'scheduled' AND publish_at IS NOT NULL AND datetime(publish_at) <= datetime('now'))
+      )
     ORDER BY published_at DESC
   `).all();
 

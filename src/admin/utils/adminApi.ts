@@ -276,6 +276,8 @@ export interface NewsItem {
   slug: string;
   image: string;
   published_at: string;
+  status: 'draft' | 'published' | 'scheduled';
+  publish_at: string | null;
   category_ar: string; category_en: string; category_tr: string; category_ru: string;
   title_ar: string; title_en: string; title_tr: string; title_ru: string;
   excerpt_ar: string; excerpt_en: string; excerpt_tr: string; excerpt_ru: string;

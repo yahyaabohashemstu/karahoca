@@ -753,6 +753,23 @@
       "readMore": "Читать далее",
       "viewAll": "Все новости",
       "modalClose": "Закрыть новость"
+    },
+    "cookie": {
+      "title": "Мы используем файлы cookie",
+      "description": "Мы используем файлы cookie и аналогичные технологии для улучшения вашего опыта и анализа трафика сайта. Нажимая «Принять все», вы соглашаетесь с использованием аналитических файлов cookie.",
+      "acceptAll": "Принять все",
+      "essentialOnly": "Только необходимые"
+    },
+    "catalog": {
+      "downloadBtn": "Скачать каталог (PDF)",
+      "printTitle": "KARAHOCA — Каталог продукции",
+      "printSubtitle": "Премиальные чистящие средства",
+      "printContact": "Контакт: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. Все права защищены.",
+      "printBrand": "Бренд",
+      "printProducts": "Продукты",
+      "printCategory": "Категория",
+      "printDate": "Дата каталога"
     }
   }
 }

@@ -91,8 +91,23 @@ export const initDb = () => {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   createSchema();
+  migrateNewsStatusColumn();
   migrateInitialData();
   return db;
+};
+
+// ─── Migration: news status + publish_at columns ─────────────────────────────
+const migrateNewsStatusColumn = () => {
+  const cols = db.prepare('PRAGMA table_info(news)').all().map(c => c.name);
+  if (!cols.includes('status')) {
+    db.exec(`ALTER TABLE news ADD COLUMN status TEXT DEFAULT 'published'`);
+    // Mark all existing active articles as published
+    db.exec(`UPDATE news SET status='published' WHERE active=1 AND status IS NULL`);
+    db.exec(`UPDATE news SET status='published' WHERE status IS NULL`);
+  }
+  if (!cols.includes('publish_at')) {
+    db.exec(`ALTER TABLE news ADD COLUMN publish_at TEXT`);
+  }
 };
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
