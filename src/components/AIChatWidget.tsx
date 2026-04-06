@@ -68,6 +68,7 @@ interface UIStrings {
   connectionError: string;
   fallbackReply: string;
   noAnswerFallback: string;
+  privacyNotice: string;
 }
 
 const getLocaleForLanguage = (lang: string) => {
@@ -101,6 +102,7 @@ const getUIText = (lang: string): UIStrings => {
           'Su anda asistana baglanmakta zorlaniyoruz. Lutfen bize info@karahoca.com adresinden veya +905305914990 WhatsApp hattindan ulasin.',
         noAnswerFallback:
           'Mevcut bilgi tabaninda net bir yanit bulamadim. Bize info@karahoca.com e-posta adresinden veya +905305914990 WhatsApp hattindan ulasabilirsiniz.',
+        privacyNotice: 'Sohbetler hizmet kalitesini artırmak amacıyla kaydedilmektedir. Silme talebi: info@karahoca.com',
       };
     case 'ru':
       return {
@@ -120,6 +122,7 @@ const getUIText = (lang: string): UIStrings => {
           'Сейчас мы не можем подключиться к помощнику. Пожалуйста, свяжитесь с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
         noAnswerFallback:
           'Я не смог найти точный ответ в текущей базе знаний. Вы можете связаться с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
+        privacyNotice: 'Сообщения записываются для улучшения сервиса. Запрос на удаление: info@karahoca.com',
       };
     case 'en':
       return {
@@ -139,6 +142,7 @@ const getUIText = (lang: string): UIStrings => {
           'We are having trouble connecting to the assistant right now. Please contact us at info@karahoca.com or via WhatsApp at +905305914990.',
         noAnswerFallback:
           'I could not find a precise answer in the current knowledge base. You can contact us at info@karahoca.com or via WhatsApp at +905305914990.',
+        privacyNotice: 'Conversations are recorded to improve our service. Deletion requests: info@karahoca.com',
       };
     case 'ar':
     default:
@@ -153,12 +157,13 @@ const getUIText = (lang: string): UIStrings => {
         inputLabel: 'حقل إدخال سؤال للمساعد',
         welcomeHint: 'هل لديك سؤال؟',
         closeWelcomeHint: 'إغلاق الرسالة الترحيبية',
-        loadingLabel: 'جاري التحميل',
+        loadingLabel: 'جارِالتحميل',
         connectionError: 'حدث خطأ أثناء الاتصال بالمساعد.',
         fallbackReply:
           'نواجه صعوبة في الاتصال بالمساعد الآن. يرجى مراسلتنا على البريد info@karahoca.com أو الواتساب +905305914990، وسنعمل على خدمتك فوراً.',
         noAnswerFallback:
           'لم أتمكن من العثور على إجابة دقيقة في قاعدة المعرفة الحالية. يسعدنا التواصل معكم عبر البريد info@karahoca.com أو الواتساب +905305914990.',
+        privacyNotice: '🔒 محادثاتك مسجّلة لتحسين الخدمة. لطلب الحذف: info@karahoca.com',
       };
   }
 };
@@ -823,6 +828,10 @@ const AIChatWidget: React.FC = () => {
             >
               {uiText.sendButton}
             </button>
+          </div>
+
+          <div className="ai-assistant__privacy" dir={isRtl ? 'rtl' : 'ltr'}>
+            {uiText.privacyNotice}
           </div>
         </div>
       )}
