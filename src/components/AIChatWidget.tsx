@@ -11,6 +11,7 @@ import {
   type KnowledgeSection,
 } from '../data/aiKnowledge';
 import { buildApiUrl } from '../utils/api';
+import { trackChatOpen, trackChatClose } from '../utils/analytics';
 import { useIsMobile } from '../hooks/useIsMobile';
 import {
   getLanguageDirection,
@@ -651,6 +652,7 @@ const AIChatWidget: React.FC = () => {
   const handleClose = () => {
     setIsOpen(false);
     setShowWelcomeHint(false);
+    trackChatClose();
   };
 
   const handleToggle = () => {
@@ -661,6 +663,7 @@ const AIChatWidget: React.FC = () => {
 
     setIsOpen(true);
     setShowWelcomeHint(false);
+    trackChatOpen();
   };
 
   return (

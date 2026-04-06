@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { normalizeLanguageCode } from '../utils/language';
 import { buildApiUrl } from '../utils/api';
+import { trackCatalogDownload } from '../utils/analytics';
 
 interface CatalogProduct {
   id: string;
@@ -41,6 +42,7 @@ const CatalogDownloadButton: React.FC = () => {
 
   const handlePrint = useCallback(async () => {
     setLoading(true);
+    trackCatalogDownload(lang);
     try {
       const [diox, aylux] = await Promise.all([fetchBrand('DIOX'), fetchBrand('AYLUX')]);
 

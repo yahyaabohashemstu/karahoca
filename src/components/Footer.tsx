@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { trackFormSubmit } from '../utils/analytics';
+import { trackFormSubmit, trackNewsletterSubscription } from '../utils/analytics';
 import { buildApiUrl } from '../utils/api';
 import CatalogDownloadButton from './CatalogDownloadButton';
 
@@ -82,6 +82,7 @@ const Footer: React.FC = () => {
       setSubmissionState('success');
       setEmail('');
       trackFormSubmit('Newsletter Subscription', true);
+      trackNewsletterSubscription(i18n.language);
 
       setTimeout(() => {
         setSubmissionState('idle');
