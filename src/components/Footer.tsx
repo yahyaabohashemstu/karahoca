@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackFormSubmit, trackNewsletterSubscription } from '../utils/analytics';
 import { buildApiUrl } from '../utils/api';
-import CatalogDownloadButton from './CatalogDownloadButton';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -209,9 +208,8 @@ const Footer: React.FC = () => {
           </form>
         </section>
       </div>
-      <div className="container footnote" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="container footnote">
         <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
-        <CatalogDownloadButton />
       </div>
     </footer>
   );
