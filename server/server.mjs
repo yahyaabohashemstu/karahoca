@@ -18,7 +18,6 @@ import { handleAdminGa } from './routes/admin-ga.mjs';
 import { handleAdminCampaigns, handleEmailOpen, handleEmailClick, dispatchCampaign } from './routes/admin-campaigns.mjs';
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './routes/admin-catalog.mjs';
-import { handleAdminTestimonials, handlePublicTestimonials } from './routes/admin-testimonials.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
 import { startAutoBackup } from './backup.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
@@ -694,11 +693,6 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === 'GET' && url === '/api/testimonials') {
-      handlePublicTestimonials(request, response, ctx);
-      return;
-    }
-
     // ── Admin login (public) ───────────────────────────────────────────────
 
     if (request.method === 'POST' && url === '/api/admin/login') {
@@ -774,11 +768,6 @@ const server = createServer(async (request, response) => {
 
       if (url.startsWith('/api/admin/ai-knowledge')) {
         handleAdminAiKnowledge(request, response, { ...ctx, body });
-        return;
-      }
-
-      if (url.startsWith('/api/admin/testimonials')) {
-        handleAdminTestimonials(request, response, { ...ctx, body });
         return;
       }
 

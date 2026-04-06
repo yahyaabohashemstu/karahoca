@@ -18,8 +18,6 @@ const AdminNewsletter = lazy(() => import('./pages/AdminNewsletter').then((m) =>
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns').then((m) => ({ default: m.AdminCampaigns })));
 const AdminCampaignEdit = lazy(() => import('./pages/AdminCampaignEdit').then((m) => ({ default: m.AdminCampaignEdit })));
 const AdminAiKnowledge = lazy(() => import('./pages/AdminAiKnowledge').then((m) => ({ default: m.AdminAiKnowledge })));
-const AdminTestimonials = lazy(() => import('./pages/AdminTestimonials').then((m) => ({ default: m.AdminTestimonials })));
-const AdminTestimonialEdit = lazy(() => import('./pages/AdminTestimonialEdit').then((m) => ({ default: m.AdminTestimonialEdit })));
 
 const Fallback = () => (
   <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>
@@ -48,8 +46,6 @@ export const AdminApp: React.FC = () => (
       <Route path="campaigns" element={wrap(AdminCampaigns)} />
       <Route path="campaigns/:id" element={wrap(AdminCampaignEdit)} />
       <Route path="ai-knowledge" element={wrap(AdminAiKnowledge)} />
-      <Route path="testimonials" element={wrap(AdminTestimonials)} />
-      <Route path="testimonials/:id" element={wrap(AdminTestimonialEdit)} />
     </Route>
 
     <Route path="*" element={<Navigate to="" replace />} />

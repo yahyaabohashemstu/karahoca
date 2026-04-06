@@ -237,69 +237,11 @@ const createSchema = () => {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_questions_status ON ai_user_questions(status);
 
-    CREATE TABLE IF NOT EXISTS testimonials (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      client_name TEXT NOT NULL,
-      company TEXT,
-      country TEXT,
-      role_ar TEXT, role_en TEXT, role_tr TEXT, role_ru TEXT,
-      text_ar TEXT, text_en TEXT, text_tr TEXT, text_ru TEXT,
-      rating INTEGER DEFAULT 5 CHECK(rating BETWEEN 1 AND 5),
-      display_order INTEGER DEFAULT 0,
-      active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    );
-
     CREATE TABLE IF NOT EXISTS migrations (
       name TEXT PRIMARY KEY,
       applied_at TEXT DEFAULT (datetime('now'))
     );
   `);
-};
-
-// ─── Seed: testimonials ──────────────────────────────────────────────────────
-
-const migrateTestimonialsSeed = () => {
-  const count = db.prepare('SELECT COUNT(*) as c FROM testimonials').get().c;
-  if (count > 0) return; // already seeded
-
-  const insert = db.prepare(`
-    INSERT INTO testimonials
-      (client_name, company, country, role_ar, role_en, role_tr, role_ru,
-       text_ar, text_en, text_tr, text_ru, rating, display_order, active)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)
-  `);
-
-  insert.run(
-    'أحمد الرشيد', 'Al-Rashid Trading Co.', 'السعودية',
-    'مدير المشتريات', 'Procurement Manager', 'Satın Alma Müdürü', 'Менеджер по закупкам',
-    'تعاملنا مع كاراهوجا منذ أكثر من خمس سنوات، وكانت منتجاتهم دائماً تفوق توقعاتنا من حيث الجودة والسعر. الفريق محترف للغاية ويستجيب بسرعة لأي استفسار.',
-    'We have been working with KARAHOCA for over five years, and their products have always exceeded our expectations in quality and price. The team is highly professional and responds quickly to any inquiry.',
-    'KARAHOCA ile beş yılı aşkın süredir çalışıyoruz ve ürünleri kalite ile fiyat açısından beklentilerimizi her zaman aştı. Ekip son derece profesyonel ve her soruya hızlı yanıt veriyor.',
-    'Мы работаем с KARAHOCA более пяти лет, и их продукция всегда превышает наши ожидания по качеству и цене. Команда очень профессиональна и быстро отвечает на любые вопросы.',
-    5, 1
-  );
-
-  insert.run(
-    'Mehmet Yılmaz', 'Yılmaz Temizlik A.Ş.', 'تركيا',
-    'المدير التنفيذي', 'CEO', 'Genel Müdür', 'Генеральный директор',
-    'شراكتنا مع كاراهوجا كانت من أفضل القرارات التجارية التي اتخذناها. منتجات DIOX وAYLUX تحظى بإقبال واسع في السوق التركية وتتميز بجودة استثنائية.',
-    'Our partnership with KARAHOCA has been one of the best business decisions we have made. DIOX and AYLUX products are very popular in the Turkish market and stand out for their exceptional quality.',
-    'KARAHOCA ile ortaklığımız, aldığımız en iyi iş kararlarından biri oldu. DIOX ve AYLUX ürünleri Türk pazarında büyük ilgi görüyor ve olağanüstü kaliteleriyle öne çıkıyor.',
-    'Наше партнерство с KARAHOCA стало одним из лучших бизнес-решений. Продукты DIOX и AYLUX пользуются большим спросом на турецком рынке.',
-    5, 2
-  );
-
-  insert.run(
-    'Omar Al-Farsi', 'Gulf Clean Distribution', 'الإمارات',
-    'مدير المبيعات الإقليمي', 'Regional Sales Director', 'Bölge Satış Direktörü', 'Региональный директор по продажам',
-    'منتجات كاراهوجا تعكس التزاماً حقيقياً بالجودة. نوزع منتجاتهم في الإمارات والكويت والبحرين ونلقى تقييمات ممتازة من عملائنا باستمرار.',
-    'KARAHOCA products reflect a genuine commitment to quality. We distribute their products in the UAE, Kuwait, and Bahrain and consistently receive excellent feedback from our customers.',
-    'KARAHOCA ürünleri gerçek bir kalite taahhüdünü yansıtıyor. BAE, Kuveyt ve Bahreyn\'de ürünlerini dağıtıyoruz ve müşterilerimizden sürekli olarak mükemmel geri bildirimler alıyoruz.',
-    'Продукты KARAHOCA отражают подлинную приверженность качеству. Мы распространяем их продукцию в ОАЭ, Кувейте и Бахрейне.',
-    5, 3
-  );
 };
 
 // ─── Migration ───────────────────────────────────────────────────────────────
@@ -315,7 +257,6 @@ const migrateInitialData = () => {
   migrateNews();
   migrateNewsletter();
   migrateCatalogAssetPathsAndMetadata();
-  migrateTestimonialsSeed();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
 

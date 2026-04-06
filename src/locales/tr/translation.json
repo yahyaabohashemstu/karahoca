@@ -770,12 +770,6 @@
       "printProducts": "Ürünler",
       "printCategory": "Kategori",
       "printDate": "Katalog Tarihi"
-    },
-    "testimonials": {
-      "title": "Müşterilerimiz Ne Diyor",
-      "subtitle": "Orta Doğu ve ötesindeki distribütörler ve müşteriler tarafından güvenilir",
-      "prev": "Önceki",
-      "next": "Sonraki"
     }
   }
 }
