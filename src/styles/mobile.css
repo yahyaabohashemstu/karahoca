@@ -2290,17 +2290,10 @@
     --news-gap: 14px;
   }
 
-  /* One card fills ~88% of viewport — clear single-card focus */
-  .news-section__item {
-    width: 88vw;
-    max-width: 420px;
-    flex-shrink: 0;
-  }
-
   /* ── Mobile news cards: original vertical layout ── */
   .news-section__item {
-    width: 78vw;
-    max-width: 320px;
+    width: 68vw;
+    max-width: 260px;
     flex-shrink: 0;
   }
 
@@ -2309,16 +2302,16 @@
   .news-card--featured {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 160px 1fr;
-    border-radius: 18px;
+    grid-template-rows: 130px 1fr;
+    border-radius: 16px;
     min-height: auto;
     max-height: none;
     overflow: hidden;
   }
 
   .news-card__body {
-    padding: 14px 16px;
-    gap: 7px;
+    padding: 10px 12px;
+    gap: 5px;
   }
 
   .news-card__title {
