@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resend } from 'resend';
 
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -394,6 +394,11 @@ export const handleEmailClick = (req, res) => {
       db.prepare(
         'INSERT INTO email_link_clicks(send_id, url) VALUES(?,?)'
       ).run(sendId, targetUrl.slice(0, 500));
+      // Increment campaign-level click counter
+      const send = db.prepare('SELECT campaign_id FROM email_sends WHERE id=?').get(sendId);
+      if (send?.campaign_id) {
+        db.prepare('UPDATE email_campaigns SET click_count=click_count+1 WHERE id=?').run(send.campaign_id);
+      }
     } catch { /* non-fatal */ }
   }
 
@@ -424,8 +429,9 @@ export const handleEmailOpen = (req, res) => {
 };
 
 // ── Admin Route Handler ───────────────────────────────────────────────────────
-export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, body }) => {
+export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, body, admin }) => {
   const db = getDb();
+  const adminUser = admin?.username || 'admin';
 
   // ── GET /api/admin/campaigns/:id/stats
   const statsMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/stats$/);
@@ -461,6 +467,8 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
       requestHostOrigin: getRequestHostOrigin(req),
       excludedEmails,
     });
+    const camp = db.prepare('SELECT title FROM email_campaigns WHERE id=?').get(id);
+    logAudit({ action: 'SEND', entityType: 'campaign', entityId: id, entityName: camp?.title, adminUser, details: `Sent to ${result.sent} recipients` });
     sendJson(res, 200, { success: true, ...result }, origin);
     return;
   }
@@ -505,7 +513,9 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     }
 
     if (req.method === 'DELETE') {
+      const camp = db.prepare('SELECT title FROM email_campaigns WHERE id=?').get(id);
       db.prepare('DELETE FROM email_campaigns WHERE id=?').run(id);
+      logAudit({ action: 'DELETE', entityType: 'campaign', entityId: id, entityName: camp?.title, adminUser });
       sendJson(res, 200, { success: true }, origin);
       return;
     }

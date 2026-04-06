@@ -1,4 +1,4 @@
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 
 const NEWS_FIELDS = [
@@ -23,8 +23,9 @@ const serializeBody = (item) => {
   return result;
 };
 
-export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
+export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
+  const adminUser = admin?.username || 'admin';
   const urlObj = new URL(req.url, 'http://localhost');
 
   // /api/admin/news/:id
@@ -63,12 +64,16 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
 
       db.prepare(`UPDATE news SET ${sets}, updated_at=datetime('now') WHERE id=@id`)
         .run({ ...updateBody, id });
-      sendJson(res, 200, { success: true, item: serializeBody(db.prepare('SELECT * FROM news WHERE id=?').get(id)) }, origin);
+      const updated = db.prepare('SELECT * FROM news WHERE id=?').get(id);
+      logAudit({ action: 'UPDATE', entityType: 'news', entityId: id, entityName: updated?.title_ar || updated?.title_en || id, adminUser });
+      sendJson(res, 200, { success: true, item: serializeBody(updated) }, origin);
       return;
     }
 
     if (req.method === 'DELETE') {
+      const art = db.prepare('SELECT title_ar, title_en FROM news WHERE id=?').get(id);
       db.prepare("UPDATE news SET active=0, updated_at=datetime('now') WHERE id=?").run(id);
+      logAudit({ action: 'DELETE', entityType: 'news', entityId: id, entityName: art?.title_ar || art?.title_en || id, adminUser });
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -134,7 +139,9 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url }) => {
       active, now,
     });
 
-    sendJson(res, 201, { success: true, item: serializeBody(db.prepare('SELECT * FROM news WHERE id=?').get(id)) }, origin);
+    const created = db.prepare('SELECT * FROM news WHERE id=?').get(id);
+    logAudit({ action: 'CREATE', entityType: 'news', entityId: id, entityName: body.title_ar || body.title_en || id, adminUser });
+    sendJson(res, 201, { success: true, item: serializeBody(created) }, origin);
     return;
   }
 

@@ -1,4 +1,4 @@
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 
 const PRODUCT_FIELDS = [
@@ -13,8 +13,9 @@ const PRODUCT_FIELDS = [
   'display_order', 'active',
 ];
 
-export const handleAdminProducts = (req, res, { body, sendJson, origin, url }) => {
+export const handleAdminProducts = (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
+  const adminUser = admin?.username || 'admin';
   const urlObj = new URL(req.url, 'http://localhost');
 
   // /api/admin/products/:id
@@ -37,12 +38,15 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url }) =
       db.prepare(`UPDATE products SET ${sets}, updated_at=datetime('now') WHERE id=@id`)
         .run({ ...body, id });
       const updated = db.prepare('SELECT * FROM products WHERE id=?').get(id);
+      logAudit({ action: 'UPDATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
       sendJson(res, 200, { success: true, product: updated }, origin);
       return;
     }
 
     if (req.method === 'DELETE') {
+      const prod = db.prepare('SELECT name_ar, name_en FROM products WHERE id=?').get(id);
       db.prepare("UPDATE products SET active=0, updated_at=datetime('now') WHERE id=?").run(id);
+      logAudit({ action: 'DELETE', entityType: 'product', entityId: id, entityName: prod?.name_ar || prod?.name_en || id, adminUser });
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -123,6 +127,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url }) =
     });
 
     const product = db.prepare('SELECT * FROM products WHERE id=?').get(id);
+    logAudit({ action: 'CREATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
     sendJson(res, 201, { success: true, product }, origin);
     return;
   }

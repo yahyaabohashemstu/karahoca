@@ -86,6 +86,19 @@ export const getDb = () => {
   return db;
 };
 
+/**
+ * Append an entry to admin_audit_log (non-fatal — never throws).
+ * @param {{ action: string, entityType: string, entityId?: string|number, entityName?: string, adminUser?: string, details?: string }} opts
+ */
+export const logAudit = (opts) => {
+  try {
+    const { action, entityType, entityId = null, entityName = null, adminUser = 'admin', details = null } = opts;
+    db.prepare(
+      `INSERT INTO admin_audit_log(action, entity_type, entity_id, entity_name, admin_user, details) VALUES(?,?,?,?,?,?)`
+    ).run(action, entityType, entityId != null ? String(entityId) : null, entityName, adminUser, details);
+  } catch { /* non-fatal */ }
+};
+
 export const initDb = () => {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
@@ -277,6 +290,25 @@ const migrateInitialData = () => {
       clicked_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_link_clicks_send ON email_link_clicks(send_id);
+  `);
+
+  // ── click_count column for campaign-level aggregation ─────────────────────
+  try { db.exec("ALTER TABLE email_campaigns ADD COLUMN click_count INTEGER DEFAULT 0"); } catch { /* already exists */ }
+
+  // ── Admin audit log ────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      entity_name TEXT,
+      admin_user TEXT DEFAULT 'admin',
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_log_created ON admin_audit_log(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON admin_audit_log(entity_type, entity_id);
   `);
 };
 

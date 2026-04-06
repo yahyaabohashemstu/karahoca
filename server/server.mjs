@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createReadStream, existsSync } from 'node:fs';
 
-import { initDb, getDb, incrementStat } from './db.mjs';
+import { initDb, getDb, incrementStat, logAudit } from './db.mjs';
 import { requireAuth } from './auth.mjs';
 import { handleAdminLogin } from './routes/admin-auth.mjs';
 import { handleAdminStats } from './routes/admin-stats.mjs';
@@ -420,25 +420,30 @@ const generateAiReply = async ({ prompt, lang }) => {
 };
 
 // ─── Gemini response cache ────────────────────────────────────────────────────
-const geminiCache = new Map(); // key → { reply, expiresAt }
-const GEMINI_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const geminiCache = new Map(); // key → { reply, expiresAt, hits }
+const GEMINI_CACHE_TTL = 60 * 60 * 1000; // 1 hour — reduces API costs for repeated questions
+const GEMINI_CACHE_MAX = 500;            // keep up to 500 unique Q&A pairs
+
+/** Normalize a prompt for cache keying: lowercase + collapse whitespace */
+const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 
 const getCachedReply = (prompt, lang) => {
-  const key = lang + ':' + prompt;
+  const key = lang + ':' + normalizePrompt(prompt);
   const entry = geminiCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
     geminiCache.delete(key);
     return null;
   }
+  entry.hits = (entry.hits || 0) + 1; // track hit count for diagnostics
   return entry.reply;
 };
 
 const setCachedReply = (prompt, lang, reply) => {
-  const key = lang + ':' + prompt;
-  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL });
-  // Limit cache size to 200 entries
-  if (geminiCache.size > 200) {
+  const key = lang + ':' + normalizePrompt(prompt);
+  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL, hits: 0 });
+  // LRU-like eviction: remove oldest entry when over limit
+  if (geminiCache.size > GEMINI_CACHE_MAX) {
     const firstKey = geminiCache.keys().next().value;
     geminiCache.delete(firstKey);
   }
@@ -710,64 +715,81 @@ const server = createServer(async (request, response) => {
     // ── Protected admin routes ─────────────────────────────────────────────
 
     if (url.startsWith('/api/admin/')) {
-      if (!requireAdminAuth(request, response, requestOrigin)) return;
+      const adminUser = requireAdminAuth(request, response, requestOrigin);
+      if (!adminUser) return;
       const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
       const body = ['POST','PUT','PATCH'].includes(request.method)
         ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
         : {};
+      const adminCtx = { ...ctx, body, admin: adminUser };
 
       if (url === '/api/admin/stats' && request.method === 'GET') {
-        handleAdminStats(request, response, ctx);
+        handleAdminStats(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/analytics' && request.method === 'GET') {
-        handleAdminAnalytics(request, response, ctx);
+        handleAdminAnalytics(request, response, adminCtx);
+        return;
+      }
+
+      // ── Audit log ────────────────────────────────────────────────────────────
+      if (url === '/api/admin/audit-log' && request.method === 'GET') {
+        const db = getDb();
+        const urlObj = new URL(request.url, 'http://localhost');
+        const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '100', 10), 500);
+        const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+        const entityType = urlObj.searchParams.get('entity') || null;
+        const where = entityType ? 'WHERE entity_type=?' : '';
+        const params = entityType ? [entityType, limit, offset] : [limit, offset];
+        const logs = db.prepare(`SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params);
+        const total = db.prepare(`SELECT COUNT(*) as c FROM admin_audit_log ${where}`).get(...(entityType ? [entityType] : [])).c;
+        sendJson(response, 200, { success: true, logs, total }, requestOrigin);
         return;
       }
 
       if (url.startsWith('/api/admin/chats')) {
-        handleAdminChats(request, response, { ...ctx, body });
+        handleAdminChats(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/products')) {
-        handleAdminProducts(request, response, { ...ctx, body });
+        handleAdminProducts(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/categories')) {
-        handleAdminCategories(request, response, { ...ctx, body });
+        handleAdminCategories(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/newsletter')) {
-        handleAdminNewsletter(request, response, { ...ctx, body });
+        handleAdminNewsletter(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/news')) {
-        handleAdminNews(request, response, { ...ctx, body });
+        handleAdminNews(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/translate' && request.method === 'POST') {
-        await handleAdminTranslate(request, response, { ...ctx, body });
+        await handleAdminTranslate(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/ga' && request.method === 'GET') {
-        await handleAdminGa(request, response, ctx);
+        await handleAdminGa(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/campaigns')) {
-        await handleAdminCampaigns(request, response, { ...ctx, body });
+        await handleAdminCampaigns(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/ai-knowledge')) {
-        handleAdminAiKnowledge(request, response, { ...ctx, body });
+        handleAdminAiKnowledge(request, response, adminCtx);
         return;
       }
 

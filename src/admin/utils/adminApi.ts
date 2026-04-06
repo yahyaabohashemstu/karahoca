@@ -184,7 +184,17 @@ export const adminApi = {
       'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
     ),
   uploadImage: (imageBase64: string, fileName: string) =>
-    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
+    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),
+
+  // Audit Log
+  getAuditLog: (params?: { limit?: number; offset?: number; entity?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.offset) q.set('offset', String(params.offset));
+    if (params?.entity) q.set('entity', params.entity);
+    return request<{ success: boolean; logs: AuditLogEntry[]; total: number }>('GET', `/api/admin/audit-log?${q}`);
+  },
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -316,6 +326,7 @@ export interface Campaign {
   sent_at?: string;
   recipient_count: number;
   open_count: number;
+  click_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -342,6 +353,18 @@ export interface AiQA {
 export interface AiQuestion {
   id: number; question: string; language: string; user_id?: string;
   status: 'new' | 'reviewed' | 'ignored'; created_at: string;
+}
+
+// ── Audit Log ────────────────────────────────────────────────────────────────
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  admin_user: string;
+  details: string | null;
+  created_at: string;
 }
 
 // ── Google Analytics ────────────────────────────────────────────────────────
