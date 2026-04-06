@@ -770,6 +770,12 @@
       "printProducts": "Products",
       "printCategory": "Category",
       "printDate": "Catalog Date"
+    },
+    "testimonials": {
+      "title": "What Our Partners Say",
+      "subtitle": "Trusted by distributors and clients across the Middle East and beyond",
+      "prev": "Previous",
+      "next": "Next"
     }
   }
 }

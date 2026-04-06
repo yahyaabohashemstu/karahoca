@@ -770,6 +770,12 @@
       "printProducts": "المنتجات",
       "printCategory": "الفئة",
       "printDate": "تاريخ الكتالوج"
+    },
+    "testimonials": {
+      "title": "آراء عملائنا",
+      "subtitle": "ماذا يقول شركاؤنا حول العالم عن منتجاتنا",
+      "prev": "السابق",
+      "next": "التالي"
     }
   }
 }

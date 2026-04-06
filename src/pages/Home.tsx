@@ -8,6 +8,7 @@ import NewsSection from '../components/NewsSection';
 import WorkSection from '../components/WorkSection';
 import NumbersSection from '../components/NumbersSection';
 import AboutSection from '../components/AboutSection';
+import TestimonialsSection from '../components/TestimonialsSection';
 import Footer from '../components/Footer';
 
 const Home: React.FC = () => {
@@ -36,6 +37,7 @@ const Home: React.FC = () => {
         <NewsSection />
         <WorkSection />
         <NumbersSection />
+        <TestimonialsSection />
         <AboutSection />
       </main>
 

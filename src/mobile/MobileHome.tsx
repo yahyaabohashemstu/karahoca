@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
 import NewsSection from "../components/NewsSection";
 import NumbersSection from "../components/NumbersSection";
+import TestimonialsSection from "../components/TestimonialsSection";
 
 export default function MobileHome() {
   const { t } = useTranslation();
@@ -113,6 +114,8 @@ export default function MobileHome() {
         </section>
 
         <NumbersSection />
+
+        <TestimonialsSection />
 
         <section id="about" className="m-container" style={{ display: 'grid', gap: 16, marginTop: 32, marginBottom: 32 }}>
           <div className="m-section-header">

@@ -184,7 +184,20 @@ export const adminApi = {
       'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
     ),
   uploadImage: (imageBase64: string, fileName: string) =>
-    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
+    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),
+
+  // Testimonials
+  getTestimonials: () =>
+    request<{ success: boolean; testimonials: Testimonial[] }>('GET', '/api/admin/testimonials'),
+  getTestimonial: (id: number) =>
+    request<{ success: boolean; testimonial: Testimonial }>('GET', `/api/admin/testimonials/${id}`),
+  createTestimonial: (data: Partial<Testimonial>) =>
+    request<{ success: boolean; testimonial: Testimonial }>('POST', '/api/admin/testimonials', data),
+  updateTestimonial: (id: number, data: Partial<Testimonial>) =>
+    request<{ success: boolean; testimonial: Testimonial }>('PUT', `/api/admin/testimonials/${id}`, data),
+  deleteTestimonial: (id: number) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/testimonials/${id}`),
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -342,6 +355,21 @@ export interface AiQA {
 export interface AiQuestion {
   id: number; question: string; language: string; user_id?: string;
   status: 'new' | 'reviewed' | 'ignored'; created_at: string;
+}
+
+// ── Testimonials ─────────────────────────────────────────────────────────────
+export interface Testimonial {
+  id: number;
+  client_name: string;
+  company: string;
+  country: string;
+  role_ar: string; role_en: string; role_tr: string; role_ru: string;
+  text_ar: string; text_en: string; text_tr: string; text_ru: string;
+  rating: number;
+  display_order: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // ── Google Analytics ────────────────────────────────────────────────────────
