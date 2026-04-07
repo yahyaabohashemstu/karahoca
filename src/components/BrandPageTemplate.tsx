@@ -72,12 +72,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   const [galleryIndex, setGalleryIndex] = useState(0);
   const { isInWishlist, toggle, items: wishlistItems } = useWishlist();
 
-  // Popup shows gallery colour variants only (individual photos).
-  // If no gallery, fall back to the main card image.
+  // All images for the popup: main image first, then gallery colour variants
   const allPopupImages = selectedProduct
-    ? (selectedProduct.gallery && selectedProduct.gallery.length > 0
-        ? selectedProduct.gallery
-        : [selectedProduct.image])
+    ? [selectedProduct.image, ...(selectedProduct.gallery ?? [])]
     : [];
 
   const openImagePopup = (product: ProductInfo) => {
