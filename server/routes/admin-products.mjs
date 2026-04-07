@@ -5,7 +5,7 @@ const PRODUCT_FIELDS = [
   'brand', 'category_id',
   'name_ar', 'name_en', 'name_tr', 'name_ru',
   'description_ar', 'description_en', 'description_tr', 'description_ru',
-  'image',
+  'image', 'gallery',
   'alt_ar', 'alt_en', 'alt_tr', 'alt_ru',
   'weight',
   'material_ar', 'material_en', 'material_tr', 'material_ru',
