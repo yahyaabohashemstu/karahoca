@@ -1206,8 +1206,10 @@ body.light-mode .detail-item-full .detail-label {
 
 .popup-image-section {
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;   /* main image on top, thumbs below */
+  align-items: stretch;
   width: 100%;
+  gap: 12px;
 }
 
 .popup-info-section {
@@ -1293,9 +1295,9 @@ body.light-mode .detail-item-full .detail-label {
   }
 
   .popup-image-section {
-    flex: 0 0 65%;
-    max-width: 700px;
-    justify-content: flex-start;
+    flex: 0 0 60%;
+    max-width: 640px;
+    flex-direction: column;   /* keep: main image top, thumbs bottom */
   }
 
   .popup-info-section {
@@ -1422,7 +1424,7 @@ body.light-mode .popup-detail-value {
   color: transparent;
 }
 
-/* ── Gallery — Trendyol-style: main image + thumbnail strip ─────────────── */
+/* ── Gallery — Trendyol style: main image + thumbnail strip + arrows ───── */
 
 /* Wrapper for the big main image */
 .popup-main-image-wrap {
@@ -1436,13 +1438,48 @@ body.light-mode .popup-detail-value {
   min-height: 280px;
 }
 
-/* Thumbnail strip */
+/* Row wrapper: [‹] [thumbnails] [›] */
+.popup-thumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Side arrow buttons */
+.popup-thumb-arrow {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background 0.18s, transform 0.15s;
+  user-select: none;
+  padding: 0;
+}
+
+.popup-thumb-arrow:hover {
+  background: rgba(107, 132, 255, 0.3);
+  border-color: rgba(107, 132, 255, 0.6);
+  transform: scale(1.1);
+}
+
+/* Scrollable thumbnail strip */
 .popup-thumbnails {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  flex: 1;
   overflow-x: auto;
-  padding: 4px 2px 6px;
+  padding: 4px 2px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
@@ -1463,8 +1500,8 @@ body.light-mode .popup-detail-value {
 /* Single thumbnail button */
 .popup-thumbnail {
   flex-shrink: 0;
-  width: 70px;
-  height: 70px;
+  width: 68px;
+  height: 68px;
   border-radius: 8px;
   border: 2px solid transparent;
   background: rgba(255, 255, 255, 0.07);
@@ -1501,6 +1538,17 @@ body.light-mode .popup-detail-value {
 /* Light-mode overrides */
 body.light-mode .popup-main-image-wrap {
   background: rgba(21, 61, 122, 0.04);
+}
+
+body.light-mode .popup-thumb-arrow {
+  background: rgba(21, 61, 122, 0.1);
+  border-color: rgba(21, 61, 122, 0.25);
+  color: var(--blue);
+}
+
+body.light-mode .popup-thumb-arrow:hover {
+  background: rgba(21, 61, 122, 0.2);
+  border-color: var(--blue);
 }
 
 body.light-mode .popup-thumbnail {

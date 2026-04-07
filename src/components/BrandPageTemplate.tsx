@@ -305,19 +305,33 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                   />
                 </div>
 
-                {/* Thumbnail strip — Trendyol style */}
+                {/* Thumbnail strip with side arrows */}
                 {allPopupImages.length > 1 && (
-                  <div className="popup-thumbnails">
-                    {allPopupImages.map((img, idx) => (
-                      <button
-                        key={idx}
-                        className={`popup-thumbnail${idx === galleryIndex ? ' popup-thumbnail--active' : ''}`}
-                        onClick={() => setGalleryIndex(idx)}
-                        aria-label={`Image ${idx + 1}`}
-                      >
-                        <img src={img} alt={`${selectedProduct.alt} ${idx + 1}`} />
-                      </button>
-                    ))}
+                  <div className="popup-thumb-nav">
+                    <button
+                      className="popup-thumb-arrow"
+                      onClick={() => setGalleryIndex(i => (i - 1 + allPopupImages.length) % allPopupImages.length)}
+                      aria-label="Previous"
+                    >‹</button>
+
+                    <div className="popup-thumbnails">
+                      {allPopupImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          className={`popup-thumbnail${idx === galleryIndex ? ' popup-thumbnail--active' : ''}`}
+                          onClick={() => setGalleryIndex(idx)}
+                          aria-label={`Image ${idx + 1}`}
+                        >
+                          <img src={img} alt={`${selectedProduct.alt} ${idx + 1}`} />
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      className="popup-thumb-arrow"
+                      onClick={() => setGalleryIndex(i => (i + 1) % allPopupImages.length)}
+                      aria-label="Next"
+                    >›</button>
                   </div>
                 )}
               </div>
