@@ -1,10 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FlipBook from './FlipBook';
 import { useWishlist } from '../hooks/useWishlist';
+
+// ── Smart product-image content-centering ────────────────────────────────────
+// Reads pixel data from a transparent PNG/WebP to find the bounding-box of the
+// actual product (non-transparent pixels), then returns the (x, y) percentage
+// offset needed so the product centroid aligns with the image centre.
+// A 128×128 down-sample is used for speed; results are cached by URL.
+
+const _imgOffsetCache = new Map<string, { x: number; y: number }>();
+
+function analyzeContentCenter(src: string): Promise<{ x: number; y: number }> {
+  const hit = _imgOffsetCache.get(src);
+  if (hit) return Promise.resolve(hit);
+
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const N = 128;
+        const canvas = document.createElement('canvas');
+        canvas.width = N;
+        canvas.height = N;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) { resolve({ x: 0, y: 0 }); return; }
+        ctx.drawImage(img, 0, 0, N, N);
+        const { data } = ctx.getImageData(0, 0, N, N);
+
+        let minX = N, minY = N, maxX = 0, maxY = 0, found = false;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            // alpha threshold = 15 to ignore anti-aliasing fringe
+            if (data[(y * N + x) * 4 + 3] > 15) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+              found = true;
+            }
+          }
+        }
+
+        // Content centroid vs. canvas centre → percentage shift
+        const result = found
+          ? {
+              x: Math.round(((N / 2 - (minX + maxX) / 2) / N) * 100),
+              y: Math.round(((N / 2 - (minY + maxY) / 2) / N) * 100),
+            }
+          : { x: 0, y: 0 };
+
+        _imgOffsetCache.set(src, result);
+        resolve(result);
+      } catch {
+        resolve({ x: 0, y: 0 });
+      }
+    };
+    img.onerror = () => resolve({ x: 0, y: 0 });
+    img.src = src;
+  });
+}
+
+// ── CenteredProductThumb ──────────────────────────────────────────────────────
+// Drop-in replacement for the card thumbnail <img>.
+// Inherits the existing absolute-centre positioning (translate -50%,-50%) and
+// adds the content-centering offset so the real product sits in the visual centre.
+interface CenteredThumbProps {
+  src: string;
+  alt: string;
+  className?: string;
+}
+const CenteredProductThumb: React.FC<CenteredThumbProps> = ({ src, alt, className }) => {
+  const [off, setOff] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    if (!src) return;
+    analyzeContentCenter(src).then(setOff);
+  }, [src]);
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      style={{
+        // Merge absolute-centering (-50%) with content-centering offset
+        transform: `translate(calc(-50% + ${off.x}%), calc(-50% + ${off.y}%))`,
+        transition: 'transform 0.35s ease',
+      }}
+    />
+  );
+};
 
 interface ProductInfo {
   name: string;
@@ -70,7 +158,18 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
   const { isInWishlist, toggle, items: wishlistItems } = useWishlist();
+
+  // Analyse the currently-displayed popup image and centre its content
+  useEffect(() => {
+    if (!selectedProduct) { setImageOffset({ x: 0, y: 0 }); return; }
+    const images = [selectedProduct.image, ...(selectedProduct.gallery ?? [])];
+    const src = images[galleryIndex] ?? '';
+    if (!src) return;
+    setImageOffset({ x: 0, y: 0 }); // reset while analysing
+    analyzeContentCenter(src).then(setImageOffset);
+  }, [selectedProduct, galleryIndex]);
 
   // All images for the popup: main image first, then gallery images
   const allPopupImages = selectedProduct
@@ -227,7 +326,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                   >
                     <div className="product-card-mini glass-card">
                       <div className="product-card-front">
-                        <img src={product.image} alt={product.alt} className="product-mini-image" loading="lazy" />
+                        <CenteredProductThumb src={product.image} alt={product.alt} className="product-mini-image" />
                         <div className="product-mini-info">
                           <h4>{product.name}</h4>
                           <p>{product.description}</p>
@@ -304,14 +403,21 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
               <div className="popup-image-section">
                 {/* Gallery wrapper */}
                 <div className="popup-gallery-wrapper">
-                  <img
-                    src={allPopupImages[galleryIndex]}
-                    alt={selectedProduct.alt}
-                    className="image-popup-img"
-                    key={allPopupImages[galleryIndex]}
-                  />
+                  {/* Image frame — clips shifted transparent canvas edges */}
+                  <div className="popup-image-frame">
+                    <img
+                      src={allPopupImages[galleryIndex]}
+                      alt={selectedProduct.alt}
+                      className="image-popup-img"
+                      key={allPopupImages[galleryIndex]}
+                      style={{
+                        transform: `translate(${imageOffset.x}%, ${imageOffset.y}%)`,
+                        transition: 'transform 0.35s ease',
+                      }}
+                    />
+                  </div>
 
-                  {/* Navigation arrows — only shown when there are multiple images */}
+                  {/* Navigation arrows — outside the frame so they're never clipped */}
                   {allPopupImages.length > 1 && (
                     <>
                       <button

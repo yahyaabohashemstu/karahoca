@@ -1430,6 +1430,16 @@ body.light-mode .popup-detail-value {
   justify-content: center;
 }
 
+/* Clips the shifted transparent canvas while leaving arrows visible */
+.popup-image-frame {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 12px;
+}
+
 .popup-gallery-arrow {
   position: absolute;
   top: 50%;
