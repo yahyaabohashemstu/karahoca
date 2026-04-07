@@ -51,7 +51,7 @@ export const ProductsGridSkeleton: React.FC<{ count?: number }> = ({ count = 6 }
 export const PageLoader: React.FC = () => (
   <div className="page-loader">
     <div className="loader-spinner"></div>
-    <p className="loader-text">جاري التحميل...</p>
+    <p className="loader-text">جارِالتحميل...</p>
   </div>
 );
 

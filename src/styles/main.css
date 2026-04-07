@@ -1422,6 +1422,101 @@ body.light-mode .popup-detail-value {
   color: transparent;
 }
 
+/* ── Gallery slideshow inside image popup ──────────────────────────────── */
+.popup-gallery-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s, transform 0.2s;
+  user-select: none;
+}
+
+.popup-gallery-arrow:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.popup-gallery-arrow--prev {
+  inset-inline-start: 6px;
+}
+
+.popup-gallery-arrow--next {
+  inset-inline-end: 6px;
+}
+
+.popup-gallery-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.popup-gallery-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.popup-gallery-dot--active {
+  background: #6b84ff;
+  transform: scale(1.3);
+}
+
+.popup-gallery-counter {
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+body.light-mode .popup-gallery-arrow {
+  background: rgba(21, 61, 122, 0.12);
+  color: var(--blue);
+}
+
+body.light-mode .popup-gallery-arrow:hover {
+  background: rgba(21, 61, 122, 0.22);
+}
+
+body.light-mode .popup-gallery-dot {
+  background: rgba(21, 61, 122, 0.25);
+}
+
+body.light-mode .popup-gallery-dot--active {
+  background: var(--blue);
+}
+
+body.light-mode .popup-gallery-counter {
+  color: rgba(21, 61, 122, 0.55);
+}
+
 /* رسالة عدم توفر التفاصيل */
 .no-details {
   grid-column: 1 / -1;

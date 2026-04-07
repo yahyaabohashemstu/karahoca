@@ -441,7 +441,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       {loading && (
         <div className="fb-loading">
           <div className="fb-loading__ring" />
-          <p>جاري تحميل الكتالوج… {loadPct}%</p>
+          <p>جارِتحميل الكتالوج… {loadPct}%</p>
           <div className="fb-loading__track">
             <div className="fb-loading__fill" style={{ width: `${loadPct}%` }} />
           </div>

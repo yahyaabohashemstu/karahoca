@@ -17,6 +17,7 @@ interface ProductInfo {
     package?: string;
     count?: string;
   };
+  gallery?: string[];
 }
 
 interface CategoryData {
@@ -68,14 +69,30 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const { isInWishlist, toggle, items: wishlistItems } = useWishlist();
+
+  // All images for the popup: main image first, then gallery images
+  const allPopupImages = selectedProduct
+    ? [selectedProduct.image, ...(selectedProduct.gallery ?? [])]
+    : [];
 
   const openImagePopup = (product: ProductInfo) => {
     setSelectedProduct(product);
+    setGalleryIndex(0);
   };
 
   const closeImagePopup = () => {
     setSelectedProduct(null);
+    setGalleryIndex(0);
+  };
+
+  const galleryPrev = () => {
+    setGalleryIndex(i => (i - 1 + allPopupImages.length) % allPopupImages.length);
+  };
+
+  const galleryNext = () => {
+    setGalleryIndex(i => (i + 1) % allPopupImages.length);
   };
   return (
     <div className={pageClass}>
@@ -282,20 +299,65 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             <button className="image-popup-close" onClick={closeImagePopup}>
               ✕
             </button>
-            
+
             <div className="popup-layout">
               <div className="popup-image-section">
-                <img 
-                  src={selectedProduct.image} 
-                  alt={selectedProduct.alt} 
-                  className="image-popup-img"
-                />
+                {/* Gallery wrapper */}
+                <div className="popup-gallery-wrapper">
+                  <img
+                    src={allPopupImages[galleryIndex]}
+                    alt={selectedProduct.alt}
+                    className="image-popup-img"
+                    key={allPopupImages[galleryIndex]}
+                  />
+
+                  {/* Navigation arrows — only shown when there are multiple images */}
+                  {allPopupImages.length > 1 && (
+                    <>
+                      <button
+                        className="popup-gallery-arrow popup-gallery-arrow--prev"
+                        onClick={galleryPrev}
+                        aria-label="Previous image"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        className="popup-gallery-arrow popup-gallery-arrow--next"
+                        onClick={galleryNext}
+                        aria-label="Next image"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Dot indicators */}
+                {allPopupImages.length > 1 && (
+                  <div className="popup-gallery-dots">
+                    {allPopupImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        className={`popup-gallery-dot${idx === galleryIndex ? ' popup-gallery-dot--active' : ''}`}
+                        onClick={() => setGalleryIndex(idx)}
+                        aria-label={`Image ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              
+
               <div className="popup-info-section">
                 <div className="image-popup-title">{selectedProduct.name}</div>
                 <div className="image-popup-description">{selectedProduct.description}</div>
-                
+
+                {/* Counter for multi-image products */}
+                {allPopupImages.length > 1 && (
+                  <div className="popup-gallery-counter">
+                    {galleryIndex + 1} / {allPopupImages.length}
+                  </div>
+                )}
+
                 {selectedProduct.details && (
                   <div className="image-popup-details">
                     <div className="popup-details-grid">
