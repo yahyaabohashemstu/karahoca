@@ -1383,18 +1383,6 @@ body.light-mode .popup-detail-value {
 
 /* ── Gallery — Trendyol style: main image + thumbnail strip + arrows ───── */
 
-/* Wrapper for the big main image */
-.popup-main-image-wrap {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.06);
-  min-height: 280px;
-}
-
 /* Row wrapper: [‹] [thumbnails] [›] */
 .popup-thumb-nav {
   display: flex;
