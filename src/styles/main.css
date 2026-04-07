@@ -1422,109 +1422,101 @@ body.light-mode .popup-detail-value {
   color: transparent;
 }
 
-/* ── Gallery slideshow inside image popup ──────────────────────────────── */
-.popup-gallery-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* ── Gallery — Trendyol-style: main image + thumbnail strip ─────────────── */
 
-/* Clips the shifted transparent canvas while leaving arrows visible */
-.popup-image-frame {
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Wrapper for the big main image */
+.popup-main-image-wrap {
   width: 100%;
-  border-radius: 12px;
-}
-
-.popup-gallery-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: 1.8rem;
-  line-height: 1;
-  cursor: pointer;
-  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
-  transition: background 0.2s, transform 0.2s;
-  user-select: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+  min-height: 280px;
 }
 
-.popup-gallery-arrow:hover {
-  background: rgba(255, 255, 255, 0.32);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.popup-gallery-arrow--prev {
-  inset-inline-start: 6px;
-}
-
-.popup-gallery-arrow--next {
-  inset-inline-end: 6px;
-}
-
-.popup-gallery-dots {
+/* Thumbnail strip */
+.popup-thumbnails {
   display: flex;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.popup-gallery-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.35);
+.popup-thumbnails::-webkit-scrollbar {
+  height: 4px;
+}
+
+.popup-thumbnails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.popup-thumbnails::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* Single thumbnail button */
+.popup-thumbnail {
+  flex-shrink: 0;
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.07);
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-  padding: 0;
+  padding: 4px;
+  transition: border-color 0.18s, background 0.18s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.popup-gallery-dot--active {
-  background: #6b84ff;
-  transform: scale(1.3);
+.popup-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 5px;
+  display: block;
+  pointer-events: none;
 }
 
-.popup-gallery-counter {
-  text-align: center;
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.5px;
+.popup-thumbnail:hover {
+  border-color: rgba(107, 132, 255, 0.55);
+  background: rgba(107, 132, 255, 0.08);
+  transform: scale(1.05);
 }
 
-body.light-mode .popup-gallery-arrow {
-  background: rgba(21, 61, 122, 0.12);
-  color: var(--blue);
+.popup-thumbnail--active {
+  border-color: #6b84ff;
+  background: rgba(107, 132, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(107, 132, 255, 0.3);
 }
 
-body.light-mode .popup-gallery-arrow:hover {
-  background: rgba(21, 61, 122, 0.22);
+/* Light-mode overrides */
+body.light-mode .popup-main-image-wrap {
+  background: rgba(21, 61, 122, 0.04);
 }
 
-body.light-mode .popup-gallery-dot {
-  background: rgba(21, 61, 122, 0.25);
+body.light-mode .popup-thumbnail {
+  background: rgba(21, 61, 122, 0.05);
+  border-color: transparent;
 }
 
-body.light-mode .popup-gallery-dot--active {
-  background: var(--blue);
+body.light-mode .popup-thumbnail:hover {
+  border-color: rgba(21, 61, 122, 0.35);
+  background: rgba(21, 61, 122, 0.08);
 }
 
-body.light-mode .popup-gallery-counter {
-  color: rgba(21, 61, 122, 0.55);
+body.light-mode .popup-thumbnail--active {
+  border-color: var(--blue);
+  background: rgba(21, 61, 122, 0.1);
+  box-shadow: 0 0 0 1px rgba(21, 61, 122, 0.2);
 }
 
 /* رسالة عدم توفر التفاصيل */

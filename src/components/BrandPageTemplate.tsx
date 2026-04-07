@@ -303,43 +303,28 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
             <div className="popup-layout">
               <div className="popup-image-section">
-                <div className="popup-gallery-wrapper">
+                {/* Main image */}
+                <div className="popup-main-image-wrap">
                   <img
                     src={allPopupImages[galleryIndex]}
                     alt={selectedProduct.alt}
                     className="image-popup-img"
                     key={allPopupImages[galleryIndex]}
                   />
-
-                  {allPopupImages.length > 1 && (
-                    <>
-                      <button
-                        className="popup-gallery-arrow popup-gallery-arrow--prev"
-                        onClick={galleryPrev}
-                        aria-label="Previous image"
-                      >
-                        ‹
-                      </button>
-                      <button
-                        className="popup-gallery-arrow popup-gallery-arrow--next"
-                        onClick={galleryNext}
-                        aria-label="Next image"
-                      >
-                        ›
-                      </button>
-                    </>
-                  )}
                 </div>
 
+                {/* Thumbnail strip — Trendyol style */}
                 {allPopupImages.length > 1 && (
-                  <div className="popup-gallery-dots">
-                    {allPopupImages.map((_, idx) => (
+                  <div className="popup-thumbnails">
+                    {allPopupImages.map((img, idx) => (
                       <button
                         key={idx}
-                        className={`popup-gallery-dot${idx === galleryIndex ? ' popup-gallery-dot--active' : ''}`}
+                        className={`popup-thumbnail${idx === galleryIndex ? ' popup-thumbnail--active' : ''}`}
                         onClick={() => setGalleryIndex(idx)}
                         aria-label={`Image ${idx + 1}`}
-                      />
+                      >
+                        <img src={img} alt={`${selectedProduct.alt} ${idx + 1}`} />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -348,12 +333,6 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
               <div className="popup-info-section">
                 <div className="image-popup-title">{selectedProduct.name}</div>
                 <div className="image-popup-description">{selectedProduct.description}</div>
-
-                {allPopupImages.length > 1 && (
-                  <div className="popup-gallery-counter">
-                    {galleryIndex + 1} / {allPopupImages.length}
-                  </div>
-                )}
 
                 {selectedProduct.details && (
                   <div className="image-popup-details">
