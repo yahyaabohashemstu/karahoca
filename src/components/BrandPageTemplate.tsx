@@ -87,14 +87,6 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
     setGalleryIndex(0);
   };
 
-  const galleryPrev = () => {
-    setGalleryIndex(i => (i - 1 + allPopupImages.length) % allPopupImages.length);
-  };
-
-  const galleryNext = () => {
-    setGalleryIndex(i => (i + 1) % allPopupImages.length);
-  };
-
   return (
     <div className={pageClass}>
       <div className="bg-elements">
