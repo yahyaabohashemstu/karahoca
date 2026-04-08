@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
@@ -257,14 +257,41 @@ const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
   </div>
 );
 
+const PERIOD_OPTIONS = [
+  { label: '30 days', days: 30 },
+  { label: '60 days', days: 60 },
+  { label: '90 days', days: 90 },
+];
+
 export const AdminAnalytics: React.FC = () => {
-  const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(), []);
+  const [period, setPeriod] = useState(30);
+  const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(period), [period]);
   const ga = useAsync<GaData>(() => adminApi.getGaData(), []);
   const gad = ga.data;
   const summary = internal.data?.summary;
 
+  const handlePrint = () => window.print();
+
+  const printDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
   return (
     <div className="adm-analytics-page">
+
+      {/* ── Print-only cover header (hidden on screen) ────────────────────── */}
+      <div className="analytics-print-header">
+        <div className="analytics-print-header-left">
+          <div className="analytics-print-brand">KARAHOCA</div>
+          <div className="analytics-print-tagline">Analytics Report</div>
+        </div>
+        <div className="analytics-print-header-right">
+          <div className="analytics-print-date">Generated: {printDate}</div>
+          <div className="analytics-print-period">Period: Last {period} days</div>
+          <div className={`analytics-print-status ${gad?.configured ? 'connected' : 'disconnected'}`}>
+            {gad?.configured ? '● GA4 Connected' : '○ GA4 Not Configured'}
+          </div>
+        </div>
+      </div>
+
       <section className="adm-card adm-analytics-hero">
         <div>
           <span className="adm-dashboard-eyebrow">Performance Overview</span>
@@ -281,6 +308,24 @@ export const AdminAnalytics: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* ── Controls toolbar ─────────────────────────────────────────────────── */}
+      <div className="adm-analytics-toolbar">
+        <div className="adm-analytics-period-selector">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              key={opt.days}
+              onClick={() => setPeriod(opt.days)}
+              className={`adm-analytics-period-btn${period === opt.days ? ' active' : ''}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <button className="adm-analytics-export-btn" onClick={handlePrint} title="Export as PDF">
+          🖨️ Export PDF
+        </button>
+      </div>
 
       {ga.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading Google Analytics data…</div>}
 
@@ -317,7 +362,7 @@ export const AdminAnalytics: React.FC = () => {
                   id="ga-sessions"
                   data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: `${item.users} users` }))}
                   accent="#6b84ff"
-                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days`}
+                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days (GA4 window is fixed)`}
                 />
               </Panel>
             )}
@@ -379,9 +424,12 @@ export const AdminAnalytics: React.FC = () => {
         );
       })()}
 
+      {/* ── Page break before internal stats (print only) ─────────────────── */}
+      <div className="analytics-print-break" />
+
       <div className="adm-analytics-section-divider">
         <span>💬</span>
-        <strong>Internal Stats — Bot & Newsletter</strong>
+        <strong>Internal Stats — Bot &amp; Newsletter</strong>
       </div>
 
       {internal.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading internal analytics…</div>}
@@ -405,7 +453,7 @@ export const AdminAnalytics: React.FC = () => {
                 id="chat-per-day"
                 data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#5eaeff"
-                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the selected period`}
+                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the last ${period} days`}
               />
             </Panel>
 
@@ -414,10 +462,13 @@ export const AdminAnalytics: React.FC = () => {
                 id="newsletter-per-day"
                 data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#34d399"
-                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the selected period`}
+                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the last ${period} days`}
               />
             </Panel>
           </div>
+
+          {/* ── Page break before audience section (print only) ─────────────── */}
+          <div className="analytics-print-break" />
 
           <div className="adm-analytics-grid-2">
             <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="How users are distributed by conversation language.">

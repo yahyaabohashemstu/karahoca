@@ -11,6 +11,7 @@ import {
   type KnowledgeSection,
 } from '../data/aiKnowledge';
 import { buildApiUrl } from '../utils/api';
+import { trackChatOpen, trackChatClose } from '../utils/analytics';
 import { useIsMobile } from '../hooks/useIsMobile';
 import {
   getLanguageDirection,
@@ -67,6 +68,7 @@ interface UIStrings {
   connectionError: string;
   fallbackReply: string;
   noAnswerFallback: string;
+  privacyNotice: string;
 }
 
 const getLocaleForLanguage = (lang: string) => {
@@ -100,6 +102,7 @@ const getUIText = (lang: string): UIStrings => {
           'Su anda asistana baglanmakta zorlaniyoruz. Lutfen bize info@karahoca.com adresinden veya +905305914990 WhatsApp hattindan ulasin.',
         noAnswerFallback:
           'Mevcut bilgi tabaninda net bir yanit bulamadim. Bize info@karahoca.com e-posta adresinden veya +905305914990 WhatsApp hattindan ulasabilirsiniz.',
+        privacyNotice: 'Sohbetler hizmet kalitesini artırmak amacıyla kaydedilmektedir. Silme talebi: info@karahoca.com',
       };
     case 'ru':
       return {
@@ -119,6 +122,7 @@ const getUIText = (lang: string): UIStrings => {
           'Сейчас мы не можем подключиться к помощнику. Пожалуйста, свяжитесь с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
         noAnswerFallback:
           'Я не смог найти точный ответ в текущей базе знаний. Вы можете связаться с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
+        privacyNotice: 'Сообщения записываются для улучшения сервиса. Запрос на удаление: info@karahoca.com',
       };
     case 'en':
       return {
@@ -138,6 +142,7 @@ const getUIText = (lang: string): UIStrings => {
           'We are having trouble connecting to the assistant right now. Please contact us at info@karahoca.com or via WhatsApp at +905305914990.',
         noAnswerFallback:
           'I could not find a precise answer in the current knowledge base. You can contact us at info@karahoca.com or via WhatsApp at +905305914990.',
+        privacyNotice: 'Conversations are recorded to improve our service. Deletion requests: info@karahoca.com',
       };
     case 'ar':
     default:
@@ -152,12 +157,13 @@ const getUIText = (lang: string): UIStrings => {
         inputLabel: 'حقل إدخال سؤال للمساعد',
         welcomeHint: 'هل لديك سؤال؟',
         closeWelcomeHint: 'إغلاق الرسالة الترحيبية',
-        loadingLabel: 'جاري التحميل',
+        loadingLabel: 'جارِالتحميل',
         connectionError: 'حدث خطأ أثناء الاتصال بالمساعد.',
         fallbackReply:
           'نواجه صعوبة في الاتصال بالمساعد الآن. يرجى مراسلتنا على البريد info@karahoca.com أو الواتساب +905305914990، وسنعمل على خدمتك فوراً.',
         noAnswerFallback:
           'لم أتمكن من العثور على إجابة دقيقة في قاعدة المعرفة الحالية. يسعدنا التواصل معكم عبر البريد info@karahoca.com أو الواتساب +905305914990.',
+        privacyNotice: '🔒 محادثاتك مسجّلة لتحسين الخدمة. لطلب الحذف: info@karahoca.com',
       };
   }
 };
@@ -319,6 +325,8 @@ const loadStoredMessages = () => {
   }
 };
 
+const MAX_STORED_MESSAGES = 100;
+
 const persistMessagesLocally = (messages: ChatMessage[]) => {
   if (typeof window === 'undefined') {
     return;
@@ -329,7 +337,13 @@ const persistMessagesLocally = (messages: ChatMessage[]) => {
     return;
   }
 
-  window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+  try {
+    const toStore = messages.slice(-MAX_STORED_MESSAGES);
+    window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toStore));
+  } catch {
+    // QuotaExceededError — clear old data to recover
+    try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* noop */ }
+  }
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -454,7 +468,7 @@ const AIChatWidget: React.FC = () => {
       welcomeHintShownRef.current = true;
 
       try {
-        const audio = new Audio('/notification-sound.wav');
+        const audio = new Audio('/notification-sound.mp3');
         audio.volume = 0.5;
         audio.play().catch(() => {});
       } catch {
@@ -557,13 +571,19 @@ const AIChatWidget: React.FC = () => {
         currentLang,
         questionLanguageHint
       );
-      const response = await fetch(buildApiUrl('/api/ai/chat'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 s timeout
+      let response: Response;
+      try {
+        response = await fetch(buildApiUrl('/api/ai/chat'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
@@ -604,6 +624,12 @@ const AIChatWidget: React.FC = () => {
       if (import.meta.env.DEV) {
         console.error('Gemini request failed:', getErrorMessage(error));
       }
+      // Handle network timeout (AbortError) gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        setStatusMessage(uiText.fallbackReply);
+        setSuggestions([]);
+        return;
+      }
       const errorMessage = getErrorMessage(error);
       const isEmptyReplyError = /empty response|empty reply/i.test(errorMessage);
       setStatusMessage(isEmptyReplyError ? uiText.noAnswerFallback : uiText.fallbackReply);
@@ -631,6 +657,7 @@ const AIChatWidget: React.FC = () => {
   const handleClose = () => {
     setIsOpen(false);
     setShowWelcomeHint(false);
+    trackChatClose();
   };
 
   const handleToggle = () => {
@@ -641,6 +668,7 @@ const AIChatWidget: React.FC = () => {
 
     setIsOpen(true);
     setShowWelcomeHint(false);
+    trackChatOpen();
   };
 
   return (
@@ -678,16 +706,18 @@ const AIChatWidget: React.FC = () => {
         </div>
       )}
 
-      <button
-        type="button"
-        className="ai-assistant__toggle"
-        onClick={handleToggle}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? uiText.closeToggleLabel : uiText.openToggleLabel}
-        title={isOpen ? uiText.closeToggleLabel : uiText.openToggleLabel}
-      >
-        {isOpen ? '×' : '🤖'}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="ai-assistant__toggle"
+          onClick={handleToggle}
+          aria-expanded={false}
+          aria-label={uiText.openToggleLabel}
+          title={uiText.openToggleLabel}
+        >
+          🤖
+        </button>
+      )}
 
       {isOpen && (
         <div className="ai-assistant__window" data-lang={currentLang}>
@@ -766,9 +796,9 @@ const AIChatWidget: React.FC = () => {
 
           {suggestions.length > 0 && !isLoading && (
             <div className="ai-assistant__suggestions">
-              {suggestions.map((suggestion, index) => (
+              {suggestions.map((suggestion) => (
                 <button
-                  key={index}
+                  key={suggestion}
                   type="button"
                   className="ai-assistant__suggestion-btn"
                   onClick={() => handleSuggestionClick(suggestion)}
@@ -800,6 +830,10 @@ const AIChatWidget: React.FC = () => {
             >
               {uiText.sendButton}
             </button>
+          </div>
+
+          <div className="ai-assistant__privacy" dir={isRtl ? 'rtl' : 'ltr'}>
+            {uiText.privacyNotice}
           </div>
         </div>
       )}

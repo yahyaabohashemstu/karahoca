@@ -56,6 +56,26 @@
         "satisfaction": "Müşteri Memnuniyeti"
       }
     },
+    "customOrder": {
+      "badge": "Özel Etiket & Sözleşmeli Üretim",
+      "title": "Fikrinizden Pazara Hazır Ürüne",
+      "description": "Bir ürün fikriniz mi var? Sizin markanız ve etiketiniz altında üretiyoruz. Formülasyondan ambalaja kadar her şeyi 30+ yıllık üretim uzmanlığımızla yönetiyoruz.",
+      "cta": "WhatsApp'tan Yazın",
+      "partnersLabel": "Önde gelen markalar bize güveniyor"
+    },
+    "unsubscribe": {
+      "loading": "Abonelik iptal ediliyor...",
+      "loadingDesc": "Lütfen bir an bekleyin.",
+      "success": "Abonelik İptal Edildi",
+      "successDesc": "Posta listemizden çıkarıldınız. Artık bülten almayacaksınız.",
+      "already": "Zaten İptal Edilmiş",
+      "alreadyDesc": "Bu e-posta zaten posta listemizde abone değil.",
+      "notFound": "E-posta Bulunamadı",
+      "notFoundDesc": "Bu e-postayı posta listemizde bulamadık.",
+      "error": "Bir Hata Oluştu",
+      "errorDesc": "Abonelik iptal edilemedi. Lütfen daha sonra tekrar deneyin.",
+      "backHome": "Ana Sayfaya Dön"
+    },
     "brands": {
       "title": "Markalarımız",
       "subtitle": "Farklı dünyalar, tek kalite.",
@@ -192,6 +212,7 @@
       "description": "Yenilikçi çözümler, güvenilir performans ve küresel kaliteyle deterjan sektörüne öncülük ediyoruz.",
       "newsletter": {
         "title": "Haber Bülteni",
+        "description": "En son teklifler ve ürünler için abone olun",
         "placeholder": "E-posta adresiniz",
         "subscribe": "Abone Ol",
         "submitting": "Gönderiliyor...",
@@ -752,6 +773,23 @@
       "readMore": "Devamini oku",
       "viewAll": "Tum haberler",
       "modalClose": "Haberi kapat"
+    },
+    "cookie": {
+      "title": "Çerez kullanıyoruz",
+      "description": "Deneyiminizi geliştirmek ve site trafiğini analiz etmek için çerezler ve benzeri teknolojiler kullanıyoruz. \"Tümünü Kabul Et\" seçeneğine tıklayarak analitik çerezlerimizin kullanımını kabul etmiş olursunuz.",
+      "acceptAll": "Tümünü Kabul Et",
+      "essentialOnly": "Yalnızca Zorunlu"
+    },
+    "catalog": {
+      "downloadBtn": "Kataloğu İndir (PDF)",
+      "printTitle": "KARAHOCA — Ürün Kataloğu",
+      "printSubtitle": "Premium Temizlik Ürünleri",
+      "printContact": "İletişim: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. Tüm hakları saklıdır.",
+      "printBrand": "Marka",
+      "printProducts": "Ürünler",
+      "printCategory": "Kategori",
+      "printDate": "Katalog Tarihi"
     }
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { trackFormSubmit } from '../utils/analytics';
+import { trackFormSubmit, trackNewsletterSubscription } from '../utils/analytics';
 import { buildApiUrl } from '../utils/api';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
@@ -13,7 +13,7 @@ interface WelcomeEmailStatus {
 }
 
 const Footer: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -68,7 +68,7 @@ const Footer: React.FC = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, lang: i18n.language })
       });
 
       if (!response.ok) {
@@ -81,6 +81,7 @@ const Footer: React.FC = () => {
       setSubmissionState('success');
       setEmail('');
       trackFormSubmit('Newsletter Subscription', true);
+      trackNewsletterSubscription(i18n.language);
 
       setTimeout(() => {
         setSubmissionState('idle');
@@ -208,7 +209,7 @@ const Footer: React.FC = () => {
         </section>
       </div>
       <div className="container footnote">
-        <p>{t('footer.copyright', { year: currentYear })}</p>
+        <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
       </div>
     </footer>
   );

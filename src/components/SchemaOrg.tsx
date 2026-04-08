@@ -155,24 +155,114 @@ export const BreadcrumbSchema: React.FC<BreadcrumbProps> = ({ items }) => {
   );
 };
 
-// ── About / Company page ──────────────────────────────────────────────────────
+// ── About / Company page ─────────────────────────────────────────────────────
 export const AboutPageSchema: React.FC = () => {
-  const schema = {
+  const aboutPage = {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
     name: 'About KARAHOCA',
     url: `${SITE_URL}/about`,
-    description: 'KARAHOCA is a Turkish cleaning products manufacturer with 30+ years of experience, producing DIOX and AYLUX brands.',
+    description: 'KARAHOCA is a Turkish cleaning products manufacturer with 30+ years of experience, producing DIOX and AYLUX brands for 15+ countries.',
+    inLanguage: ['ar', 'en', 'tr', 'ru'],
     mainEntity: {
-      '@type': 'Organization',
-      name: 'KARAHOCA',
+      '@type': ['Organization', 'LocalBusiness'],
+      '@id': `${SITE_URL}/#organization`,
+      name: 'KARAHOCA KIMYA',
+      alternateName: ['KARAHOCA', 'كاراهوجا'],
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: LOGO_URL, width: 200, height: 60 },
+      image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
+      description: 'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DIOX and AYLUX branded products to 15+ countries since 1994.',
       foundingDate: '1994',
-      numberOfEmployees: 200,
+      numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
+      slogan: 'Quality That Cleans the World',
+      knowsAbout: [
+        'Household Cleaning Products',
+        'Industrial Cleaning',
+        'Laundry Detergents',
+        'Personal Hygiene Products',
+        'Private Label Manufacturing',
+        'Chemical Manufacturing',
+      ],
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'TR',
+        addressLocality: 'Istanbul',
+        addressRegion: 'Istanbul',
+      },
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          telephone: '+90-530-591-4990',
+          contactType: 'customer service',
+          availableLanguage: ['Arabic', 'English', 'Turkish', 'Russian'],
+          areaServed: 'Worldwide',
+        },
+        {
+          '@type': 'ContactPoint',
+          email: 'info@karahoca.com',
+          contactType: 'sales',
+          areaServed: 'Worldwide',
+        },
+      ],
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'KARAHOCA Product Catalog',
+        itemListElement: [
+          { '@type': 'OfferCatalog', name: 'DIOX — Home & Laundry Cleaning' },
+          { '@type': 'OfferCatalog', name: 'AYLUX — Premium Cleaning Line' },
+        ],
+      },
+      sameAs: [
+        'https://www.linkedin.com/company/karahoca',
+        'https://wa.me/905305914990',
+      ],
     },
   };
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What products does KARAHOCA manufacture?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'KARAHOCA manufactures household and industrial cleaning products under two brands: DIOX (home cleaning, laundry, personal hygiene) and AYLUX (premium cleaning line). Products include detergents, liquid soaps, fabric softeners, dish cleaners, and more.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Does KARAHOCA offer private label manufacturing?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. KARAHOCA offers full private label (white label) manufacturing services. Businesses can order products under their own brand name with custom packaging and formulations.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which countries does KARAHOCA export to?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'KARAHOCA exports to 15+ countries across the Middle East, North Africa, Europe, and Central Asia.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can I contact KARAHOCA for business inquiries?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'You can reach KARAHOCA via email at info@karahoca.com, by WhatsApp at +90 530 591 4990, or through the website at karahoca.com.',
+        },
+      },
+    ],
+  };
+
   return (
     <Helmet>
-      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      <script type="application/ld+json">{JSON.stringify(aboutPage)}</script>
+      <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
     </Helmet>
   );
 };

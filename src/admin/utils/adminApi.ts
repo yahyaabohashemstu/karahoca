@@ -42,10 +42,13 @@ export const getToken = (): string | null => {
 export const hasValidToken = () => !!getToken();
 export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
 
-const authHeaders = (): Record<string, string> => ({
-  'Content-Type': 'application/json',
-  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-});
+const authHeaders = (): Record<string, string> => {
+  const token = getToken(); // call once to avoid race between check and use
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
   const response = await fetch(buildApiUrl(path), {
     method,
@@ -74,7 +77,7 @@ export const adminApi = {
 
   getStats: () => request<AdminStats>('GET', '/api/admin/stats'),
 
-  getAnalytics: () => request<AdminAnalytics>('GET', '/api/admin/analytics'),
+  getAnalytics: (days?: number) => request<AdminAnalytics>('GET', `/api/admin/analytics${days ? `?days=${days}` : ''}`),
 
   getGaData: () => request<GaData>('GET', '/api/admin/ga'),
 
@@ -152,7 +155,7 @@ export const adminApi = {
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
   sendCampaign: (id: number, opts?: { excludedEmails?: string[] }) =>
-    request<{ success: boolean; sent: number; errors: Array<{ email: string; error: string }> }>(
+    request<{ success: boolean; sent: number; sentA?: number; sentB?: number; errors: Array<{ email: string; error: string }> }>(
       'POST', `/api/admin/campaigns/${id}/send`,
       opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
     ),
@@ -181,7 +184,17 @@ export const adminApi = {
       'GET', `/api/admin/ai-knowledge/preview?lang=${lang}`
     ),
   uploadImage: (imageBase64: string, fileName: string) =>
-    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),};
+    request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),
+
+  // Audit Log
+  getAuditLog: (params?: { limit?: number; offset?: number; entity?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.offset) q.set('offset', String(params.offset));
+    if (params?.entity) q.set('entity', params.entity);
+    return request<{ success: boolean; logs: AuditLogEntry[]; total: number }>('GET', `/api/admin/audit-log?${q}`);
+  },
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -200,6 +213,7 @@ export interface AdminStats {
 
 export interface AdminAnalytics {
   success: boolean;
+  days?: number;
   summary: {
     total_messages: number;
     total_users: number;
@@ -272,6 +286,8 @@ export interface NewsItem {
   slug: string;
   image: string;
   published_at: string;
+  status: 'draft' | 'published' | 'scheduled';
+  publish_at: string | null;
   category_ar: string; category_en: string; category_tr: string; category_ru: string;
   title_ar: string; title_en: string; title_tr: string; title_ru: string;
   excerpt_ar: string; excerpt_en: string; excerpt_tr: string; excerpt_ru: string;
@@ -301,6 +317,8 @@ export interface Campaign {
   title: string;
   template_type: 'custom' | 'new_product' | 'offer' | 'news';
   subject_ar: string; subject_en: string; subject_tr: string; subject_ru: string;
+  /** A/B testing: alternate subject lines for group B */
+  subject_b_ar?: string; subject_b_en?: string; subject_b_tr?: string; subject_b_ru?: string;
   body_ar: string; body_en: string; body_tr: string; body_ru: string;
   image_url?: string;
   status: 'draft' | 'scheduled' | 'sent';
@@ -308,11 +326,18 @@ export interface Campaign {
   sent_at?: string;
   recipient_count: number;
   open_count: number;
+  click_count: number;
   created_at: string;
   updated_at: string;
 }
 export interface CampaignSend {
-  id: number; email: string; opened: number; opened_at?: string; created_at: string;
+  id: number;
+  email: string;
+  opened: number;
+  opened_at?: string;
+  created_at: string;
+  ab_variant?: 'a' | 'b';
+  click_count?: number;
 }
 
 // ── AI Knowledge ─────────────────────────────────────────────────────────────
@@ -328,6 +353,18 @@ export interface AiQA {
 export interface AiQuestion {
   id: number; question: string; language: string; user_id?: string;
   status: 'new' | 'reviewed' | 'ignored'; created_at: string;
+}
+
+// ── Audit Log ────────────────────────────────────────────────────────────────
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  admin_user: string;
+  details: string | null;
+  created_at: string;
 }
 
 // ── Google Analytics ────────────────────────────────────────────────────────

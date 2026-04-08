@@ -39,6 +39,7 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         name_${l} as name,
         description_${l} as description,
         image,
+        gallery,
         alt_${l} as alt,
         weight,
         material_${l} as material,
@@ -52,18 +53,25 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
       id: cat.id,
       key: cat.key,
       title: cat[`title_${l}`] || cat.title_ar,
-      products: products.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        image: normalizeLegacyAssetPath(p.image),
-        alt: p.alt,
-        details: {
-          weight: p.weight,
-          material: p.material,
-          count: p.count,
+      products: products.map(p => {
+        let gallery;
+        if (p.gallery) {
+          try { gallery = JSON.parse(p.gallery); } catch { gallery = undefined; }
         }
-      }))
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          image: normalizeLegacyAssetPath(p.image),
+          alt: p.alt,
+          gallery: gallery && gallery.length > 0 ? gallery : undefined,
+          details: {
+            weight: p.weight,
+            material: p.material,
+            count: p.count,
+          }
+        };
+      })
     };
   });
 
@@ -85,7 +93,13 @@ export const handlePublicNews = (req, res, { sendJson, origin }) => {
       title_${l} as title,
       excerpt_${l} as excerpt,
       body_${l} as body
-    FROM news WHERE active=1
+    FROM news
+    WHERE active=1
+      AND (
+        status = 'published'
+        OR status IS NULL
+        OR (status = 'scheduled' AND publish_at IS NOT NULL AND datetime(publish_at) <= datetime('now'))
+      )
     ORDER BY published_at DESC
   `).all();
 

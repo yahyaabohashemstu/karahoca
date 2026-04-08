@@ -22,6 +22,7 @@ const NAV = [
   { group: 'AI & Users', items: [
     { to: '/admin/ai-knowledge', label: 'AI Knowledge', icon: '🤖' },
     { to: '/admin/chats', label: 'Chat History', icon: '💬' },
+    { to: '/admin/audit-log', label: 'Audit Log', icon: '🔍' },
   ]},
 ];
 

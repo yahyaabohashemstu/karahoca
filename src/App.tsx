@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import WhatsAppButton from './components/WhatsAppButton';
 import GoogleAnalytics from './components/GoogleAnalytics';
+import CookieConsent from './components/CookieConsent';
 import Home from './pages/Home';
 import DioxPage from './pages/DioxPage';
 import ProductionPage from './pages/ProductionPage';
@@ -13,6 +14,9 @@ import DryerPage from './pages/DryerPage';
 import AyluxPage from './pages/AyluxPage';
 import AboutPage from './pages/AboutPage';
 import NewsPage from './pages/NewsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import WishlistPage from './pages/WishlistPage';
+import UnsubscribePage from './pages/UnsubscribePage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
@@ -62,6 +66,7 @@ function MainSite() {
   return (
     <>
       <GoogleAnalytics />
+      <CookieConsent />
       <OrganizationSchema />
       <WebsiteSchema />
       {isLoading && <PageLoader hiding={isHiding} />}
@@ -80,6 +85,9 @@ function MainSite() {
                   <Route path="/production" element={<MobileProductionPage />} />
                   <Route path="/goal" element={<MobileGoalPage />} />
                   <Route path="/dryer" element={<MobileDryerPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </MobileLayout>
               <AIChatWidget />
@@ -97,6 +105,9 @@ function MainSite() {
                 <Route path="/production" element={<ProductionPage />} />
                 <Route path="/goal" element={<GoalPage />} />
                 <Route path="/dryer" element={<DryerPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AIChatWidget />
               <ThemeToggle />

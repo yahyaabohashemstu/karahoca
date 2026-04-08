@@ -593,6 +593,7 @@ interface PublicApiProduct {
     material?: string;
     count?: string;
   };
+  gallery?: string[];
 }
 
 interface PublicApiCategory {
@@ -614,6 +615,7 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
       material: p.details?.material || undefined,
       count: p.details?.count || undefined,
     },
+    gallery: p.gallery && p.gallery.length > 0 ? p.gallery : undefined,
   })),
 });
 

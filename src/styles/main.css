@@ -76,6 +76,8 @@ body.light-mode .split {
   border: 0px solid rgba(21, 61, 122, 0.3);
 }
 
+
+
 body.light-mode .site-header,
 body.light-mode .site-footer {
   background: var(--glass-bg);
@@ -108,7 +110,10 @@ body {
 .btn,
 .btn--primary,
 .btn--ghost,
-.nav-link {
+.nav-link,
+.brands-partner-row,
+.brands-inner-card,
+.brands-logo-card {
   transition:
     background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1241,6 +1246,38 @@ body.light-mode .detail-item-full .detail-label {
   object-fit: contain;
   display: block;
 }
+
+/* ── Desktop: side-by-side layout with fixed-height columns ── */
+@media (min-width: 768px) {
+  .popup-layout {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2rem;
+  }
+
+  .popup-image-section {
+    flex: 0 0 58%;
+    max-width: 620px;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100%;         /* fill popup height */
+  }
+
+  .popup-main-image-wrap {
+    flex: 1;              /* take all space above the thumb strip */
+    height: auto;         /* override mobile fixed height */
+    min-height: 0;
+  }
+
+  .popup-info-section {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    text-align: right;
+  }
+}
+
 
 /* ── Info section typography ── */
 .image-popup-title {
@@ -3452,4 +3489,657 @@ body.light-mode .news-modal__close {
   .bfb-section { padding: 56px 0 72px; }
   .bfb-iframe { height: 380px; }
   .bfb-frame { border-radius: 14px; }
+}
+
+/* ════════════════════════════════════════════════════════
+   Brands Partner Row — site-identity edition
+   Matches the site's dark navy + orange glass aesthetic.
+   ════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ── */
+@keyframes luxury-shimmer {
+  0%   { transform: translateX(-100%) rotate(15deg); }
+  100% { transform: translateX(200%)  rotate(15deg); }
+}
+
+@keyframes luxury-border-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+@keyframes cta-glow-pulse {
+  0%, 100% { box-shadow: 0 6px 28px rgba(37,211,102,0.5), 0 0 0 0 rgba(37,211,102,0.0); }
+  50%       { box-shadow: 0 6px 40px rgba(37,211,102,0.7), 0 0 0 10px rgba(37,211,102,0.0); }
+}
+
+@keyframes logo-card-shine {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200%  center; }
+}
+
+/* ── Outer card (frame) ── */
+.brands-partner-row {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 18px;
+
+  /* Same glass style as DIOX/AYLUX cards */
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px) saturate(140%);
+
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow:
+    0 0 0 1px rgba(255,91,46,0.10),
+    0 8px 32px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* ── Inner card — identical glass-card style ── */
+.brands-inner-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 16px;   /* outer(28) − padding(18) + ~6 for visual balance */
+  overflow: hidden;
+  /* Glass identical to .glass-card */
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  z-index: 2;
+}
+
+/* gradient-glass overlay — same as glass-card::before */
+.brands-inner-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-glass);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* inner top highlight line */
+.brands-inner-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 6%; right: 6%;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent,
+    rgba(255,255,255,0.3) 30%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0.3) 70%,
+    transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* all inner-card children above overlays */
+.brands-inner-card > * { position: relative; z-index: 2; }
+
+/* Sweeping shimmer overlay */
+.brands-partner-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255,91,46,0.04) 50%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  animation: luxury-shimmer 7s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top glowing border line — orange accent */
+.brands-partner-row::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent,
+    rgba(255,91,46,0.7) 30%,
+    rgba(255,150,100,0.8) 60%,
+    transparent);
+  animation: luxury-border-pulse 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Inner card sits above outer shimmer */
+.brands-partner-row > .brands-inner-card { z-index: 2; }
+
+/* ── Top: text + CTA ── */
+.brands-partner-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 52px 48px 36px;
+}
+
+/* Badge */
+.brands-partner-badge {
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #ffb89a;
+  background: rgba(255,91,46,0.15);
+  border: 1px solid rgba(255,91,46,0.32);
+  border-radius: 30px;
+  padding: 5px 18px;
+  backdrop-filter: blur(6px);
+}
+
+/* Title — site gradient: white → orange */
+.brands-partner-title {
+  font-size: clamp(28px, 3.5vw, 42px);
+  font-weight: 900;
+  line-height: 1.15;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #ffd0b8 50%, #ff5b2e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 16px rgba(255,91,46,0.28));
+}
+
+/* Description */
+.brands-partner-desc {
+  font-size: 16px;
+  color: rgba(200,215,250,0.72);
+  line-height: 1.85;
+  margin: 0;
+  max-width: 560px;
+}
+
+/* CTA button — WhatsApp green */
+.brands-partner-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 14px 36px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), filter 0.2s, box-shadow 0.2s;
+  animation: cta-glow-pulse 3s ease-in-out infinite;
+}
+
+.brands-partner-cta:hover {
+  transform: translateY(-3px) scale(1.04);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 36px rgba(37,211,102,0.55);
+}
+
+/* ── Glowing divider ── */
+.brands-partner-divider {
+  height: 1px;
+  margin: 0 10%;
+  background: linear-gradient(to right,
+    transparent,
+    rgba(255,91,46,0.5) 25%,
+    rgba(255,150,100,0.6) 50%,
+    rgba(255,91,46,0.5) 75%,
+    transparent);
+  box-shadow: 0 0 14px rgba(255,91,46,0.18);
+}
+
+/* ── Logos area ── */
+.brands-partner-logos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 36px 42px;
+}
+
+/* "يثق بنا" label — gradient text */
+.brands-logos-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0;
+  background: linear-gradient(90deg, #ffb89a, #ffffff, #ffb89a);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: logo-card-shine 4s linear infinite;
+}
+
+/* Logo grid — single row, all logos share space equally */
+.brands-logos-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── Logo card — frosted white on dark ── */
+.brands-logo-card {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 150px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  border-radius: 14px;
+  cursor: default;
+
+  /* Frosted white glass */
+  background: rgba(255,255,255,0.93);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-top: 2.5px solid rgba(255,91,46,0.45);
+
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.35),
+    0 1px 0 rgba(255,255,255,0.5) inset;
+
+  transition:
+    transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
+    box-shadow 0.3s ease,
+    background 0.2s;
+}
+
+.brands-logo-card:hover {
+  transform: translateY(-8px) scale(1.04);
+  background: rgba(255,255,255,0.97);
+  box-shadow:
+    0 20px 50px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(160,180,255,0.3),
+    0 1px 0 rgba(255,255,255,0.6) inset;
+}
+
+/* Featured (altunsa) — orange site-accent top glow */
+.brands-logo-card--featured {
+  border-top-color: #ff5b2e;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.35),
+    0 0 20px rgba(255,91,46,0.2),
+    0 1px 0 rgba(255,255,255,0.5) inset;
+}
+
+.brands-logo-card--featured:hover {
+  box-shadow:
+    0 20px 50px rgba(0,0,0,0.4),
+    0 0 32px rgba(255,91,46,0.3),
+    0 0 0 1px rgba(255,91,46,0.25),
+    0 1px 0 rgba(255,255,255,0.6) inset;
+}
+
+/* Logo image */
+.brands-logo-img {
+  display: block;
+  max-width: 100%;
+  max-height: 52px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ── Light-mode ── */
+body.light-mode .brands-partner-row {
+  background: rgba(232,236,242,0.6);
+  backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(21,61,122,0.12);
+  box-shadow:
+    0 0 0 1px rgba(245,75,26,0.08),
+    0 8px 32px rgba(21,61,122,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+body.light-mode .brands-inner-card {
+  background: var(--glass-bg);
+  border-color: rgba(21,61,122,0.15);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+body.light-mode .brands-partner-row::before {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(79,110,247,0.08) 50%,
+    transparent 65%
+  );
+}
+
+body.light-mode .brands-partner-row::after {
+  background: linear-gradient(to right,
+    transparent,
+    rgba(99,120,255,0.5) 30%,
+    rgba(139,92,246,0.55) 50%,
+    rgba(99,120,255,0.5) 70%,
+    transparent);
+}
+
+body.light-mode .brands-partner-badge {
+  color: #4f6ef7;
+  background: rgba(79,110,247,0.08);
+  border-color: rgba(79,110,247,0.22);
+}
+
+body.light-mode .brands-partner-title {
+  background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 55%, #0e7490 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 8px rgba(79,110,247,0.18));
+}
+
+body.light-mode .brands-partner-desc {
+  color: rgba(25, 35, 75, 0.68);
+}
+
+body.light-mode .brands-partner-divider {
+  background: linear-gradient(to right,
+    transparent,
+    rgba(79,130,255,0.35) 25%,
+    rgba(139,92,246,0.4) 50%,
+    rgba(79,130,255,0.35) 75%,
+    transparent);
+  box-shadow: 0 0 10px rgba(100,130,255,0.10);
+}
+
+body.light-mode .brands-logos-label {
+  background: linear-gradient(90deg, #4f6ef7, #7c3aed, #4f6ef7);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: logo-card-shine 4s linear infinite;
+}
+
+body.light-mode .brands-logo-card {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(100,130,255,0.14);
+  border-top: 2.5px solid rgba(100,130,255,0.32);
+  box-shadow:
+    0 4px 20px rgba(79,110,247,0.08),
+    0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+body.light-mode .brands-logo-card:hover {
+  background: rgba(255,255,255,0.98);
+  box-shadow:
+    0 16px 40px rgba(79,110,247,0.14),
+    0 0 0 1px rgba(100,130,255,0.22),
+    0 1px 0 rgba(255,255,255,0.95) inset;
+}
+
+body.light-mode .brands-logo-card--featured {
+  border-top-color: rgba(224,36,36,0.5);
+  box-shadow:
+    0 4px 20px rgba(79,110,247,0.08),
+    0 0 16px rgba(220,40,40,0.08),
+    0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .brands-partner-row     { padding: 12px; }
+  .brands-partner-content { padding: 28px 22px 22px; }
+  .brands-partner-logos   { padding: 18px 14px 24px; }
+  /* Mobile: allow wrapping into 2 rows of ~4 */
+  .brands-logos-grid {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .brands-logo-card {
+    flex: 1 1 calc(25% - 8px);
+    max-width: none;
+    height: 72px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .brands-logo-img { max-height: 38px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Cookie Consent Banner
+   ═══════════════════════════════════════════════════════ */
+
+.cookie-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: min(760px, calc(100vw - 32px));
+  background: rgba(10, 16, 30, 0.94);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 91, 46, 0.08);
+  animation: cookie-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cookie-slide-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.cookie-banner__inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  flex-wrap: wrap;
+}
+
+.cookie-banner__icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.cookie-banner__text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.cookie-banner__title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 4px;
+}
+
+.cookie-banner__desc {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.cookie-banner__btn {
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.cookie-banner__btn:hover  { opacity: 0.88; }
+.cookie-banner__btn:active { transform: scale(0.97); }
+
+.cookie-banner__btn--primary {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: rgba(255, 91, 46, 0.4);
+  box-shadow: 0 4px 14px rgba(255, 91, 46, 0.25);
+}
+
+.cookie-banner__btn--secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.75);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.light-mode .cookie-banner {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(21, 61, 122, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .cookie-banner__title { color: var(--gray); }
+body.light-mode .cookie-banner__desc  { color: rgba(21, 24, 27, 0.6); }
+
+body.light-mode .cookie-banner__btn--secondary {
+  background: rgba(21, 61, 122, 0.07);
+  color: var(--blue);
+  border-color: rgba(21, 61, 122, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PDF Catalog — Print Styles
+   ═══════════════════════════════════════════════════════ */
+
+.catalog-print-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 91, 46, 0.16), rgba(255, 91, 46, 0.08));
+  border: 1px solid rgba(255, 91, 46, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+
+.catalog-print-trigger:hover {
+  background: linear-gradient(135deg, rgba(255, 91, 46, 0.28), rgba(255, 91, 46, 0.16));
+  box-shadow: 0 4px 18px rgba(255, 91, 46, 0.2);
+}
+
+.catalog-print-trigger:active { transform: scale(0.97); }
+
+body.light-mode .catalog-print-trigger {
+  color: var(--orange);
+  border-color: rgba(245, 75, 26, 0.4);
+}
+
+@media print {
+  /* Hide everything during print */
+  body > *:not(.catalog-print-page) { display: none !important; }
+  .catalog-print-page { display: block !important; }
+
+  .catalog-print-page {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #111;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  .catalog-print__header {
+    background: linear-gradient(135deg, #0a2a5e, #1e4a8c);
+    color: #fff;
+    padding: 32px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    break-after: avoid;
+  }
+
+  .catalog-print__brand-section {
+    break-before: page;
+    padding: 24px 48px;
+  }
+
+  .catalog-print__brand-title {
+    font-size: 22pt;
+    font-weight: 800;
+    color: #0a2a5e;
+    border-bottom: 3px solid #ff5b2e;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+
+  .catalog-print__product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .catalog-print__product-card {
+    border: 1px solid #e0e6ef;
+    border-radius: 8px;
+    padding: 14px;
+    break-inside: avoid;
+  }
+
+  .catalog-print__product-img {
+    width: 100%;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 10px;
+  }
+
+  .catalog-print__product-name {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 4px;
+  }
+
+  .catalog-print__product-desc {
+    font-size: 8pt;
+    color: #555;
+    line-height: 1.4;
+  }
+
+  .catalog-print__footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 48px;
+    background: #f5f7fa;
+    border-top: 1px solid #e0e6ef;
+    font-size: 8pt;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+  }
 }

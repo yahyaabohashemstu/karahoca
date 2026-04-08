@@ -8,6 +8,7 @@ type Lang = typeof LANGS[number];
 
 const EMPTY: Partial<NewsItem> = {
   slug: '', image: '', published_at: new Date().toISOString().split('T')[0],
+  status: 'published', publish_at: null,
   category_ar: '', category_en: '', category_tr: '', category_ru: '',
   title_ar: '', title_en: '', title_tr: '', title_ru: '',
   excerpt_ar: '', excerpt_en: '', excerpt_tr: '', excerpt_ru: '',
@@ -70,6 +71,15 @@ export const AdminNewsEdit: React.FC = () => {
   };
 
   const handleImageUpload = async (file: File) => {
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File too large. Maximum size is 5 MB.');
+      return;
+    }
     setUploading(true);
     setError(null);
     try {
@@ -177,10 +187,32 @@ export const AdminNewsEdit: React.FC = () => {
                 onChange={e => setStr('published_at', e.target.value)}
               />
             </div>
-            <div className="adm-form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label className="adm-label" style={{ margin: 0 }}>Published</label>
-              <input type="checkbox" checked={!!form.active} onChange={e => set('active', (e.target.checked ? 1 : 0) as NewsItem['active'])} style={{ width: 18, height: 18 }} />
+            <div className="adm-form-group">
+              <label className="adm-label">Status</label>
+              <select
+                className="adm-input"
+                value={form.status ?? 'published'}
+                onChange={e => setStr('status', e.target.value as NewsItem['status'])}
+              >
+                <option value="published">✅ Published — visible to everyone</option>
+                <option value="draft">📝 Draft — hidden, work in progress</option>
+                <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
+              </select>
             </div>
+            {form.status === 'scheduled' && (
+              <div className="adm-form-group">
+                <label className="adm-label">Publish Date & Time</label>
+                <input
+                  className="adm-input"
+                  type="datetime-local"
+                  value={form.publish_at ? form.publish_at.slice(0, 16) : ''}
+                  onChange={e => setStr('publish_at', e.target.value ? new Date(e.target.value).toISOString() : '')}
+                />
+                <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
+                  Article will be published automatically at this time.
+                </small>
+              </div>
+            )}
           </div>
 
           {form.image && (

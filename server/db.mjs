@@ -86,13 +86,41 @@ export const getDb = () => {
   return db;
 };
 
+/**
+ * Append an entry to admin_audit_log (non-fatal — never throws).
+ * @param {{ action: string, entityType: string, entityId?: string|number, entityName?: string, adminUser?: string, details?: string }} opts
+ */
+export const logAudit = (opts) => {
+  try {
+    const { action, entityType, entityId = null, entityName = null, adminUser = 'admin', details = null } = opts;
+    db.prepare(
+      `INSERT INTO admin_audit_log(action, entity_type, entity_id, entity_name, admin_user, details) VALUES(?,?,?,?,?,?)`
+    ).run(action, entityType, entityId != null ? String(entityId) : null, entityName, adminUser, details);
+  } catch { /* non-fatal */ }
+};
+
 export const initDb = () => {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   createSchema();
+  migrateNewsStatusColumn();
   migrateInitialData();
   return db;
+};
+
+// ─── Migration: news status + publish_at columns ─────────────────────────────
+const migrateNewsStatusColumn = () => {
+  const cols = db.prepare('PRAGMA table_info(news)').all().map(c => c.name);
+  if (!cols.includes('status')) {
+    db.exec(`ALTER TABLE news ADD COLUMN status TEXT DEFAULT 'published'`);
+    // Mark all existing active articles as published
+    db.exec(`UPDATE news SET status='published' WHERE active=1 AND status IS NULL`);
+    db.exec(`UPDATE news SET status='published' WHERE status IS NULL`);
+  }
+  if (!cols.includes('publish_at')) {
+    db.exec(`ALTER TABLE news ADD COLUMN publish_at TEXT`);
+  }
 };
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
@@ -244,6 +272,187 @@ const migrateInitialData = () => {
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
+
+  // ── A/B Testing: add subject_b_* columns to email_campaigns ───────────────
+  for (const lang of ['ar', 'en', 'tr', 'ru']) {
+    try { db.exec(`ALTER TABLE email_campaigns ADD COLUMN subject_b_${lang} TEXT`); } catch { /* already exists */ }
+  }
+
+  // ── A/B Testing: add ab_variant column to email_sends ─────────────────────
+  try { db.exec("ALTER TABLE email_sends ADD COLUMN ab_variant TEXT DEFAULT 'a'"); } catch { /* already exists */ }
+
+  // ── Email click tracking table ─────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_link_clicks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      send_id INTEGER REFERENCES email_sends(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      clicked_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_link_clicks_send ON email_link_clicks(send_id);
+  `);
+
+  // ── click_count column for campaign-level aggregation ─────────────────────
+  try { db.exec("ALTER TABLE email_campaigns ADD COLUMN click_count INTEGER DEFAULT 0"); } catch { /* already exists */ }
+
+  // ── Admin audit log ────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      entity_name TEXT,
+      admin_user TEXT DEFAULT 'admin',
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_log_created ON admin_audit_log(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON admin_audit_log(entity_type, entity_id);
+  `);
+
+  // ── Gallery column for products (DIOX colour-variant images) ──────────────
+  try { db.exec("ALTER TABLE products ADD COLUMN gallery TEXT"); } catch { /* already exists */ }
+
+  migrateDioxPowderProducts();
+};
+
+// ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
+
+const migrateDioxPowderProducts = () => {
+  if (hasMigration('diox_powder_products_2026')) return;
+
+  const now = new Date().toISOString();
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO products(
+      id, brand, category_id,
+      name_ar, name_en, name_tr, name_ru,
+      description_ar, description_en, description_tr, description_ru,
+      image, gallery,
+      alt_ar, alt_en, alt_tr, alt_ru,
+      weight,
+      material_ar, material_en, material_tr, material_ru,
+      count_ar, count_en, count_tr, count_ru,
+      display_order, active, created_at, updated_at
+    ) VALUES(
+      @id, 'DIOX', 'diox-laundry',
+      @name_ar, @name_en, @name_tr, @name_ru,
+      @desc_ar, @desc_en, @desc_tr, @desc_ru,
+      @image, @gallery,
+      @alt_ar, @alt_en, @alt_tr, @alt_ru,
+      @weight,
+      'كيس بلاستيك', 'Plastic bag', 'Plastik torba', 'Пластиковый пакет',
+      @cnt_ar, @cnt_en, @cnt_tr, @cnt_ru,
+      @display_order, 1, @now, @now
+    )
+  `);
+
+  const products = [
+    {
+      id: 'diox-auto-powder-1-2kg',
+      name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو',
+      name_en: 'DIOX Automatic Laundry Powder 1.2 kg',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 kg',
+      name_ru: 'DIOX стиральный порошок автомат 1,2 кг',
+      desc_ar: 'مسحوق غسيل أوتوماتيك عالي الجودة — متوفر بلونين',
+      desc_en: 'High-quality automatic laundry powder — available in two colours',
+      desc_tr: 'Yüksek kaliteli otomatik çamaşır tozu — iki renkte mevcut',
+      desc_ru: 'Высококачественный стиральный порошок автомат — доступен в двух цветах',
+      image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو.png',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - أزرق.png',
+        '/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - زهري.png',
+      ]),
+      alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو بلونين',
+      alt_en: 'DIOX Automatic Laundry Powder 1.2 kg in two colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 kg iki renk',
+      alt_ru: 'DIOX стиральный порошок автомат 1,2 кг двух цветов',
+      weight: '1.2kg',
+      cnt_ar: '6 قطع', cnt_en: '6 pieces', cnt_tr: '6 adet', cnt_ru: '6 штук',
+      display_order: 6, now,
+    },
+    {
+      id: 'diox-auto-powder-3kg',
+      name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 3 كيلو',
+      name_en: 'DIOX Automatic Laundry Powder 3 kg',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 3 kg',
+      name_ru: 'DIOX стиральный порошок автомат 3 кг',
+      desc_ar: 'مسحوق غسيل أوتوماتيك اقتصادي — متوفر بأربعة ألوان',
+      desc_en: 'Economy automatic laundry powder — available in four colours',
+      desc_tr: 'Ekonomik otomatik çamaşır tozu — dört renkte mevcut',
+      desc_ru: 'Экономичный стиральный порошок автомат — доступен в четырёх цветах',
+      image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 3 كيلو.png',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - أزرق.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - برتقالي.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - بنفسجي.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - زهري.png',
+      ]),
+      alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 3 كيلو بأربعة ألوان',
+      alt_en: 'DIOX Automatic Laundry Powder 3 kg in four colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 3 kg dört renk',
+      alt_ru: 'DIOX стиральный порошок автомат 3 кг четырёх цветов',
+      weight: '3kg',
+      cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
+      display_order: 7, now,
+    },
+    {
+      id: 'diox-auto-powder-6kg',
+      name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو',
+      name_en: 'DIOX Automatic Laundry Powder 6 kg',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 6 kg',
+      name_ru: 'DIOX стиральный порошок автомат 6 кг',
+      desc_ar: 'مسحوق غسيل أوتوماتيك عائلي — متوفر بأربعة ألوان',
+      desc_en: 'Family-size automatic laundry powder — available in four colours',
+      desc_tr: 'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
+      desc_ru: 'Семейный стиральный порошок автомат — доступен в четырёх цветах',
+      image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 6 كيلو.png',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
+      ]),
+      alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو بأربعة ألوان',
+      alt_en: 'DIOX Automatic Laundry Powder 6 kg in four colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 6 kg dört renk',
+      alt_ru: 'DIOX стиральный порошок автомат 6 кг четырёх цветов',
+      weight: '6kg',
+      cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
+      display_order: 8, now,
+    },
+    {
+      id: 'diox-auto-powder-9kg',
+      name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 9 كيلو',
+      name_en: 'DIOX Automatic Laundry Powder 9 kg',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 9 kg',
+      name_ru: 'DIOX стиральный порошок автомат 9 кг',
+      desc_ar: 'مسحوق غسيل أوتوماتيك بحجم كبير — متوفر بأربعة ألوان',
+      desc_en: 'Large automatic laundry powder — available in four colours',
+      desc_tr: 'Büyük boy otomatik çamaşır tozu — dört renkte mevcut',
+      desc_ru: 'Большой стиральный порошок автомат — доступен в четырёх цветах',
+      image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 9 كيلو.png',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - أزرق.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - برتقالي.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - بنفسجي.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - زهري.png',
+      ]),
+      alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 9 كيلو بأربعة ألوان',
+      alt_en: 'DIOX Automatic Laundry Powder 9 kg in four colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 9 kg dört renk',
+      alt_ru: 'DIOX стиральный порошок автомат 9 кг четyrёх цветов',
+      weight: '9kg',
+      cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
+      display_order: 9, now,
+    },
+  ];
+
+  const txn = db.transaction(() => { for (const p of products) insert.run(p); });
+  txn();
+
+  markMigration('diox_powder_products_2026');
+  console.log('[db] DIOX powder products migration complete');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
@@ -601,7 +810,7 @@ const migrateNews = () => {
         ru: 'Мы расширили партнерскую сеть новыми соглашениями, ориентированными на логистическую готовность и более быстрый доступ к клиентам на стратегических рынках.'
       },
       body: {
-        ar: ['خلال الربع الأول من العام، أتمت KARAHOCA سلسلة اتفاقيات توزيع جديدة مع شركاء إقليميين لدعم انتشار منتجاتنا في أسواق ذات طلب متزايد على حلول التنظيف عالية الجودة.','التركيز في هذه الاتفاقيات كان على جاهزية المخزون، سرعة التوريد، وتخصيص التشكيلات المناسبة لكل سوق بما يتماشى مع سلوك الاستهلاك المحلي.','هذه الخطوة تعزز حضورنا التجاري وتمنحنا مرونة أكبر في خدمة عملائنا وشركائنا على نطاق جغرافي أوسع.'],
+        ar: ['خلال الربع الأول من العام، أتمت KARAHOCA سلسلة اتفاقيات توزيع جديدة مع شركاء إقليميين لدعم انتشار منتجاتنا في أسواق ذات طلب متزايد على حلول التنظيف عالية الجودة.','التركيز في هذه الاتفاقيات كان على جاهزية المخزون، سرعة التوريد، وتخصيص التشكيلات المناسبة لكل سوق بما يتماشى مع سلوك الاستهلاك المحلي.','هذه الخطوة تعزز حضورنا التجارِوتمنحنا مرونة أكبر في خدمة عملائنا وشركائنا على نطاق جغرافي أوسع.'],
         en: ['During the first quarter, KARAHOCA completed a new group of distribution agreements with regional partners to support the rollout of our cleaning portfolio in high-demand markets.','These agreements focus on stock readiness, faster supply, and assortment planning tailored to the needs of each local market.','The move strengthens our commercial presence and gives us greater flexibility in serving partners and customers across a wider geography.'],
         tr: ['Yilin ilk ceyreginde KARAHOCA, yuksek talep potansiyeline sahip pazarlarda urun portfoyumuzu guclendirmek icin bolgesel partnerlerle yeni dagitim anlasmalari tamamladi.','Bu anlasmalar; stok hazirligi, daha hizli tedarik ve her pazar icin uygun urun karmasinin planlanmasi uzerine kuruldu.','Bu adim ticari varligimizi guclendirirken partnerlerimize ve musterilerimize daha genis bir cografyada daha esnek hizmet sunmamizi sagliyor.'],
         ru: ['В первом квартале KARAHOCA заключила новую серию дистрибьюторских соглашений с региональными партнерами для усиления присутствия нашего портфеля в рынках с высоким спросом.','Ключевой акцент в соглашениях сделан на готовности складских запасов, скорости поставок и формировании ассортимента под особенности каждого рынка.','Этот шаг усиливает наше коммерческое присутствие и дает нам больше гибкости в обслуживании партнеров и клиентов на более широкой географии.']

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createReadStream, existsSync } from 'node:fs';
 
-import { initDb, getDb, incrementStat } from './db.mjs';
+import { initDb, getDb, incrementStat, logAudit } from './db.mjs';
 import { requireAuth } from './auth.mjs';
 import { handleAdminLogin } from './routes/admin-auth.mjs';
 import { handleAdminStats } from './routes/admin-stats.mjs';
@@ -15,7 +15,7 @@ import { handleAdminNews } from './routes/admin-news.mjs';
 import { handleAdminNewsletter } from './routes/admin-newsletter.mjs';
 import { handleAdminTranslate } from './routes/admin-translate.mjs';
 import { handleAdminGa } from './routes/admin-ga.mjs';
-import { handleAdminCampaigns, handleEmailOpen, dispatchCampaign } from './routes/admin-campaigns.mjs';
+import { handleAdminCampaigns, handleEmailOpen, handleEmailClick, dispatchCampaign } from './routes/admin-campaigns.mjs';
 import { handleAdminAiKnowledge, buildProductContext, buildCustomQAContext, logUserQuestion } from './routes/admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
@@ -60,7 +60,9 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), accelerometer=(), gyroscope=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';",
 };
 
 const createJsonHeaders = (requestOrigin = '') => {
@@ -182,7 +184,47 @@ const extractModelText = (payload) => {
 
 // ─── Existing handlers ────────────────────────────────────────────────────────
 
-const subscribeNewsletter = async ({ email }) => {
+// ── Welcome email i18n strings ──────────────────────────────────────────────
+const WELCOME_EMAIL_I18N = {
+  ar: {
+    subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
+    greeting: 'مرحباً بك! 🎉',
+    thanks: 'شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.',
+    promise: 'ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.',
+    unsubNote: 'إذا لم تشترك بنفسك، يمكنك',
+    unsubLink: 'إلغاء الاشتراك',
+    dir: 'rtl', lang: 'ar',
+  },
+  en: {
+    subject: 'Welcome to KARAHOCA Newsletter! 🎉',
+    greeting: 'Welcome! 🎉',
+    thanks: 'Thank you for subscribing to the <strong>KARAHOCA</strong> newsletter.',
+    promise: 'You will receive the latest news and exclusive offers directly to your inbox.',
+    unsubNote: "If you didn't subscribe yourself, you can",
+    unsubLink: 'unsubscribe',
+    dir: 'ltr', lang: 'en',
+  },
+  tr: {
+    subject: "KARAHOCA Bültenine Hoş Geldiniz! 🎉",
+    greeting: 'Hoş Geldiniz! 🎉',
+    thanks: '<strong>KARAHOCA</strong> bültenine abone olduğunuz için teşekkürler.',
+    promise: 'En son haberler ve özel teklifler doğrudan e-postanıza gelecek.',
+    unsubNote: 'Kendiniz abone olmadıysanız',
+    unsubLink: 'abonelikten çıkabilirsiniz',
+    dir: 'ltr', lang: 'tr',
+  },
+  ru: {
+    subject: 'Добро пожаловать в рассылку KARAHOCA! 🎉',
+    greeting: 'Добро пожаловать! 🎉',
+    thanks: 'Спасибо за подписку на рассылку <strong>KARAHOCA</strong>.',
+    promise: 'Вы будете получать последние новости и эксклюзивные предложения.',
+    unsubNote: 'Если вы не подписывались сами, вы можете',
+    unsubLink: 'отписаться',
+    dir: 'ltr', lang: 'ru',
+  },
+};
+
+const subscribeNewsletter = async ({ email, lang }) => {
   if (typeof email !== 'string') throw new Error('Invalid email address.');
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail.length > 254) throw new Error('Email address too long.');
@@ -193,13 +235,24 @@ const subscribeNewsletter = async ({ email }) => {
 
   // Save to DB (primary)
   const db = getDb();
-  const exists = db.prepare('SELECT 1 FROM newsletter_subscribers WHERE email=?').get(normalizedEmail);
-  if (!exists) {
-    db.prepare('INSERT INTO newsletter_subscribers(email, subscribed_at) VALUES(?,?)').run(
-      normalizedEmail, new Date().toISOString()
-    );
+  const now = new Date().toISOString();
+
+  // Check if already exists (may be active or inactive from a past unsubscribe)
+  const existing = db.prepare('SELECT email, active FROM newsletter_subscribers WHERE email = ?').get(normalizedEmail);
+
+  let inserted = false;
+  if (!existing) {
+    // Brand new subscriber
+    db.prepare('INSERT INTO newsletter_subscribers(email, subscribed_at, active) VALUES(?,?,1)').run(normalizedEmail, now);
+    inserted = true;
+    incrementStat('newsletter_signups');
+  } else if (existing.active === 0) {
+    // Previously unsubscribed — reactivate
+    db.prepare('UPDATE newsletter_subscribers SET active = 1, subscribed_at = ? WHERE email = ?').run(now, normalizedEmail);
+    inserted = true; // treat as new so they get the welcome email
     incrementStat('newsletter_signups');
   }
+  // else: already active — do nothing (no duplicate welcome email)
 
   // Also keep the JSON file as backup
   let subscribers = [];
@@ -223,7 +276,7 @@ const subscribeNewsletter = async ({ email }) => {
   // ── Welcome email — awaited so errors surface in the response ────────────────
   let welcomeEmailStatus = null; // null = not attempted (already subscribed)
 
-  if (!exists) {
+  if (inserted) {
     const resendKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.FROM_EMAIL || '';
     const siteUrl   = process.env.SITE_URL   || 'https://karahoca.com';
@@ -236,14 +289,20 @@ const subscribeNewsletter = async ({ email }) => {
       console.warn('[welcome-email] FROM_EMAIL is not set.');
     } else {
       try {
+        // Pick i18n strings based on subscriber's language (fallback: ar)
+        const userLang = (typeof lang === 'string' && WELCOME_EMAIL_I18N[lang]) ? lang : 'ar';
+        const i = WELCOME_EMAIL_I18N[userLang];
+        const textAlign = i.dir === 'rtl' ? 'right' : 'left';
+        const unsubUrl = `${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}`;
+
         const resp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: fromEmail,
             to: [normalizedEmail],
-            subject: 'مرحباً بك في نشرة KARAHOCA! 🎉',
-            html: `<!DOCTYPE html><html lang="ar" dir="rtl">
+            subject: i.subject,
+            html: `<!DOCTYPE html><html lang="${i.lang}" dir="${i.dir}">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px">
@@ -252,14 +311,14 @@ const subscribeNewsletter = async ({ email }) => {
         <tr><td style="background:linear-gradient(135deg,#1a1f3c,#2d3561);padding:32px 40px;text-align:center">
           <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700">KARAHOCA</h1>
         </td></tr>
-        <tr><td style="padding:36px 40px;text-align:right">
-          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">مرحباً بك! 🎉</h2>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">شكراً لاشتراكك في النشرة الإخبارية لـ <strong>KARAHOCA</strong>.</p>
-          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">ستصلك أحدث الأخبار والعروض الحصرية مباشرة إلى بريدك الإلكتروني.</p>
-          <p style="margin:24px 0 0;color:#888;font-size:12px">إذا لم تشترك بنفسك، يمكنك <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(normalizedEmail)}" style="color:#4f6ef7">إلغاء الاشتراك</a>.</p>
+        <tr><td style="padding:36px 40px;text-align:${textAlign}">
+          <h2 style="margin:0 0 16px;color:#1a1f3c;font-size:20px">${i.greeting}</h2>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">${i.thanks}</p>
+          <p style="margin:0 0 14px;color:#444;line-height:1.7;font-size:15px">${i.promise}</p>
+          <p style="margin:24px 0 0;color:#888;font-size:12px">${i.unsubNote} <a href="${unsubUrl}" style="color:#4f6ef7">${i.unsubLink}</a>.</p>
         </td></tr>
         <tr><td style="background:#f8f9fb;padding:16px 40px;text-align:center">
-          <p style="margin:0;color:#aaa;font-size:11px">© ${new Date().getFullYear()} KARAHOCA</p>
+          <p style="margin:0;color:#aaa;font-size:11px">&copy; ${new Date().getFullYear()} KARAHOCA</p>
         </td></tr>
       </table>
     </td></tr>
@@ -282,7 +341,7 @@ const subscribeNewsletter = async ({ email }) => {
     }
   }
 
-  return { success: true, alreadySubscribed: !!exists, welcomeEmail: welcomeEmailStatus };
+  return { success: true, alreadySubscribed: !!existing, welcomeEmail: welcomeEmailStatus };
 };
 
 /** Build enriched prompt: append live DB products + custom Q&A */
@@ -361,25 +420,30 @@ const generateAiReply = async ({ prompt, lang }) => {
 };
 
 // ─── Gemini response cache ────────────────────────────────────────────────────
-const geminiCache = new Map(); // key → { reply, expiresAt }
-const GEMINI_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const geminiCache = new Map(); // key → { reply, expiresAt, hits }
+const GEMINI_CACHE_TTL = 60 * 60 * 1000; // 1 hour — reduces API costs for repeated questions
+const GEMINI_CACHE_MAX = 500;            // keep up to 500 unique Q&A pairs
+
+/** Normalize a prompt for cache keying: lowercase + collapse whitespace */
+const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 
 const getCachedReply = (prompt, lang) => {
-  const key = lang + ':' + prompt;
+  const key = lang + ':' + normalizePrompt(prompt);
   const entry = geminiCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
     geminiCache.delete(key);
     return null;
   }
+  entry.hits = (entry.hits || 0) + 1; // track hit count for diagnostics
   return entry.reply;
 };
 
 const setCachedReply = (prompt, lang, reply) => {
-  const key = lang + ':' + prompt;
-  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL });
-  // Limit cache size to 200 entries
-  if (geminiCache.size > 200) {
+  const key = lang + ':' + normalizePrompt(prompt);
+  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL, hits: 0 });
+  // LRU-like eviction: remove oldest entry when over limit
+  if (geminiCache.size > GEMINI_CACHE_MAX) {
     const firstKey = geminiCache.keys().next().value;
     geminiCache.delete(firstKey);
   }
@@ -402,11 +466,30 @@ const isChatRateLimited = (ip) => {
   return false;
 };
 
+// ─── Unsubscribe rate limiter (prevents abuse/enumeration) ──────────────────
+const unsubRateMap = new Map(); // ip → { count, resetAt }
+const UNSUB_LIMIT  = 10;        // max requests per window
+const UNSUB_WINDOW = 5 * 60_000; // 5 minutes
+
+const isUnsubRateLimited = (ip) => {
+  const now = Date.now();
+  const rec = unsubRateMap.get(ip);
+  if (!rec || now > rec.resetAt) {
+    unsubRateMap.set(ip, { count: 1, resetAt: now + UNSUB_WINDOW });
+    return false;
+  }
+  rec.count++;
+  return rec.count > UNSUB_LIMIT;
+};
+
 // Prune stale entries every 5 minutes
-setInterval(() => {
+const rateLimitPruneInterval = setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of chatRateMap) {
     if (now > rec.resetAt) chatRateMap.delete(ip);
+  }
+  for (const [ip, rec] of unsubRateMap) {
+    if (now > rec.resetAt) unsubRateMap.delete(ip);
   }
 }, 300_000);
 
@@ -510,6 +593,57 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // ── Public newsletter unsubscribe (no auth needed, rate-limited) ───────
+    if (request.method === 'GET' && url === '/api/newsletter/unsubscribe') {
+      const unsubIp = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown')
+        .split(',')[0].trim();
+      if (isUnsubRateLimited(unsubIp)) {
+        sendJson(response, 429, { success: false, error: 'Too many requests. Please try again later.' }, requestOrigin);
+        return;
+      }
+      const queryUrl = new URL(request.url, 'http://localhost');
+      const email = queryUrl.searchParams.get('email');
+      if (!email || typeof email !== 'string') {
+        sendJson(response, 400, { success: false, error: 'Missing email parameter.' }, requestOrigin);
+        return;
+      }
+      const normalizedEmail = email.trim().toLowerCase();
+      try {
+        const db = getDb();
+        const row = db.prepare('SELECT email, active FROM newsletter_subscribers WHERE email = ?').get(normalizedEmail);
+        if (!row) {
+          sendJson(response, 404, { success: false, error: 'Email not found.' }, requestOrigin);
+          return;
+        }
+        if (row.active === 0) {
+          sendJson(response, 200, { success: true, alreadyUnsubscribed: true }, requestOrigin);
+          return;
+        }
+        db.prepare('UPDATE newsletter_subscribers SET active = 0 WHERE email = ?').run(normalizedEmail);
+        console.log('[newsletter] Unsubscribed:', normalizedEmail);
+        sendJson(response, 200, { success: true }, requestOrigin);
+      } catch (e) {
+        console.error('[newsletter] Unsubscribe error:', e.message);
+        sendJson(response, 500, { success: false, error: 'Server error.' }, requestOrigin);
+      }
+      return;
+    }
+
+    // ── Frontend error reporting (non-fatal, no auth needed) ─────────────────
+    if (request.method === 'POST' && url === '/api/log-error') {
+      const body = await readRequestBody(request);
+      if (body?.message && typeof body.message === 'string') {
+        console.error('[client-error]', JSON.stringify({
+          message: String(body.message).slice(0, 300),
+          stack: typeof body.stack === 'string' ? body.stack.slice(0, 500) : undefined,
+          url: typeof body.url === 'string' ? body.url.slice(0, 200) : undefined,
+          ts: body.ts,
+        }));
+      }
+      sendJson(response, 200, { success: true }, requestOrigin);
+      return;
+    }
+
     if (request.method === 'POST' && url === '/api/chat/log') {
       const body = await readRequestBody(request);
       // Basic spam guard: userId must be a non-empty string ≤ 128 chars
@@ -548,6 +682,12 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // Click tracking redirect (public — no auth needed)
+    if (request.method === 'GET' && url.startsWith('/api/email/click')) {
+      handleEmailClick(request, response);
+      return;
+    }
+
     if (request.method === 'GET' && url.startsWith('/api/products/')) {
       handlePublicProducts(request, response, ctx);
       return;
@@ -575,64 +715,81 @@ const server = createServer(async (request, response) => {
     // ── Protected admin routes ─────────────────────────────────────────────
 
     if (url.startsWith('/api/admin/')) {
-      if (!requireAdminAuth(request, response, requestOrigin)) return;
+      const adminUser = requireAdminAuth(request, response, requestOrigin);
+      if (!adminUser) return;
       const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
       const body = ['POST','PUT','PATCH'].includes(request.method)
         ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
         : {};
+      const adminCtx = { ...ctx, body, admin: adminUser };
 
       if (url === '/api/admin/stats' && request.method === 'GET') {
-        handleAdminStats(request, response, ctx);
+        handleAdminStats(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/analytics' && request.method === 'GET') {
-        handleAdminAnalytics(request, response, ctx);
+        handleAdminAnalytics(request, response, adminCtx);
+        return;
+      }
+
+      // ── Audit log ────────────────────────────────────────────────────────────
+      if (url === '/api/admin/audit-log' && request.method === 'GET') {
+        const db = getDb();
+        const urlObj = new URL(request.url, 'http://localhost');
+        const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '100', 10), 500);
+        const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+        const entityType = urlObj.searchParams.get('entity') || null;
+        const where = entityType ? 'WHERE entity_type=?' : '';
+        const params = entityType ? [entityType, limit, offset] : [limit, offset];
+        const logs = db.prepare(`SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params);
+        const total = db.prepare(`SELECT COUNT(*) as c FROM admin_audit_log ${where}`).get(...(entityType ? [entityType] : [])).c;
+        sendJson(response, 200, { success: true, logs, total }, requestOrigin);
         return;
       }
 
       if (url.startsWith('/api/admin/chats')) {
-        handleAdminChats(request, response, { ...ctx, body });
+        handleAdminChats(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/products')) {
-        handleAdminProducts(request, response, { ...ctx, body });
+        handleAdminProducts(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/categories')) {
-        handleAdminCategories(request, response, { ...ctx, body });
+        handleAdminCategories(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/newsletter')) {
-        handleAdminNewsletter(request, response, { ...ctx, body });
+        handleAdminNewsletter(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/news')) {
-        handleAdminNews(request, response, { ...ctx, body });
+        handleAdminNews(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/translate' && request.method === 'POST') {
-        await handleAdminTranslate(request, response, { ...ctx, body });
+        await handleAdminTranslate(request, response, adminCtx);
         return;
       }
 
       if (url === '/api/admin/ga' && request.method === 'GET') {
-        await handleAdminGa(request, response, ctx);
+        await handleAdminGa(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/campaigns')) {
-        await handleAdminCampaigns(request, response, { ...ctx, body });
+        await handleAdminCampaigns(request, response, adminCtx);
         return;
       }
 
       if (url.startsWith('/api/admin/ai-knowledge')) {
-        handleAdminAiKnowledge(request, response, { ...ctx, body });
+        handleAdminAiKnowledge(request, response, adminCtx);
         return;
       }
 
@@ -653,6 +810,18 @@ const server = createServer(async (request, response) => {
           sendJson(response, 400, { error: 'File too large (max 5 MB)' }, requestOrigin);
           return;
         }
+
+        // Verify actual file content matches claimed extension (magic bytes)
+        const magicValid =
+          (ext === 'jpg' || ext === 'jpeg') && buf.length >= 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF ||
+          ext === 'png'  && buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 ||
+          ext === 'gif'  && buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 ||
+          ext === 'webp' && buf.length >= 12 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+        if (!magicValid) {
+          sendJson(response, 400, { error: 'File content does not match the declared image type' }, requestOrigin);
+          return;
+        }
+
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const uploadDir = path.join(__dirname, 'data', 'uploads');
         await mkdir(uploadDir, { recursive: true });
@@ -738,6 +907,28 @@ const server = createServer(async (request, response) => {
 await ensureDataDirectories();
 initDb();
 
+// ── News: auto-publish scheduled articles ────────────────────────────────────
+const publishDueNewsArticles = () => {
+  try {
+    const db = getDb();
+    const result = db.prepare(`
+      UPDATE news
+      SET status='published', active=1, updated_at=datetime('now')
+      WHERE status='scheduled'
+        AND publish_at IS NOT NULL
+        AND datetime(publish_at) <= datetime('now')
+        AND active=1
+    `).run();
+    if (result.changes > 0) {
+      console.log(`[news-scheduler] Published ${result.changes} scheduled article(s).`);
+    }
+  } catch (e) {
+    console.error('[news-scheduler] error:', e.message);
+  }
+};
+void publishDueNewsArticles();
+const newsSchedulerInterval = setInterval(publishDueNewsArticles, 60 * 1000);
+
 // ── Campaign scheduler ────────────────────────────────────────────────────────
 const dispatchDueCampaigns = async () => {
   try {
@@ -759,7 +950,7 @@ const dispatchDueCampaigns = async () => {
 
 // Check immediately on boot, then every minute so scheduled sends do not lag.
 void dispatchDueCampaigns();
-setInterval(() => {
+const campaignInterval = setInterval(() => {
   void dispatchDueCampaigns();
 }, 60 * 1000);
 
@@ -767,7 +958,24 @@ server.listen(port, () => {
   console.log('KARAHOCA API server listening on http://localhost:' + port);
 });
 
-startAutoBackup();
+const backupInterval = startAutoBackup();
+
+// ── Graceful shutdown ───────────────────────────────────────────────────────
+const shutdown = (signal) => {
+  console.log(`[server] ${signal} received — shutting down gracefully.`);
+  clearInterval(newsSchedulerInterval);
+  clearInterval(campaignInterval);
+  clearInterval(rateLimitPruneInterval);
+  if (backupInterval) clearInterval(backupInterval);
+  server.close(() => {
+    console.log('[server] HTTP server closed.');
+    process.exit(0);
+  });
+  // Force exit after 5s if server.close hangs
+  setTimeout(() => process.exit(1), 5000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 
 

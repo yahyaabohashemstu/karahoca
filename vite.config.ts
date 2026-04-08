@@ -25,7 +25,7 @@ export default defineConfig({
     },
     // Optimize chunk size
     chunkSizeWarningLimit: 1000,
-    // Enable source maps for production debugging
+    // Source maps disabled in production (security: prevents source code exposure)
     sourcemap: false,
     // Use esbuild for faster builds
     minify: 'esbuild',

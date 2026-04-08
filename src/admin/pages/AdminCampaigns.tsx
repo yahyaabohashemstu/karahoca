@@ -76,6 +76,7 @@ export const AdminCampaigns: React.FC = () => {
                 { label: 'Scheduled', value: data.campaigns.filter(c => c.status === 'scheduled').length, color: '#4f6ef7' },
                 { label: 'Sent',      value: data.campaigns.filter(c => c.status === 'sent').length,     color: '#22c55e' },
                 { label: 'Opens',     value: data.campaigns.reduce((s, c) => s + c.open_count, 0),       color: '#8b5cf6' },
+                { label: 'Clicks',    value: data.campaigns.reduce((s, c) => s + (c.click_count ?? 0), 0), color: '#f59e0b' },
               ].map(card => (
                 <div key={card.label} className="adm-stat-card" style={{ padding: '16px 18px' }}>
                   <div className="adm-stat-label">{card.label}</div>
@@ -126,6 +127,13 @@ export const AdminCampaigns: React.FC = () => {
                               {c.recipient_count > 0 && (
                                 <span style={{ color: '#22c55e', marginLeft: 4 }}>
                                   ({Math.round((c.open_count / c.recipient_count) * 100)}%)
+                                </span>
+                              )}
+                            </span>
+                            <span>🖱 {c.click_count ?? 0} clicks
+                              {c.recipient_count > 0 && (c.click_count ?? 0) > 0 && (
+                                <span style={{ color: '#f59e0b', marginLeft: 4 }}>
+                                  ({Math.round(((c.click_count ?? 0) / c.recipient_count) * 100)}%)
                                 </span>
                               )}
                             </span>

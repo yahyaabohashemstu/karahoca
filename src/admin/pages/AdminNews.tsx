@@ -93,9 +93,20 @@ export const AdminNews: React.FC = () => {
                     <td className="adm-text-sm adm-text-muted">{item.category_en}</td>
                     <td className="adm-text-sm adm-text-muted">{fmtDate(item.published_at)}</td>
                     <td>
-                      <span className={`adm-badge ${item.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
-                        {item.active ? 'Published' : 'Hidden'}
-                      </span>
+                      {item.status === 'scheduled' ? (
+                        <span className="adm-badge" style={{ background: 'rgba(99,102,241,.18)', color: '#818cf8', border: '1px solid rgba(99,102,241,.3)' }}
+                          title={item.publish_at ? `Publishes: ${new Date(item.publish_at).toLocaleString()}` : ''}>
+                          🕐 Scheduled
+                        </span>
+                      ) : item.status === 'draft' ? (
+                        <span className="adm-badge" style={{ background: 'rgba(245,158,11,.18)', color: '#fbbf24', border: '1px solid rgba(245,158,11,.3)' }}>
+                          📝 Draft
+                        </span>
+                      ) : (
+                        <span className={`adm-badge ${item.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
+                          {item.active ? '✅ Published' : 'Hidden'}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

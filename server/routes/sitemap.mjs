@@ -13,14 +13,25 @@ const escapeXml = (str) =>
 export const handleSitemap = (req, res) => {
   try {
     const db = getDb();
+    const today = new Date().toISOString().slice(0, 10);
 
-    // Static pages
+    // Brand pages: derive lastmod from latest product update
+    const dioxLastMod = (db.prepare(
+      `SELECT MAX(updated_at) AS m FROM products WHERE active=1 AND brand='DIOX'`
+    ).get()?.m || today).slice(0, 10);
+
+    const ayluxLastMod = (db.prepare(
+      `SELECT MAX(updated_at) AS m FROM products WHERE active=1 AND brand='AYLUX'`
+    ).get()?.m || today).slice(0, 10);
+
+    // Static pages with dynamic lastmod for brand pages
     const staticPages = [
-      { url: '/',        priority: '1.0', changefreq: 'weekly'  },
-      { url: '/diox',   priority: '0.9', changefreq: 'weekly'  },
-      { url: '/aylux',  priority: '0.9', changefreq: 'weekly'  },
-      { url: '/news',   priority: '0.8', changefreq: 'daily'   },
-      { url: '/about',  priority: '0.7', changefreq: 'monthly' },
+      { url: '/',          priority: '1.0', changefreq: 'weekly',  lastmod: today        },
+      { url: '/diox',      priority: '0.9', changefreq: 'weekly',  lastmod: dioxLastMod  },
+      { url: '/aylux',     priority: '0.9', changefreq: 'weekly',  lastmod: ayluxLastMod },
+      { url: '/news',      priority: '0.8', changefreq: 'daily',   lastmod: today        },
+      { url: '/about',     priority: '0.7', changefreq: 'monthly', lastmod: today        },
+      { url: '/wishlist',  priority: '0.3', changefreq: 'never',   lastmod: today        },
     ];
 
     // Dynamic news slugs
@@ -28,13 +39,11 @@ export const handleSitemap = (req, res) => {
       `SELECT slug, published_at, updated_at FROM news WHERE active=1 ORDER BY published_at DESC`
     ).all();
 
-    const today = new Date().toISOString().slice(0, 10);
-
     const urls = [
       ...staticPages.map(p => `
   <url>
     <loc>${escapeXml(SITE_URL + p.url)}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${escapeXml(p.lastmod)}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`),
@@ -58,6 +67,7 @@ ${urls.join('')}
     });
     res.end(xml);
   } catch (err) {
+    console.error('[sitemap] Error:', err);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Sitemap generation failed');
   }

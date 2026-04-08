@@ -1,5 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+/** Sanitize SVG using DOMParser — removes event handlers, scripts, and dangerous attributes */
+const sanitizeSvg = (rawSvg: string): string => {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+    // Remove script and foreignObject elements entirely
+    doc.querySelectorAll('script, foreignObject').forEach(el => el.remove());
+    // Strip dangerous attributes from every element
+    doc.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith('on')) { el.removeAttribute(attr.name); return; }
+        if ((name === 'href' || name === 'xlink:href' || name === 'src') &&
+            /^(javascript:|data:text)/i.test(attr.value.trim())) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+    return new XMLSerializer().serializeToString(doc.documentElement);
+  } catch {
+    return '';
+  }
+};
+
 const ExperienceBadge: React.FC = () => {
   const [svgMarkup, setSvgMarkup] = useState<string>('');
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -13,8 +37,7 @@ const ExperienceBadge: React.FC = () => {
         if (!isMounted) {
           return;
         }
-        const sanitizedSvg = rawSvg.replace(/<script[\s\S]*?<\/script>/gi, '');
-        setSvgMarkup(sanitizedSvg);
+        setSvgMarkup(sanitizeSvg(rawSvg));
       })
       .catch(() => {
         if (isMounted) {

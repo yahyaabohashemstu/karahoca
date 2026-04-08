@@ -473,3 +473,19 @@ body.light-mode .ai-assistant__message th {
   }
 }
 
+
+/* ── Privacy notice ─────────────────────────────────────────────────────── */
+.ai-assistant__privacy {
+  padding: 6px 14px 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.01em;
+}
+
+body.light-mode .ai-assistant__privacy {
+  color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(0, 0, 0, 0.06);
+}

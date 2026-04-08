@@ -56,6 +56,26 @@
         "satisfaction": "Customer Satisfaction"
       }
     },
+    "customOrder": {
+      "badge": "Private Label & Custom Manufacturing",
+      "title": "From Your Idea to a Market-Ready Product",
+      "description": "Have a product idea? We produce it for you — under your brand name and label. From formulation to packaging, we handle everything with 30+ years of manufacturing expertise.",
+      "cta": "Chat on WhatsApp",
+      "partnersLabel": "Trusted by leading brands"
+    },
+    "unsubscribe": {
+      "loading": "Unsubscribing...",
+      "loadingDesc": "Please wait a moment.",
+      "success": "Unsubscribed Successfully",
+      "successDesc": "You have been removed from our mailing list. You will no longer receive newsletters.",
+      "already": "Already Unsubscribed",
+      "alreadyDesc": "This email is already unsubscribed from our mailing list.",
+      "notFound": "Email Not Found",
+      "notFoundDesc": "We could not find this email in our mailing list.",
+      "error": "Something Went Wrong",
+      "errorDesc": "Could not unsubscribe. Please try again later.",
+      "backHome": "Back to Home"
+    },
     "brands": {
       "title": "Our Brands",
       "subtitle": "Different worlds, one quality.",
@@ -192,6 +212,7 @@
       "description": "Leading the detergent industry with innovative solutions, reliable performance, and global quality.",
       "newsletter": {
         "title": "Newsletter",
+        "description": "Subscribe for the latest offers and products",
         "placeholder": "Your email",
         "subscribe": "Subscribe",
         "submitting": "Submitting...",
@@ -752,6 +773,23 @@
       "readMore": "Read more",
       "viewAll": "All news",
       "modalClose": "Close article"
+    },
+    "cookie": {
+      "title": "We use cookies",
+      "description": "We use cookies and similar technologies to improve your experience and analyze site traffic. By clicking \"Accept All\", you agree to our use of analytics cookies.",
+      "acceptAll": "Accept All",
+      "essentialOnly": "Essential Only"
+    },
+    "catalog": {
+      "downloadBtn": "Download Catalog (PDF)",
+      "printTitle": "KARAHOCA — Product Catalog",
+      "printSubtitle": "Premium Cleaning Products",
+      "printContact": "Contact: info@karahoca.com | +90 530 591 4990 | karahoca.com",
+      "printFooter": "© 2025 KARAHOCA KIMYA. All rights reserved.",
+      "printBrand": "Brand",
+      "printProducts": "Products",
+      "printCategory": "Category",
+      "printDate": "Catalog Date"
     }
   }
 }

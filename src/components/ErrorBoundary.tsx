@@ -33,8 +33,21 @@ class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     if (import.meta.env.DEV) {
       console.error('Error caught by boundary:', error, errorInfo);
+    } else {
+      // Report error to server for production monitoring
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: error.message,
+          stack: error.stack?.slice(0, 500),
+          component: errorInfo.componentStack?.slice(0, 300),
+          url: window.location.href,
+          ts: new Date().toISOString(),
+        }),
+      }).catch(() => {}); // non-fatal — ignore if endpoint unavailable
     }
-    
+
     this.setState({
       error,
       errorInfo
