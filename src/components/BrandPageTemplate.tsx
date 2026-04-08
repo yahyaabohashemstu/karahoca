@@ -101,11 +101,11 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
         <section className="hero">
           <div className="container hero__grid">
             <div className="hero__copy">
-              <h1 className="fx-reveal hero-title">
+              <h1 className="fx-scale hero-title">
                 <span className="gradient-text">{brandName}</span><br />
                 {heroTitle}
               </h1>
-              <p className="lead fx-reveal">{heroDescription}</p>
+              <p className="lead fx-slide-right">{heroDescription}</p>
               <div className="hero__cta fx-reveal">
                 <a href="#products" className="btn btn--primary btn-hover-effect">{t('brandPage.exploreProducts')}</a>
                 <a href="#contact" className="btn btn--ghost btn-hover-effect">{t('brandPage.requestQuote')}</a>
@@ -210,13 +210,13 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
           {categories.map((category) => (
             <div key={category.title} className="container">
-              <h3 className="category-title gradient-heading">{category.title}</h3>
-              <div className="products-grid-compact">
+              <h3 className="category-title gradient-heading fx-slide-right">{category.title}</h3>
+              <div className="products-grid-compact fx-stagger-children">
                 {category.products.map((product, productIndex) => (
                   <div
                     key={product.name}
                     className="product-card-flip-container product-auto-reveal"
-                    style={{ animationDelay: `${productIndex * 0.05}s` }}
+                    style={{ animationDelay: `${productIndex * 0.1}s`, '--stagger-i': productIndex } as React.CSSProperties}
                   >
                     <div className="product-card-mini glass-card">
                       <div className="product-card-front">

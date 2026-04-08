@@ -757,14 +757,14 @@ body {
 /* ✨ Animation تلقائية للمنتجات عند ظهور القسم */
 .product-auto-reveal {
   opacity: 0;
-  transform: translateY(30px);
-  animation: autoFadeInUp 0.6s ease forwards;
+  transform: translateY(40px) scale(0.95);
+  animation: autoFadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes autoFadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(40px) scale(0.95);
   }
 
   to {

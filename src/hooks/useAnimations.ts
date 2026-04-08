@@ -32,6 +32,24 @@ export const useScrollAnimations = () => {
 
     const revealObserver = initObserver('.fx-reveal', 'fx-reveal-active');
     const upObserver = initObserver('.fx-up', 'fx-up-active');
+    const scaleObserver = initObserver('.fx-scale', 'fx-scale-active');
+    const slideLeftObserver = initObserver('.fx-slide-left', 'fx-slide-left-active');
+    const slideRightObserver = initObserver('.fx-slide-right', 'fx-slide-right-active');
+
+    // Stagger parent: when visible, add active class to trigger children cascade
+    const staggerObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('fx-stagger-active');
+          staggerObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
+
+    document.querySelectorAll('.fx-stagger-children').forEach(el => {
+      if (!el.classList.contains('fx-stagger-active')) staggerObserver.observe(el);
+    });
+    observers.push(() => staggerObserver.disconnect());
 
     const mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -40,24 +58,22 @@ export const useScrollAnimations = () => {
             return;
           }
 
-          if (node.matches('.fx-reveal') && !node.classList.contains('fx-reveal-active')) {
-            revealObserver.observe(node);
+          const pairs: [string, string, IntersectionObserver][] = [
+            ['.fx-reveal', 'fx-reveal-active', revealObserver],
+            ['.fx-up', 'fx-up-active', upObserver],
+            ['.fx-scale', 'fx-scale-active', scaleObserver],
+            ['.fx-slide-left', 'fx-slide-left-active', slideLeftObserver],
+            ['.fx-slide-right', 'fx-slide-right-active', slideRightObserver],
+          ];
+          for (const [sel, cls, obs] of pairs) {
+            if (node.matches(sel) && !node.classList.contains(cls)) obs.observe(node);
+            node.querySelectorAll?.(sel).forEach(child => {
+              if (!child.classList.contains(cls)) obs.observe(child);
+            });
           }
-          if (node.matches('.fx-up') && !node.classList.contains('fx-up-active')) {
-            upObserver.observe(node);
+          if (node.matches('.fx-stagger-children') && !node.classList.contains('fx-stagger-active')) {
+            staggerObserver.observe(node);
           }
-
-          node.querySelectorAll?.('.fx-reveal').forEach((child) => {
-            if (!child.classList.contains('fx-reveal-active')) {
-              revealObserver.observe(child);
-            }
-          });
-
-          node.querySelectorAll?.('.fx-up').forEach((child) => {
-            if (!child.classList.contains('fx-up-active')) {
-              upObserver.observe(child);
-            }
-          });
         });
       });
     });
@@ -102,11 +118,96 @@ export const useScrollAnimations = () => {
       .fx-up:nth-child(2) { transition-delay: 0.1s; }
       .fx-up:nth-child(3) { transition-delay: 0.2s; }
       .fx-up:nth-child(4) { transition-delay: 0.3s; }
+
+      /* Scale entrance */
+      .fx-scale {
+        opacity: 0;
+        transform: scale(0.82);
+        transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .fx-scale-active { opacity: 1; transform: none; }
+
+      /* Slide from sides */
+      .fx-slide-left {
+        opacity: 0;
+        transform: translateX(-60px);
+        transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .fx-slide-left-active { opacity: 1; transform: none; }
+
+      .fx-slide-right {
+        opacity: 0;
+        transform: translateX(60px);
+        transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .fx-slide-right-active { opacity: 1; transform: none; }
+
+      /* Stagger children cascade */
+      .fx-stagger-children > * {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+        transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+        transition-delay: calc(var(--stagger-i, 0) * 0.09s);
+      }
+      .fx-stagger-active > * {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* Scroll progress bar */
+      .scroll-progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 99999;
+        pointer-events: none;
+        transform-origin: left;
+        transform: scaleX(0);
+        background: linear-gradient(90deg, #FF5B2E, #FF7A50, #FFB347);
+        will-change: transform;
+        transition: none;
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .fx-scale, .fx-slide-left, .fx-slide-right,
+        .fx-stagger-children > * {
+          opacity: 1 !important;
+          transform: none !important;
+          transition: none !important;
+        }
+        .scroll-progress-bar { display: none; }
+      }
     `;
       document.head.appendChild(style);
     }
 
+    // ── Scroll progress bar ───────────────────────────────────────────────
+    let progressBar = document.querySelector('.scroll-progress-bar') as HTMLElement | null;
+    if (!progressBar) {
+      progressBar = document.createElement('div');
+      progressBar.className = 'scroll-progress-bar';
+      document.body.appendChild(progressBar);
+    }
+
+    let rafId = 0;
+    const updateProgress = () => {
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      const progress = scrollHeight <= clientHeight ? 0 : scrollTop / (scrollHeight - clientHeight);
+      if (progressBar) progressBar.style.transform = `scaleX(${Math.min(progress, 1)})`;
+    };
+    const onScroll = () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(updateProgress); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    updateProgress();
+
     return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+      progressBar?.remove();
+
       while (observers.length) {
         const dispose = observers.pop();
         dispose?.();
