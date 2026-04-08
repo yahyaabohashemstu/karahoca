@@ -315,6 +315,7 @@ const migrateInitialData = () => {
   try { db.exec("ALTER TABLE products ADD COLUMN gallery TEXT"); } catch { /* already exists */ }
 
   migrateDioxPowderProducts();
+  migrateDioxPowderGalleryFix();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -453,6 +454,61 @@ const migrateDioxPowderProducts = () => {
 
   markMigration('diox_powder_products_2026');
   console.log('[db] DIOX powder products migration complete');
+};
+
+// ─── Fix: Force-update gallery for DIOX powder products ─────────────────────
+// Runs after INSERT OR IGNORE — ensures gallery is populated even if a product
+// was previously inserted without gallery data (e.g. via admin panel or old seeding).
+
+const migrateDioxPowderGalleryFix = () => {
+  if (hasMigration('diox_powder_gallery_fix_2026')) return;
+
+  const update = db.prepare(
+    `UPDATE products SET gallery = @gallery WHERE id = @id AND (gallery IS NULL OR gallery = '' OR gallery = '[]')`
+  );
+
+  const fixes = [
+    {
+      id: 'diox-auto-powder-1-2kg',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - أزرق.png',
+        '/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - زهري.png',
+      ]),
+    },
+    {
+      id: 'diox-auto-powder-3kg',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - أزرق.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - برتقالي.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - بنفسجي.png',
+        '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - زهري.png',
+      ]),
+    },
+    {
+      id: 'diox-auto-powder-6kg',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
+      ]),
+    },
+    {
+      id: 'diox-auto-powder-9kg',
+      gallery: JSON.stringify([
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - أزرق.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - برتقالي.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - بنفسجي.png',
+        '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - زهري.png',
+      ]),
+    },
+  ];
+
+  const txn = db.transaction(() => { for (const f of fixes) update.run(f); });
+  txn();
+
+  markMigration('diox_powder_gallery_fix_2026');
+  console.log('[db] DIOX powder gallery fix migration complete');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────

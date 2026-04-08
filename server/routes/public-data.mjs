@@ -56,7 +56,10 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
       products: products.map(p => {
         let gallery;
         if (p.gallery) {
-          try { gallery = JSON.parse(p.gallery); } catch { gallery = undefined; }
+          try {
+            const raw = JSON.parse(p.gallery);
+            gallery = Array.isArray(raw) ? raw.map(normalizeLegacyAssetPath) : undefined;
+          } catch { gallery = undefined; }
         }
         return {
           id: p.id,
