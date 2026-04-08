@@ -871,9 +871,11 @@ body {
   object-fit: contain;
   display: block;
   position: absolute;
-  top: 10px;
+  top: 0;
+  bottom: 90px;                     /* matches info section height */
   left: 50%;
   transform: translateX(-50%);
+  margin: auto 0;                   /* vertical centering within top-0 to bottom-90px */
   z-index: 1;
   filter: drop-shadow(0 16px 35px rgba(0, 0, 0, 0.3));
   background-color: transparent;
