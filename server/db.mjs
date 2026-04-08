@@ -316,7 +316,7 @@ const migrateInitialData = () => {
 
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
-  migrateDiox6kgNuclear();
+  migrateDiox6kgDelete();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -399,30 +399,6 @@ const migrateDioxPowderProducts = () => {
       display_order: 7, now,
     },
     {
-      id: 'diox-auto-powder-6kg',
-      name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو',
-      name_en: 'DIOX Automatic Laundry Powder 6 kg',
-      name_tr: 'DIOX Otomatik Çamaşır Tozu 6 kg',
-      name_ru: 'DIOX стиральный порошок автомат 6 кг',
-      desc_ar: 'مسحوق غسيل أوتوماتيك عائلي — متوفر بأربعة ألوان',
-      desc_en: 'Family-size automatic laundry powder — available in four colours',
-      desc_tr: 'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
-      desc_ru: 'Семейный стиральный порошок автомат — доступен в четырёх цветах',
-      image: '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
-      gallery: JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
-      ]),
-      alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو بأربعة ألوان',
-      alt_en: 'DIOX Automatic Laundry Powder 6 kg in four colours',
-      alt_tr: 'DIOX Otomatik Çamaşır Tozu 6 kg dört renk',
-      alt_ru: 'DIOX стиральный порошок автомат 6 кг четырёх цветов',
-      weight: '6kg',
-      cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
-      display_order: 8, now,
-    },
-    {
       id: 'diox-auto-powder-9kg',
       name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 9 كيلو',
       name_en: 'DIOX Automatic Laundry Powder 9 kg',
@@ -485,14 +461,6 @@ const migrateDioxPowderGalleryFix = () => {
       ]),
     },
     {
-      id: 'diox-auto-powder-6kg',
-      gallery: JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
-      ]),
-    },
-    {
       id: 'diox-auto-powder-9kg',
       gallery: JSON.stringify([
         '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - أزرق.png',
@@ -510,66 +478,16 @@ const migrateDioxPowderGalleryFix = () => {
   console.log('[db] DIOX powder gallery fix migration complete');
 };
 
-// ─── Fix 2: Nuclear — DELETE 6kg then re-INSERT from scratch ─────────────────
-// Previous UPDATE-based fixes didn't work on production. Delete the entire row
-// and re-create it with correct image paths and gallery. This guarantees no
-// stale data survives.
+// ─── Delete 6kg product completely ───────────────────────────────────────────
 
-const migrateDiox6kgNuclear = () => {
-  if (hasMigration('diox_6kg_nuclear_v2_2026')) return;
+const migrateDiox6kgDelete = () => {
+  if (hasMigration('diox_6kg_delete_2026')) return;
 
-  const now = new Date().toISOString();
+  try { db.prepare(`DELETE FROM wishlist WHERE product_id = 'diox-auto-powder-6kg'`).run(); } catch (_) { /* table may not exist yet */ }
+  db.prepare(`DELETE FROM products WHERE id = 'diox-auto-powder-6kg'`).run();
 
-  db.transaction(() => {
-    // 1. Delete any existing 6kg product (and any wishlist / related rows)
-    try { db.prepare(`DELETE FROM wishlist WHERE product_id = 'diox-auto-powder-6kg'`).run(); } catch (_) { /* table may not exist yet */ }
-    db.prepare(`DELETE FROM products WHERE id = 'diox-auto-powder-6kg'`).run();
-
-    // 2. Fresh INSERT with correct data (matches actual products schema)
-    db.prepare(`
-      INSERT INTO products (
-        id, brand, category_id,
-        name_ar, name_en, name_tr, name_ru,
-        description_ar, description_en, description_tr, description_ru,
-        image, gallery,
-        alt_ar, alt_en, alt_tr, alt_ru,
-        weight,
-        material_ar, material_en, material_tr, material_ru,
-        count_ar, count_en, count_tr, count_ru,
-        display_order, active, created_at, updated_at
-      ) VALUES (
-        'diox-auto-powder-6kg', 'DIOX', 'diox-laundry',
-        'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو',
-        'DIOX Automatic Laundry Powder 6 kg',
-        'DIOX Otomatik Çamaşır Tozu 6 kg',
-        'DIOX стиральный порошок автомат 6 кг',
-        'مسحوق غسيل أوتوماتيك عائلي — متوفر بأربعة ألوان',
-        'Family-size automatic laundry powder — available in four colours',
-        'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
-        'Семейный стиральный порошок автомат — доступен в четырёх цветах',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
-        ?,
-        'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو بأربعة ألوان',
-        'DIOX Automatic Laundry Powder 6 kg in four colours',
-        'DIOX Otomatik Çamaşır Tozu 6 kg dört renk',
-        'DIOX стиральный порошок автомат 6 кг четырёх цветов',
-        '6kg',
-        'كيس بلاستيك', 'Plastic bag', 'Plastik torba', 'Пластиковый пакет',
-        '4 قطع', '4 pieces', '4 adet', '4 штуки',
-        8, 1, ?, ?
-      )
-    `).run(
-      JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
-      ]),
-      now, now
-    );
-  })();
-
-  markMigration('diox_6kg_nuclear_v2_2026');
-  console.log('[db] DIOX 6kg nuclear v2 DELETE+INSERT migration complete');
+  markMigration('diox_6kg_delete_2026');
+  console.log('[db] DIOX 6kg product deleted');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────

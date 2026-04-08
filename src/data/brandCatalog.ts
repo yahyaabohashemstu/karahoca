@@ -275,22 +275,6 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           ],
         },
         {
-          name: t("diox.products.laundry.autoPowder6kg.name"),
-          description: t("diox.products.laundry.autoPowder6kg.description"),
-          image: "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png",
-          alt: t("diox.products.laundry.autoPowder6kg.alt"),
-          details: {
-            weight: "6kg",
-            material: plasticBag,
-            count: `4 ${piecesPlural}`,
-          },
-          gallery: [
-            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png",
-            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png",
-            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png",
-          ],
-        },
-        {
           name: t("diox.products.laundry.autoPowder9kg.name"),
           description: t("diox.products.laundry.autoPowder9kg.description"),
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 9 كيلو.png",
