@@ -316,6 +316,7 @@ const migrateInitialData = () => {
 
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
+  migrateDiox6kgGalleryForce();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -509,6 +510,27 @@ const migrateDioxPowderGalleryFix = () => {
 
   markMigration('diox_powder_gallery_fix_2026');
   console.log('[db] DIOX powder gallery fix migration complete');
+};
+
+// ─── Fix 2: Unconditionally overwrite 6kg gallery (old value may exist) ──────
+// The previous fix had a WHERE gallery IS NULL condition — if 6kg already had
+// stale/wrong gallery data it was skipped. This migration always sets it.
+
+const migrateDiox6kgGalleryForce = () => {
+  if (hasMigration('diox_6kg_gallery_force_2026')) return;
+
+  const gallery6kg = JSON.stringify([
+    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
+    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
+    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
+    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
+  ]);
+
+  // UPDATE regardless of current gallery value
+  db.prepare(`UPDATE products SET gallery = ? WHERE id = 'diox-auto-powder-6kg'`).run(gallery6kg);
+
+  markMigration('diox_6kg_gallery_force_2026');
+  console.log('[db] DIOX 6kg gallery force migration complete');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
