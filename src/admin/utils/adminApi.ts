@@ -261,6 +261,7 @@ export interface Product {
   name_ar: string; name_en: string; name_tr: string; name_ru: string;
   description_ar: string; description_en: string; description_tr: string; description_ru: string;
   image: string;
+  gallery?: string;          // JSON string of string[] — stored as TEXT in DB
   alt_ar: string; alt_en: string; alt_tr: string; alt_ru: string;
   weight: string;
   material_ar: string; material_en: string; material_tr: string; material_ru: string;

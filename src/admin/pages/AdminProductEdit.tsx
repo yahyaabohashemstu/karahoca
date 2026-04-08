@@ -13,7 +13,7 @@ const EMPTY: Partial<Product> = {
   alt_ar: '', alt_en: '', alt_tr: '', alt_ru: '',
   material_ar: '', material_en: '', material_tr: '', material_ru: '',
   count_ar: '', count_en: '', count_tr: '', count_ru: '',
-  image: '', weight: '', category_id: '', display_order: 0, active: 1,
+  image: '', gallery: '', weight: '', category_id: '', display_order: 0, active: 1,
 };
 
 export const AdminProductEdit: React.FC = () => {
@@ -29,6 +29,8 @@ export const AdminProductEdit: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [galleryUploading, setGalleryUploading] = useState<number | null>(null);
+  const galleryFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
@@ -45,6 +47,36 @@ export const AdminProductEdit: React.FC = () => {
 
   const set = (key: keyof Product, value: string | number) =>
     setForm(f => ({ ...f, [key]: value }));
+
+  // ── Gallery helpers ──────────────────────────────────────────────────────
+  const getGalleryImages = (): string[] => {
+    const raw = form.gallery;
+    if (!raw) return [];
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+  };
+  const setGalleryImages = (imgs: string[]) =>
+    setForm(f => ({ ...f, gallery: imgs.length > 0 ? JSON.stringify(imgs) : '' }));
+  const addGallerySlot = () => setGalleryImages([...getGalleryImages(), '']);
+  const removeGalleryImage = (idx: number) => { const a = getGalleryImages(); a.splice(idx, 1); setGalleryImages(a); };
+  const updateGalleryImage = (idx: number, val: string) => { const a = getGalleryImages(); a[idx] = val; setGalleryImages(a); };
+  const handleGalleryUpload = async (idx: number, file: File) => {
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED.includes(file.type)) { setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('File too large. Maximum 5 MB.'); return; }
+    setGalleryUploading(idx); setError(null);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const data = await adminApi.uploadImage(base64, file.name);
+      if (!data.success) throw new Error('Upload failed');
+      updateGalleryImage(idx, data.url || data.path);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); }
+    finally { setGalleryUploading(null); }
+  };
 
   const handleTranslated = (translations: Record<string, Record<string, string>>) => {
     const updates: Partial<Product> = {};
@@ -64,10 +96,18 @@ export const AdminProductEdit: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
+      // Clean empty gallery entries before saving
+      const cleanForm = { ...form };
+      if (cleanForm.gallery) {
+        try {
+          const imgs = JSON.parse(cleanForm.gallery).filter((s: string) => s.trim());
+          cleanForm.gallery = imgs.length > 0 ? JSON.stringify(imgs) : '';
+        } catch { /* leave as-is */ }
+      }
       if (isNew) {
-        await adminApi.createProduct(form);
+        await adminApi.createProduct(cleanForm);
       } else {
-        await adminApi.updateProduct(id!, form);
+        await adminApi.updateProduct(id!, cleanForm);
       }
       navigate('/admin/products');
     } catch (e) {
@@ -193,6 +233,46 @@ export const AdminProductEdit: React.FC = () => {
               <img src={form.image} alt="preview" style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', marginTop: 8 }} />
             </div>
           )}
+
+          {/* Gallery Images (optional) */}
+          <div className="adm-card">
+            <div className="adm-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Gallery Images</span>
+              <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addGallerySlot}>
+                + Add Image
+              </button>
+            </div>
+            {getGalleryImages().length === 0 && (
+              <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '8px 0 0' }}>
+                No gallery images. Click "+ Add Image" to add colour variants or extra views.
+              </p>
+            )}
+            {getGalleryImages().map((img, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+                {img && (
+                  <img src={img} alt={`gallery-${idx}`}
+                    style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--adm-border, #ddd)' }} />
+                )}
+                <input className="adm-input" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
+                  placeholder={`Image path or URL #${idx + 1}`} style={{ flex: 1 }} />
+                <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
+                  onClick={() => galleryFileRefs.current[idx]?.click()}
+                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}>
+                  {galleryUploading === idx
+                    ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> ...</>
+                    : '📁'}
+                </button>
+                <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleGalleryUpload(idx, f); e.target.value = ''; }} />
+                <button type="button" className="adm-btn adm-btn-sm"
+                  style={{ background: '#dc3545', color: '#fff', border: 'none' }}
+                  onClick={() => removeGalleryImage(idx)} title="Remove">
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Right: multilingual content */}
