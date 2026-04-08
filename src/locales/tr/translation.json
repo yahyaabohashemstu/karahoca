@@ -412,6 +412,26 @@
             "alt": "DIOX El Yıkama için Normal Çamaşır Tozu",
             "material": "Plastik torba",
             "count": "4 adet"
+          },
+          "autoPowder1_2kg": {
+            "name": "DIOX Otomatik Çamaşır Tozu 1,2 kg",
+            "description": "Yüksek kaliteli otomatik çamaşır tozu — iki renkte mevcut",
+            "alt": "DIOX Otomatik Çamaşır Tozu 1,2 kg iki renk"
+          },
+          "autoPowder3kg": {
+            "name": "DIOX Otomatik Çamaşır Tozu 3 kg",
+            "description": "Ekonomik otomatik çamaşır tozu — dört renkte mevcut",
+            "alt": "DIOX Otomatik Çamaşır Tozu 3 kg dört renk"
+          },
+          "autoPowder6kg": {
+            "name": "DIOX Otomatik Çamaşır Tozu 6 kg",
+            "description": "Aile boyu otomatik çamaşır tozu — dört renkte mevcut",
+            "alt": "DIOX Otomatik Çamaşır Tozu 6 kg dört renk"
+          },
+          "autoPowder9kg": {
+            "name": "DIOX Otomatik Çamaşır Tozu 9 kg",
+            "description": "Büyük boy otomatik çamaşır tozu — dört renkte mevcut",
+            "alt": "DIOX Otomatik Çamaşır Tozu 9 kg dört renk"
           }
         },
         "personal": {

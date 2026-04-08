@@ -1156,16 +1156,17 @@ body.light-mode .detail-item-full .detail-label {
 
 .image-popup-content {
   position: relative;
-  max-width: 95vw;
-  max-height: 95vh;
-  width: 90vw;
-  min-height: 70vh;
+  /* ── Fixed size — never changes with image content ── */
+  width: min(1120px, 94vw);
+  height: min(700px, 90vh);
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 2rem 2.5rem 1.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .image-popup-close {
@@ -1195,170 +1196,97 @@ body.light-mode .detail-item-full .detail-label {
 .popup-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  align-items: center;
+  gap: 1rem;
+  /* fills the fixed popup height minus padding */
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .popup-image-section {
   display: flex;
-  justify-content: flex-start;
-  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  flex-shrink: 0;         /* mobile: don't squish the image area */
 }
 
 .popup-info-section {
-  width: 100%;
-  max-width: 600px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   direction: rtl;
-  text-align: center;
+  text-align: right;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* ── Main image area — always the same fixed size ── */
+.popup-main-image-wrap {
+  width: 100%;
+  height: 220px;          /* mobile fixed height */
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .image-popup-img {
-  max-width: 100%;
-  max-height: 80vh;
-  min-height: 450px;
-  object-fit: contain;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.image-popup-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.image-popup-description {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 1.5rem;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.image-popup-details {
+  /* fills the fixed container — never drives its size */
   width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
-.popup-details-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.popup-detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-}
-
-.popup-detail-item:hover {
-  background: rgba(255, 255, 255, 0.18);
-  transform: translateY(-2px);
-}
-
-.popup-detail-label {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-}
-
-.popup-detail-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Responsive للشاشات الكبيرة */
-@media (min-width: 768px) {
-  .popup-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 3rem;
-    justify-content: flex-start;
-  }
-
-  .popup-image-section {
-    flex: 0 0 65%;
-    max-width: 700px;
-    justify-content: flex-start;
-  }
-
-  .popup-info-section {
-    flex: 1;
-    text-align: right;
-    margin-right: auto;
-  }
-
-  .image-popup-img {
-    max-height: 70vh;
-  }
-}
-
+/* ── Info section typography ── */
 .image-popup-title {
-  text-align: center;
   color: white;
-  font-weight: 600;
-  margin-top: 1rem;
-  font-size: 1.8rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
 }
 
 .image-popup-description {
-  text-align: center;
   color: rgba(255, 255, 255, 0.8);
-  margin-top: 0.5rem;
-  font-size: 1.5rem;
-  line-height: 1.4;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
 }
 
 .image-popup-details {
-  margin-top: 1.5rem;
-  direction: rtl;
-}
-
-.image-popup-details h4 {
-  text-align: center;
-  color: white;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 
 .popup-details-grid {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0.7rem;
 }
 
 .popup-detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .popup-detail-label {
-  font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
   font-weight: 500;
 }
 
 .popup-detail-value {
-  font-size: 1.30rem;
-  color: white;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1415,6 +1343,137 @@ body.light-mode .popup-detail-value {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ── Gallery — Trendyol style: main image + thumbnail strip + arrows ───── */
+
+/* Row wrapper: [‹] [thumbnails] [›] */
+.popup-thumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Side arrow buttons */
+.popup-thumb-arrow {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background 0.18s, transform 0.15s;
+  user-select: none;
+  padding: 0;
+}
+
+.popup-thumb-arrow:hover {
+  background: rgba(107, 132, 255, 0.3);
+  border-color: rgba(107, 132, 255, 0.6);
+  transform: scale(1.1);
+}
+
+/* Scrollable thumbnail strip */
+.popup-thumbnails {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.popup-thumbnails::-webkit-scrollbar {
+  height: 4px;
+}
+
+.popup-thumbnails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.popup-thumbnails::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* Single thumbnail button */
+.popup-thumbnail {
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  padding: 4px;
+  transition: border-color 0.18s, background 0.18s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.popup-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 5px;
+  display: block;
+  pointer-events: none;
+}
+
+.popup-thumbnail:hover {
+  border-color: rgba(107, 132, 255, 0.55);
+  background: rgba(107, 132, 255, 0.08);
+  transform: scale(1.05);
+}
+
+.popup-thumbnail--active {
+  border-color: #6b84ff;
+  background: rgba(107, 132, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(107, 132, 255, 0.3);
+}
+
+/* Light-mode overrides */
+body.light-mode .popup-main-image-wrap {
+  background: rgba(21, 61, 122, 0.04);
+}
+
+body.light-mode .popup-thumb-arrow {
+  background: rgba(21, 61, 122, 0.1);
+  border-color: rgba(21, 61, 122, 0.25);
+  color: var(--blue);
+}
+
+body.light-mode .popup-thumb-arrow:hover {
+  background: rgba(21, 61, 122, 0.2);
+  border-color: var(--blue);
+}
+
+body.light-mode .popup-thumbnail {
+  background: rgba(21, 61, 122, 0.05);
+  border-color: transparent;
+}
+
+body.light-mode .popup-thumbnail:hover {
+  border-color: rgba(21, 61, 122, 0.35);
+  background: rgba(21, 61, 122, 0.08);
+}
+
+body.light-mode .popup-thumbnail--active {
+  border-color: var(--blue);
+  background: rgba(21, 61, 122, 0.1);
+  box-shadow: 0 0 0 1px rgba(21, 61, 122, 0.2);
 }
 
 /* رسالة عدم توفر التفاصيل */

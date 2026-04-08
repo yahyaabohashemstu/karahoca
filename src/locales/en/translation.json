@@ -412,6 +412,26 @@
             "alt": "DIOX Regular Laundry Powder for Hand Washing",
             "material": "Plastic bag",
             "count": "4 pieces"
+          },
+          "autoPowder1_2kg": {
+            "name": "DIOX Automatic Laundry Powder 1.2 kg",
+            "description": "High-quality automatic laundry powder — available in two colours",
+            "alt": "DIOX Automatic Laundry Powder 1.2 kg in two colours"
+          },
+          "autoPowder3kg": {
+            "name": "DIOX Automatic Laundry Powder 3 kg",
+            "description": "Economy automatic laundry powder — available in four colours",
+            "alt": "DIOX Automatic Laundry Powder 3 kg in four colours"
+          },
+          "autoPowder6kg": {
+            "name": "DIOX Automatic Laundry Powder 6 kg",
+            "description": "Family-size automatic laundry powder — available in four colours",
+            "alt": "DIOX Automatic Laundry Powder 6 kg in four colours"
+          },
+          "autoPowder9kg": {
+            "name": "DIOX Automatic Laundry Powder 9 kg",
+            "description": "Large automatic laundry powder — available in four colours",
+            "alt": "DIOX Automatic Laundry Powder 9 kg in four colours"
           }
         },
         "personal": {

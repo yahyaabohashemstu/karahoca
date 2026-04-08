@@ -15,6 +15,8 @@ export interface BrandProductInfo {
   image: string;
   alt: string;
   details?: BrandProductDetails;
+  /** Optional gallery of additional images (e.g. colour variants) */
+  gallery?: string[];
 }
 
 export interface BrandCategoryData {
@@ -239,6 +241,72 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
             material: plasticBag,
             count: `6 ${piecesPlural}`,
           },
+        },
+        {
+          name: t("diox.products.laundry.autoPowder1_2kg.name"),
+          description: t("diox.products.laundry.autoPowder1_2kg.description"),
+          image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو.png",
+          alt: t("diox.products.laundry.autoPowder1_2kg.alt"),
+          details: {
+            weight: "1.2kg",
+            material: plasticBag,
+            count: `6 ${piecesPlural}`,
+          },
+          gallery: [
+            "/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - أزرق.png",
+            "/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - زهري.png",
+          ],
+        },
+        {
+          name: t("diox.products.laundry.autoPowder3kg.name"),
+          description: t("diox.products.laundry.autoPowder3kg.description"),
+          image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 3 كيلو.png",
+          alt: t("diox.products.laundry.autoPowder3kg.alt"),
+          details: {
+            weight: "3kg",
+            material: plasticBag,
+            count: `4 ${piecesPlural}`,
+          },
+          gallery: [
+            "/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - أزرق.png",
+            "/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - برتقالي.png",
+            "/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - بنفسجي.png",
+            "/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - زهري.png",
+          ],
+        },
+        {
+          name: t("diox.products.laundry.autoPowder6kg.name"),
+          description: t("diox.products.laundry.autoPowder6kg.description"),
+          image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 6 كيلو.png",
+          alt: t("diox.products.laundry.autoPowder6kg.alt"),
+          details: {
+            weight: "6kg",
+            material: plasticBag,
+            count: `4 ${piecesPlural}`,
+          },
+          gallery: [
+            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png",
+            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png",
+            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png",
+            "/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png",
+          ],
+        },
+        {
+          name: t("diox.products.laundry.autoPowder9kg.name"),
+          description: t("diox.products.laundry.autoPowder9kg.description"),
+          image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 9 كيلو.png",
+          alt: t("diox.products.laundry.autoPowder9kg.alt"),
+          details: {
+            weight: "9kg",
+            material: plasticBag,
+            count: `4 ${piecesPlural}`,
+          },
+          gallery: [
+            "/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - أزرق.png",
+            "/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - برتقالي.png",
+            "/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - بنفسجي.png",
+            "/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - زهري.png",
+          ],
         },
       ],
     },

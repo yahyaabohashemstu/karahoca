@@ -15,6 +15,7 @@ interface ProductInfo {
     package?: string;
     count?: string;
   };
+  gallery?: string[];
 }
 
 interface CategoryData {
@@ -66,13 +67,21 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
+  // All images for the popup: main image first, then gallery colour variants
+  const allPopupImages = selectedProduct
+    ? [selectedProduct.image, ...(selectedProduct.gallery ?? [])]
+    : [];
 
   const openImagePopup = (product: ProductInfo) => {
     setSelectedProduct(product);
+    setGalleryIndex(0);
   };
 
   const closeImagePopup = () => {
     setSelectedProduct(null);
+    setGalleryIndex(0);
   };
   return (
     <div className={pageClass}>
@@ -246,11 +255,45 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             
             <div className="popup-layout">
               <div className="popup-image-section">
-                <img 
-                  src={selectedProduct.image} 
-                  alt={selectedProduct.alt} 
-                  className="image-popup-img"
-                />
+                {/* Main image */}
+                <div className="popup-main-image-wrap">
+                  <img
+                    src={allPopupImages[galleryIndex]}
+                    alt={selectedProduct.alt}
+                    className="image-popup-img"
+                    key={allPopupImages[galleryIndex]}
+                  />
+                </div>
+
+                {/* Thumbnail strip with side arrows */}
+                {allPopupImages.length > 1 && (
+                  <div className="popup-thumb-nav">
+                    <button
+                      className="popup-thumb-arrow"
+                      onClick={() => setGalleryIndex(i => (i - 1 + allPopupImages.length) % allPopupImages.length)}
+                      aria-label="Previous"
+                    >‹</button>
+
+                    <div className="popup-thumbnails">
+                      {allPopupImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          className={`popup-thumbnail${idx === galleryIndex ? ' popup-thumbnail--active' : ''}`}
+                          onClick={() => setGalleryIndex(idx)}
+                          aria-label={`Image ${idx + 1}`}
+                        >
+                          <img src={img} alt={`${selectedProduct.alt} ${idx + 1}`} />
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      className="popup-thumb-arrow"
+                      onClick={() => setGalleryIndex(i => (i + 1) % allPopupImages.length)}
+                      aria-label="Next"
+                    >›</button>
+                  </div>
+                )}
               </div>
               
               <div className="popup-info-section">
