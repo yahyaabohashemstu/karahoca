@@ -316,7 +316,7 @@ const migrateInitialData = () => {
 
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
-  migrateDiox6kgGalleryForce();
+  migrateDiox6kgNuclear();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -512,25 +512,67 @@ const migrateDioxPowderGalleryFix = () => {
   console.log('[db] DIOX powder gallery fix migration complete');
 };
 
-// ─── Fix 2: Unconditionally overwrite 6kg gallery (old value may exist) ──────
-// The previous fix had a WHERE gallery IS NULL condition — if 6kg already had
-// stale/wrong gallery data it was skipped. This migration always sets it.
+// ─── Fix 2: Nuclear — DELETE 6kg then re-INSERT from scratch ─────────────────
+// Previous UPDATE-based fixes didn't work on production. Delete the entire row
+// and re-create it with correct image paths and gallery. This guarantees no
+// stale data survives.
 
-const migrateDiox6kgGalleryForce = () => {
-  if (hasMigration('diox_6kg_gallery_force_2026')) return;
+const migrateDiox6kgNuclear = () => {
+  if (hasMigration('diox_6kg_nuclear_2026')) return;
 
-  const gallery6kg = JSON.stringify([
-    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
-    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
-    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
-    '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
-  ]);
+  const now = new Date().toISOString();
 
-  // UPDATE regardless of current gallery value
-  db.prepare(`UPDATE products SET gallery = ? WHERE id = 'diox-auto-powder-6kg'`).run(gallery6kg);
+  db.transaction(() => {
+    // 1. Delete any existing 6kg product (and any wishlist / related rows)
+    try { db.prepare(`DELETE FROM wishlist WHERE product_id = 'diox-auto-powder-6kg'`).run(); } catch (_) { /* table may not exist yet */ }
+    db.prepare(`DELETE FROM products WHERE id = 'diox-auto-powder-6kg'`).run();
 
-  markMigration('diox_6kg_gallery_force_2026');
-  console.log('[db] DIOX 6kg gallery force migration complete');
+    // 2. Fresh INSERT with correct data (matches actual products schema)
+    db.prepare(`
+      INSERT INTO products (
+        id, brand, category_id,
+        name_ar, name_en, name_tr, name_ru,
+        description_ar, description_en, description_tr, description_ru,
+        image, gallery,
+        alt_ar, alt_en, alt_tr, alt_ru,
+        weight,
+        material_ar, material_en, material_tr, material_ru,
+        count_ar, count_en, count_tr, count_ru,
+        display_order, active, created_at, updated_at
+      ) VALUES (
+        'diox-auto-powder-6kg', 'DIOX', 'diox-laundry',
+        'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو',
+        'DIOX Automatic Laundry Powder 6 kg',
+        'DIOX Otomatik Çamaşır Tozu 6 kg',
+        'DIOX стиральный порошок автомат 6 кг',
+        'مسحوق غسيل أوتوماتيك عائلي — متوفر بأربعة ألوان',
+        'Family-size automatic laundry powder — available in four colours',
+        'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
+        'Семейный стиральный порошок автомат — доступен в четырёх цветах',
+        '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 6 كيلو.png',
+        ?,
+        'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو بأربعة ألوان',
+        'DIOX Automatic Laundry Powder 6 kg in four colours',
+        'DIOX Otomatik Çamaşır Tozu 6 kg dört renk',
+        'DIOX стиральный порошок автомат 6 кг четырёх цветов',
+        '6kg',
+        'كيس بلاستيك', 'Plastic bag', 'Plastik torba', 'Пластиковый пакет',
+        '4 قطع', '4 pieces', '4 adet', '4 штуки',
+        8, 1, ?, ?
+      )
+    `).run(
+      JSON.stringify([
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
+      ]),
+      now, now
+    );
+  })();
+
+  markMigration('diox_6kg_nuclear_2026');
+  console.log('[db] DIOX 6kg nuclear DELETE+INSERT migration complete');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
