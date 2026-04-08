@@ -408,9 +408,8 @@ const migrateDioxPowderProducts = () => {
       desc_en: 'Family-size automatic laundry powder — available in four colours',
       desc_tr: 'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
       desc_ru: 'Семейный стиральный порошок автомат — доступен в четырёх цветах',
-      image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 6 كيلو.png',
+      image: '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
       gallery: JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
@@ -488,7 +487,6 @@ const migrateDioxPowderGalleryFix = () => {
     {
       id: 'diox-auto-powder-6kg',
       gallery: JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
@@ -518,7 +516,7 @@ const migrateDioxPowderGalleryFix = () => {
 // stale data survives.
 
 const migrateDiox6kgNuclear = () => {
-  if (hasMigration('diox_6kg_nuclear_2026')) return;
+  if (hasMigration('diox_6kg_nuclear_v2_2026')) return;
 
   const now = new Date().toISOString();
 
@@ -549,7 +547,7 @@ const migrateDiox6kgNuclear = () => {
         'Family-size automatic laundry powder — available in four colours',
         'Aile boyu otomatik çamaşır tozu — dört renkte mevcut',
         'Семейный стиральный порошок автомат — доступен в четырёх цветах',
-        '/diox-images/ديوكس مسحوق غسيل أوتوماتيك 6 كيلو.png',
+        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
         ?,
         'ديوكس مسحوق غسيل أوتوماتيك 6 كيلو بأربعة ألوان',
         'DIOX Automatic Laundry Powder 6 kg in four colours',
@@ -562,7 +560,6 @@ const migrateDiox6kgNuclear = () => {
       )
     `).run(
       JSON.stringify([
-        '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - أزرق.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - برتقالي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - بنفسجي.png',
         '/diox-images/web site - diox - 6kg photos/web site - diox - 6kg - زهري.png',
@@ -571,8 +568,8 @@ const migrateDiox6kgNuclear = () => {
     );
   })();
 
-  markMigration('diox_6kg_nuclear_2026');
-  console.log('[db] DIOX 6kg nuclear DELETE+INSERT migration complete');
+  markMigration('diox_6kg_nuclear_v2_2026');
+  console.log('[db] DIOX 6kg nuclear v2 DELETE+INSERT migration complete');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
