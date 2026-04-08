@@ -171,8 +171,8 @@ export default function MobileBrandPageTemplate({
           </div>
 
           <div className="m-brandCategories">
-            {categories.map((category) => (
-              <section key={category.title} className="m-categoryBlock">
+            {categories.map((category, catIdx) => (
+              <section key={catIdx} className="m-categoryBlock">
                 <div className="m-categoryBlock__head">
                   <h3 className="m-categoryBlock__title">{category.title}</h3>
                   <span className="m-categoryBlock__count">
@@ -181,8 +181,8 @@ export default function MobileBrandPageTemplate({
                 </div>
 
                 <div className="m-productsList">
-                  {category.products.map((product) => (
-                    <article key={product.name} className="m-productCard m-card">
+                  {category.products.map((product, prodIdx) => (
+                    <article key={prodIdx} className="m-productCard m-card">
                       <button
                         type="button"
                         className="m-productCard__imageButton"
