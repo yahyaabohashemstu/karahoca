@@ -253,7 +253,9 @@
       "weight": "Ağırlık",
       "material": "Hammadde",
       "count": "Kutu Başına Adet",
-      "notSpecified": "Belirtilmemiş"
+      "notSpecified": "Belirtilmemiş",
+      "gift": "Ücretsiz Hediye",
+      "giftIncluded": "Hediye İçerir"
     },
     "products": {
       "categories": {
@@ -580,7 +582,8 @@
             "description": "Otomatik çamaşır makineleri için yüksek verimli toz",
             "alt": "AYLUX Yüksek Verimli Otomatik Çamaşır Tozu",
             "material": "Plastik torba",
-            "count": "4 adet"
+            "count": "4 adet",
+            "gift": "AYLUX Zemin Spreyi"
           },
           "autoPowder2": {
             "name": "AYLUX Otomatik Çamaşır Tozu",

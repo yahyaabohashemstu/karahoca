@@ -313,9 +313,16 @@ const migrateInitialData = () => {
   // ── Gallery column for products (DIOX colour-variant images) ──────────────
   try { db.exec("ALTER TABLE products ADD COLUMN gallery TEXT"); } catch { /* already exists */ }
 
+  // ── Gift columns for products ─────────────────────────────────────────────
+  try { db.exec("ALTER TABLE products ADD COLUMN gift_ar TEXT"); } catch { /* already exists */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN gift_en TEXT"); } catch { /* already exists */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN gift_tr TEXT"); } catch { /* already exists */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN gift_ru TEXT"); } catch { /* already exists */ }
+
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
   migrateDiox6kgDelete();
+  migrateAutoPowder1Gift();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -487,6 +494,23 @@ const migrateDiox6kgDelete = () => {
 
   markMigration('diox_6kg_delete_2026');
   console.log('[db] DIOX 6kg product deleted');
+};
+
+// ─── Gift field migration for AYLUX Auto Powder 1 ────────────────────────────
+const migrateAutoPowder1Gift = () => {
+  if (hasMigration('aylux_auto_powder1_gift_2026')) return;
+
+  db.prepare(`
+    UPDATE products SET
+      gift_ar = 'معطر أرضيات آيلوكس',
+      gift_en = 'AYLUX Floor Freshener',
+      gift_tr = 'AYLUX Zemin Spreyi',
+      gift_ru = 'Освежитель пола AYLUX'
+    WHERE id = 'aylux-auto-powder1'
+  `).run();
+
+  markMigration('aylux_auto_powder1_gift_2026');
+  console.log('[db] AYLUX auto powder 1 gift field set');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────

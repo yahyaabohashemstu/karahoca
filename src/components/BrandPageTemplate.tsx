@@ -16,6 +16,7 @@ interface ProductInfo {
     material?: string;
     package?: string;
     count?: string;
+    gift?: string;
   };
   gallery?: string[];
 }
@@ -219,6 +220,11 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                     style={{ animationDelay: `${productIndex * 0.05}s` }}
                   >
                     <div className="product-card-mini glass-card">
+                      {product.details?.gift && (
+                        <div className="product-gift-ribbon" aria-label={t('brandPage.giftIncluded')}>
+                          <span>🎁 {t('brandPage.giftIncluded')}</span>
+                        </div>
+                      )}
                       <div className="product-card-front">
                         <img src={product.image} alt={product.alt} className="product-mini-image" loading="lazy" />
                         <div className="product-mini-info">
@@ -362,6 +368,16 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {selectedProduct.details.gift && (
+                      <div className="popup-gift-section">
+                        <div className="popup-gift-icon">🎁</div>
+                        <div className="popup-gift-body">
+                          <span className="popup-gift-label">{t('brandPage.gift')}</span>
+                          <span className="popup-gift-value">{selectedProduct.details.gift}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

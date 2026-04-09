@@ -43,7 +43,8 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         alt_${l} as alt,
         weight,
         material_${l} as material,
-        count_${l} as count
+        count_${l} as count,
+        gift_${l} as gift
       FROM products
       WHERE category_id=? AND active=1
       ORDER BY display_order ASC
@@ -72,6 +73,7 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
             weight: p.weight,
             material: p.material,
             count: p.count,
+            ...(p.gift ? { gift: p.gift } : {}),
           }
         };
       })

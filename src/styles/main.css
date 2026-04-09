@@ -756,6 +756,38 @@ body {
   position: relative;
 }
 
+/* ═══════════════════════════════════════
+   🎁 Gift Ribbon — شريط الهدية
+   ═══════════════════════════════════════ */
+.product-gift-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 0 16px 0 0;
+  pointer-events: none;
+}
+
+.product-gift-ribbon span {
+  position: absolute;
+  top: 18px;
+  right: -24px;
+  width: 110px;
+  padding: 5px 0;
+  background: linear-gradient(135deg, #ff5b2e 0%, #ff8c00 100%);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.03em;
+  transform: rotate(45deg);
+  box-shadow: 0 3px 10px rgba(255, 91, 46, 0.5);
+  white-space: nowrap;
+}
+
 /* ✨ Animation تلقائية للمنتجات عند ظهور القسم */
 .product-auto-reveal {
   opacity: 0;
@@ -1331,7 +1363,82 @@ body.light-mode .detail-item-full .detail-label {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
+}
+
+/* ═══════════════════════════════════════
+   🎁 Gift Section in Popup — هدية البوب أب
+   ═══════════════════════════════════════ */
+.popup-gift-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg,
+    rgba(255, 91, 46, 0.12) 0%,
+    rgba(255, 140, 0, 0.10) 100%);
+  border: 1.5px solid rgba(255, 91, 46, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.popup-gift-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(255, 91, 46, 0.05),
+    transparent 60%);
+  pointer-events: none;
+}
+
+.popup-gift-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(255, 91, 46, 0.4));
+  animation: giftPulse 2s ease-in-out infinite;
+}
+
+@keyframes giftPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.12) rotate(-5deg); }
+}
+
+.popup-gift-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.popup-gift-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ff8c00;
+  opacity: 0.9;
+}
+
+.popup-gift-value {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ff5b2e, #ff8c00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Light mode */
+body.light-mode .popup-gift-section {
+  background: linear-gradient(135deg,
+    rgba(255, 91, 46, 0.08) 0%,
+    rgba(255, 140, 0, 0.06) 100%);
+  border-color: rgba(255, 91, 46, 0.25);
 }
 
 /* وضع فاتح للزر والpopup */

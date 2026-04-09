@@ -253,7 +253,9 @@
       "weight": "Weight",
       "material": "Material",
       "count": "Count per Box",
-      "notSpecified": "Not Specified"
+      "notSpecified": "Not Specified",
+      "gift": "Free Gift",
+      "giftIncluded": "Includes Gift"
     },
     "products": {
       "categories": {
@@ -580,7 +582,8 @@
             "description": "High-efficiency powder for automatic washing machines",
             "alt": "AYLUX High-Efficiency Automatic Laundry Powder",
             "material": "Plastic bag",
-            "count": "4 pieces"
+            "count": "4 pieces",
+            "gift": "AYLUX Floor Freshener"
           },
           "autoPowder2": {
             "name": "AYLUX Automatic Laundry Powder",

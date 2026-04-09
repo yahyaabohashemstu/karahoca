@@ -7,6 +7,7 @@ export interface BrandProductDetails {
   material?: string;
   package?: string;
   count?: string;
+  gift?: string;
 }
 
 export interface BrandProductInfo {
@@ -451,6 +452,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
           weight: "150 g / 1.2 kg / 3.5 kg / 9 kg",
           material: t("aylux.products.laundry.autoPowder1.material"),
           count: t("aylux.products.laundry.autoPowder1.count"),
+          gift: t("aylux.products.laundry.autoPowder1.gift"),
         },
       },
       {
