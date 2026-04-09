@@ -138,8 +138,8 @@ const ensureDataDirectories = async () => {
 };
 
 const MAX_BODY_BYTES = Number.parseInt(process.env.MAX_REQUEST_BODY_BYTES || '524288', 10); // 512 KB
-// Base64 inflates by ~33 %, so 8 MB here covers a decoded 5 MB image comfortably.
-const MAX_UPLOAD_BODY_BYTES = 8 * 1024 * 1024; // 8 MB for image uploads
+// Base64 inflates by ~33 %, so 14 MB here covers a decoded 10 MB image comfortably.
+const MAX_UPLOAD_BODY_BYTES = 14 * 1024 * 1024; // 14 MB body → supports up to 10 MB decoded image
 
 const readRequestBody = async (request, maxBytes = MAX_BODY_BYTES) =>
   new Promise((resolve, reject) => {
@@ -806,8 +806,8 @@ const server = createServer(async (request, response) => {
           return;
         }
         const buf = Buffer.from(imageBase64, 'base64');
-        if (buf.length > 5 * 1024 * 1024) {
-          sendJson(response, 400, { error: 'File too large (max 5 MB)' }, requestOrigin);
+        if (buf.length > 10 * 1024 * 1024) {
+          sendJson(response, 400, { error: 'File too large (max 10 MB)' }, requestOrigin);
           return;
         }
 
