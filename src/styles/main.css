@@ -1092,17 +1092,16 @@ body.light-mode .detail-label {
 
 .detail-item-full {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.5rem;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
   width: 100%;
-  min-height: 55px;
 }
 
 .detail-item-full:hover {
@@ -1111,22 +1110,31 @@ body.light-mode .detail-label {
 }
 
 .detail-item-full .detail-label {
-  font-size: 0.9rem;
-  color: #ffffff;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
-  text-align: center;
-  margin-bottom: 0.1rem;
+  flex-shrink: 0;
+  text-align: start;
 }
 
 .detail-item-full .detail-value {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
   text-shadow: none;
-  text-align: center;
+  text-align: end;
+  /* prevent wrapping — numbers/units stay on one line */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* respect natural text direction (LTR for numbers, RTL for Arabic) */
+  unicode-bidi: plaintext;
+  direction: ltr;
+  max-width: 65%;
 }
 
 /* وضع فاتح للتصميم الجديد */
@@ -1140,6 +1148,7 @@ body.light-mode .detail-item-full:hover {
 }
 
 body.light-mode .detail-item-full .detail-value {
+  -webkit-text-fill-color: var(--orange);
   color: var(--orange);
   text-shadow: 0 2px 8px rgba(255, 91, 46, 0.2);
 }
@@ -1345,6 +1354,8 @@ body.light-mode .detail-item-full .detail-label {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
   padding: 0.65rem 1rem;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -1355,6 +1366,7 @@ body.light-mode .detail-item-full .detail-label {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.75);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .popup-detail-value {
@@ -1365,6 +1377,14 @@ body.light-mode .detail-item-full .detail-label {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+  /* prevent wrapping */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  direction: ltr;
+  text-align: end;
+  max-width: 60%;
 }
 
 /* ═══════════════════════════════════════
