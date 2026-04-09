@@ -585,13 +585,6 @@
             "count": "4 pieces",
             "gift": "AYLUX Floor Freshener"
           },
-          "autoPowder2": {
-            "name": "AYLUX Automatic Laundry Powder",
-            "description": "Special formula for automatic washing machines",
-            "alt": "AYLUX Automatic Laundry Powder Special Formula",
-            "material": "Plastic bag",
-            "count": "4 pieces"
-          },
           "liquidDetergent": {
             "name": "AYLUX Liquid Laundry Detergent",
             "description": "Concentrated liquid detergent for all fabrics",

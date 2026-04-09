@@ -585,13 +585,6 @@
             "count": "4 adet",
             "gift": "AYLUX Zemin Spreyi"
           },
-          "autoPowder2": {
-            "name": "AYLUX Otomatik Çamaşır Tozu",
-            "description": "Otomatik çamaşır makineleri için özel formül",
-            "alt": "AYLUX Otomatik Çamaşır Tozu Özel Formül",
-            "material": "Plastik torba",
-            "count": "4 adet"
-          },
           "liquidDetergent": {
             "name": "AYLUX Sıvı Çamaşır Deterjanı",
             "description": "Tüm kumaşlar için konsantre sıvı deterjan",

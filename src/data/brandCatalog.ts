@@ -456,17 +456,6 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
-        name: t("aylux.products.laundry.autoPowder2.name"),
-        description: t("aylux.products.laundry.autoPowder2.description"),
-        image: "/aylux-images/آيلوكس مسحوق غسيل أوتوماتيك (2).png",
-        alt: t("aylux.products.laundry.autoPowder2.alt"),
-        details: {
-          weight: "2.25 kg / 3 kg",
-          material: t("aylux.products.laundry.autoPowder2.material"),
-          count: t("aylux.products.laundry.autoPowder2.count"),
-        },
-      },
-      {
         name: t("aylux.products.laundry.liquidDetergent.name"),
         description: t("aylux.products.laundry.liquidDetergent.description"),
         image: "/aylux-images/آيلوكس مسحوق الغسيل السائل.png",

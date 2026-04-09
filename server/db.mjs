@@ -58,7 +58,7 @@ const AYLUX_WEIGHT_BY_PRODUCT_ID = {
   'aylux-dish-gel': '1.5 kg',
   'aylux-dish-liquid2': '3 L',
   'aylux-auto-powder1': '150 g / 1.2 kg / 3.5 kg / 9 kg',
-  'aylux-auto-powder2': '2.25 kg / 3 kg',
+
   'aylux-liquid-detergent': '900 ml',
   'aylux-fabric-softener': '900 ml',
   'aylux-stain-remover': '900 ml',
@@ -325,6 +325,7 @@ const migrateInitialData = () => {
   migrateAutoPowder1Gift();
   migrateAyluxCategoryTitleFix();
   migrateHardDeleteOrphans();
+  migrateDeleteAyluxAutoPowder2();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -649,8 +650,6 @@ const migrateProducts = () => {
     // Laundry
     { id: 'aylux-auto-powder1', cat: 'aylux-laundry', order: 0,
       image: '/aylux/آيلوكس مسحوق غسيل أوتوماتيك (1).png', k: 'aylux.products.laundry.autoPowder1' },
-    { id: 'aylux-auto-powder2', cat: 'aylux-laundry', order: 1,
-      image: '/aylux/آيلوكس مسحوق غسيل أوتوماتيك (2).png', k: 'aylux.products.laundry.autoPowder2' },
     { id: 'aylux-liquid-detergent', cat: 'aylux-laundry', order: 2,
       image: '/aylux/آيلوكس مسحوق الغسيل السائل.png', k: 'aylux.products.laundry.liquidDetergent' },
     { id: 'aylux-fabric-softener', cat: 'aylux-laundry', order: 3,
@@ -889,6 +888,18 @@ const migrateHardDeleteOrphans = () => {
 
   markMigration('hard_delete_orphan_products_v1');
   console.log('[db] Orphan product hard-delete migration complete');
+};
+
+// ─── Delete AYLUX auto-powder2 (no-gift variant) ─────────────────────────────
+
+const migrateDeleteAyluxAutoPowder2 = () => {
+  if (hasMigration('delete_aylux_auto_powder2_v1')) return;
+
+  try { db.prepare('DELETE FROM wishlist WHERE product_id = ?').run('aylux-auto-powder2'); } catch (_) {}
+  const info = db.prepare('DELETE FROM products WHERE id = ?').run('aylux-auto-powder2');
+  if (info.changes > 0) console.log('[db] Deleted aylux-auto-powder2');
+
+  markMigration('delete_aylux_auto_powder2_v1');
 };
 
 // ─── News Migration ──────────────────────────────────────────────────────────
