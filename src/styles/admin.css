@@ -680,6 +680,17 @@
   box-shadow: 0 4px 14px rgba(240,77,77,0.30);
 }
 
+/* Warning */
+.adm-btn-warning {
+  background: rgba(255, 160, 30, 0.12);
+  color: #ffa01e;
+  border: 1px solid rgba(255, 160, 30, 0.25);
+}
+.adm-btn-warning:hover:not(:disabled) {
+  background: rgba(255, 160, 30, 0.22);
+  color: #ff8c00;
+}
+
 /* Small */
 .adm-btn-sm { padding: 6px 14px; font-size: 12px; }
 

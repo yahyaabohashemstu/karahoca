@@ -5,15 +5,16 @@ import { useAsync } from '../utils/useAdminAuth';
 
 export const AdminProducts: React.FC = () => {
   const [brand, setBrand] = useState<'DIOX' | 'AYLUX' | ''>('');
+  const [showHidden, setShowHidden] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const { data, loading, error, reload } = useAsync(
-    () => adminApi.getProducts(brand || undefined, true),
-    [brand]
+    () => adminApi.getProducts(brand || undefined, showHidden),
+    [brand, showHidden]
   );
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product?')) return;
+    if (!confirm('Delete this product? It will be hidden from the public site.\n\nTo permanently remove it, use "Edit" and then contact your admin.')) return;
     setDeleting(id);
     try {
       await adminApi.deleteProduct(id);
@@ -38,6 +39,10 @@ export const AdminProducts: React.FC = () => {
     );
   });
 
+  const hiddenCount = showHidden
+    ? filtered.filter(p => !p.active).length
+    : 0;
+
   return (
     <div>
       <div className="adm-page-header">
@@ -55,7 +60,8 @@ export const AdminProducts: React.FC = () => {
         </div>
       </div>
 
-      <div className="adm-card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="adm-card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Brand filter */}
         {(['', 'DIOX', 'AYLUX'] as const).map((b) => (
           <button
             key={b || 'all'}
@@ -65,6 +71,17 @@ export const AdminProducts: React.FC = () => {
             {b || 'All Brands'}
           </button>
         ))}
+
+        {/* Show-hidden toggle */}
+        <button
+          className={`adm-btn adm-btn-sm ${showHidden ? 'adm-btn-warning' : 'adm-btn-ghost'}`}
+          onClick={() => setShowHidden(v => !v)}
+          title={showHidden ? 'Currently showing hidden products — click to hide them' : 'Show hidden/deleted products'}
+        >
+          {showHidden ? '👁 Hide Hidden' : '👁 Show Hidden'}
+        </button>
+
+        {/* Search */}
         <input
           type="search"
           className="adm-input adm-input-sm"
@@ -73,8 +90,15 @@ export const AdminProducts: React.FC = () => {
           onChange={e => setSearchQuery(e.target.value)}
           style={{ marginLeft: 'auto', width: 220 }}
         />
+
+        {/* Count */}
         <span className="adm-text-muted adm-text-sm">
           {filtered.length} of {products.length}
+          {hiddenCount > 0 && (
+            <span style={{ color: 'var(--adm-danger)', marginLeft: 4 }}>
+              ({hiddenCount} hidden)
+            </span>
+          )}
         </span>
       </div>
 
@@ -98,9 +122,16 @@ export const AdminProducts: React.FC = () => {
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>No products found.</td></tr>
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
+                      No products found.
+                    </td>
+                  </tr>
                 ) : filtered.map((p: Product) => (
-                  <tr key={p.id}>
+                  <tr
+                    key={p.id}
+                    style={!p.active ? { opacity: 0.45, background: 'rgba(255,60,60,0.04)' } : undefined}
+                  >
                     <td>
                       {p.image ? (
                         <img

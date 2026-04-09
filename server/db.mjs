@@ -324,6 +324,7 @@ const migrateInitialData = () => {
   migrateDiox6kgDelete();
   migrateAutoPowder1Gift();
   migrateAyluxCategoryTitleFix();
+  migrateHardDeleteOrphans();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -860,6 +861,33 @@ const migrateAyluxCategoryTitleFix = () => {
 
   markMigration('aylux_category_title_fix_v1');
   console.log('[db] Aylux category title fix migration complete');
+};
+
+// ─── Hard-delete orphan / unwanted products ──────────────────────────────────
+// Products that should not exist at all — hard-deleted from DB permanently.
+// This migration runs once and is idempotent (DELETE is safe if row is missing).
+
+const migrateHardDeleteOrphans = () => {
+  if (hasMigration('hard_delete_orphan_products_v1')) return;
+
+  const orphanIds = [
+    'aylux-dish-liquid1',   // AYLUX 700ml dishwashing liquid — removed from catalog
+    'diox-auto-powder-6kg', // DIOX 6kg powder — removed from catalog
+  ];
+
+  const delWishlist = db.prepare('DELETE FROM wishlist WHERE product_id = ?');
+  const delProduct  = db.prepare('DELETE FROM products WHERE id = ?');
+
+  for (const id of orphanIds) {
+    try { delWishlist.run(id); } catch (_) { /* wishlist table may not exist */ }
+    const info = delProduct.run(id);
+    if (info.changes > 0) {
+      console.log(`[db] Hard-deleted orphan product: ${id}`);
+    }
+  }
+
+  markMigration('hard_delete_orphan_products_v1');
+  console.log('[db] Orphan product hard-delete migration complete');
 };
 
 // ─── News Migration ──────────────────────────────────────────────────────────
