@@ -47,8 +47,9 @@ body.light-mode .btn--ghost {
 body.light-mode .gradient-text {
   background: linear-gradient(90deg, var(--blue) 0%, var(--orange) 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent; /* Firefox fallback */
 }
 
 body.light-mode .kpi__num {
@@ -290,7 +291,8 @@ body {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  -webkit-text-fill-color: transparent;
+  color: transparent; /* Firefox fallback */
 }
 
 .gradient-line {

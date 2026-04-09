@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import 'modern-normalize/modern-normalize.css'
 import './index.css'
 import './styles/mobile-fixes.css'
 import './styles/mobile.css'

@@ -566,13 +566,6 @@
             "material": "Plastic container",
             "count": "12 pieces"
           },
-          "dishLiquid1": {
-            "name": "AYLUX Dish Washing Liquid",
-            "description": "Effective liquid for grease removal",
-            "alt": "AYLUX Dish Washing Liquid for Grease Removal",
-            "material": "Plastic container",
-            "count": "12 pieces"
-          },
           "dishLiquid2": {
             "name": "AYLUX Dish Washing Liquid",
             "description": "Gentle liquid on hands",

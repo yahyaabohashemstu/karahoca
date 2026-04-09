@@ -56,7 +56,6 @@ const AYLUX_WEIGHT_BY_PRODUCT_ID = {
   'aylux-flash': '900 ml',
   'aylux-bathroom-cleaner': '750 ml',
   'aylux-dish-gel': '1.5 kg',
-  'aylux-dish-liquid1': '700 ml',
   'aylux-dish-liquid2': '3 L',
   'aylux-auto-powder1': '150 g / 1.2 kg / 3.5 kg / 9 kg',
   'aylux-auto-powder2': '2.25 kg / 3 kg',
@@ -619,9 +618,7 @@ const migrateProducts = () => {
       image: '/aylux/آيلوكس منظف الحمام.png', k: 'aylux.products.home.bathroomCleaner' },
     { id: 'aylux-dish-gel', cat: 'aylux-home', order: 9,
       image: '/aylux/آيلوكس جل غسيل الصحون.png', k: 'aylux.products.home.dishGel' },
-    { id: 'aylux-dish-liquid1', cat: 'aylux-home', order: 10,
-      image: '/aylux/آيلوكس سائل غسيل الصحون (1).png', k: 'aylux.products.home.dishLiquid1' },
-    { id: 'aylux-dish-liquid2', cat: 'aylux-home', order: 11,
+    { id: 'aylux-dish-liquid2', cat: 'aylux-home', order: 10,
       image: '/aylux/آيلوكس سائل غسيل الصحون (2).png', k: 'aylux.products.home.dishLiquid2' },
     // Laundry
     { id: 'aylux-auto-powder1', cat: 'aylux-laundry', order: 0,

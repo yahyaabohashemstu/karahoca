@@ -98,6 +98,12 @@
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────── */
+/* Firefox */
+.adm-root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+/* Chrome / Safari / Edge */
 .adm-root ::-webkit-scrollbar { width: 5px; height: 5px; }
 .adm-root ::-webkit-scrollbar-track { background: transparent; }
 .adm-root ::-webkit-scrollbar-thumb {

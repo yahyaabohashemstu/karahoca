@@ -566,13 +566,6 @@
             "material": "Plastik kap",
             "count": "12 adet"
           },
-          "dishLiquid1": {
-            "name": "AYLUX Bulaşık Yıkama Sıvısı",
-            "description": "Yağ giderme için etkili sıvı",
-            "alt": "AYLUX Yağ Giderme için Bulaşık Yıkama Sıvısı",
-            "material": "Plastik kap",
-            "count": "12 adet"
-          },
           "dishLiquid2": {
             "name": "AYLUX Bulaşık Yıkama Sıvısı",
             "description": "Ellere nazik sıvı",

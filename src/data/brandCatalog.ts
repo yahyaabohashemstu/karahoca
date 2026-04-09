@@ -427,17 +427,6 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
-        name: t("aylux.products.home.dishLiquid1.name"),
-        description: t("aylux.products.home.dishLiquid1.description"),
-        image: "/aylux-images/آيلوكس سائل غسيل الصحون (1).png",
-        alt: t("aylux.products.home.dishLiquid1.alt"),
-        details: {
-          weight: "700 ml",
-          material: t("aylux.products.home.dishLiquid1.material"),
-          count: t("aylux.products.home.dishLiquid1.count"),
-        },
-      },
-      {
         name: t("aylux.products.home.dishLiquid2.name"),
         description: t("aylux.products.home.dishLiquid2.description"),
         image: "/aylux-images/آيلوكس سائل غسيل الصحون (2).png",
