@@ -72,8 +72,8 @@ const PRODUCT_CATEGORY_TITLE_KEYS = [
   { id: 'diox-laundry', titleKey: 'diox.categories.laundryCleaning' },
   { id: 'diox-personal', titleKey: 'diox.categories.personalHygiene' },
   { id: 'aylux-home', titleKey: 'aylux.categories.homeCleaning' },
-  { id: 'aylux-laundry', titleKey: 'aylux.categories.laundry' },
-  { id: 'aylux-personal', titleKey: 'aylux.categories.personal' },
+  { id: 'aylux-laundry', titleKey: 'aylux.categories.laundryCleaning' },
+  { id: 'aylux-personal', titleKey: 'aylux.categories.personalHygiene' },
 ];
 
 // ─── Init DB ────────────────────────────────────────────────────────────────
@@ -323,6 +323,7 @@ const migrateInitialData = () => {
   migrateDioxPowderGalleryFix();
   migrateDiox6kgDelete();
   migrateAutoPowder1Gift();
+  migrateAyluxCategoryTitleFix();
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -530,8 +531,8 @@ const migrateProducts = () => {
     { id: 'diox-laundry',  brand: 'DIOX',  key: 'laundryCleaning', order: 1, titleKey: 'diox.categories.laundryCleaning' },
     { id: 'diox-personal', brand: 'DIOX',  key: 'personalHygiene', order: 2, titleKey: 'diox.categories.personalHygiene' },
     { id: 'aylux-home',    brand: 'AYLUX', key: 'homeCleaning', order: 0, titleKey: 'aylux.categories.homeCleaning' },
-    { id: 'aylux-laundry', brand: 'AYLUX', key: 'laundry', order: 1, titleKey: 'aylux.categories.laundry' },
-    { id: 'aylux-personal',brand: 'AYLUX', key: 'personal', order: 2, titleKey: 'aylux.categories.personal' },
+    { id: 'aylux-laundry', brand: 'AYLUX', key: 'laundryCleaning', order: 1, titleKey: 'aylux.categories.laundryCleaning' },
+    { id: 'aylux-personal',brand: 'AYLUX', key: 'personalHygiene', order: 2, titleKey: 'aylux.categories.personalHygiene' },
   ];
 
   const insertCat = db.prepare(`
@@ -818,6 +819,47 @@ const migrateCatalogAssetPathsAndMetadata = () => {
 
   markMigration('catalog_asset_paths_and_metadata_v2');
   console.log('[db] Catalog asset paths and metadata migration complete');
+};
+
+// ─── Aylux Category Title Fix ────────────────────────────────────────────────
+// Force-corrects aylux-laundry / aylux-personal titles that were stored as
+// raw i18n keys (aylux.categories.laundry / aylux.categories.personal)
+// because the old seed used non-existent translation keys.
+
+const migrateAyluxCategoryTitleFix = () => {
+  if (hasMigration('aylux_category_title_fix_v1')) return;
+
+  const langs = ['ar', 'en', 'tr', 'ru'];
+  const locale = {};
+  for (const l of langs) locale[l] = loadLocale(l);
+  const t = (lang, key) => get(locale[lang], key) || key;
+
+  const fixes = [
+    { id: 'aylux-laundry',  titleKey: 'aylux.categories.laundryCleaning' },
+    { id: 'aylux-personal', titleKey: 'aylux.categories.personalHygiene'  },
+  ];
+
+  const updateCat = db.prepare(`
+    UPDATE product_categories
+    SET title_ar = @title_ar,
+        title_en = @title_en,
+        title_tr = @title_tr,
+        title_ru = @title_ru
+    WHERE id = @id
+  `);
+
+  for (const fix of fixes) {
+    updateCat.run({
+      id:       fix.id,
+      title_ar: t('ar', fix.titleKey),
+      title_en: t('en', fix.titleKey),
+      title_tr: t('tr', fix.titleKey),
+      title_ru: t('ru', fix.titleKey),
+    });
+  }
+
+  markMigration('aylux_category_title_fix_v1');
+  console.log('[db] Aylux category title fix migration complete');
 };
 
 // ─── News Migration ──────────────────────────────────────────────────────────
