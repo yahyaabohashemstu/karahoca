@@ -35,12 +35,25 @@ const AyluxPageContent: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const staticCats = getAyluxCategories(t);
     fetchBrandCatalogFromApi('AYLUX', currentLang).then(apiCats => {
       if (cancelled) return;
       if (apiCats && apiCats.length > 0) {
-        setCategories(apiCats);
+        // Merge: preserve gift & static fields missing from API
+        const merged = apiCats.map((apiCat, ci) => ({
+          ...apiCat,
+          products: apiCat.products.map((apiProd, pi) => {
+            const staticProd = staticCats[ci]?.products[pi];
+            const gift = apiProd.details?.gift ?? staticProd?.details?.gift;
+            return {
+              ...apiProd,
+              details: { ...apiProd.details, ...(gift ? { gift } : {}) },
+            };
+          }),
+        }));
+        setCategories(merged);
       } else {
-        setCategories(getAyluxCategories(t));
+        setCategories(staticCats);
       }
     });
     return () => { cancelled = true; };
