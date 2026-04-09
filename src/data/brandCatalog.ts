@@ -440,7 +440,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
     ],
   },
   {
-    title: t("aylux.categories.laundry"),
+    title: t("aylux.categories.laundryCleaning"),
     products: [
       {
         name: t("aylux.products.laundry.autoPowder1.name"),
@@ -511,7 +511,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
     ],
   },
   {
-    title: t("aylux.categories.personal"),
+    title: t("aylux.categories.personalHygiene"),
     products: [
       {
         name: t("aylux.products.personal.liquidSoap1.name"),
