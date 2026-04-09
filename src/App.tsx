@@ -3,6 +3,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
+import { WishlistProvider } from './hooks/useWishlist';
 import WhatsAppButton from './components/WhatsAppButton';
 import GoogleAnalytics from './components/GoogleAnalytics';
 import CookieConsent from './components/CookieConsent';
@@ -124,6 +125,7 @@ function App() {
   return (
     <ErrorBoundary>
       <HelmetProvider>
+        <WishlistProvider>
         <Router>
           <Routes>
             <Route
@@ -137,6 +139,7 @@ function App() {
             <Route path="*" element={<MainSite />} />
           </Routes>
         </Router>
+        </WishlistProvider>
       </HelmetProvider>
     </ErrorBoundary>
   );

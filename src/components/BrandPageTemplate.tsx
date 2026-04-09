@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FlipBook from './FlipBook';
@@ -71,7 +71,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const { isInWishlist, toggle, items: wishlistItems } = useWishlist();
+  const { isInWishlist, toggle } = useWishlist();
 
   // All images for the popup: main image first, then gallery colour variants
   const allPopupImages = selectedProduct
@@ -191,22 +191,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
         <section id="products" className="section glass-section">
           <div className="section-divider"></div>
-          <div className="container section__head fx-reveal" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
-            <div>
-              <h2 className="section-title">{productsTitle}</h2>
-              <p className="section-subtitle">{productsSubtitle}</p>
-            </div>
-            {wishlistItems.length > 0 && (
-              <Link
-                to="/wishlist"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1.25rem', borderRadius: 8, background: 'rgba(79,110,247,0.15)', border: '1px solid rgba(79,110,247,0.35)', color: '#6b84ff', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
-              >
-                ♥ {t('brandPage.wishlist', 'Wishlist')}
-                <span style={{ background: '#4f6ef7', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
-                  {wishlistItems.length}
-                </span>
-              </Link>
-            )}
+          <div className="container section__head fx-reveal">
+            <h2 className="section-title">{productsTitle}</h2>
+            <p className="section-subtitle">{productsSubtitle}</p>
           </div>
 
           {categories.map((category) => (

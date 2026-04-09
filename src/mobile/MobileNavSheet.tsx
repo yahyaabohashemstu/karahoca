@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { normalizeLanguageCode } from "../utils/language";
+import { useWishlist } from "../hooks/useWishlist";
 
 type Props = {
   open: boolean;
@@ -13,6 +14,8 @@ export default function MobileNavSheet({ open, onClose }: Props) {
   const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isArabic = currentLanguageCode === "ar";
   const isHomePage = location.pathname === '/';
+  const { items } = useWishlist();
+  const wishCount = items.length;
   const brandsHref = isHomePage ? '#brands' : '/#brands';
   const newsHref = isHomePage ? '#news' : '/#news';
   const numbersHref = isHomePage ? '#numbers' : '/#numbers';
@@ -53,6 +56,13 @@ export default function MobileNavSheet({ open, onClose }: Props) {
           ) : (
             <Link to="/#numbers" onClick={onClose}>{t('numbers.title')}</Link>
           )}
+          <Link to="/wishlist" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={wishCount > 0 ? '#ef4444' : 'none'} stroke={wishCount > 0 ? '#ef4444' : 'currentColor'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+            {wishCount > 0
+              ? <span>{wishCount} <span style={{ opacity: 0.7, fontSize: '0.85em' }}>منتج محفوظ</span></span>
+              : <span style={{ opacity: 0.7 }}>المفضلة</span>
+            }
+          </Link>
           <a href="#contact" className="m-cta" onClick={onClose}>{t('nav.contact')}</a>
         </nav>
       </aside>
