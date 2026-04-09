@@ -875,11 +875,12 @@ const migrateHardDeleteOrphans = () => {
     'diox-auto-powder-6kg', // DIOX 6kg powder — removed from catalog
   ];
 
-  const delWishlist = db.prepare('DELETE FROM wishlist WHERE product_id = ?');
-  const delProduct  = db.prepare('DELETE FROM products WHERE id = ?');
+  const delProduct = db.prepare('DELETE FROM products WHERE id = ?');
 
   for (const id of orphanIds) {
-    try { delWishlist.run(id); } catch (_) { /* wishlist table may not exist */ }
+    // Remove from wishlist first — wrapped fully in try/catch because
+    // db.prepare() itself throws if the table does not exist yet.
+    try { db.prepare('DELETE FROM wishlist WHERE product_id = ?').run(id); } catch (_) {}
     const info = delProduct.run(id);
     if (info.changes > 0) {
       console.log(`[db] Hard-deleted orphan product: ${id}`);
