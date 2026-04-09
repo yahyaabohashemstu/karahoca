@@ -266,6 +266,7 @@ export interface Product {
   weight: string;
   material_ar: string; material_en: string; material_tr: string; material_ru: string;
   count_ar: string; count_en: string; count_tr: string; count_ru: string;
+  weight_count_table?: string;  // JSON string: [{"weight":"1.2 kg","count":6}, ...]
   display_order: number;
   active: number;
   created_at: string;

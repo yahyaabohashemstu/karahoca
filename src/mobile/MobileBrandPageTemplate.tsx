@@ -258,18 +258,47 @@ export default function MobileBrandPageTemplate({
               <h3>{selectedProduct.name}</h3>
               <p>{selectedProduct.description}</p>
               <div className="m-productModal__details">
-                <span className="m-productChip">
-                  <strong>{t("brandPage.weight")}</strong>
-                  {selectedProduct.details?.weight || t("brandPage.notSpecified")}
-                </span>
-                <span className="m-productChip">
-                  <strong>{t("brandPage.material")}</strong>
-                  {selectedProduct.details?.material || t("brandPage.notSpecified")}
-                </span>
-                <span className="m-productChip">
-                  <strong>{t("brandPage.count")}</strong>
-                  {selectedProduct.details?.count || t("brandPage.notSpecified")}
-                </span>
+                {selectedProduct.details?.weightCountTable && selectedProduct.details.weightCountTable.length > 0 ? (
+                  <>
+                    <div className="popup-wc-table-wrap" style={{ width: '100%', marginBottom: 6 }}>
+                      <table className="popup-wc-table">
+                        <thead>
+                          <tr>
+                            <th>{t("brandPage.weight")}</th>
+                            <th>{t("brandPage.count")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedProduct.details.weightCountTable.map((row, idx) => (
+                            <tr key={idx}>
+                              <td>{row.weight}</td>
+                              <td>{row.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <span className="m-productChip">
+                      <strong>{t("brandPage.material")}</strong>
+                      {selectedProduct.details?.material || t("brandPage.notSpecified")}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="m-productChip">
+                      <strong>{t("brandPage.weight")}</strong>
+                      {selectedProduct.details?.weight || t("brandPage.notSpecified")}
+                    </span>
+                    <span className="m-productChip">
+                      <strong>{t("brandPage.material")}</strong>
+                      {selectedProduct.details?.material || t("brandPage.notSpecified")}
+                    </span>
+                    <span className="m-productChip">
+                      <strong>{t("brandPage.count")}</strong>
+                      {selectedProduct.details?.count || t("brandPage.notSpecified")}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

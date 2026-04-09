@@ -319,6 +319,9 @@ const migrateInitialData = () => {
   try { db.exec("ALTER TABLE products ADD COLUMN gift_tr TEXT"); } catch { /* already exists */ }
   try { db.exec("ALTER TABLE products ADD COLUMN gift_ru TEXT"); } catch { /* already exists */ }
 
+  // ── Weight-count mapping table (JSON) ────────────────────────────────────
+  try { db.exec("ALTER TABLE products ADD COLUMN weight_count_table TEXT"); } catch { /* already exists */ }
+
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
   migrateDiox6kgDelete();

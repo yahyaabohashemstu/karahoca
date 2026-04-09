@@ -1402,6 +1402,61 @@ body.light-mode .detail-item-full .detail-label {
 }
 
 /* ═══════════════════════════════════════
+   📊 Weight-Count Table in Popup
+   ═══════════════════════════════════════ */
+.popup-wc-table-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.popup-wc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.popup-wc-table thead th {
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: start;
+}
+
+.popup-wc-table tbody td {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.popup-wc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.popup-wc-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.popup-wc-table tbody td:first-child {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.popup-wc-table tbody td:last-child {
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ═══════════════════════════════════════
    🎁 Gift Section in Popup — هدية البوب أب
    ═══════════════════════════════════════ */
 .popup-gift-section {
@@ -1525,6 +1580,25 @@ body.light-mode .popup-detail-value {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+body.light-mode .popup-wc-table-wrap {
+  border-color: rgba(21, 61, 122, 0.15);
+  background: rgba(21, 61, 122, 0.04);
+}
+body.light-mode .popup-wc-table thead th {
+  color: rgba(21, 61, 122, 0.6);
+  background: rgba(21, 61, 122, 0.06);
+  border-bottom-color: rgba(21, 61, 122, 0.1);
+}
+body.light-mode .popup-wc-table tbody td {
+  border-bottom-color: rgba(21, 61, 122, 0.08);
+}
+body.light-mode .popup-wc-table tbody tr:hover {
+  background: rgba(21, 61, 122, 0.05);
+}
+body.light-mode .popup-wc-table tbody td:first-child {
+  color: rgba(21, 61, 122, 0.9);
 }
 
 /* ── Gallery — Trendyol style: main image + thumbnail strip + arrows ───── */

@@ -10,6 +10,7 @@ const PRODUCT_FIELDS = [
   'weight',
   'material_ar', 'material_en', 'material_tr', 'material_ru',
   'count_ar', 'count_en', 'count_tr', 'count_ru',
+  'weight_count_table',
   'display_order', 'active',
 ];
 
@@ -97,6 +98,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
         weight,
         material_ar, material_en, material_tr, material_ru,
         count_ar, count_en, count_tr, count_ru,
+        weight_count_table,
         display_order, active, created_at, updated_at
       ) VALUES(
         @id, @brand, @category_id,
@@ -106,6 +108,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
         @weight,
         @mat_ar, @mat_en, @mat_tr, @mat_ru,
         @cnt_ar, @cnt_en, @cnt_tr, @cnt_ru,
+        @weight_count_table,
         @display_order, 1, @now, @now
       )
     `).run({
@@ -123,6 +126,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
       mat_tr: body.material_tr || '', mat_ru: body.material_ru || '',
       cnt_ar: body.count_ar || '', cnt_en: body.count_en || '',
       cnt_tr: body.count_tr || '', cnt_ru: body.count_ru || '',
+      weight_count_table: body.weight_count_table || null,
       display_order: body.display_order || 0,
       now,
     });

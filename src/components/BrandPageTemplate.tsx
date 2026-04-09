@@ -17,6 +17,7 @@ interface ProductInfo {
     package?: string;
     count?: string;
     gift?: string;
+    weightCountTable?: Array<{ weight: string; count: number }>;
   };
   gallery?: string[];
 }
@@ -335,26 +336,59 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
                 {selectedProduct.details && (
                   <div className="image-popup-details">
-                    <div className="popup-details-grid">
-                      {selectedProduct.details.weight && (
-                        <div className="popup-detail-item">
-                          <span className="popup-detail-label">{t('brandPage.weight')}</span>
-                          <span className="popup-detail-value">{selectedProduct.details.weight}</span>
+                    {selectedProduct.details.weightCountTable && selectedProduct.details.weightCountTable.length > 0 ? (
+                      <>
+                        {/* Weight → Count mapping table */}
+                        <div className="popup-wc-table-wrap">
+                          <table className="popup-wc-table">
+                            <thead>
+                              <tr>
+                                <th>{t('brandPage.weight')}</th>
+                                <th>{t('brandPage.count')}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedProduct.details.weightCountTable.map((row, idx) => (
+                                <tr key={idx}>
+                                  <td>{row.weight}</td>
+                                  <td>{row.count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      )}
-                      {selectedProduct.details.material && (
-                        <div className="popup-detail-item">
-                          <span className="popup-detail-label">{t('brandPage.material')}</span>
-                          <span className="popup-detail-value">{selectedProduct.details.material}</span>
-                        </div>
-                      )}
-                      {selectedProduct.details.count && (
-                        <div className="popup-detail-item">
-                          <span className="popup-detail-label">{t('brandPage.count')}</span>
-                          <span className="popup-detail-value">{selectedProduct.details.count}</span>
-                        </div>
-                      )}
-                    </div>
+                        {/* Material shown separately */}
+                        {selectedProduct.details.material && (
+                          <div className="popup-details-grid" style={{ marginTop: '0.7rem' }}>
+                            <div className="popup-detail-item">
+                              <span className="popup-detail-label">{t('brandPage.material')}</span>
+                              <span className="popup-detail-value">{selectedProduct.details.material}</span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="popup-details-grid">
+                        {selectedProduct.details.weight && (
+                          <div className="popup-detail-item">
+                            <span className="popup-detail-label">{t('brandPage.weight')}</span>
+                            <span className="popup-detail-value">{selectedProduct.details.weight}</span>
+                          </div>
+                        )}
+                        {selectedProduct.details.material && (
+                          <div className="popup-detail-item">
+                            <span className="popup-detail-label">{t('brandPage.material')}</span>
+                            <span className="popup-detail-value">{selectedProduct.details.material}</span>
+                          </div>
+                        )}
+                        {selectedProduct.details.count && (
+                          <div className="popup-detail-item">
+                            <span className="popup-detail-label">{t('brandPage.count')}</span>
+                            <span className="popup-detail-value">{selectedProduct.details.count}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {selectedProduct.details.gift && (
                       <div className="popup-gift-section">

@@ -8,6 +8,7 @@ export interface BrandProductDetails {
   package?: string;
   count?: string;
   gift?: string;
+  weightCountTable?: Array<{ weight: string; count: number }>;
 }
 
 export interface BrandProductInfo {
@@ -557,6 +558,7 @@ interface PublicApiProduct {
     count?: string;
   };
   gallery?: string[];
+  weightCountTable?: Array<{ weight: string; count: number }>;
 }
 
 interface PublicApiCategory {
@@ -577,6 +579,7 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
       weight: p.details?.weight || undefined,
       material: p.details?.material || undefined,
       count: p.details?.count || undefined,
+      weightCountTable: p.weightCountTable || undefined,
     },
     gallery: p.gallery && p.gallery.length > 0 ? p.gallery : undefined,
   })),

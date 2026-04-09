@@ -13,7 +13,7 @@ const EMPTY: Partial<Product> = {
   alt_ar: '', alt_en: '', alt_tr: '', alt_ru: '',
   material_ar: '', material_en: '', material_tr: '', material_ru: '',
   count_ar: '', count_en: '', count_tr: '', count_ru: '',
-  image: '', gallery: '', weight: '', category_id: '', display_order: 0, active: 1,
+  image: '', gallery: '', weight: '', weight_count_table: '', category_id: '', display_order: 0, active: 1,
 };
 
 export const AdminProductEdit: React.FC = () => {
@@ -31,12 +31,16 @@ export const AdminProductEdit: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [galleryUploading, setGalleryUploading] = useState<number | null>(null);
   const galleryFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const [showWCTable, setShowWCTable] = useState(false);
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
     if (!isNew) {
       adminApi.getProduct(id!).then(r => {
         setForm(r.product);
+        if (r.product.weight_count_table) {
+          try { if (JSON.parse(r.product.weight_count_table).length > 0) setShowWCTable(true); } catch {}
+        }
         setLoading(false);
       }).catch(e => {
         setError(e.message);
@@ -78,6 +82,23 @@ export const AdminProductEdit: React.FC = () => {
     finally { setGalleryUploading(null); }
   };
 
+  // ── Weight-Count Table helpers ──────────────────────────────────────────
+  interface WCRow { weight: string; count: number | string }
+  const getWCRows = (): WCRow[] => {
+    const raw = form.weight_count_table;
+    if (!raw) return [];
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+  };
+  const setWCRows = (rows: WCRow[]) =>
+    setForm(f => ({ ...f, weight_count_table: rows.length > 0 ? JSON.stringify(rows) : '' }));
+  const addWCRow = () => setWCRows([...getWCRows(), { weight: '', count: '' }]);
+  const removeWCRow = (i: number) => { const r = [...getWCRows()]; r.splice(i, 1); setWCRows(r); };
+  const updateWCRow = (i: number, field: 'weight' | 'count', val: string) => {
+    const r = [...getWCRows()];
+    r[i] = { ...r[i], [field]: field === 'count' ? (val === '' ? '' : Number(val)) : val };
+    setWCRows(r);
+  };
+
   const handleTranslated = (translations: Record<string, Record<string, string>>) => {
     const updates: Partial<Product> = {};
     for (const [field, langs] of Object.entries(translations)) {
@@ -102,6 +123,14 @@ export const AdminProductEdit: React.FC = () => {
         try {
           const imgs = JSON.parse(cleanForm.gallery).filter((s: string) => s.trim());
           cleanForm.gallery = imgs.length > 0 ? JSON.stringify(imgs) : '';
+        } catch { /* leave as-is */ }
+      }
+      // Clean empty weight-count rows
+      if (cleanForm.weight_count_table) {
+        try {
+          const rows = JSON.parse(cleanForm.weight_count_table)
+            .filter((r: WCRow) => r.weight?.trim() && r.count !== '' && r.count !== undefined);
+          cleanForm.weight_count_table = rows.length > 0 ? JSON.stringify(rows) : '';
         } catch { /* leave as-is */ }
       }
       if (isNew) {
@@ -217,6 +246,59 @@ export const AdminProductEdit: React.FC = () => {
               <label className="adm-label">Weight / Volume</label>
               <input className="adm-input" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder="e.g. 500ml" />
             </div>
+            {/* Weight-Count Table (optional) */}
+            <div className="adm-form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label className="adm-label" style={{ margin: 0 }}>Weight / Count Table</label>
+                <button
+                  type="button"
+                  className={`adm-btn adm-btn-sm ${showWCTable ? 'adm-btn-warning' : 'adm-btn-secondary'}`}
+                  onClick={() => {
+                    if (!showWCTable && getWCRows().length === 0) setWCRows([{ weight: '', count: '' }, { weight: '', count: '' }]);
+                    setShowWCTable(!showWCTable);
+                  }}
+                >
+                  {showWCTable ? '✕ Hide Table' : '📊 Add Table'}
+                </button>
+              </div>
+
+              {showWCTable && (
+                <div style={{ marginTop: 10, border: '1px solid var(--adm-border, rgba(255,255,255,0.12))', borderRadius: 8, padding: 12, background: 'rgba(255,255,255,0.02)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>Weight / Volume</th>
+                        <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>Count (per box)</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getWCRows().map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '3px 4px' }}>
+                            <input className="adm-input" value={row.weight} onChange={e => updateWCRow(i, 'weight', e.target.value)} placeholder="e.g. 1.2 kg" style={{ fontSize: 13 }} />
+                          </td>
+                          <td style={{ padding: '3px 4px' }}>
+                            <input className="adm-input" type="number" min={1} value={row.count} onChange={e => updateWCRow(i, 'count', e.target.value)} placeholder="e.g. 6" style={{ fontSize: 13 }} />
+                          </td>
+                          <td style={{ padding: '3px 4px' }}>
+                            <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => removeWCRow(i)} title="Remove" style={{ padding: '4px 8px' }}>✕</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addWCRow}>+ Add Row</button>
+                    {getWCRows().length > 0 && (
+                      <button type="button" className="adm-btn adm-btn-sm" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
+                        onClick={() => { setWCRows([]); setShowWCTable(false); }}>Clear Table</button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="adm-form-group">
               <label className="adm-label">Display Order</label>
               <input className="adm-input" type="number" value={form.display_order ?? 0} onChange={e => set('display_order', Number(e.target.value))} />

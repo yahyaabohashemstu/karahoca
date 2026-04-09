@@ -44,7 +44,8 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         weight,
         material_${l} as material,
         count_${l} as count,
-        gift_${l} as gift
+        gift_${l} as gift,
+        weight_count_table
       FROM products
       WHERE category_id=? AND active=1
       ORDER BY display_order ASC
@@ -74,7 +75,14 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
             material: p.material,
             count: p.count,
             ...(p.gift ? { gift: p.gift } : {}),
-          }
+          },
+          weightCountTable: (() => {
+            if (!p.weight_count_table) return undefined;
+            try {
+              const parsed = JSON.parse(p.weight_count_table);
+              return Array.isArray(parsed) && parsed.length > 0 ? parsed : undefined;
+            } catch { return undefined; }
+          })()
         };
       })
     };
