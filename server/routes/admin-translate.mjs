@@ -154,9 +154,11 @@ export const handleAdminTranslate = async (req, res, { body, sendJson, origin })
 
   // Brand-name rules injected into every prompt
   const BRAND_RULES = `
-BRAND NAME RULES (apply in ALL languages without exception):
-- "ديوكس" → always write "DIOX" (never translate or transliterate)
-- "آيلوكس" or "ايلوكس" → always write "AYLUX" (never translate or transliterate)`;
+BRAND NAME RULES (must be followed exactly per language):
+- In Arabic (ar):  "ديوكس" → "ديوكس"  |  "آيلوكس"/"ايلوكس" → "آيلوكس"
+- In English (en): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
+- In Turkish (tr): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
+- In Russian (ru): transliterate naturally (e.g. Диокс / Айлюкс) — do NOT force Latin`;
 
   const prompt = fields
     ? `You are a professional translator for KARAHOCA cleaning products company.
