@@ -152,11 +152,18 @@ export const handleAdminTranslate = async (req, res, { body, sendJson, origin })
 
   const langNames = { ar: 'العربية', en: 'English', tr: 'Türkçe', ru: 'Русский' };
 
+  // Brand-name rules injected into every prompt
+  const BRAND_RULES = `
+BRAND NAME RULES (apply in ALL languages without exception):
+- "ديوكس" → always write "DIOX" (never translate or transliterate)
+- "آيلوكس" or "ايلوكس" → always write "AYLUX" (never translate or transliterate)`;
+
   const prompt = fields
     ? `You are a professional translator for KARAHOCA cleaning products company.
 
 Translate each labeled field below from ${langNames[sourceLang] || sourceLang} to Arabic (ar), English (en), Turkish (tr), and Russian (ru).
 Fields are separated by <<<NEXT_FIELD>>> markers. Keep the [fieldname] labels exactly as they appear.
+${BRAND_RULES}
 
 CRITICAL JSON RULES:
 - Return ONLY a raw JSON object — no markdown fences, no explanation, no extra text.
@@ -177,6 +184,7 @@ Required output structure:
 
 Translate the following text from ${langNames[sourceLang] || sourceLang} to all four languages.
 Use natural, commercial language.
+${BRAND_RULES}
 
 CRITICAL: Return ONLY a raw JSON object (no markdown, no explanation). Use \\n for newlines inside strings.
 
