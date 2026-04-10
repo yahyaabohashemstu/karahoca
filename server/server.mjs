@@ -30,9 +30,6 @@ const newsletterFile = path.join(dataDirectory, 'newsletter.json');
 const port = Number.parseInt(process.env.PORT || '5000', 10);
 const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
 const isProduction = process.env.NODE_ENV === 'production';
-const geminiEndpoint =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
@@ -357,6 +354,10 @@ const buildDynamicContext = (prompt, lang = 'ar') => {
   }
 };
 
+const CHAT_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const CHAT_RETRY_DELAYS = [1_000, 3_000];
+const CHAT_TIMEOUT_MS = 25_000;
+
 const generateAiReply = async ({ prompt, lang }) => {
   if (!geminiApiKey) {
     const error = new Error('GEMINI_API_KEY is not configured on the server.');
@@ -369,54 +370,79 @@ const generateAiReply = async ({ prompt, lang }) => {
     throw error;
   }
 
-  const geminiResponse = await fetch(geminiEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{
-          text: [
-            'You are the AI assistant for KARAHOCA company.',
-            '',
-            'LANGUAGE RULE (ABSOLUTE PRIORITY):',
-            '- You MUST respond in the exact same language as the customer question.',
-            '- Arabic question -> Arabic response.',
-            '- English question -> English response.',
-            '- Turkish question -> Turkish response.',
-            '- Russian question -> Russian response.',
-            '- Any other language -> the same language response.',
-            '',
-            'BEHAVIOR RULES:',
-            '- Sound like a natural human sales and support assistant, not a scripted keyword bot.',
-            '- Answer the customer\'s real question directly before offering extra context.',
-            '- Use only the information provided in the prompt and its knowledge base.',
-            '- Do not say information is unavailable if the prompt already contains it.',
-            '- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with.',
-            '- If pricing, shipping, or order conditions depend on quantity, size, packaging, or exact SKU, explain that naturally and ask only the minimum necessary follow-up.',
-            '- Keep answers clear, commercially professional, and useful.'
-          ].join('\\n')
-        }]
-      },
-      contents: [{ role: 'user', parts: [{ text: buildDynamicContext(prompt, lang) }] }],
-      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
-    })
+  const systemText = [
+    'You are the AI assistant for KARAHOCA company.',
+    '',
+    'LANGUAGE RULE (ABSOLUTE PRIORITY):',
+    '- You MUST respond in the exact same language as the customer question.',
+    '- Arabic question -> Arabic response.',
+    '- English question -> English response.',
+    '- Turkish question -> Turkish response.',
+    '- Russian question -> Russian response.',
+    '- Any other language -> the same language response.',
+    '',
+    'BEHAVIOR RULES:',
+    '- Sound like a natural human sales and support assistant, not a scripted keyword bot.',
+    '- Answer the customer\'s real question directly before offering extra context.',
+    '- Use only the information provided in the prompt and its knowledge base.',
+    '- Do not say information is unavailable if the prompt already contains it.',
+    '- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with.',
+    '- If pricing, shipping, or order conditions depend on quantity, size, packaging, or exact SKU, explain that naturally and ask only the minimum necessary follow-up.',
+    '- Keep answers clear, commercially professional, and useful.'
+  ].join('\\n');
+
+  const requestBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemText }] },
+    contents: [{ role: 'user', parts: [{ text: buildDynamicContext(prompt, lang) }] }],
+    generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
   });
 
-  if (!geminiResponse.ok) {
-    const rawError = await geminiResponse.text();
-    const error = new Error(rawError || 'Gemini request failed (' + geminiResponse.status + ').');
-    error.statusCode = geminiResponse.status;
-    throw error;
+  // Retry with model fallback (same pattern as admin-translate)
+  for (const model of CHAT_MODELS) {
+    for (let attempt = 0; attempt <= CHAT_RETRY_DELAYS.length; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, CHAT_RETRY_DELAYS[attempt - 1]));
+      }
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey },
+          body: requestBody,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          const payload = await res.json();
+          const reply = extractModelText(payload);
+          if (reply) return { success: true, reply };
+          // Empty reply — try next model
+          console.warn(`[ai-chat] ${model} returned empty reply, trying next`);
+          break;
+        }
+
+        const status = res.status;
+        console.warn(`[ai-chat] ${model} attempt ${attempt + 1} → HTTP ${status}`);
+
+        if (status === 503 || status === 429) continue; // retry same model
+        break; // other error → next model
+
+      } catch (err) {
+        console.warn(`[ai-chat] ${model} attempt ${attempt + 1} threw: ${err.message}`);
+        if (err.name === 'AbortError') break; // timeout → next model
+        continue; // network error → retry
+      }
+    }
   }
 
-  const payload = await geminiResponse.json();
-  const reply = extractModelText(payload);
-  if (!reply) {
-    const error = new Error('Gemini returned an empty response.');
-    error.statusCode = 502;
-    throw error;
-  }
-  return { success: true, reply };
+  // All models exhausted
+  const error = new Error('AI service temporarily unavailable.');
+  error.statusCode = 503;
+  throw error;
 };
 
 // ─── Gemini response cache ────────────────────────────────────────────────────
