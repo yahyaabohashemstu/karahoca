@@ -1983,9 +1983,14 @@
   }
 
   .m-productCard {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 14px;
     padding: 14px;
+    /* Fixed card height so all cards match regardless of content */
+    min-height: 420px;
+    max-height: 420px;
+    overflow: hidden;
   }
 
   .m-productCard__imageButton {
@@ -1996,19 +2001,38 @@
     border-radius: 18px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.04);
+    flex-shrink: 0;
   }
 
   .m-productCard__imageButton img {
     display: block;
     width: 100%;
-    height: 220px;
+    height: 180px;
     object-fit: contain;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
   }
 
   .m-productCard__body {
-    display: grid;
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .m-productCard__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .m-productCard__desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .m-productCard__details,
