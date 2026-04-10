@@ -1426,12 +1426,16 @@ body.light-mode .detail-item-full .detail-label {
   color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.08);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: start;
+  text-align: center;
 }
 
 .popup-wc-table tbody td {
   padding: 0.55rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  direction: ltr;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
 }
 
 .popup-wc-table tbody tr:last-child td {
