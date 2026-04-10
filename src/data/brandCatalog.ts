@@ -47,7 +47,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس منظف عام.png",
           alt: t("diox.products.home.generalCleaner.alt"),
           details: {
-            weight: "750ml",
+            weight: "750 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -58,7 +58,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس سوبر جل.png",
           alt: t("diox.products.home.superGel.alt"),
           details: {
-            weight: "450ml / 900ml",
+            weight: "450 ml / 900 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -69,7 +69,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس معطر أرضيات.png",
           alt: t("diox.products.home.floorFragrance.alt"),
           details: {
-            weight: "600ml",
+            weight: "600 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -80,7 +80,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس معطر الأرضيات.png",
           alt: t("diox.products.home.floorFragrance2.alt"),
           details: {
-            weight: "600ml",
+            weight: "600 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -91,7 +91,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس منظف الزجاج.png",
           alt: t("diox.products.home.glassCleaner.alt"),
           details: {
-            weight: "750ml",
+            weight: "750 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -102,7 +102,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس كلور.png",
           alt: t("diox.products.home.chlorine.alt"),
           details: {
-            weight: "900ml / 5L",
+            weight: "900 ml / 5 l",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -113,7 +113,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس منظف الأفران.png",
           alt: t("diox.products.home.ovenCleaner.alt"),
           details: {
-            weight: "750ml",
+            weight: "750 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -124,7 +124,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس فلاش.png",
           alt: t("diox.products.home.flash.alt"),
           details: {
-            weight: "900ml",
+            weight: "900 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -135,7 +135,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس منظف الحمام.png",
           alt: t("diox.products.home.bathroomCleaner.alt"),
           details: {
-            weight: "750ml",
+            weight: "750 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -146,7 +146,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس جل غسيل الصحون.png",
           alt: t("diox.products.home.dishGel.alt"),
           details: {
-            weight: "1.5kg",
+            weight: "1.5 kg",
             material: plasticBottle,
             count: `4 ${piecesPlural}`,
           },
@@ -157,7 +157,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس سائل غسيل الصحون (1).png",
           alt: t("diox.products.home.dishLiquid1.alt"),
           details: {
-            weight: "700ml",
+            weight: "700 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -168,7 +168,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس سائل غسيل الصحون (2).png",
           alt: t("diox.products.home.dishLiquid2.alt"),
           details: {
-            weight: "3L",
+            weight: "3 l",
             material: plasticBottle,
             count: `4 ${piecesPlural}`,
           },
@@ -184,7 +184,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك (1).png",
           alt: t("diox.products.laundry.autoPowder1.alt"),
           details: {
-            weight: "2.5kg / 4.5kg",
+            weight: "2.5 kg / 4.5 kg",
             material: plasticBag,
             count: `4 ${piecesPlural}`,
           },
@@ -195,7 +195,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك (2).png",
           alt: t("diox.products.laundry.autoPowder2.alt"),
           details: {
-            weight: "2.5kg / 4.5kg",
+            weight: "2.5 kg / 4.5 kg",
             material: plasticBag,
             count: `4 ${piecesPlural}`,
           },
@@ -206,7 +206,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس سائل غسيل (1).png",
           alt: t("diox.products.laundry.liquidDetergent.alt"),
           details: {
-            weight: "900ml",
+            weight: "900 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -217,7 +217,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مطري الغسيل.png",
           alt: t("diox.products.laundry.fabricSoftener.alt"),
           details: {
-            weight: "900ml",
+            weight: "900 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -228,7 +228,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مزيل البقع.png",
           alt: t("diox.products.laundry.stainRemover.alt"),
           details: {
-            weight: "900ml",
+            weight: "900 ml",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -239,7 +239,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل عادي.png",
           alt: t("diox.products.laundry.regularPowder.alt"),
           details: {
-            weight: "150g / 1.2kg / 3.5kg / 9kg",
+            weight: "150 g / 1.2 kg / 3.5 kg / 9 kg",
             material: plasticBag,
             count: `6 ${piecesPlural}`,
           },
@@ -250,7 +250,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو.png",
           alt: t("diox.products.laundry.autoPowder1_2kg.alt"),
           details: {
-            weight: "1.2kg",
+            weight: "1.2 kg",
             material: plasticBag,
             count: `6 ${piecesPlural}`,
           },
@@ -265,7 +265,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 3 كيلو.png",
           alt: t("diox.products.laundry.autoPowder3kg.alt"),
           details: {
-            weight: "3kg",
+            weight: "3 kg",
             material: plasticBag,
             count: `4 ${piecesPlural}`,
           },
@@ -282,7 +282,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 9 كيلو.png",
           alt: t("diox.products.laundry.autoPowder9kg.alt"),
           details: {
-            weight: "9kg",
+            weight: "9 kg",
             material: plasticBag,
             count: `4 ${piecesPlural}`,
           },
@@ -304,7 +304,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           image: "/diox-images/ديوكس صابون سائل.png",
           alt: t("diox.products.personal.liquidSoap.alt"),
           details: {
-            weight: "400ml / 3L",
+            weight: "400 ml / 3 l",
             material: plasticBottle,
             count: `12 ${pieces}`,
           },
@@ -379,7 +379,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         image: "/aylux-images/آيلوكس كلور (مبيض).png",
         alt: t("aylux.products.home.chlorine.alt"),
         details: {
-          weight: "900 ml / 5 L",
+          weight: "900 ml / 5 l",
           material: t("aylux.products.home.chlorine.material"),
           count: t("aylux.products.home.chlorine.count"),
         },
@@ -434,7 +434,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         image: "/aylux-images/آيلوكس سائل غسيل الصحون (2).png",
         alt: t("aylux.products.home.dishLiquid2.alt"),
         details: {
-          weight: "3 L",
+          weight: "3 l",
           material: t("aylux.products.home.dishLiquid2.material"),
           count: t("aylux.products.home.dishLiquid2.count"),
         },
@@ -511,7 +511,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         image: "/aylux-images/آيلوكس صابون سائل (1).png",
         alt: t("aylux.products.personal.liquidSoap1.alt"),
         details: {
-          weight: "3 L",
+          weight: "3 l",
           material: t("aylux.products.personal.liquidSoap1.material"),
           count: t("aylux.products.personal.liquidSoap1.count"),
         },

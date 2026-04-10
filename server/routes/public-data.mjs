@@ -1,4 +1,4 @@
-import { getDb, incrementStat } from '../db.mjs';
+import { getDb, incrementStat, normalizeWeight } from '../db.mjs';
 
 const normalizeLegacyAssetPath = (assetPath) => {
   if (typeof assetPath !== 'string') {
@@ -71,7 +71,7 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
           alt: p.alt,
           gallery: gallery && gallery.length > 0 ? gallery : undefined,
           details: {
-            weight: p.weight,
+            weight: normalizeWeight(p.weight),
             material: p.material,
             count: p.count,
             ...(p.gift ? { gift: p.gift } : {}),
@@ -80,7 +80,8 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
             if (!p.weight_count_table) return undefined;
             try {
               const parsed = JSON.parse(p.weight_count_table);
-              return Array.isArray(parsed) && parsed.length > 0 ? parsed : undefined;
+              if (!Array.isArray(parsed) || !parsed.length) return undefined;
+              return parsed.map(row => ({ ...row, weight: normalizeWeight(row.weight) }));
             } catch { return undefined; }
           })()
         };

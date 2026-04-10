@@ -1,4 +1,4 @@
-import { getDb, logAudit } from '../db.mjs';
+import { getDb, logAudit, normalizeWeight } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 
 const PRODUCT_FIELDS = [
@@ -32,6 +32,15 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
     }
 
     if (req.method === 'PUT') {
+      // Normalize weight values before saving
+      if (body.weight) body.weight = normalizeWeight(body.weight);
+      if (body.weight_count_table) {
+        try {
+          const rows = JSON.parse(body.weight_count_table);
+          if (Array.isArray(rows)) body.weight_count_table = JSON.stringify(rows.map(r => ({ ...r, weight: normalizeWeight(r.weight) })));
+        } catch {}
+      }
+
       const sets = PRODUCT_FIELDS.filter(f => body[f] !== undefined)
         .map(f => `${f} = @${f}`).join(', ');
       if (!sets) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
@@ -84,6 +93,15 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
         sendJson(res, 400, { success: false, error: `Field "${f}" is required.` }, origin);
         return;
       }
+    }
+
+    // Normalize weight values before saving
+    if (body.weight) body.weight = normalizeWeight(body.weight);
+    if (body.weight_count_table) {
+      try {
+        const rows = JSON.parse(body.weight_count_table);
+        if (Array.isArray(rows)) body.weight_count_table = JSON.stringify(rows.map(r => ({ ...r, weight: normalizeWeight(r.weight) })));
+      } catch {}
     }
 
     const id = body.id || `${body.brand.toLowerCase()}-${randomUUID().slice(0, 8)}`;
