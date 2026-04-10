@@ -158,7 +158,7 @@ BRAND NAME RULES (must be followed exactly per language):
 - In Arabic (ar):  "ديوكس" → "ديوكس"  |  "آيلوكس"/"ايلوكس" → "آيلوكس"
 - In English (en): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
 - In Turkish (tr): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
-- In Russian (ru): transliterate naturally (e.g. Диокс / Айлюкс) — do NOT force Latin`;
+- In Russian (ru): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"`;
 
   const prompt = fields
     ? `You are a professional translator for KARAHOCA cleaning products company.
