@@ -23,10 +23,11 @@ function fixUnescapedNewlinesInJson(str) {
 // ─── Gemini model fallback chain ─────────────────────────────────────────────
 // If the primary model is overloaded (503) or rate-limited (429),
 // we automatically fall through to the next model.
+// gemini-2.0-flash first: 1500 RPD free (vs 20 RPD for 2.5-flash)
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
+  'gemini-2.5-flash',
 ];
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

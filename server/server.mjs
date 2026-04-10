@@ -355,8 +355,9 @@ const buildDynamicContext = (prompt, lang = 'ar') => {
   }
 };
 
+// gemini-2.0-flash: 1500 RPD free tier (vs 20 RPD for 2.5-flash)
 const geminiEndpoint =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 const generateAiReply = async ({ prompt, lang }) => {
   if (!geminiApiKey) {
