@@ -13,15 +13,15 @@
   /* نظام الألوان المحسن */
   --primary: var(--orange);
   --secondary: var(--blue);
-  --text: rgba(255, 255, 255, 0.95);
-  --text-muted: rgba(255, 255, 255, 0.7);
-  --text-subtle: rgba(255, 255, 255, 0.5);
+  --text: rgba(255, 255, 255, 0.92);
+  --text-muted: rgba(255, 255, 255, 0.50);
+  --text-subtle: rgba(255, 255, 255, 0.35);
 
-  /* نظام Glass المحسن */
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --glass-backdrop: blur(16px) saturate(180%);
+  /* نظام Glass المحسن — أسطح أنعم */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --glass-backdrop: blur(12px) saturate(150%);
 
   /* ==================================================
      نظام المسافات المعياري - Professional Spacing System
