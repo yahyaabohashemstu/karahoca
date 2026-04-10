@@ -31,15 +31,15 @@ const loadLocale = (lang) => {
 
 /**
  * Normalize a weight string:
- * - Ensure space between number and unit: "9kg" → "9 kg"
- * - Lowercase all units: "KG" → "kg", "ML" → "ml", "5L" → "5 l"
- * - Handles compound weights: "900ml / 5L" → "900 ml / 5 l"
+ * - Ensure space between number and unit: "9kg" → "9 KG"
+ * - Uppercase all units: "kg" → "KG", "ml" → "ML", "5l" → "5 L"
+ * - Handles compound weights: "900ml / 5L" → "900 ML / 5 L"
  */
 export const normalizeWeight = (w) => {
   if (!w || typeof w !== 'string') return w || '';
   return w.split('/').map(part =>
     part.trim().replace(/([\d.]+)\s*(kg|g|ml|l)\b/gi,
-      (_, num, unit) => `${num} ${unit.toLowerCase()}`)
+      (_, num, unit) => `${num} ${unit.toUpperCase()}`)
   ).join(' / ');
 };
 
@@ -60,25 +60,25 @@ const normalizeLegacyCatalogAssetPath = (assetPath) => {
 };
 
 const AYLUX_WEIGHT_BY_PRODUCT_ID = {
-  'aylux-general-cleaner': '750 ml',
-  'aylux-air-freshener': '400 ml',
-  'aylux-super-gel': '450 ml / 900 ml',
-  'aylux-floor-fragrance': '600 ml',
-  'aylux-glass-cleaner': '750 ml',
-  'aylux-chlorine': '900 ml / 5 l',
-  'aylux-oven-cleaner': '750 ml',
-  'aylux-flash': '900 ml',
-  'aylux-bathroom-cleaner': '750 ml',
-  'aylux-dish-gel': '1.5 kg',
-  'aylux-dish-liquid2': '3 l',
-  'aylux-auto-powder1': '150 g / 1.2 kg / 3.5 kg / 9 kg',
+  'aylux-general-cleaner': '750 ML',
+  'aylux-air-freshener': '400 ML',
+  'aylux-super-gel': '450 ML / 900 ML',
+  'aylux-floor-fragrance': '600 ML',
+  'aylux-glass-cleaner': '750 ML',
+  'aylux-chlorine': '900 ML / 5 L',
+  'aylux-oven-cleaner': '750 ML',
+  'aylux-flash': '900 ML',
+  'aylux-bathroom-cleaner': '750 ML',
+  'aylux-dish-gel': '1.5 KG',
+  'aylux-dish-liquid2': '3 L',
+  'aylux-auto-powder1': '150 G / 1.2 KG / 3.5 KG / 9 KG',
 
-  'aylux-liquid-detergent': '900 ml',
-  'aylux-fabric-softener': '900 ml',
-  'aylux-stain-remover': '900 ml',
-  'aylux-regular-powder': '300 g / 600 g / 3 kg / 5 kg / 9 kg',
-  'aylux-liquid-soap1': '3 l',
-  'aylux-liquid-soap2': '400 ml',
+  'aylux-liquid-detergent': '900 ML',
+  'aylux-fabric-softener': '900 ML',
+  'aylux-stain-remover': '900 ML',
+  'aylux-regular-powder': '300 G / 600 G / 3 KG / 5 KG / 9 KG',
+  'aylux-liquid-soap1': '3 L',
+  'aylux-liquid-soap2': '400 ML',
 };
 
 const PRODUCT_CATEGORY_TITLE_KEYS = [
@@ -380,8 +380,8 @@ const migrateDioxPowderProducts = () => {
     {
       id: 'diox-auto-powder-1-2kg',
       name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو',
-      name_en: 'DIOX Automatic Laundry Powder 1.2 kg',
-      name_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 kg',
+      name_en: 'DIOX Automatic Laundry Powder 1.2 KG',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 KG',
       name_ru: 'DIOX стиральный порошок автомат 1,2 кг',
       desc_ar: 'مسحوق غسيل أوتوماتيك عالي الجودة — متوفر بلونين',
       desc_en: 'High-quality automatic laundry powder — available in two colours',
@@ -393,18 +393,18 @@ const migrateDioxPowderProducts = () => {
         '/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - زهري.png',
       ]),
       alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 1.2 كيلو بلونين',
-      alt_en: 'DIOX Automatic Laundry Powder 1.2 kg in two colours',
-      alt_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 kg iki renk',
+      alt_en: 'DIOX Automatic Laundry Powder 1.2 KG in two colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 1,2 KG iki renk',
       alt_ru: 'DIOX стиральный порошок автомат 1,2 кг двух цветов',
-      weight: '1.2 kg',
+      weight: '1.2 KG',
       cnt_ar: '6 قطع', cnt_en: '6 pieces', cnt_tr: '6 adet', cnt_ru: '6 штук',
       display_order: 6, now,
     },
     {
       id: 'diox-auto-powder-3kg',
       name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 3 كيلو',
-      name_en: 'DIOX Automatic Laundry Powder 3 kg',
-      name_tr: 'DIOX Otomatik Çamaşır Tozu 3 kg',
+      name_en: 'DIOX Automatic Laundry Powder 3 KG',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 3 KG',
       name_ru: 'DIOX стиральный порошок автомат 3 кг',
       desc_ar: 'مسحوق غسيل أوتوماتيك اقتصادي — متوفر بأربعة ألوان',
       desc_en: 'Economy automatic laundry powder — available in four colours',
@@ -418,18 +418,18 @@ const migrateDioxPowderProducts = () => {
         '/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - زهري.png',
       ]),
       alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 3 كيلو بأربعة ألوان',
-      alt_en: 'DIOX Automatic Laundry Powder 3 kg in four colours',
-      alt_tr: 'DIOX Otomatik Çamaşır Tozu 3 kg dört renk',
+      alt_en: 'DIOX Automatic Laundry Powder 3 KG in four colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 3 KG dört renk',
       alt_ru: 'DIOX стиральный порошок автомат 3 кг четырёх цветов',
-      weight: '3 kg',
+      weight: '3 KG',
       cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
       display_order: 7, now,
     },
     {
       id: 'diox-auto-powder-9kg',
       name_ar: 'ديوكس مسحوق غسيل أوتوماتيك 9 كيلو',
-      name_en: 'DIOX Automatic Laundry Powder 9 kg',
-      name_tr: 'DIOX Otomatik Çamaşır Tozu 9 kg',
+      name_en: 'DIOX Automatic Laundry Powder 9 KG',
+      name_tr: 'DIOX Otomatik Çamaşır Tozu 9 KG',
       name_ru: 'DIOX стиральный порошок автомат 9 кг',
       desc_ar: 'مسحوق غسيل أوتوماتيك بحجم كبير — متوفر بأربعة ألوان',
       desc_en: 'Large automatic laundry powder — available in four colours',
@@ -443,10 +443,10 @@ const migrateDioxPowderProducts = () => {
         '/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - زهري.png',
       ]),
       alt_ar: 'ديوكس مسحوق غسيل أوتوماتيك 9 كيلو بأربعة ألوان',
-      alt_en: 'DIOX Automatic Laundry Powder 9 kg in four colours',
-      alt_tr: 'DIOX Otomatik Çamaşır Tozu 9 kg dört renk',
+      alt_en: 'DIOX Automatic Laundry Powder 9 KG in four colours',
+      alt_tr: 'DIOX Otomatik Çamaşır Tozu 9 KG dört renk',
       alt_ru: 'DIOX стиральный порошок автомат 9 кг четyrёх цветов',
-      weight: '9 kg',
+      weight: '9 KG',
       cnt_ar: '4 قطع', cnt_en: '4 pieces', cnt_tr: '4 adet', cnt_ru: '4 штуки',
       display_order: 9, now,
     },
@@ -580,63 +580,63 @@ const migrateProducts = () => {
   const dioxProducts = [
     // Home
     { id: 'diox-general-cleaner', cat: 'diox-home', order: 0,
-      image: '/diox/ديوكس منظف عام.png', weight: '750 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس منظف عام.png', weight: '750 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.generalCleaner' },
     { id: 'diox-super-gel', cat: 'diox-home', order: 1,
-      image: '/diox/ديوكس سوبر جل.png', weight: '450 ml / 900 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس سوبر جل.png', weight: '450 ML / 900 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.superGel' },
     { id: 'diox-floor-fragrance', cat: 'diox-home', order: 2,
-      image: '/diox/ديوكس معطر أرضيات.png', weight: '600 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس معطر أرضيات.png', weight: '600 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.floorFragrance' },
     { id: 'diox-floor-fragrance2', cat: 'diox-home', order: 3,
-      image: '/diox/ديوكس معطر الأرضيات.png', weight: '600 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس معطر الأرضيات.png', weight: '600 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.floorFragrance2' },
     { id: 'diox-glass-cleaner', cat: 'diox-home', order: 4,
-      image: '/diox/ديوكس منظف الزجاج.png', weight: '750 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس منظف الزجاج.png', weight: '750 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.glassCleaner' },
     { id: 'diox-chlorine', cat: 'diox-home', order: 5,
-      image: '/diox/ديوكس كلور.png', weight: '900 ml / 5 l', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس كلور.png', weight: '900 ML / 5 L', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.chlorine' },
     { id: 'diox-oven-cleaner', cat: 'diox-home', order: 6,
-      image: '/diox/ديوكس منظف الأفران.png', weight: '750 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس منظف الأفران.png', weight: '750 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.ovenCleaner' },
     { id: 'diox-flash', cat: 'diox-home', order: 7,
-      image: '/diox/ديوكس فلاش.png', weight: '900 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس فلاش.png', weight: '900 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.flash' },
     { id: 'diox-bathroom-cleaner', cat: 'diox-home', order: 8,
-      image: '/diox/ديوكس منظف الحمام.png', weight: '750 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس منظف الحمام.png', weight: '750 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.bathroomCleaner' },
     { id: 'diox-dish-gel', cat: 'diox-home', order: 9,
-      image: '/diox/ديوكس جل غسيل الصحون.png', weight: '1.5 kg', mat: 'plasticBottle', count: 4, plural: true,
+      image: '/diox/ديوكس جل غسيل الصحون.png', weight: '1.5 KG', mat: 'plasticBottle', count: 4, plural: true,
       k: 'diox.products.home.dishGel' },
     { id: 'diox-dish-liquid1', cat: 'diox-home', order: 10,
-      image: '/diox/ديوكس سائل غسيل الصحون (1).png', weight: '700 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس سائل غسيل الصحون (1).png', weight: '700 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.home.dishLiquid1' },
     { id: 'diox-dish-liquid2', cat: 'diox-home', order: 11,
-      image: '/diox/ديوكس سائل غسيل الصحون (2).png', weight: '3 l', mat: 'plasticBottle', count: 4, plural: true,
+      image: '/diox/ديوكس سائل غسيل الصحون (2).png', weight: '3 L', mat: 'plasticBottle', count: 4, plural: true,
       k: 'diox.products.home.dishLiquid2' },
     // Laundry
     { id: 'diox-auto-powder1', cat: 'diox-laundry', order: 0,
-      image: '/diox/ديوكس مسحوق غسيل أوتوماتيك (1).png', weight: '2.5 kg / 4.5 kg', mat: 'plasticBag', count: 4, plural: true,
+      image: '/diox/ديوكس مسحوق غسيل أوتوماتيك (1).png', weight: '2.5 KG / 4.5 KG', mat: 'plasticBag', count: 4, plural: true,
       k: 'diox.products.laundry.autoPowder1' },
     { id: 'diox-auto-powder2', cat: 'diox-laundry', order: 1,
-      image: '/diox/ديوكس مسحوق غسيل أوتوماتيك (2).png', weight: '2.5 kg / 4.5 kg', mat: 'plasticBag', count: 4, plural: true,
+      image: '/diox/ديوكس مسحوق غسيل أوتوماتيك (2).png', weight: '2.5 KG / 4.5 KG', mat: 'plasticBag', count: 4, plural: true,
       k: 'diox.products.laundry.autoPowder2' },
     { id: 'diox-liquid-detergent', cat: 'diox-laundry', order: 2,
-      image: '/diox/ديوكس سائل غسيل (1).png', weight: '900 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس سائل غسيل (1).png', weight: '900 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.laundry.liquidDetergent' },
     { id: 'diox-fabric-softener', cat: 'diox-laundry', order: 3,
-      image: '/diox/ديوكس مطري الغسيل.png', weight: '900 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس مطري الغسيل.png', weight: '900 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.laundry.fabricSoftener' },
     { id: 'diox-stain-remover', cat: 'diox-laundry', order: 4,
-      image: '/diox/ديوكس مزيل البقع.png', weight: '900 ml', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس مزيل البقع.png', weight: '900 ML', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.laundry.stainRemover' },
     { id: 'diox-regular-powder', cat: 'diox-laundry', order: 5,
-      image: '/diox/ديوكس مسحوق غسيل عادي.png', weight: '150 g / 1.2 kg / 3.5 kg / 9 kg', mat: 'plasticBag', count: 6, plural: true,
+      image: '/diox/ديوكس مسحوق غسيل عادي.png', weight: '150 G / 1.2 KG / 3.5 KG / 9 KG', mat: 'plasticBag', count: 6, plural: true,
       k: 'diox.products.laundry.regularPowder' },
     // Personal
     { id: 'diox-liquid-soap', cat: 'diox-personal', order: 0,
-      image: '/diox/ديوكس صابون سائل.png', weight: '400 ml / 3 l', mat: 'plasticBottle', count: 12, plural: false,
+      image: '/diox/ديوكس صابون سائل.png', weight: '400 ML / 3 L', mat: 'plasticBottle', count: 12, plural: false,
       k: 'diox.products.personal.liquidSoap' },
   ];
 
@@ -923,7 +923,7 @@ const migrateDeleteAyluxAutoPowder2 = () => {
 // ─── Normalize all existing weight values in DB ─────────────────────────────
 
 const migrateNormalizeWeights = () => {
-  if (hasMigration('normalize_weights_v1')) return;
+  if (hasMigration('normalize_weights_v2')) return;
 
   const products = db.prepare('SELECT id, weight, weight_count_table FROM products WHERE weight IS NOT NULL OR weight_count_table IS NOT NULL').all();
   const update = db.prepare('UPDATE products SET weight = @weight, weight_count_table = @wct WHERE id = @id');
@@ -944,7 +944,7 @@ const migrateNormalizeWeights = () => {
     }
   }
 
-  markMigration('normalize_weights_v1');
+  markMigration('normalize_weights_v2');
   if (changed > 0) console.log(`[db] Normalized weights for ${changed} products`);
 };
 
