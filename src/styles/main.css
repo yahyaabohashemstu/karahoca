@@ -339,8 +339,12 @@ body {
 .brand__logo {
   height: 32px;
   width: auto;
+  filter: drop-shadow(var(--glow-primary)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.2));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+body.light-mode .brand__logo {
   filter: drop-shadow(var(--glow-primary));
-  transition: transform 0.3s ease;
 }
 
 .brand:hover .brand__logo {

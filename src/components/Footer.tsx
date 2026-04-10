@@ -106,6 +106,7 @@ const Footer: React.FC = () => {
           <img
             src="/cropped-karahoca-logo-s-.webp"
             alt="KARAHOCA"
+            className="brand__logo"
             style={{ height: '64px', width: 'auto', objectFit: 'contain' }}
           />
           <p>{t('footer.description')}</p>
