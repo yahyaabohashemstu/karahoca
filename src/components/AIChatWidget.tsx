@@ -394,8 +394,16 @@ const mapKnowledgeToPrompt = (
     .join('\n');
 
   const historySnippet = history
-    .slice(-6)
-    .map((message) => `${message.role === 'user' ? 'Customer' : 'Assistant'}: ${message.content}`)
+    .filter((m) => m.id !== 'welcome')
+    .slice(-4)
+    .map((message) => {
+      const role = message.role === 'user' ? 'Customer' : 'Assistant';
+      // Cap each message to 300 chars to prevent prompt bloat
+      const content = message.content.length > 300
+        ? message.content.slice(0, 300) + '…'
+        : message.content;
+      return `${role}: ${content}`;
+    })
     .join('\n');
 
   return `SYSTEM INSTRUCTIONS (HIGHEST PRIORITY):

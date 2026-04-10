@@ -344,11 +344,15 @@ const subscribeNewsletter = async ({ email, lang }) => {
 /** Build enriched prompt: append live DB products + custom Q&A */
 const buildDynamicContext = (prompt, lang = 'ar') => {
   try {
-    const productCtx = buildProductContext(lang);
+    // Only add DB context if the client prompt doesn't already contain product catalog
+    const hasProductCatalog = prompt.includes('Knowledge Base') && prompt.length > 5000;
+    const productCtx = hasProductCatalog ? '' : buildProductContext(lang);
     const customCtx  = buildCustomQAContext(lang);
     const extra = [productCtx, customCtx].filter(Boolean).join('\n\n');
     if (!extra) return prompt;
-    return `${prompt}\n\n${extra}`;
+    // Cap total prompt to ~30K chars to prevent Gemini overload
+    const full = `${prompt}\n\n${extra}`;
+    return full.length > 30000 ? full.slice(0, 30000) + '\n[context truncated]' : full;
   } catch {
     return prompt; // fallback: use original prompt if DB fails
   }
@@ -419,14 +423,17 @@ const generateAiReply = async ({ prompt, lang }) => {
         if (res.ok) {
           const payload = await res.json();
           const reply = extractModelText(payload);
-          if (reply) return { success: true, reply };
-          // Empty reply — try next model
+          if (reply) {
+            console.log(`[ai-chat] ✓ ${model} succeeded (attempt ${attempt + 1})`);
+            return { success: true, reply };
+          }
           console.warn(`[ai-chat] ${model} returned empty reply, trying next`);
           break;
         }
 
         const status = res.status;
-        console.warn(`[ai-chat] ${model} attempt ${attempt + 1} → HTTP ${status}`);
+        const errBody = await res.text().catch(() => '');
+        console.warn(`[ai-chat] ${model} attempt ${attempt + 1} → HTTP ${status}: ${errBody.slice(0, 200)}`);
 
         if (status === 503 || status === 429) continue; // retry same model
         break; // other error → next model
@@ -606,9 +613,19 @@ const server = createServer(async (request, response) => {
         sendJson(response, 200, { success: true, reply: cachedReply }, requestOrigin);
         return;
       }
-      const result = await generateAiReply(body);
-      if (result?.reply) setCachedReply(body.prompt, body.lang || 'ar', result.reply);
-      sendJson(response, 200, result, requestOrigin);
+      try {
+        const promptLen = (body.prompt || '').length;
+        console.log(`[ai-chat] prompt length: ${promptLen} chars`);
+        const result = await generateAiReply(body);
+        if (result?.reply) setCachedReply(body.prompt, body.lang || 'ar', result.reply);
+        sendJson(response, 200, result, requestOrigin);
+      } catch (aiErr) {
+        console.error(`[ai-chat] generateAiReply failed:`, aiErr.message || aiErr);
+        sendJson(response, aiErr.statusCode || 503, {
+          success: false,
+          error: 'AI service temporarily unavailable. Please try again.'
+        }, requestOrigin);
+      }
       return;
     }
 
