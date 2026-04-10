@@ -572,13 +572,13 @@ const AIChatWidget: React.FC = () => {
         questionLanguageHint
       );
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 s — allows server retries
       let response: Response;
       try {
         response = await fetch(buildApiUrl('/api/ai/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt, lang: currentLang }),
           signal: controller.signal,
         });
       } finally {
