@@ -214,8 +214,12 @@ export default function MobileFooter() {
           </form>
         </section>
       </div>
-      <div className="m-container footnote">
-        <p>{t('footer.copyright', { year: currentYear })}</p>
+      <div className="m-container footnote" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.4rem 1.2rem' }}>
+        <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
+        <nav style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', opacity: 0.7 }}>
+          <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.privacy', 'Privacy Policy')}</Link>
+          <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
+        </nav>
       </div>
     </footer>
   );

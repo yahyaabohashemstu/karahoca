@@ -310,7 +310,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
 
   const PageImg = ({ idx }: { idx: number | null }) =>
     pg(idx) ? (
-      <img src={pg(idx)!} alt="" className="fb-pg-img" draggable={false} />
+      <img src={pg(idx)!} alt={`Catalog page ${(idx ?? 0) + 1}`} className="fb-pg-img" draggable={false} />
     ) : (
       <div className="fb-pg-blank">
         {idx === null && brandName && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SEO from '../components/SEO';
 
 const NotFoundPage: React.FC = () => {
   const { i18n } = useTranslation();
@@ -16,6 +17,8 @@ const NotFoundPage: React.FC = () => {
   const m = messages[lang.slice(0, 2)] ?? messages.en;
 
   return (
+    <>
+    <SEO title={`404 — ${m.title} | KARAHOCA`} description={m.sub} noindex />
     <div className="not-found-page" style={{
       minHeight: '100vh',
       display: 'flex',
@@ -51,6 +54,7 @@ const NotFoundPage: React.FC = () => {
         {m.btn}
       </Link>
     </div>
+    </>
   );
 };
 

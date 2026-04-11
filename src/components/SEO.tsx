@@ -86,7 +86,7 @@ const SEO: React.FC<SEOProps> = ({
       <meta name="copyright"    content="KARAHOCA" />
       <meta name="viewport"     content="width=device-width, initial-scale=1.0" />
       <meta httpEquiv="Content-Language" content={language} />
-      <meta name="theme-color"  content="#0f1117" />
+      <meta name="theme-color"  content="#153d7a" />
 
       {/* Language and Direction */}
       <html lang={language} dir={direction} />
