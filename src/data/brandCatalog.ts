@@ -12,6 +12,8 @@ export interface BrandProductDetails {
 }
 
 export interface BrandProductInfo {
+  /** DB product ID — available when loaded from API; used for deep-link hash */
+  id?: string;
   name: string;
   description: string;
   image: string;
@@ -571,6 +573,7 @@ interface PublicApiCategory {
 const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
   title: cat.title,
   products: cat.products.map((p) => ({
+    id: p.id,           // ← pass through for deep-link hash
     name: p.name,
     description: p.description,
     image: p.image,

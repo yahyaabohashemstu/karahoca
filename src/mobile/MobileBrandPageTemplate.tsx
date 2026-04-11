@@ -1,16 +1,23 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SEO from "../components/SEO";
 import type { BrandCategoryData, BrandProductInfo } from "../data/brandCatalog";
 import FlipBook from "../components/FlipBook";
 
-/** Build a WhatsApp share URL for the given product */
+/** Build a WhatsApp share URL for the given product.
+ *  If the product has an `id`, the link points directly to that product
+ *  via a URL hash (e.g. https://karahoca.com/aylux#aylux-dishwash-gel).
+ *  Opening that link auto-opens the product modal (see useEffect below).
+ */
 function buildWhatsAppUrl(product: BrandProductInfo, pageUrl: string): string {
   const name = product.name;
   const desc = product.description
     ? product.description.slice(0, 130) + (product.description.length > 130 ? '…' : '')
     : '';
-  const text = `🧹 *${name}*${desc ? '\n' + desc : ''}\n\n🔗 ${pageUrl}`;
+  // Strip any existing hash then append product id if available
+  const base = pageUrl.split('#')[0];
+  const productUrl = product.id ? `${base}#${product.id}` : base;
+  const text = `🧹 *${name}*${desc ? '\n' + desc : ''}\n\n🔗 ${productUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
@@ -67,9 +74,22 @@ export default function MobileBrandPageTemplate({
   pdfUrl,
 }: MobileBrandPageTemplateProps) {
   const { t } = useTranslation();
-  const [selectedProduct, setSelectedProduct] = useState<BrandProductInfo | null>(
-    null
-  );
+  const [selectedProduct, setSelectedProduct] = useState<BrandProductInfo | null>(null);
+
+  // ── Deep-link: open product modal when URL contains a product hash ─────────
+  // e.g. https://karahoca.com/m/aylux#aylux-dishwash-gel
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // strip '#'
+    if (!hash) return;
+    for (const cat of categories) {
+      const found = cat.products.find(p => p.id === hash);
+      if (found) {
+        setSelectedProduct(found);
+        break;
+      }
+    }
+  }, [categories]);
+
   const totalProducts = useMemo(
     () =>
       categories.reduce(

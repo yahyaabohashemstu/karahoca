@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Header from '../components/Header';
@@ -6,16 +6,28 @@ import Footer from '../components/Footer';
 import FlipBook from './FlipBook';
 import { useWishlist } from '../hooks/useWishlist';
 
-/** Build a WhatsApp share URL for the given product */
-function buildWhatsAppUrl(productName: string, productDesc: string, pageUrl: string): string {
+/** Build a WhatsApp share URL for the given product.
+ *  Appends the product id as a URL hash so the recipient lands directly
+ *  on the product modal (e.g. https://karahoca.com/aylux#aylux-dishwash-gel).
+ */
+function buildWhatsAppUrl(
+  productName: string,
+  productDesc: string,
+  pageUrl: string,
+  productId?: string,
+): string {
   const desc = productDesc
     ? productDesc.slice(0, 130) + (productDesc.length > 130 ? '…' : '')
     : '';
-  const text = `🧹 *${productName}*${desc ? '\n' + desc : ''}\n\n🔗 ${pageUrl}`;
+  const base = pageUrl.split('#')[0];
+  const productUrl = productId ? `${base}#${productId}` : base;
+  const text = `🧹 *${productName}*${desc ? '\n' + desc : ''}\n\n🔗 ${productUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
 interface ProductInfo {
+  /** DB product ID — available from API; used for deep-link hash */
+  id?: string;
   name: string;
   description: string;
   image: string;
@@ -82,6 +94,21 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const { isInWishlist, toggle } = useWishlist();
+
+  // ── Deep-link: open product modal when URL contains a product hash ─────────
+  // e.g. https://karahoca.com/aylux#aylux-dishwash-gel
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // strip '#'
+    if (!hash) return;
+    for (const cat of categories) {
+      const found = cat.products.find(p => p.id === hash);
+      if (found) {
+        setSelectedProduct(found);
+        setGalleryIndex(0);
+        break;
+      }
+    }
+  }, [categories]);
 
   // All images for the popup: main image first, then gallery colour variants
   const allPopupImages = selectedProduct
@@ -417,6 +444,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                     selectedProduct.name,
                     selectedProduct.description,
                     window.location.href,
+                    selectedProduct.id,
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
