@@ -574,6 +574,16 @@ const ROUTE_META = {
     description: 'Discover KARAHOCA advanced dryer technology - high-capacity production with raw material manufacturing capability.',
     image: '/karahoca-logo-1-Photoroom.webp',
   },
+  '/privacy': {
+    title: 'Privacy Policy | KARAHOCA',
+    description: 'KARAHOCA privacy policy — how we collect, use, and protect your personal information.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/terms': {
+    title: 'Terms of Service | KARAHOCA',
+    description: 'KARAHOCA terms of service — rules and conditions for using our website.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
 };
 
 // Cache the raw HTML template at startup for meta injection
@@ -581,16 +591,35 @@ let spaHtmlTemplate = '';
 try { spaHtmlTemplate = existsSync(spaIndex) ? (await readFile(spaIndex, 'utf8')) : ''; } catch { /* */ }
 
 function injectMeta(html, routePath) {
-  const meta = ROUTE_META[routePath];
+  let meta = ROUTE_META[routePath];
+
+  // Dynamic news article meta from database
+  if (!meta && routePath.startsWith('/news/')) {
+    try {
+      const slug = routePath.replace('/news/', '');
+      const db = getDb();
+      const row = db.prepare(
+        `SELECT title_en, excerpt_en, image FROM news WHERE slug=? AND active=1`
+      ).get(slug);
+      if (row) {
+        meta = {
+          title: `${row.title_en} | KARAHOCA`,
+          description: row.excerpt_en || '',
+          image: row.image || '/karahoca-logo-1-Photoroom.webp',
+        };
+      }
+    } catch { /* fallback to uninjected HTML */ }
+  }
+
   if (!meta) return html;
   const siteUrl = 'https://karahoca.com';
   const fullImage = `${siteUrl}${meta.image}`;
   const fullUrl = `${siteUrl}${routePath}`;
+  const ogType = routePath.startsWith('/news/') ? 'article' : 'website';
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`)
     .replace(/<meta\s+name="description"\s+content="[^"]*">/, `<meta name="description" content="${meta.description}">`)
-    // Inject OG tags right before </head> if they don't exist in the HTML shell
-    .replace('</head>', `<meta property="og:title" content="${meta.title}">\n<meta property="og:description" content="${meta.description}">\n<meta property="og:image" content="${fullImage}">\n<meta property="og:url" content="${fullUrl}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="KARAHOCA">\n</head>`);
+    .replace('</head>', `<meta property="og:title" content="${meta.title}">\n<meta property="og:description" content="${meta.description}">\n<meta property="og:image" content="${fullImage}">\n<meta property="og:url" content="${fullUrl}">\n<meta property="og:type" content="${ogType}">\n<meta property="og:site_name" content="KARAHOCA">\n</head>`);
 }
 
 // ─── Server ───────────────────────────────────────────────────────────────────

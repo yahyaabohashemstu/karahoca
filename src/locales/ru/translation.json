@@ -240,7 +240,9 @@
         "phone": "+90 850 228 35 34",
         "email": "info@karahoca.com"
       },
-      "copyright": "© {{year}} KARAHOCA. Все права защищены."
+      "copyright": "© {{year}} KARAHOCA. Все права защищены.",
+      "privacy": "Политика конфиденциальности",
+      "terms": "Условия использования"
     },
     "whatsapp": {
       "title": "Свяжитесь с нами через WhatsApp",
@@ -760,7 +762,9 @@
       "latestLabel": "Все новости",
       "readMore": "Читать далее",
       "viewAll": "Все новости",
-      "modalClose": "Закрыть новость"
+      "modalClose": "Закрыть новость",
+      "backToNews": "Назад к новостям",
+      "notFound": "Статья не найдена"
     },
     "cookie": {
       "title": "Мы используем файлы cookie",

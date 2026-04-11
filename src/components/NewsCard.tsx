@@ -1,10 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { LocalizedNewsItem } from '../data/news';
 
 interface NewsCardProps {
   news: LocalizedNewsItem;
-  onOpen: (news: LocalizedNewsItem) => void;
+  onOpen?: (news: LocalizedNewsItem) => void;
   compact?: boolean;
   featured?: boolean;
 }
@@ -29,14 +30,24 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, onOpen, compact = false, feat
         <h3 className="news-card__title">{news.title}</h3>
         <p className="news-card__excerpt">{news.excerpt}</p>
 
-        <button
-          type="button"
-          className="news-card__action"
-          onClick={() => onOpen(news)}
-          aria-label={`${t('newsPage.readMore')} - ${news.title}`}
-        >
-          {t('newsPage.readMore')}
-        </button>
+        {onOpen ? (
+          <button
+            type="button"
+            className="news-card__action"
+            onClick={() => onOpen(news)}
+            aria-label={`${t('newsPage.readMore')} - ${news.title}`}
+          >
+            {t('newsPage.readMore')}
+          </button>
+        ) : (
+          <Link
+            to={`/news/${news.slug}`}
+            className="news-card__action"
+            aria-label={`${t('newsPage.readMore')} - ${news.title}`}
+          >
+            {t('newsPage.readMore')}
+          </Link>
+        )}
       </div>
     </article>
   );

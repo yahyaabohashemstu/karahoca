@@ -240,7 +240,9 @@
         "phone": "+90 850 228 35 34",
         "email": "info@karahoca.com"
       },
-      "copyright": "© {{year}} KARAHOCA. Tüm hakları saklıdır."
+      "copyright": "© {{year}} KARAHOCA. Tüm hakları saklıdır.",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları"
     },
     "whatsapp": {
       "title": "WhatsApp ile iletişime geçin",
@@ -760,7 +762,9 @@
       "latestLabel": "Tum haberler",
       "readMore": "Devamini oku",
       "viewAll": "Tum haberler",
-      "modalClose": "Haberi kapat"
+      "modalClose": "Haberi kapat",
+      "backToNews": "Haberlere Don",
+      "notFound": "Haber bulunamadi"
     },
     "cookie": {
       "title": "Çerez kullanıyoruz",

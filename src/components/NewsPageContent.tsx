@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
-import NewsModal from './NewsModal';
 import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
 
@@ -9,7 +9,6 @@ const NewsPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
-  const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
   const featuredNews = newsItems[0];
 
   useEffect(() => {
@@ -43,19 +42,18 @@ const NewsPageContent: React.FC = () => {
             )}
 
             {featuredNews && (
-              <button
-                type="button"
+              <Link
+                to={`/news/${featuredNews.slug}`}
                 className="btn btn--primary news-page__heroButton"
-                onClick={() => setActiveNews(featuredNews)}
               >
                 {t('newsPage.readMore')}
-              </button>
+              </Link>
             )}
           </div>
 
           {featuredNews && (
             <div className="news-page__heroFeatured fx-up">
-              <NewsCard news={featuredNews} onOpen={setActiveNews} featured />
+              <NewsCard news={featuredNews} featured />
             </div>
           )}
         </div>
@@ -72,13 +70,11 @@ const NewsPageContent: React.FC = () => {
         <div className="container news-page__grid">
           {newsItems.map((item) => (
             <div key={item.id} className="fx-up">
-              <NewsCard news={item} onOpen={setActiveNews} />
+              <NewsCard news={item} />
             </div>
           ))}
         </div>
       </section>
-
-      <NewsModal news={activeNews} onClose={() => setActiveNews(null)} />
     </>
   );
 };

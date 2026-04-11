@@ -209,8 +209,12 @@ const Footer: React.FC = () => {
           </form>
         </section>
       </div>
-      <div className="container footnote">
+      <div className="container footnote" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.5rem 1.5rem' }}>
         <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
+        <nav style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
+          <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.privacy', 'Privacy Policy')}</Link>
+          <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
+        </nav>
       </div>
     </footer>
   );

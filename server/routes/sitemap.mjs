@@ -44,9 +44,16 @@ export const handleSitemap = (req, res) => {
       { url: '/production', priority: '0.7', changefreq: 'monthly', lastmod: today        },
       { url: '/goal',       priority: '0.6', changefreq: 'monthly', lastmod: today        },
       { url: '/dryer',      priority: '0.6', changefreq: 'monthly', lastmod: today        },
+      { url: '/privacy',    priority: '0.3', changefreq: 'yearly',  lastmod: today        },
+      { url: '/terms',      priority: '0.3', changefreq: 'yearly',  lastmod: today        },
     ];
 
-    const urls = staticPages.map(p => `
+    // Dynamic news article routes
+    const newsRows = db.prepare(
+      `SELECT slug, published_at, updated_at FROM news WHERE active=1 ORDER BY published_at DESC`
+    ).all();
+
+    const staticUrls = staticPages.map(p => `
   <url>
     <loc>${escapeXml(SITE_URL + p.url)}</loc>
     <lastmod>${escapeXml(p.lastmod)}</lastmod>
@@ -55,10 +62,23 @@ export const handleSitemap = (req, res) => {
 ${hreflangLinks(p.url)}
   </url>`);
 
+    const newsUrls = newsRows.map(n => {
+      const newsPath = `/news/${n.slug}`;
+      const lastmod = (n.updated_at || n.published_at || today).slice(0, 10);
+      return `
+  <url>
+    <loc>${escapeXml(SITE_URL + newsPath)}</loc>
+    <lastmod>${escapeXml(lastmod)}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+${hreflangLinks(newsPath)}
+  </url>`;
+    });
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.join('')}
+${[...staticUrls, ...newsUrls].join('')}
 </urlset>`;
 
     res.writeHead(200, {

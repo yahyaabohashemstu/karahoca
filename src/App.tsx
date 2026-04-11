@@ -18,6 +18,9 @@ import NewsPage from './pages/NewsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import WishlistPage from './pages/WishlistPage';
 import UnsubscribePage from './pages/UnsubscribePage';
+import NewsArticlePage from './pages/NewsArticlePage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
@@ -81,6 +84,7 @@ function MainSite() {
                   <Route path="/" element={<MobileHome />} />
                   <Route path="/about" element={<MobileAboutPage />} />
                   <Route path="/news" element={<MobileNewsPage />} />
+                  <Route path="/news/:slug" element={<NewsArticlePage />} />
                   <Route path="/diox" element={<MobileDioxPage />} />
                   <Route path="/aylux" element={<MobileAyluxPage />} />
                   <Route path="/production" element={<MobileProductionPage />} />
@@ -88,6 +92,8 @@ function MainSite() {
                   <Route path="/dryer" element={<MobileDryerPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </MobileLayout>
@@ -101,6 +107,7 @@ function MainSite() {
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/news" element={<NewsPage />} />
+                <Route path="/news/:slug" element={<NewsArticlePage />} />
                 <Route path="/diox" element={<DioxPage />} />
                 <Route path="/aylux" element={<AyluxPage />} />
                 <Route path="/production" element={<ProductionPage />} />
@@ -108,6 +115,8 @@ function MainSite() {
                 <Route path="/dryer" element={<DryerPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AIChatWidget />

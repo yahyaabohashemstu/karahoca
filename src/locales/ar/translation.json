@@ -240,7 +240,9 @@
         "phone": "+90 850 228 35 34",
         "email": "info@karahoca.com"
       },
-      "copyright": "© {{year}} KARAHOCA. جميع الحقوق محفوظة."
+      "copyright": "© {{year}} KARAHOCA. جميع الحقوق محفوظة.",
+      "privacy": "سياسة الخصوصية",
+      "terms": "شروط الاستخدام"
     },
     "whatsapp": {
       "title": "تواصل معنا عبر واتساب",
@@ -760,7 +762,9 @@
       "latestLabel": "كل الأخبار",
       "readMore": "اقرأ المزيد",
       "viewAll": "جميع الأخبار",
-      "modalClose": "إغلاق الخبر"
+      "modalClose": "إغلاق الخبر",
+      "backToNews": "العودة للأخبار",
+      "notFound": "الخبر غير موجود"
     },
     "cookie": {
       "title": "نستخدم ملفات تعريف الارتباط",
