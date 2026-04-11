@@ -1622,6 +1622,7 @@ body.light-mode .popup-gift-section {
 .popup-whatsapp-share {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   width: 100%;
   margin-top: 1rem;
