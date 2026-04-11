@@ -286,7 +286,16 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                               className={`product-wishlist-btn${isInWishlist(`${brandName}-${product.name}`) ? ' product-wishlist-btn--active' : ''}`}
                               onClick={() => {
                                 const id = `${brandName}-${product.name}`;
-                                toggle({ id, name: product.name, description: product.description, image: product.image, alt: product.alt, brand: brandName, details: product.details });
+                                toggle({
+                                  id,
+                                  productDbId: product.id,
+                                  name: product.name,
+                                  description: product.description,
+                                  image: product.image,
+                                  alt: product.alt,
+                                  brand: brandName,
+                                  details: product.details,
+                                });
                               }}
                               title={isInWishlist(`${brandName}-${product.name}`) ? t('brandPage.removeWishlist', 'Remove from Wishlist') : t('brandPage.addWishlist', 'Add to Wishlist')}
                               aria-label={isInWishlist(`${brandName}-${product.name}`) ? 'Remove from Wishlist' : 'Add to Wishlist'}

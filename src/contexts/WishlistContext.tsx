@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export interface WishlistItem {
   id: string;
+  /** DB product id (e.g. "aylux-dishwash-gel") — used for WhatsApp deep-link */
+  productDbId?: string;
   name: string;
   description: string;
   image: string;
@@ -11,6 +13,8 @@ export interface WishlistItem {
     weight?: string;
     material?: string;
     count?: string;
+    gift?: string;
+    weightCountTable?: Array<{ weight: string; count: number }>;
   };
 }
 
