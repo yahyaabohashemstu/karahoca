@@ -36,7 +36,6 @@ const SEO: React.FC<SEOProps> = ({
   const fullCanonicalUrl = canonicalUrl || `${siteUrl}${typeof window !== 'undefined' ? window.location.pathname : ''}`;
   const ogLocale = ogLocaleMap[language] || ogLocaleMap.ar;
 
-  const pagePath = typeof window !== 'undefined' ? window.location.pathname : '/';
   const SUPPORTED_LANGS = ['ar', 'en', 'tr', 'ru'];
   const alternateLocales: Record<string, string> = { ar: 'ar_SA', en: 'en_US', tr: 'tr_TR', ru: 'ru_RU' };
 
