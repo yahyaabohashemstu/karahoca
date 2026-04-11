@@ -108,6 +108,8 @@ export const adminApi = {
     request<{ success: boolean; product: Product }>('PUT', `/api/admin/products/${encodeURIComponent(id)}`, data),
   deleteProduct: (id: string) =>
     request<{ success: boolean }>('DELETE', `/api/admin/products/${encodeURIComponent(id)}`),
+  reorderProducts: (items: { id: string; display_order: number }[]) =>
+    request<{ success: boolean }>('PUT', '/api/admin/products/reorder', { items }),
 
   // Categories
   getCategories: (brand?: string) => {

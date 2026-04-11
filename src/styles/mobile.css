@@ -2154,6 +2154,38 @@
     padding-top: 16px;
   }
 
+  /* ── WhatsApp share button ──────────────────────────────────────────────── */
+  .m-productModal__share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(37, 211, 102, 0.35);
+    border-radius: 14px;
+    background: rgba(37, 211, 102, 0.08);
+    color: #25D366;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .m-productModal__share:active {
+    background: rgba(37, 211, 102, 0.18);
+    border-color: rgba(37, 211, 102, 0.5);
+    transform: scale(0.98);
+  }
+
+  body.light-mode .m-productModal__share {
+    background: rgba(37, 211, 102, 0.06);
+    border-color: rgba(37, 211, 102, 0.25);
+    color: #128C4A;
+  }
+
   @media (max-width: 420px) {
     .m-pageHero__actions,
     .m-journeyCard__actions {

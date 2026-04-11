@@ -19,6 +19,30 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
   const adminUser = admin?.username || 'admin';
   const urlObj = new URL(req.url, 'http://localhost');
 
+  // ── PUT /api/admin/products/reorder — bulk display_order update ───────────
+  if (url === '/api/admin/products/reorder' && req.method === 'PUT') {
+    const { items } = body;
+    if (!Array.isArray(items) || items.length === 0) {
+      sendJson(res, 400, { success: false, error: 'items[] array required.' }, origin);
+      return;
+    }
+    const update = db.prepare(
+      "UPDATE products SET display_order=?, updated_at=datetime('now') WHERE id=?"
+    );
+    const updateAll = db.transaction((rows) => {
+      for (const { id, display_order } of rows) {
+        update.run(display_order ?? 0, id);
+      }
+    });
+    updateAll(items);
+    logAudit({
+      action: 'REORDER', entityType: 'product', entityId: null,
+      entityName: `${items.length} products reordered`, adminUser,
+    });
+    sendJson(res, 200, { success: true }, origin);
+    return;
+  }
+
   // /api/admin/products/:id
   const idMatch = url.match(/^\/api\/admin\/products\/([^/]+)$/);
   if (idMatch) {
