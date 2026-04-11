@@ -1288,7 +1288,8 @@ body.light-mode .product-wishlist-btn--active {
 .image-popup-close {
   position: absolute;
   top: 1rem;
-  right: 1rem;
+  /* ── Logical property: RTL→right, LTR→left — auto-adapts to language ── */
+  inset-inline-start: 1rem;
   background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
@@ -1331,8 +1332,7 @@ body.light-mode .product-wishlist-btn--active {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  direction: rtl;
-  text-align: right;
+  /* direction & text-align inherited from html[dir] — RTL for Arabic, LTR for others */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
@@ -1385,7 +1385,7 @@ body.light-mode .product-wishlist-btn--active {
     min-width: 0;
     height: 100%;
     overflow-y: auto;
-    text-align: right;
+    /* text-align inherited from document direction */
   }
 }
 
