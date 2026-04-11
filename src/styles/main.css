@@ -1175,6 +1175,54 @@ body.light-mode .detail-item-full .detail-label {
   color: rgba(21, 61, 122, 0.75);
 }
 
+/* ── زر القلب (المفضلة) على بطاقة المنتج ──────────────────────────────────── */
+.product-wishlist-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.product-wishlist-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  transform: scale(1.08);
+}
+
+.product-wishlist-btn--active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+/* وضع فاتح — ألوان مرئية وواضحة */
+body.light-mode .product-wishlist-btn {
+  border: 1px solid rgba(21, 61, 122, 0.22);
+  background: rgba(21, 61, 122, 0.07);
+  color: rgba(21, 61, 122, 0.55);
+}
+
+body.light-mode .product-wishlist-btn:hover {
+  background: rgba(239, 68, 68, 0.09);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+body.light-mode .product-wishlist-btn--active {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
 /* زر عرض الصورة */
 .image-preview-btn {
   margin-top: 1rem;

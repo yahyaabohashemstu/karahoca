@@ -283,22 +283,13 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                               {t('brandPage.viewImage')}
                             </button>
                             <button
+                              className={`product-wishlist-btn${isInWishlist(`${brandName}-${product.name}`) ? ' product-wishlist-btn--active' : ''}`}
                               onClick={() => {
                                 const id = `${brandName}-${product.name}`;
                                 toggle({ id, name: product.name, description: product.description, image: product.image, alt: product.alt, brand: brandName, details: product.details });
                               }}
                               title={isInWishlist(`${brandName}-${product.name}`) ? t('brandPage.removeWishlist', 'Remove from Wishlist') : t('brandPage.addWishlist', 'Add to Wishlist')}
                               aria-label={isInWishlist(`${brandName}-${product.name}`) ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                              style={{
-                                padding: '0 12px',
-                                borderRadius: 8,
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                background: isInWishlist(`${brandName}-${product.name}`) ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
-                                color: isInWishlist(`${brandName}-${product.name}`) ? '#ef4444' : 'rgba(255,255,255,0.6)',
-                                cursor: 'pointer',
-                                fontSize: '1.1rem',
-                                transition: 'all 0.2s',
-                              }}
                             >
                               {isInWishlist(`${brandName}-${product.name}`) ? '♥' : '♡'}
                             </button>
