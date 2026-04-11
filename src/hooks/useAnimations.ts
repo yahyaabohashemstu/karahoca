@@ -122,9 +122,11 @@ export const useScrollAnimations = () => {
 // Hook لإدارة تغيير المظهر
 export const useThemeToggle = () => {
   useEffect(() => {
-    // تطبيق المظهر المحفوظ
+    // الوضع الفاتح هو الافتراضي — لا يُزال إلا إذا اختار المستخدم الداكن
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
+    if (savedTheme === 'dark') {
+      document.body.classList.remove('light-mode');
+    } else {
       document.body.classList.add('light-mode');
     }
   }, []);
