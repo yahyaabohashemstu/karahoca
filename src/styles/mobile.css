@@ -2135,16 +2135,24 @@
   }
 
   .m-productModal__media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-top: 18px;
     border-radius: 18px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.04);
+    height: 220px;
+    padding: 12px;
+    flex-shrink: 0;
   }
 
   .m-productModal__media img {
     display: block;
-    width: 100%;
-    height: min(42vh, 340px);
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     object-fit: contain;
   }
 
@@ -2216,8 +2224,8 @@
       border-radius: 22px;
     }
 
-    .m-productModal__media img {
-      height: min(38vh, 300px);
+    .m-productModal__media {
+      height: 190px;
     }
   }
 
