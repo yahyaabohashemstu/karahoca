@@ -98,7 +98,10 @@
       "satisfaction": "удовлетворенность клиентов",
       "employees": "сотрудников",
       "employeesLabel": "Креативная команда KARAHOCA",
-      "years": "лет"
+      "years": "лет",
+      "worldMapAlt": "Карта мира",
+      "employeesAlt": "Сотрудники KARAHOCA",
+      "satisfactionAlt": "Удовлетворённость клиентов"
     },
     "about": {
       "title": "О нас",

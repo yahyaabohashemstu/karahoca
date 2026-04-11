@@ -384,7 +384,7 @@ const WishlistPage: React.FC = () => {
   if (items.length === 0) {
     return (
       <div style={styles.page}>
-        <SEO title={`KARAHOCA — ${l.title}`} description={l.subtitle} />
+        <SEO title={`KARAHOCA — ${l.title}`} description={l.subtitle} noindex />
         <Header />
         <main style={styles.main}>
           <div style={styles.emptyWrap}>

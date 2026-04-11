@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
-import { BrandPageSchema } from '../components/SchemaOrg';
+import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getDioxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
@@ -85,7 +85,16 @@ const DioxPageContent: React.FC = () => {
     pdfUrl: '/Catalog/DIOX-KATALOG.pdf'
   };
 
-  return <BrandPageTemplate {...dioxData} />;
+  const allProducts = categories.flatMap(c =>
+    c.products.map(p => ({ name: p.name, description: p.description, image: p.image, category: c.title }))
+  );
+
+  return (
+    <>
+      <ProductListSchema brand="DIOX" products={allProducts} />
+      <BrandPageTemplate {...dioxData} />
+    </>
+  );
 };
 
 export default DioxPage;

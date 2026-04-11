@@ -1,0 +1,22 @@
+{
+  "name": "KARAHOCA - World-Class Cleaning Products",
+  "short_name": "KARAHOCA",
+  "description": "Turkish manufacturer of household and industrial cleaning products. DIOX and AYLUX brands.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#153d7a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/cropped-karahoca-logo-s-.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/cropped-karahoca-logo-s-.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}

@@ -98,7 +98,10 @@
       "satisfaction": "رضا عملاء",
       "employees": "موظف",
       "employeesLabel": "فريق عمل KARAHOCA المبدع",
-      "years": "سنة"
+      "years": "سنة",
+      "worldMapAlt": "خريطة العالم",
+      "employeesAlt": "موظفين KARAHOCA",
+      "satisfactionAlt": "رضا العملاء"
     },
     "about": {
       "title": "من نحن",

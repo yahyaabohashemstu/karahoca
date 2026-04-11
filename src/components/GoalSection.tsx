@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const GoalSection: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <section id="goal" className="section glass-section">
       <div className="section-divider"></div>
@@ -18,7 +20,7 @@ const GoalSection: React.FC = () => {
             <div style={{ width: '320px', height: '320px', position: 'relative', margin: 'auto' }}>
               <img 
                 src="/cropped-karahoca-logo-s-.webp" 
-                alt="هدف KARAHOCA"
+                alt={t('goal.seo.title')}
                 style={{ 
                   width: '100%', 
                   height: '100%', 

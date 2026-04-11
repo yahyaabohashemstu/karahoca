@@ -1,6 +1,7 @@
 import { getDb } from '../db.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/$/, '');
+const LANGS = ['ar', 'en', 'tr', 'ru'];
 
 const escapeXml = (str) =>
   String(str || '')
@@ -9,6 +10,15 @@ const escapeXml = (str) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+
+/** Build hreflang <xhtml:link> alternates for a given path */
+function hreflangLinks(pagePath) {
+  const escaped = escapeXml(SITE_URL + pagePath);
+  return [
+    ...LANGS.map(l => `      <xhtml:link rel="alternate" hreflang="${l}" href="${escaped}" />`),
+    `      <xhtml:link rel="alternate" hreflang="x-default" href="${escaped}" />`,
+  ].join('\n');
+}
 
 export const handleSitemap = (req, res) => {
   try {
@@ -24,40 +34,30 @@ export const handleSitemap = (req, res) => {
       `SELECT MAX(updated_at) AS m FROM products WHERE active=1 AND brand='AYLUX'`
     ).get()?.m || today).slice(0, 10);
 
-    // Static pages with dynamic lastmod for brand pages
+    // All public pages (excluding utility pages like /wishlist, /unsubscribe)
     const staticPages = [
-      { url: '/',          priority: '1.0', changefreq: 'weekly',  lastmod: today        },
-      { url: '/diox',      priority: '0.9', changefreq: 'weekly',  lastmod: dioxLastMod  },
-      { url: '/aylux',     priority: '0.9', changefreq: 'weekly',  lastmod: ayluxLastMod },
-      { url: '/news',      priority: '0.8', changefreq: 'daily',   lastmod: today        },
-      { url: '/about',     priority: '0.7', changefreq: 'monthly', lastmod: today        },
-      { url: '/wishlist',  priority: '0.3', changefreq: 'never',   lastmod: today        },
+      { url: '/',           priority: '1.0', changefreq: 'weekly',  lastmod: today        },
+      { url: '/diox',       priority: '0.9', changefreq: 'weekly',  lastmod: dioxLastMod  },
+      { url: '/aylux',      priority: '0.9', changefreq: 'weekly',  lastmod: ayluxLastMod },
+      { url: '/news',       priority: '0.8', changefreq: 'daily',   lastmod: today        },
+      { url: '/about',      priority: '0.7', changefreq: 'monthly', lastmod: today        },
+      { url: '/production', priority: '0.7', changefreq: 'monthly', lastmod: today        },
+      { url: '/goal',       priority: '0.6', changefreq: 'monthly', lastmod: today        },
+      { url: '/dryer',      priority: '0.6', changefreq: 'monthly', lastmod: today        },
     ];
 
-    // Dynamic news slugs
-    const newsRows = db.prepare(
-      `SELECT slug, published_at, updated_at FROM news WHERE active=1 ORDER BY published_at DESC`
-    ).all();
-
-    const urls = [
-      ...staticPages.map(p => `
+    const urls = staticPages.map(p => `
   <url>
     <loc>${escapeXml(SITE_URL + p.url)}</loc>
     <lastmod>${escapeXml(p.lastmod)}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
-  </url>`),
-      ...newsRows.map(n => `
-  <url>
-    <loc>${escapeXml(SITE_URL + '/news#' + n.slug)}</loc>
-    <lastmod>${escapeXml((n.updated_at || n.published_at || today).slice(0, 10))}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>`),
-    ];
+${hreflangLinks(p.url)}
+  </url>`);
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls.join('')}
 </urlset>`;
 

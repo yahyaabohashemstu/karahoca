@@ -532,6 +532,67 @@ const STATIC_MIME = {
 const distDir = path.join(__dirname, '..', 'dist');
 const spaIndex = path.join(distDir, 'index.html');
 
+// ── SEO: per-route meta for SPA fallback (crawlers see correct title/desc) ──
+const ROUTE_META = {
+  '/': {
+    title: 'KARAHOCA - World-Class Cleaning Products | منظفات بجودة عالمية',
+    description: 'KARAHOCA is the leading manufacturer of cleaning products in Turkey. Two brands: DIOX & AYLUX. 30+ years of experience, 200+ employees, 15+ countries.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/diox': {
+    title: 'DIOX - Professional Cleaning Products | KARAHOCA',
+    description: 'DIOX brand from KARAHOCA - professional cleaning products with superior power. Laundry detergents, all-purpose cleaners, liquid soap, and stain removers.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/aylux': {
+    title: 'AYLUX - Premium Care Products | KARAHOCA',
+    description: 'AYLUX brand from KARAHOCA - premium care products with elegant sophistication. Gel cleaners, liquid cleaners, liquid soap, and fragrances.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/about': {
+    title: 'About Us - 30 Years Success Story | KARAHOCA',
+    description: 'Discover KARAHOCA journey from 1995 to today. 30+ years experience, 15+ distribution countries, 2 global brands: DIOX & AYLUX.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/news': {
+    title: 'News & Updates | KARAHOCA',
+    description: 'Follow KARAHOCA news about new product launches, distribution agreements, exhibitions, and operational upgrades.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/production': {
+    title: 'Production Process | KARAHOCA',
+    description: 'Discover KARAHOCA advanced production process from raw materials to packaging with strict quality control.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/goal': {
+    title: 'Our Goal | KARAHOCA',
+    description: 'Learn about our goals and roadmap for continuous growth and innovation in the detergent sector.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+  '/dryer': {
+    title: 'Our Dryer | KARAHOCA',
+    description: 'Discover KARAHOCA advanced dryer technology - high-capacity production with raw material manufacturing capability.',
+    image: '/karahoca-logo-1-Photoroom.webp',
+  },
+};
+
+// Cache the raw HTML template at startup for meta injection
+let spaHtmlTemplate = '';
+try { spaHtmlTemplate = existsSync(spaIndex) ? (await readFile(spaIndex, 'utf8')) : ''; } catch { /* */ }
+
+function injectMeta(html, routePath) {
+  const meta = ROUTE_META[routePath];
+  if (!meta) return html;
+  const siteUrl = 'https://karahoca.com';
+  const fullImage = `${siteUrl}${meta.image}`;
+  const fullUrl = `${siteUrl}${routePath}`;
+  return html
+    .replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`)
+    .replace(/<meta\s+name="description"\s+content="[^"]*">/, `<meta name="description" content="${meta.description}">`)
+    // Inject OG tags right before </head> if they don't exist in the HTML shell
+    .replace('</head>', `<meta property="og:title" content="${meta.title}">\n<meta property="og:description" content="${meta.description}">\n<meta property="og:image" content="${fullImage}">\n<meta property="og:url" content="${fullUrl}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="KARAHOCA">\n</head>`);
+}
+
 // ─── Server ───────────────────────────────────────────────────────────────────
 
 const server = createServer(async (request, response) => {
@@ -893,14 +954,15 @@ const server = createServer(async (request, response) => {
       if (await tryServeFile(filePath)) return;
       if (await tryServeFile(path.join(filePath, 'index.html'))) return;
 
-      // SPA fallback — serve index.html for all unmatched GET routes
-      if (existsSync(spaIndex)) {
-        const s = await stat(spaIndex);
+      // SPA fallback — serve index.html with injected meta for crawlers
+      if (spaHtmlTemplate) {
+        const injected = injectMeta(spaHtmlTemplate, url.split('?')[0].split('#')[0]);
+        const buf = Buffer.from(injected, 'utf8');
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': String(s.size),
+          'Content-Length': String(buf.length),
         });
-        createReadStream(spaIndex).pipe(response);
+        response.end(buf);
         return;
       }
     }

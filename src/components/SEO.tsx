@@ -52,11 +52,9 @@ const SEO: React.FC<SEOProps> = ({
       {/* Canonical URL */}
       <link rel="canonical" href={fullCanonicalUrl} />
 
-      {/* hreflang — all 4 languages + x-default */}
-      {SUPPORTED_LANGS.map(lang => (
-        <link key={lang} rel="alternate" hrefLang={lang} href={`${siteUrl}${pagePath}`} />
-      ))}
-      <link rel="alternate" hrefLang="x-default" href={`${siteUrl}${pagePath}`} />
+      {/* hreflang omitted: site uses localStorage-based language, not URL-prefixed
+         routes (/en/..., /ar/...), so all alternates would point to the same URL,
+         providing zero value and potentially confusing crawlers. */}
 
       {/* Open Graph / Facebook */}
       <meta property="og:type"              content={ogType} />

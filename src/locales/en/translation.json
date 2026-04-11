@@ -98,7 +98,10 @@
       "satisfaction": "Customer Satisfaction",
       "employees": "employees",
       "employeesLabel": "KARAHOCA Creative Team",
-      "years": "years"
+      "years": "years",
+      "worldMapAlt": "World map",
+      "employeesAlt": "KARAHOCA employees",
+      "satisfactionAlt": "Customer satisfaction"
     },
     "about": {
       "title": "About Us",

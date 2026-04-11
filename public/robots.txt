@@ -2,9 +2,12 @@
 User-agent: *
 Allow: /
 
-# Disallow admin or private pages
+# Disallow admin, private, utility and API routes
 Disallow: /admin/
 Disallow: /private/
+Disallow: /wishlist
+Disallow: /unsubscribe
+Disallow: /api/
 
 # Sitemap
 Sitemap: https://karahoca.com/sitemap.xml

@@ -27,9 +27,10 @@ const Hero: React.FC = () => {
           <div className="hero-orb hero-orb--2"></div>
           <div className="card-3d" data-tilt>
             <div className="card-3d__inner glass-panel">
-              <img 
-                src="/KARAHOCA-1-newPhoto.webp" 
+              <img
+                src="/KARAHOCA-1-newPhoto.webp"
                 alt="KARAHOCA"
+                fetchPriority="high"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>

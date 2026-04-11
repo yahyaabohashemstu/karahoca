@@ -98,7 +98,10 @@
       "satisfaction": "Müşteri Memnuniyeti",
       "employees": "çalışan",
       "employeesLabel": "KARAHOCA Yaratıcı Ekibi",
-      "years": "yıl"
+      "years": "yıl",
+      "worldMapAlt": "Dünya haritası",
+      "employeesAlt": "KARAHOCA çalışanları",
+      "satisfactionAlt": "Müşteri memnuniyeti"
     },
     "about": {
       "title": "Hakkımızda",

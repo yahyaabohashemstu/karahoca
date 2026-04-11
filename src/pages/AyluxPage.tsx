@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
-import { BrandPageSchema } from '../components/SchemaOrg';
+import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getAyluxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
@@ -83,7 +83,16 @@ const AyluxPageContent: React.FC = () => {
     aboutId: 'about-aylux'
   };
 
-  return <BrandPageTemplate {...ayluxData} />;
+  const allProducts = categories.flatMap(c =>
+    c.products.map(p => ({ name: p.name, description: p.description, image: p.image, category: c.title }))
+  );
+
+  return (
+    <>
+      <ProductListSchema brand="AYLUX" products={allProducts} />
+      <BrandPageTemplate {...ayluxData} />
+    </>
+  );
 };
 
 export default AyluxPage;

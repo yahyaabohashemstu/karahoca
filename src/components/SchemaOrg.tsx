@@ -266,3 +266,41 @@ export const AboutPageSchema: React.FC = () => {
     </Helmet>
   );
 };
+
+// ── Product List (for brand pages — enables rich product results) ────────────
+interface ProductItem {
+  name: string;
+  description: string;
+  image: string;
+  category: string;
+}
+interface ProductListSchemaProps {
+  brand: 'DIOX' | 'AYLUX';
+  products: ProductItem[];
+}
+export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, products }) => {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${brand} Products`,
+    numberOfItems: products.length,
+    itemListElement: products.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Product',
+        name: p.name,
+        description: p.description,
+        image: p.image.startsWith('http') ? p.image : `${SITE_URL}${p.image}`,
+        brand: { '@type': 'Brand', name: brand },
+        manufacturer: { '@type': 'Organization', name: 'KARAHOCA', url: SITE_URL },
+        category: p.category,
+      },
+    })),
+  };
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+};

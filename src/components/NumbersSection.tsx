@@ -314,7 +314,7 @@ const NumbersSection: React.FC = () => {
             >
               <img
                 src="/world-map.svg"
-                alt="خريطة العالم"
+                alt={t('numbers.worldMapAlt')}
                 loading="lazy"
                 style={{
                   width: '400px',
@@ -358,7 +358,7 @@ const NumbersSection: React.FC = () => {
             <div className="camera-sequence">
               <img
                 src="/employees.svg"
-                alt="موظفين KARAHOCA"
+                alt={t('numbers.employeesAlt')}
                 className="employees-svg"
                 loading="lazy"
               />
@@ -452,7 +452,7 @@ const NumbersSection: React.FC = () => {
             >
               <img 
                 src="/rate.svg" 
-                alt="رضا العملاء"
+                alt={t('numbers.satisfactionAlt')}
                 loading="lazy"
                 style={{
                   width: '320px',
