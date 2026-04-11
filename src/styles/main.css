@@ -779,33 +779,34 @@ body.light-mode .brand__logo {
 /* ═══════════════════════════════════════
    🎁 Gift Ribbon — شريط الهدية
    ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   🎁 Gift Corner Triangle — مثلث هدية الزاوية
+   ═══════════════════════════════════════ */
 .product-gift-ribbon {
   position: absolute;
   top: 0;
   right: 0;
   z-index: 10;
-  width: 96px;
-  height: 96px;
-  overflow: hidden;
-  border-radius: 0 16px 0 0;
+  width: 72px;
+  height: 72px;
   pointer-events: none;
+  /* Triangle that matches the card corner radius */
+  background: linear-gradient(225deg, #ff5b2e 0%, #ff8c00 50%, transparent 50%);
+  border-radius: 0 16px 0 0;
+  filter: drop-shadow(-2px 2px 6px rgba(255, 91, 46, 0.4));
 }
 
 .product-gift-ribbon span {
   position: absolute;
-  top: 18px;
-  right: -24px;
-  width: 110px;
-  padding: 5px 0;
-  background: linear-gradient(135deg, #ff5b2e 0%, #ff8c00 100%);
-  color: #fff;
-  font-size: 0.6rem;
+  top: 10px;
+  right: 6px;
+  font-size: 0.55rem;
   font-weight: 800;
-  text-align: center;
-  letter-spacing: 0.03em;
-  transform: rotate(45deg);
-  box-shadow: 0 3px 10px rgba(255, 91, 46, 0.5);
+  color: #fff;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
 }
 
 /* ✨ Animation تلقائية للمنتجات عند ظهور القسم */
