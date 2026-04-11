@@ -851,6 +851,10 @@ body.light-mode .brand__logo {
   transition: opacity 0.6s ease;
   opacity: 1;
   z-index: 2;
+  /* ═ Anti-blur: stable compositing layer for opacity transition ═ */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: opacity;
 }
 
 .product-card-back {
@@ -870,9 +874,14 @@ body.light-mode .brand__logo {
   transition: opacity 0.6s ease;
   opacity: 0;
   z-index: 1;
-  direction: rtl;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  /* ═ Anti-blur: stable compositing layer for opacity transition ═ */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: opacity;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .product-card-flip-container:hover .product-card-front {
@@ -881,6 +890,20 @@ body.light-mode .brand__logo {
 
 .product-card-flip-container:hover .product-card-back {
   opacity: 1;
+}
+
+/* ═ Override glass-card hover for product cards ═
+   The generic .glass-card:hover uses scale(1.03) which
+   forces GPU text rasterisation → blurry text.
+   Product cards only need a subtle lift (integer px). */
+.product-card-mini.glass-card:hover {
+  transform: translateY(-6px);
+}
+
+/* Prevent glass-card hover glow on product cards — the opacity
+   fade already provides a strong visual cue. */
+.product-card-mini.glass-card:hover::before {
+  opacity: 0;
 }
 
 .product-card-mini::before {
@@ -893,10 +916,15 @@ body.light-mode .brand__logo {
   z-index: 0;
 }
 
-/* الوجه الأمامي والخلفي */
+/* الوجه الأمامي والخلفي
+   ═══════════════════════════════════════════════════════
+   ⚠️  NO 3D transforms (rotateY / scaleX) — they force
+       GPU rasterisation that kills sub-pixel text rendering
+       and causes the "sharp then blurry" flash.
+       The card uses pure opacity-fade, not a 3D flip.
+   ═══════════════════════════════════════════════════════ */
 
 .product-card-front {
-  transform: rotateY(0deg);
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -904,7 +932,6 @@ body.light-mode .brand__logo {
 }
 
 .product-card-back {
-  transform: rotateY(-180deg);
   background: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(12px) saturate(150%) !important;
   -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
@@ -1021,8 +1048,9 @@ body.light-mode .product-mini-info p {
 .product-details {
   width: 100%;
   text-align: center;
-  transform: scaleX(-1);
-  transition: transform 0.3s ease;
+  /* ⚠️ Removed: transform: scaleX(-1) — was compensating for a
+     legacy rotateY(-180deg) that caused GPU text blur.
+     The card now uses opacity-only transitions. */
 }
 
 .details-title {
@@ -1055,7 +1083,7 @@ body.light-mode .product-mini-info p {
 
 .detail-item:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .detail-value {
@@ -1126,7 +1154,9 @@ body.light-mode .detail-label {
 
 .detail-item-full:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
+  /* Use box-shadow "lift" instead of transform to avoid
+     adding another compositing layer inside backdrop-filter */
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .detail-item-full .detail-label {
