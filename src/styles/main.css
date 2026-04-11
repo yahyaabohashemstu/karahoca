@@ -1132,6 +1132,10 @@ body.light-mode .detail-label {
   color: rgba(21, 61, 122, 0.75);
 }
 
+body.light-mode .details-title {
+  color: rgba(21, 61, 122, 0.95);
+}
+
 /* التصميم الجديد للتفاصيل - مكدسة عمودياً */
 .details-stack {
   display: flex;
