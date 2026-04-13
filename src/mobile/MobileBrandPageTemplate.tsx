@@ -48,6 +48,7 @@ interface MobileBrandPageTemplateProps {
   categories: BrandCategoryData[];
   aboutId: string;
   pdfUrl?: string;
+  catalogImages?: string[];
 }
 
 export default function MobileBrandPageTemplate({
@@ -72,6 +73,7 @@ export default function MobileBrandPageTemplate({
   categories,
   aboutId,
   pdfUrl,
+  catalogImages,
 }: MobileBrandPageTemplateProps) {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<BrandProductInfo | null>(null);
@@ -180,7 +182,7 @@ export default function MobileBrandPageTemplate({
         </section>
 
         {/* ── Flipbook Catalog — BEFORE products ───────────────────────── */}
-        {pdfUrl && (
+        {(catalogImages || pdfUrl) && (
           <section id="catalog" className="m-pageSection m-container m-bfbSection">
             <div className="m-section-header">
               <h2 className="m-section-title">
@@ -190,7 +192,7 @@ export default function MobileBrandPageTemplate({
                 تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة
               </p>
             </div>
-            <FlipBook pdfUrl={pdfUrl} brandName={brandName} />
+            <FlipBook imageUrls={catalogImages} downloadUrl={pdfUrl} brandName={brandName} />
           </section>
         )}
 

@@ -69,6 +69,7 @@ interface BrandPageProps {
   pageClass: string;
   aboutId: string;
   pdfUrl?: string;
+  catalogImages?: string[];
 }
 
 const BrandPageTemplate: React.FC<BrandPageProps> = ({
@@ -88,7 +89,8 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   categories,
   pageClass,
   aboutId,
-  pdfUrl
+  pdfUrl,
+  catalogImages
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
@@ -200,7 +202,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
         </section>
 
         {/* ── Flipbook Catalog — BEFORE products ──────────────────────── */}
-        {pdfUrl && (
+        {(catalogImages || pdfUrl) && (
           <section id="catalog" className="section bfb-section">
             <div className="section-divider"></div>
 
@@ -221,7 +223,11 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             </div>
 
             <div className="container bfb-frame-wrap fx-reveal">
-              <FlipBook pdfUrl={pdfUrl} brandName={brandName} />
+              <FlipBook
+                imageUrls={catalogImages}
+                downloadUrl={pdfUrl}
+                brandName={brandName}
+              />
             </div>
           </section>
         )}

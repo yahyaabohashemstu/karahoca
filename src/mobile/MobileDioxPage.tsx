@@ -65,6 +65,9 @@ export default function MobileDioxPage() {
       productsSubtitle={t("diox.productsSection.subtitle")}
       categories={categories}
       aboutId="about-diox"
+      catalogImages={Array.from({ length: 18 }, (_, i) =>
+        `/Catalog/DIOX catalog imgs - 2/page-${String(i + 1).padStart(2, '0')}.png`
+      )}
       pdfUrl="/Catalog/DIOX-KATALOG.pdf"
     />
   );

@@ -82,6 +82,9 @@ const DioxPageContent: React.FC = () => {
     contactId: 'contact-diox',
     aboutId: 'about-diox',
     pageClass: 'diox-page',
+    catalogImages: Array.from({ length: 18 }, (_, i) =>
+      `/Catalog/DIOX catalog imgs - 2/page-${String(i + 1).padStart(2, '0')}.png`
+    ),
     pdfUrl: '/Catalog/DIOX-KATALOG.pdf'
   };
 

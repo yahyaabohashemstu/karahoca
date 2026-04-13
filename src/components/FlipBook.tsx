@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import '../styles/flipbook.css';
 
 // ── Spread model ─────────────────────────────────────────────────────────────
-// All page indices are 0-based. PDF pages are rendered in order 0…n-1.
-//
 // spread 0 → left = null (empty/brand),  right = pages[0]  (cover)
 // spread k → left = pages[2k-1],         right = pages[2k]
 // maxSpread = Math.floor(totalPages / 2)
@@ -19,9 +17,7 @@ function getSpreadPages(
   return [l < total ? l : null, r < total ? r : null];
 }
 
-// ── Pan clamping (pure function, outside component) ───────────────────────────
-// Constrains the pan offset so the user cannot drag the book outside its
-// zoomed bounds. offsetWidth/Height give layout size (pre-transform).
+// ── Pan clamping ─────────────────────────────────────────────────────────────
 function clampPan(
   book: HTMLDivElement | null,
   x: number,
@@ -38,7 +34,6 @@ function clampPan(
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const RENDER_SCALE = 1.5;
 const FLIP_MS      = 620;
 const MIN_ZOOM     = 0.5;
 const MAX_ZOOM     = 2.0;
@@ -47,12 +42,17 @@ const AUTO_MS      = 3500;
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface FlipBookProps {
-  pdfUrl: string;
+  /** Pre-rendered image URLs (preferred — no PDF dependency) */
+  imageUrls?: string[];
+  /** Legacy: PDF URL (will be rendered client-side via pdfjs-dist) */
+  pdfUrl?: string;
+  /** Original PDF for download button (optional) */
+  downloadUrl?: string;
   brandName?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
+const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, brandName = '' }) => {
 
   // ── Page data ───────────────────────────────────────────────────────────────
   const [pages, setPages]   = useState<string[]>([]);
@@ -70,7 +70,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const [zoom,       setZoom]       = useState(1);
   const [panX,       setPanX]       = useState(0);
   const [panY,       setPanY]       = useState(0);
-  const [isDragging, setIsDragging] = useState(false);   // for cursor only
+  const [isDragging, setIsDragging] = useState(false);
   const [autoPlay,   setAutoPlay]   = useState(false);
   const [jumpInput,  setJumpInput]  = useState('');
 
@@ -80,7 +80,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const timerRef      = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const autoRef       = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Refs used inside global event listeners (stale-closure-safe)
   const isDraggingRef = useRef(false);
   const dragStartRef  = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const panXRef       = useRef(0);
@@ -90,7 +89,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const flippingRef   = useRef(false);
   const goNextRef     = useRef<() => void>(() => {});
 
-  // Keep live refs in sync
   panXRef.current     = panX;
   panYRef.current     = panY;
   zoomRef.current     = zoom;
@@ -104,8 +102,52 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   canNextRef.current  = canNext;
   flippingRef.current = flipping;
 
-  // ── PDF loading & rendering ────────────────────────────────────────────────
+  // ── Image-based loading (preferred) ────────────────────────────────────────
   useEffect(() => {
+    if (!imageUrls || imageUrls.length === 0) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setLoadErr(null);
+    setPages([]);
+    setLoadPct(0);
+    setSpread(0);
+
+    const loaded: string[] = [];
+    let count = 0;
+
+    imageUrls.forEach((url, i) => {
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        loaded[i] = url;
+        count++;
+        setLoadPct(Math.round((count / imageUrls.length) * 100));
+        if (count === imageUrls.length) {
+          setPages(loaded);
+          setLoading(false);
+        }
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        loaded[i] = url; // still include — browser will show broken
+        count++;
+        if (count === imageUrls.length) {
+          setPages(loaded);
+          setLoading(false);
+        }
+      };
+      img.src = url;
+    });
+
+    return () => { cancelled = true; };
+  }, [imageUrls]);
+
+  // ── PDF-based loading (legacy fallback) ────────────────────────────────────
+  useEffect(() => {
+    if (imageUrls && imageUrls.length > 0) return; // images take priority
+    if (!pdfUrl) return;
+
     let cancelled = false;
     setLoading(true);
     setLoadErr(null);
@@ -119,8 +161,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-        // Fetch PDF as ArrayBuffer to bypass Firefox's built-in PDF handler
-        // which intercepts URL-based loading and triggers a download dialog
         const resp = await fetch(pdfUrl);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = new Uint8Array(await resp.arrayBuffer());
@@ -134,7 +174,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         for (let i = 1; i <= n; i++) {
           if (cancelled) return;
           const page = await pdf.getPage(i);
-          const vp   = page.getViewport({ scale: RENDER_SCALE });
+          const vp   = page.getViewport({ scale: 1.5 });
           const cvs  = document.createElement('canvas');
           cvs.width  = vp.width;
           cvs.height = vp.height;
@@ -160,7 +200,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [pdfUrl]);
+  }, [pdfUrl, imageUrls]);
 
   // ── Navigation ───────────────────────────────────────────────────────────
   const goNext = useCallback(() => {
@@ -190,13 +230,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
   const zoomOut = useCallback(() => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2)))), []);
   const zoomReset = useCallback(() => { setZoom(1); setPanX(0); setPanY(0); }, []);
 
-  // Reset pan when spread changes (new page → center the view)
   useEffect(() => { setPanX(0); setPanY(0); }, [spread]);
-
-  // Reset pan when zoom goes back to 1
   useEffect(() => { if (zoom === 1) { setPanX(0); setPanY(0); } }, [zoom]);
 
-  // ── Drag-to-pan (global listeners, only active when zoom > 1) ────────────
+  // ── Drag-to-pan ────────────────────────────────────────────────────────────
   const startDrag = useCallback((clientX: number, clientY: number) => {
     if (zoomRef.current <= 1) return;
     isDraggingRef.current = true;
@@ -244,7 +281,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       document.removeEventListener('touchmove',  onTouchMove);
       document.removeEventListener('touchend',   onEnd);
     };
-  }, []); // mount once — reads current values via refs
+  }, []);
 
   // ── Jump to page ──────────────────────────────────────────────────────────
   const doJump = useCallback(() => {
@@ -333,11 +370,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
     return lo === hi ? `${lo + 1} / ${total}` : `${lo + 1}–${hi + 1} / ${total}`;
   })();
 
-  // ── Book transform: pan + zoom ────────────────────────────────────────────
-  // translate() applied first in CSS so it offsets in screen-space after scaling.
   const bookTransform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
   const bookCursor    = zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : undefined;
-  const bookTouchAction = zoom > 1 ? 'none' : undefined;   // disables native scroll when panning
+  const bookTouchAction = zoom > 1 ? 'none' : undefined;
+
+  // Resolve download URL: explicit prop > pdfUrl > null
+  const dlUrl = downloadUrl || pdfUrl || null;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -358,27 +396,11 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
 
           {/* Group 1 — Zoom */}
           <div className="fb-tg">
-            <button
-              className="fb-tbtn"
-              onClick={zoomOut}
-              disabled={zoom <= MIN_ZOOM}
-              title="تصغير (Ctrl + −)"
-              aria-label="تصغير"
-            >−</button>
-            <button
-              className="fb-tbtn fb-tbtn--zoom-val"
-              onClick={zoomReset}
-              title="إعادة الضبط إلى 100% (Ctrl + 0)"
-            >
+            <button className="fb-tbtn" onClick={zoomOut} disabled={zoom <= MIN_ZOOM} title="تصغير (Ctrl + −)" aria-label="تصغير">−</button>
+            <button className="fb-tbtn fb-tbtn--zoom-val" onClick={zoomReset} title="إعادة الضبط إلى 100% (Ctrl + 0)">
               {Math.round(zoom * 100)}%
             </button>
-            <button
-              className="fb-tbtn"
-              onClick={zoomIn}
-              disabled={zoom >= MAX_ZOOM}
-              title="تكبير (Ctrl + =)"
-              aria-label="تكبير"
-            >+</button>
+            <button className="fb-tbtn" onClick={zoomIn} disabled={zoom >= MAX_ZOOM} title="تكبير (Ctrl + =)" aria-label="تكبير">+</button>
             <span className="fb-tg-label">تكبير</span>
           </div>
 
@@ -398,9 +420,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               onChange={e => setJumpInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doJump()}
             />
-            <button className="fb-tbtn fb-tbtn--go" onClick={doJump} aria-label="انتقل">
-              ↵
-            </button>
+            <button className="fb-tbtn fb-tbtn--go" onClick={doJump} aria-label="انتقل">↵</button>
           </div>
 
           <div className="fb-tsep" />
@@ -419,26 +439,29 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             </button>
           </div>
 
-          <div className="fb-tsep" />
-
-          {/* Group 4 — Download & Print */}
-          <div className="fb-tg">
-            <a
-              className="fb-tbtn fb-tbtn--dl"
-              href={pdfUrl}
-              download={`${brandName || 'catalog'}-katalog.pdf`}
-              title="تحميل ملف PDF الأصلي"
-            >
-              <span className="fb-tbtn__icon">⬇</span> تحميل
-            </a>
-            <button
-              className="fb-tbtn"
-              onClick={() => window.open(pdfUrl, '_blank')}
-              title="فتح PDF للطباعة"
-            >
-              <span className="fb-tbtn__icon">🖨</span> طباعة
-            </button>
-          </div>
+          {dlUrl && (
+            <>
+              <div className="fb-tsep" />
+              {/* Group 4 — Download & Print */}
+              <div className="fb-tg">
+                <a
+                  className="fb-tbtn fb-tbtn--dl"
+                  href={dlUrl}
+                  download={`${brandName || 'catalog'}-katalog.pdf`}
+                  title="تحميل ملف PDF الأصلي"
+                >
+                  <span className="fb-tbtn__icon">⬇</span> تحميل
+                </a>
+                <button
+                  className="fb-tbtn"
+                  onClick={() => window.open(dlUrl, '_blank')}
+                  title="فتح PDF للطباعة"
+                >
+                  <span className="fb-tbtn__icon">🖨</span> طباعة
+                </button>
+              </div>
+            </>
+          )}
 
         </div>
       )}
@@ -447,7 +470,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       {loading && (
         <div className="fb-loading">
           <div className="fb-loading__ring" />
-          <p>جارِتحميل الكتالوج… {loadPct}%</p>
+          <p>جارِ تحميل الكتالوج… {loadPct}%</p>
           <div className="fb-loading__track">
             <div className="fb-loading__fill" style={{ width: `${loadPct}%` }} />
           </div>
@@ -461,7 +484,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
       {!loading && !loadErr && (
         <div className="fb-scene">
 
-          {/* ← Prev arrow — absolutely positioned at left edge */}
           <button
             className={`fb-nav fb-nav--l${!canPrev || flipping ? ' fb-nav--off' : ''}`}
             onClick={goPrev}
@@ -469,7 +491,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             aria-label="الصفحة السابقة"
           >‹</button>
 
-          {/* Book stage */}
           <div
             ref={bookRef}
             className="fb-book"
@@ -481,7 +502,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
             }}
             onMouseDown={e => {
               if (zoom <= 1) return;
-              e.preventDefault();   // prevent native image/text drag
+              e.preventDefault();
               startDrag(e.clientX, e.clientY);
             }}
             onTouchStart={e => {
@@ -489,19 +510,16 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               startDrag(e.touches[0].clientX, e.touches[0].clientY);
             }}
           >
-            {/* Left half */}
             <div className={`fb-half fb-half--l${isFlippingPrev ? ' fb-half--under' : ''}`}>
               <PageImg idx={isFlippingPrev ? pL : cL} />
               <div className="fb-pgshad fb-pgshad--r" />
             </div>
 
-            {/* Right half */}
             <div className={`fb-half fb-half--r${isFlippingNext ? ' fb-half--under' : ''}`}>
               <PageImg idx={isFlippingNext ? nR : cR} />
               <div className="fb-pgshad fb-pgshad--l" />
             </div>
 
-            {/* NEXT flip overlay */}
             {isFlippingNext && (
               <div className="fb-flip fb-flip--next">
                 <div className="fb-face fb-face--front"><PageImg idx={cR} /></div>
@@ -510,7 +528,6 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               </div>
             )}
 
-            {/* PREV flip overlay */}
             {isFlippingPrev && (
               <div className="fb-flip fb-flip--prev">
                 <div className="fb-face fb-face--front"><PageImg idx={cL} /></div>
@@ -519,11 +536,9 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
               </div>
             )}
 
-            {/* Spine */}
             <div className="fb-spine" />
           </div>
 
-          {/* → Next arrow — absolutely positioned at right edge */}
           <button
             className={`fb-nav fb-nav--r${!canNext || flipping ? ' fb-nav--off' : ''}`}
             onClick={goNext}
