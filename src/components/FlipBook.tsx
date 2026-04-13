@@ -119,7 +119,13 @@ const FlipBook: React.FC<FlipBookProps> = ({ pdfUrl, brandName = '' }) => {
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-        const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
+        // Fetch PDF as ArrayBuffer to bypass Firefox's built-in PDF handler
+        // which intercepts URL-based loading and triggers a download dialog
+        const resp = await fetch(pdfUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = new Uint8Array(await resp.arrayBuffer());
+
+        const pdf = await pdfjsLib.getDocument({ data }).promise;
         if (cancelled) return;
 
         const n = pdf.numPages;
