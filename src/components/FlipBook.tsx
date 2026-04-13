@@ -36,7 +36,7 @@ function clampPan(
 // ── Constants ─────────────────────────────────────────────────────────────────
 const FLIP_MS      = 620;
 const MIN_ZOOM     = 0.5;
-const MAX_ZOOM     = 2.0;
+const MAX_ZOOM     = 3.0;
 const ZOOM_STEP    = 0.15;
 const AUTO_MS      = 3500;
 

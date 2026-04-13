@@ -335,15 +335,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.28);
-  background: rgba(0,0,0,.42);
+  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(0,0,0,.35);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  color: rgba(255,255,255,.9);
-  font-size: 1.6rem;
+  color: rgba(255,255,255,.85);
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
   transition: background .18s, border-color .18s, opacity .18s, transform .14s;
@@ -364,9 +364,9 @@
 
 /* ── Fullscreen: larger arrows further from content ─────────────────────────── */
 .fb--fs .fb-nav {
-  width: 54px;
-  height: 54px;
-  font-size: 2rem;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
   background: rgba(0,0,0,.5);
   border-color: rgba(255,255,255,.35);
 }
@@ -632,9 +632,9 @@
   }
 
   .fb-nav {
-    width: 36px;
-    height: 36px;
-    font-size: 1.3rem;
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
   }
   .fb-nav--l { left: 4px; }
   .fb-nav--r { right: 4px; }
