@@ -527,6 +527,7 @@ const STATIC_MIME = {
   '.otf':  'font/otf',
   '.txt':  'text/plain',
   '.xml':  'application/xml',
+  '.pdf':  'application/pdf',
   '.webmanifest': 'application/manifest+json',
 };
 const distDir = path.join(__dirname, '..', 'dist');
