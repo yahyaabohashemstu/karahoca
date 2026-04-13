@@ -66,7 +66,7 @@ export default function MobileDioxPage() {
       categories={categories}
       aboutId="about-diox"
       catalogImages={Array.from({ length: 18 }, (_, i) =>
-        `/Catalog/DIOX catalog imgs - 2/page-${String(i + 1).padStart(2, '0')}.png`
+        `/Catalog/diox-pages/page-${String(i + 1).padStart(2, '0')}.webp`
       )}
       pdfUrl="/Catalog/DIOX-KATALOG.pdf"
     />
