@@ -346,15 +346,14 @@ export const AdminProductEdit: React.FC = () => {
                   src={form.image}
                   alt="preview"
                   style={{
-                    width: `${(form.image_scale ?? 0.85) * 100}%`,
-                    maxHeight: 'calc(100% - 72px)',
+                    width: '85%',
                     objectFit: 'contain',
                     display: 'block',
                     position: 'absolute',
                     top: 0,
                     bottom: 72,
                     left: '50%',
-                    transform: 'translateX(-50%)',
+                    transform: `translateX(-50%) scale(${(form.image_scale ?? 0.85) / 0.85})`,
                     margin: 'auto 0',
                     filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.3))',
                   }}

@@ -262,7 +262,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                           alt={product.alt}
                           className="product-mini-image"
                           loading="lazy"
-                          style={product.imageScale ? { width: `${product.imageScale * 100}%` } : undefined}
+                          style={product.imageScale ? { transform: `translateX(-50%) scale(${product.imageScale / 0.85})` } : undefined}
                         />
                         <div className="product-mini-info">
                           <h4>{product.name}</h4>
