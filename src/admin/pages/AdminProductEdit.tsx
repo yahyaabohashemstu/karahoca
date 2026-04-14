@@ -13,7 +13,7 @@ const EMPTY: Partial<Product> = {
   alt_ar: '', alt_en: '', alt_tr: '', alt_ru: '',
   material_ar: '', material_en: '', material_tr: '', material_ru: '',
   count_ar: '', count_en: '', count_tr: '', count_ru: '',
-  image: '', gallery: '', weight: '', weight_count_table: '', category_id: '', display_order: 0, active: 1,
+  image: '', gallery: '', weight: '', weight_count_table: '', image_scale: 0.85, category_id: '', display_order: 0, active: 1,
 };
 
 export const AdminProductEdit: React.FC = () => {
@@ -312,7 +312,84 @@ export const AdminProductEdit: React.FC = () => {
           {form.image && (
             <div className="adm-card">
               <div className="adm-card-title">Image Preview</div>
-              <img src={form.image} alt="preview" style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', marginTop: 8 }} />
+
+              {/* Scale slider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0' }}>
+                <span style={{ fontSize: 12, opacity: 0.6, whiteSpace: 'nowrap' }}>Image Scale</span>
+                <input
+                  type="range"
+                  min={30}
+                  max={150}
+                  step={5}
+                  value={Math.round((form.image_scale ?? 0.85) * 100)}
+                  onChange={e => set('image_scale', Number(e.target.value) / 100)}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, minWidth: 42, textAlign: 'center' }}>
+                  {Math.round((form.image_scale ?? 0.85) * 100)}%
+                </span>
+              </div>
+
+              {/* Card-like preview (matches product card 300×450) */}
+              <div style={{
+                position: 'relative',
+                width: 240,
+                height: 360,
+                margin: '0 auto',
+                borderRadius: 16,
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
+                border: '1px solid rgba(255,255,255,0.12)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              }}>
+                <img
+                  src={form.image}
+                  alt="preview"
+                  style={{
+                    width: `${(form.image_scale ?? 0.85) * 100}%`,
+                    maxHeight: 'calc(100% - 72px)',
+                    objectFit: 'contain',
+                    display: 'block',
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 72,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    margin: 'auto 0',
+                    filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.3))',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 72,
+                  background: 'rgba(255,255,255,0.06)',
+                  borderTop: '1px solid rgba(255,255,255,0.1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 12px',
+                }}>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#fff',
+                    textAlign: 'center',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                  }}>
+                    {form.name_ar || form.name_en || 'Product Name'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                    {form.description_ar || form.description_en || 'Description'}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

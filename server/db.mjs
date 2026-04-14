@@ -336,6 +336,9 @@ const migrateInitialData = () => {
   // ── Weight-count mapping table (JSON) ────────────────────────────────────
   try { db.exec("ALTER TABLE products ADD COLUMN weight_count_table TEXT"); } catch { /* already exists */ }
 
+  // ── Per-product image scale (0.3–1.5, default 0.85 = 85%) ──────────────
+  try { db.exec("ALTER TABLE products ADD COLUMN image_scale REAL DEFAULT 0.85"); } catch { /* already exists */ }
+
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
   migrateDiox6kgDelete();

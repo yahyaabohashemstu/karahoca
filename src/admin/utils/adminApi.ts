@@ -269,6 +269,7 @@ export interface Product {
   material_ar: string; material_en: string; material_tr: string; material_ru: string;
   count_ar: string; count_en: string; count_tr: string; count_ru: string;
   weight_count_table?: string;  // JSON string: [{"weight":"1.2 kg","count":6}, ...]
+  image_scale?: number;         // 0.3–1.5, controls product image size in card (default 0.85)
   display_order: number;
   active: number;
   created_at: string;

@@ -41,6 +41,7 @@ interface ProductInfo {
     weightCountTable?: Array<{ weight: string; count: number }>;
   };
   gallery?: string[];
+  imageScale?: number;
 }
 
 interface CategoryData {
@@ -256,7 +257,13 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                         </div>
                       )}
                       <div className="product-card-front">
-                        <img src={product.image} alt={product.alt} className="product-mini-image" loading="lazy" />
+                        <img
+                          src={product.image}
+                          alt={product.alt}
+                          className="product-mini-image"
+                          loading="lazy"
+                          style={product.imageScale ? { width: `${product.imageScale * 100}%` } : undefined}
+                        />
                         <div className="product-mini-info">
                           <h4>{product.name}</h4>
                           <p>{product.description}</p>

@@ -21,6 +21,8 @@ export interface BrandProductInfo {
   details?: BrandProductDetails;
   /** Optional gallery of additional images (e.g. colour variants) */
   gallery?: string[];
+  /** Per-product image scale (0.3–1.5), controls size inside card */
+  imageScale?: number;
 }
 
 export interface BrandCategoryData {
@@ -561,6 +563,7 @@ interface PublicApiProduct {
   };
   gallery?: string[];
   weightCountTable?: Array<{ weight: string; count: number }>;
+  imageScale?: number;
 }
 
 interface PublicApiCategory {
@@ -585,6 +588,7 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
       weightCountTable: p.weightCountTable || undefined,
     },
     gallery: p.gallery && p.gallery.length > 0 ? p.gallery : undefined,
+    imageScale: p.imageScale ?? undefined,
   })),
 });
 

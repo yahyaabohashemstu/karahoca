@@ -45,7 +45,8 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
         material_${l} as material,
         count_${l} as count,
         gift_${l} as gift,
-        weight_count_table
+        weight_count_table,
+        image_scale
       FROM products
       WHERE category_id=? AND active=1
       ORDER BY display_order ASC
@@ -83,7 +84,8 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
               if (!Array.isArray(parsed) || !parsed.length) return undefined;
               return parsed.map(row => ({ ...row, weight: normalizeWeight(row.weight) }));
             } catch { return undefined; }
-          })()
+          })(),
+          imageScale: p.image_scale ?? 0.85,
         };
       })
     };

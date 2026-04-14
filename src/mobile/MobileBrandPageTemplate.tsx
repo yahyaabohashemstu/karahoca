@@ -221,7 +221,7 @@ export default function MobileBrandPageTemplate({
                         onClick={() => setSelectedProduct(product)}
                         aria-label={`${t("brandPage.viewImageAria")} ${product.name}`}
                       >
-                        <img src={product.image} alt={product.alt} />
+                        <img src={product.image} alt={product.alt} style={product.imageScale ? { maxWidth: `${product.imageScale * 100}%`, maxHeight: `${product.imageScale * 100}%` } : undefined} />
                       </button>
 
                       <div className="m-productCard__body">

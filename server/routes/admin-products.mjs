@@ -11,6 +11,7 @@ const PRODUCT_FIELDS = [
   'material_ar', 'material_en', 'material_tr', 'material_ru',
   'count_ar', 'count_en', 'count_tr', 'count_ru',
   'weight_count_table',
+  'image_scale',
   'display_order', 'active',
 ];
 
