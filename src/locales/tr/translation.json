@@ -783,5 +783,8 @@
       "printCategory": "Kategori",
       "printDate": "Katalog Tarihi"
     }
+  },
+  "common": {
+    "imageLoadFailed": "Resim yuklenemedi"
   }
 }

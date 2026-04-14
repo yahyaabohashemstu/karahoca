@@ -783,5 +783,8 @@
       "printCategory": "Категория",
       "printDate": "Дата каталога"
     }
+  },
+  "common": {
+    "imageLoadFailed": "Не удалось загрузить изображение"
   }
 }

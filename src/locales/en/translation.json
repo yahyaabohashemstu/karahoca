@@ -783,5 +783,8 @@
       "printCategory": "Category",
       "printDate": "Catalog Date"
     }
+  },
+  "common": {
+    "imageLoadFailed": "Image failed to load"
   }
 }

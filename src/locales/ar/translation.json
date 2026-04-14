@@ -783,5 +783,8 @@
       "printCategory": "الفئة",
       "printDate": "تاريخ الكتالوج"
     }
+  },
+  "common": {
+    "imageLoadFailed": "فشل تحميل الصورة"
   }
 }

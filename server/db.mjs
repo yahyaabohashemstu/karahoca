@@ -339,6 +339,13 @@ const migrateInitialData = () => {
   // ── Per-product image scale (0.3–1.5, default 0.85 = 85%) ──────────────
   try { db.exec("ALTER TABLE products ADD COLUMN image_scale REAL DEFAULT 0.85"); } catch { /* already exists */ }
 
+  // ── Performance indexes ─────────────────────────────────────────────────
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_newsletter_email ON newsletter_subscribers(email)"); } catch { /* */ }
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_products_active ON products(active)"); } catch { /* */ }
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_products_brand_active ON products(brand, active)"); } catch { /* */ }
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_news_active ON news(active)"); } catch { /* */ }
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_campaigns_status ON email_campaigns(status)"); } catch { /* */ }
+
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
   migrateDiox6kgDelete();

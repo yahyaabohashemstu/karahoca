@@ -452,7 +452,9 @@ const setCachedReply = (prompt, lang, reply) => {
   }
 };
 
-// ─── Chat rate limiter (prevents Gemini quota abuse) ─────────────────────────
+// ─── Rate limiter with memory cap ────────────────────────────────────────────
+const MAX_RATE_ENTRIES = 10_000; // prevent memory exhaustion from IP rotation attacks
+
 const chatRateMap = new Map(); // ip → { count, resetAt }
 const CHAT_LIMIT = 30;         // max requests per window
 const CHAT_WINDOW = 60_000;    // 1 minute
@@ -461,6 +463,7 @@ const isChatRateLimited = (ip) => {
   const now = Date.now();
   const rec = chatRateMap.get(ip);
   if (!rec || now > rec.resetAt) {
+    if (chatRateMap.size >= MAX_RATE_ENTRIES) chatRateMap.delete(chatRateMap.keys().next().value);
     chatRateMap.set(ip, { count: 1, resetAt: now + CHAT_WINDOW });
     return false;
   }
@@ -478,6 +481,7 @@ const isUnsubRateLimited = (ip) => {
   const now = Date.now();
   const rec = unsubRateMap.get(ip);
   if (!rec || now > rec.resetAt) {
+    if (unsubRateMap.size >= MAX_RATE_ENTRIES) unsubRateMap.delete(unsubRateMap.keys().next().value);
     unsubRateMap.set(ip, { count: 1, resetAt: now + UNSUB_WINDOW });
     return false;
   }
@@ -591,6 +595,13 @@ const ROUTE_META = {
 let spaHtmlTemplate = '';
 try { spaHtmlTemplate = existsSync(spaIndex) ? (await readFile(spaIndex, 'utf8')) : ''; } catch { /* */ }
 
+/** Escape HTML attribute values to prevent XSS injection */
+function escAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function injectMeta(html, routePath) {
   let meta = ROUTE_META[routePath];
 
@@ -614,13 +625,15 @@ function injectMeta(html, routePath) {
 
   if (!meta) return html;
   const siteUrl = 'https://karahoca.com';
-  const fullImage = `${siteUrl}${meta.image}`;
-  const fullUrl = `${siteUrl}${routePath}`;
+  const t = escAttr(meta.title);
+  const d = escAttr(meta.description);
+  const img = escAttr(`${siteUrl}${meta.image}`);
+  const url = escAttr(`${siteUrl}${routePath}`);
   const ogType = routePath.startsWith('/news/') ? 'article' : 'website';
   return html
-    .replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`)
-    .replace(/<meta\s+name="description"\s+content="[^"]*">/, `<meta name="description" content="${meta.description}">`)
-    .replace('</head>', `<meta property="og:title" content="${meta.title}">\n<meta property="og:description" content="${meta.description}">\n<meta property="og:image" content="${fullImage}">\n<meta property="og:url" content="${fullUrl}">\n<meta property="og:type" content="${ogType}">\n<meta property="og:site_name" content="KARAHOCA">\n</head>`);
+    .replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`)
+    .replace(/<meta\s+name="description"\s+content="[^"]*">/, `<meta name="description" content="${d}">`)
+    .replace('</head>', `<meta property="og:title" content="${t}">\n<meta property="og:description" content="${d}">\n<meta property="og:image" content="${img}">\n<meta property="og:url" content="${url}">\n<meta property="og:type" content="${ogType}">\n<meta property="og:site_name" content="KARAHOCA">\n</head>`);
 }
 
 // ─── Server ───────────────────────────────────────────────────────────────────

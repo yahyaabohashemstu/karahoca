@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ImgHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 import './OptimizedImage.css';
 
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -24,6 +25,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   style,
   ...rest
 }) => {
+  const { t } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | undefined>(priority ? src : undefined);
   const [error, setError] = useState(false);
@@ -106,7 +108,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <span>فشل تحميل الصورة</span>
+          <span>{t('common.imageLoadFailed', 'Image failed to load')}</span>
         </div>
       ) : (
         imageSrc && (

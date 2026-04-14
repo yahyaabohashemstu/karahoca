@@ -50,3 +50,4 @@ api.js
 blaze_api_try_all.js
 blaze_test_payload.json
 blazeai.http
+*.psd
