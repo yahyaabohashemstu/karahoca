@@ -341,8 +341,13 @@ const persistMessagesLocally = (messages: ChatMessage[]) => {
     const toStore = messages.slice(-MAX_STORED_MESSAGES);
     window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(toStore));
   } catch {
-    // QuotaExceededError — clear old data to recover
-    try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* noop */ }
+    // QuotaExceededError — keep only last 20 messages instead of wiping all
+    try {
+      const reduced = messages.slice(-20);
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(reduced));
+    } catch {
+      try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* noop */ }
+    }
   }
 };
 
@@ -539,12 +544,17 @@ const AIChatWidget: React.FC = () => {
     );
   };
 
+  // Ref-based lock to prevent concurrent sends (state flush is async)
+  const sendLockRef = useRef(false);
+
   const handleSend = async (directMessage?: string) => {
     const cleanedInput = sanitizeInput(directMessage || inputValue);
 
-    if (!cleanedInput || isLoading) {
+    // Guard: empty, already loading, or concurrent send lock
+    if (!cleanedInput || isLoading || sendLockRef.current) {
       return;
     }
+    sendLockRef.current = true;
 
     const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleanedInput);
     const questionLanguageHint = inferQuestionLanguageHint(cleanedInput);
@@ -572,7 +582,7 @@ const AIChatWidget: React.FC = () => {
         questionLanguageHint
       );
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 s — allows server retries
+      const timeoutId = setTimeout(() => controller.abort(), 120_000); // 120 s — Gemini can be slow
       let response: Response;
       try {
         response = await fetch(buildApiUrl('/api/ai/chat'), {
@@ -600,6 +610,8 @@ const AIChatWidget: React.FC = () => {
 
       if (!assistantReply) {
         setStatusMessage(uiText.noAnswerFallback);
+        // Auto-clear status after 8 seconds
+        setTimeout(() => setStatusMessage(s => s === uiText.noAnswerFallback ? null : s), 8000);
         return;
       }
 
@@ -624,18 +636,18 @@ const AIChatWidget: React.FC = () => {
       if (import.meta.env.DEV) {
         console.error('Gemini request failed:', getErrorMessage(error));
       }
-      // Handle network timeout (AbortError) gracefully
-      if (error instanceof Error && error.name === 'AbortError') {
-        setStatusMessage(uiText.fallbackReply);
-        setSuggestions([]);
-        return;
-      }
-      const errorMessage = getErrorMessage(error);
-      const isEmptyReplyError = /empty response|empty reply/i.test(errorMessage);
-      setStatusMessage(isEmptyReplyError ? uiText.noAnswerFallback : uiText.fallbackReply);
+      const errMsg = error instanceof Error && error.name === 'AbortError'
+        ? uiText.fallbackReply
+        : (/empty response|empty reply/i.test(getErrorMessage(error))
+          ? uiText.noAnswerFallback
+          : uiText.fallbackReply);
+      setStatusMessage(errMsg);
       setSuggestions([]);
+      // Auto-clear error after 8 seconds
+      setTimeout(() => setStatusMessage(s => s === errMsg ? null : s), 8000);
     } finally {
       setIsLoading(false);
+      sendLockRef.current = false;
 
       window.setTimeout(() => {
         inputRef.current?.focus();
@@ -821,6 +833,7 @@ const AIChatWidget: React.FC = () => {
               onKeyDown={handleKeyDown}
               aria-label={uiText.inputLabel}
               disabled={isLoading}
+              maxLength={2000}
             />
             <button
               type="button"

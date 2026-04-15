@@ -150,6 +150,8 @@ body.light-mode .ai-assistant__header {
   border-radius: 18px;
   line-height: 1.5;
   font-size: 0.95rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   animation: fadeInUp 0.35s ease;
 }
