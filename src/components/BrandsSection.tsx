@@ -88,31 +88,24 @@ const BrandsSection: React.FC = () => {
           {/* Divider */}
           <div className="brands-partner-divider" />
 
-          {/* Bottom: partner logos marquee */}
+          {/* Bottom: real partner logos */}
           <div className="brands-partner-logos">
             <p className="brands-logos-label">{t('customOrder.partnersLabel')}</p>
-            <div className="brands-marquee">
-              <div className="brands-marquee__track">
-                {/* Render 6 copies to fill any screen width without gaps */}
-                {[0, 1, 2, 3, 4, 5].map(copy => (
-                  <div key={copy} className="brands-marquee__set" aria-hidden={copy > 0}>
-                    {PARTNERS.map((p) => (
-                      <div
-                        key={`${copy}-${p.name}`}
-                        className={`brands-logo-card${p.featured ? ' brands-logo-card--featured' : ''}`}
-                        aria-label={p.name}
-                      >
-                        <img
-                          src={p.logo}
-                          alt={p.name}
-                          className="brands-logo-img"
-                          loading="lazy"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+            <div className="brands-logos-grid">
+              {PARTNERS.map((p) => (
+                <div
+                  key={p.name}
+                  className={`brands-logo-card${p.featured ? ' brands-logo-card--featured' : ''}`}
+                  aria-label={p.name}
+                >
+                  <img
+                    src={p.logo}
+                    alt={p.name}
+                    className="brands-logo-img"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
