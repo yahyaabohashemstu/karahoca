@@ -510,7 +510,8 @@ body.light-mode .brand__logo {
   position: relative;
   min-height: 92vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: flex-end;
   overflow: hidden;
 }
 
@@ -529,48 +530,29 @@ body.light-mode .brand__logo {
   display: block;
 }
 
+/* Overlay: darken top half (sky area where text sits) + gentle overall tint */
 .hero__bg-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.25) 100%
-  );
-}
-html[dir="rtl"] .hero__bg-overlay {
-  background: linear-gradient(
-    to left,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.25) 100%
-  );
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.3) 100%);
 }
 
 body.light-mode .hero__bg-overlay {
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(255, 255, 255, 0.65) 50%,
-    rgba(255, 255, 255, 0.2) 100%
-  );
-}
-html[dir="rtl"] body.light-mode .hero__bg-overlay {
-  background: linear-gradient(
-    to left,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(255, 255, 255, 0.65) 50%,
-    rgba(255, 255, 255, 0.2) 100%
-  );
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 55%, rgba(255,255,255,0.5) 100%);
 }
 
-/* ── Content layer ───────────────────────────────────────────────────── */
+/* ── Content layer — top-right (RTL) / top-left (LTR) over clear sky area ── */
 .hero__content {
   position: relative;
   z-index: 1;
-  max-width: 640px;
-  padding: 8rem 0;
+  max-width: 560px;
+  padding: 7rem 0 4rem;
+  text-align: end;
+}
+html[dir="ltr"] .hero__content {
+  text-align: start;
 }
 
 .hero-title {
@@ -578,6 +560,10 @@ html[dir="rtl"] body.light-mode .hero__bg-overlay {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 1.5rem;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+body.light-mode .hero-title {
+  text-shadow: 0 2px 16px rgba(255,255,255,0.6);
 }
 
 .lead {
@@ -586,12 +572,21 @@ html[dir="rtl"] body.light-mode .hero__bg-overlay {
   max-width: 50ch;
   margin-bottom: 2rem;
 }
+.hero .lead {
+  text-shadow: 0 1px 12px rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.92);
+}
+body.light-mode .hero .lead {
+  text-shadow: 0 1px 8px rgba(255,255,255,0.5);
+  color: rgba(21,61,122,0.85);
+}
 
 .hero__cta {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .hero__badges {
@@ -599,6 +594,7 @@ html[dir="rtl"] body.light-mode .hero__bg-overlay {
   gap: 0.5rem;
   list-style: none;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .chip {
