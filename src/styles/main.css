@@ -543,16 +543,19 @@ body.light-mode .hero__bg-overlay {
     linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 55%, rgba(255,255,255,0.5) 100%);
 }
 
-/* ── Content layer — top-right (RTL) / top-left (LTR) over clear sky area ── */
+/* ── Content layer — positioned top-right over clear sky ── */
 .hero__content {
-  position: relative;
+  position: absolute;
+  top: 6rem;
+  right: 5%;
   z-index: 1;
-  max-width: 560px;
-  padding: 7rem 0 4rem;
-  text-align: end;
+  max-width: 520px;
+  text-align: right;
 }
 html[dir="ltr"] .hero__content {
-  text-align: start;
+  right: auto;
+  left: 5%;
+  text-align: left;
 }
 
 .hero-title {
