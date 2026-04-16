@@ -93,8 +93,8 @@ const BrandsSection: React.FC = () => {
             <p className="brands-logos-label">{t('customOrder.partnersLabel')}</p>
             <div className="brands-marquee">
               <div className="brands-marquee__track">
-                {/* Render 3 copies for seamless infinite loop */}
-                {[0, 1, 2].map(copy => (
+                {/* Render 6 copies to fill any screen width without gaps */}
+                {[0, 1, 2, 3, 4, 5].map(copy => (
                   <div key={copy} className="brands-marquee__set" aria-hidden={copy > 0}>
                     {PARTNERS.map((p) => (
                       <div
