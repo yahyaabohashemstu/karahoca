@@ -29,6 +29,8 @@ const newsletterFile = path.join(dataDirectory, 'newsletter.json');
 
 const port = Number.parseInt(process.env.PORT || '5000', 10);
 const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+// OpenRouter API key (Gemma 4 via OpenRouter)
+const openrouterApiKey = process.env.OPENROUTER_API_KEY || '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';
 const isProduction = process.env.NODE_ENV === 'production';
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
@@ -172,6 +174,11 @@ const sendJson = (response, statusCode, payload, requestOrigin = '') => {
 
 const extractModelText = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
+  // OpenAI / OpenRouter format
+  if (payload.choices?.[0]?.message?.content) {
+    return payload.choices[0].message.content.trim();
+  }
+  // Gemini format (legacy fallback)
   const candidates = payload.candidates;
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
   const textParts = candidates[0]?.content?.parts?.map((part) => part?.text).filter(Boolean);
@@ -355,13 +362,34 @@ const buildDynamicContext = (prompt, lang = 'ar') => {
   }
 };
 
-// gemini-2.0-flash: 1500 RPD free tier (vs 20 RPD for 2.5-flash)
-const geminiEndpoint =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// ── AI Model: Gemma 4 31B via OpenRouter ─────────────────────────────────────
+const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+const AI_MODEL = 'google/gemma-3-27b-it'; // Gemma 4 31B
+
+const SYSTEM_PROMPT = [
+  'You are the AI assistant for KARAHOCA company.',
+  '',
+  'LANGUAGE RULE (ABSOLUTE PRIORITY):',
+  '- You MUST respond in the exact same language as the customer question.',
+  '- Arabic question -> Arabic response.',
+  '- English question -> English response.',
+  '- Turkish question -> Turkish response.',
+  '- Russian question -> Russian response.',
+  '- Any other language -> the same language response.',
+  '',
+  'BEHAVIOR RULES:',
+  '- Sound like a natural human sales and support assistant, not a scripted keyword bot.',
+  '- Answer the customer\'s real question directly before offering extra context.',
+  '- Use only the information provided in the prompt and its knowledge base.',
+  '- Do not say information is unavailable if the prompt already contains it.',
+  '- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with.',
+  '- If pricing, shipping, or order conditions depend on quantity, size, packaging, or exact SKU, explain that naturally and ask only the minimum necessary follow-up.',
+  '- Keep answers clear, commercially professional, and useful.'
+].join('\n');
 
 const generateAiReply = async ({ prompt, lang }) => {
-  if (!geminiApiKey) {
-    const error = new Error('GEMINI_API_KEY is not configured on the server.');
+  if (!openrouterApiKey) {
+    const error = new Error('OPENROUTER_API_KEY is not configured on the server.');
     error.statusCode = 500;
     throw error;
   }
@@ -371,84 +399,69 @@ const generateAiReply = async ({ prompt, lang }) => {
     throw error;
   }
 
-  const geminiResponse = await fetch(geminiEndpoint, {
+  const aiResponse = await fetch(OPENROUTER_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openrouterApiKey}`,
+      'HTTP-Referer': 'https://karahoca.com',
+      'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
+    },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{
-          text: [
-            'You are the AI assistant for KARAHOCA company.',
-            '',
-            'LANGUAGE RULE (ABSOLUTE PRIORITY):',
-            '- You MUST respond in the exact same language as the customer question.',
-            '- Arabic question -> Arabic response.',
-            '- English question -> English response.',
-            '- Turkish question -> Turkish response.',
-            '- Russian question -> Russian response.',
-            '- Any other language -> the same language response.',
-            '',
-            'BEHAVIOR RULES:',
-            '- Sound like a natural human sales and support assistant, not a scripted keyword bot.',
-            '- Answer the customer\'s real question directly before offering extra context.',
-            '- Use only the information provided in the prompt and its knowledge base.',
-            '- Do not say information is unavailable if the prompt already contains it.',
-            '- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with.',
-            '- If pricing, shipping, or order conditions depend on quantity, size, packaging, or exact SKU, explain that naturally and ask only the minimum necessary follow-up.',
-            '- Keep answers clear, commercially professional, and useful.'
-          ].join('\\n')
-        }]
-      },
-      contents: [{ role: 'user', parts: [{ text: buildDynamicContext(prompt, lang) }] }],
-      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
-    })
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: buildDynamicContext(prompt, lang) },
+      ],
+      temperature: 0.7,
+      top_p: 0.95,
+      max_tokens: 1024,
+    }),
   });
 
-  if (!geminiResponse.ok) {
-    const rawError = await geminiResponse.text();
-    console.error(`[ai-chat] Gemini HTTP ${geminiResponse.status}:`, rawError.slice(0, 300));
-    const error = new Error(rawError || 'Gemini request failed (' + geminiResponse.status + ').');
-    error.statusCode = geminiResponse.status;
+  if (!aiResponse.ok) {
+    const rawError = await aiResponse.text();
+    console.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
+    const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
+    error.statusCode = aiResponse.status;
     throw error;
   }
 
-  const payload = await geminiResponse.json();
+  const payload = await aiResponse.json();
   const reply = extractModelText(payload);
   if (!reply) {
-    const error = new Error('Gemini returned an empty response.');
+    const error = new Error('AI model returned an empty response.');
     error.statusCode = 502;
     throw error;
   }
   return { success: true, reply };
 };
 
-// ─── Gemini response cache ────────────────────────────────────────────────────
-const geminiCache = new Map(); // key → { reply, expiresAt, hits }
-const GEMINI_CACHE_TTL = 60 * 60 * 1000; // 1 hour — reduces API costs for repeated questions
-const GEMINI_CACHE_MAX = 500;            // keep up to 500 unique Q&A pairs
+// ─── AI response cache ───────────────────────────────────────────────────────
+const aiCache = new Map(); // key → { reply, expiresAt, hits }
+const AI_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const AI_CACHE_MAX = 500;
 
-/** Normalize a prompt for cache keying: lowercase + collapse whitespace */
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 
 const getCachedReply = (prompt, lang) => {
   const key = lang + ':' + normalizePrompt(prompt);
-  const entry = geminiCache.get(key);
+  const entry = aiCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
-    geminiCache.delete(key);
+    aiCache.delete(key);
     return null;
   }
-  entry.hits = (entry.hits || 0) + 1; // track hit count for diagnostics
+  entry.hits = (entry.hits || 0) + 1;
   return entry.reply;
 };
 
 const setCachedReply = (prompt, lang, reply) => {
   const key = lang + ':' + normalizePrompt(prompt);
-  geminiCache.set(key, { reply, expiresAt: Date.now() + GEMINI_CACHE_TTL, hits: 0 });
-  // LRU-like eviction: remove oldest entry when over limit
-  if (geminiCache.size > GEMINI_CACHE_MAX) {
-    const firstKey = geminiCache.keys().next().value;
-    geminiCache.delete(firstKey);
+  aiCache.set(key, { reply, expiresAt: Date.now() + AI_CACHE_TTL, hits: 0 });
+  if (aiCache.size > AI_CACHE_MAX) {
+    const firstKey = aiCache.keys().next().value;
+    aiCache.delete(firstKey);
   }
 };
 
