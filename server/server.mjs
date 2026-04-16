@@ -29,8 +29,8 @@ const newsletterFile = path.join(dataDirectory, 'newsletter.json');
 
 const port = Number.parseInt(process.env.PORT || '5000', 10);
 const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
-// OpenRouter API key (Gemma 4 via OpenRouter)
-const openrouterApiKey = process.env.OPENROUTER_API_KEY || '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';
+// OpenRouter API key — must be set via environment variable (never hardcode)
+const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const isProduction = process.env.NODE_ENV === 'production';
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
