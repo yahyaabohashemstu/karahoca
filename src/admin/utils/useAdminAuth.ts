@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { hasValidToken, clearToken, setToken, adminApi } from './adminApi';
+import { adminApi, type AdminRequestError } from './adminApi';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,7 +9,7 @@ interface AuthState {
 
 export const useAdminAuth = () => {
   const [state, setState] = useState<AuthState>({
-    isAuthenticated: hasValidToken(),
+    isAuthenticated: false,
     isLoading: false,
     error: null,
   });
@@ -17,18 +17,27 @@ export const useAdminAuth = () => {
   const login = async (username: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const result = await adminApi.login(username, password);
-      setToken(result.token);
+      await adminApi.login(username, password);
+      await adminApi.getSession();
       setState({ isAuthenticated: true, isLoading: false, error: null });
       return true;
     } catch (err) {
-      setState({ isAuthenticated: false, isLoading: false, error: err instanceof Error ? err.message : 'Login failed' });
+      const status = (err as AdminRequestError).status;
+      setState({
+        isAuthenticated: false,
+        isLoading: false,
+        error: status === 401 ? 'Invalid credentials.' : err instanceof Error ? err.message : 'Login failed',
+      });
       return false;
     }
   };
 
-  const logout = () => {
-    clearToken();
+  const logout = async () => {
+    try {
+      await adminApi.logout();
+    } catch {
+      // Always clear local auth state, even if the logout request races with an expired session.
+    }
     setState({ isAuthenticated: false, isLoading: false, error: null });
   };
 

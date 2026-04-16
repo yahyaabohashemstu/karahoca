@@ -1,4 +1,12 @@
-import { verifyLogin, signToken, isRateLimited, resetRateLimit, getJwtConfigError } from '../auth.mjs';
+import {
+  verifyLogin,
+  signToken,
+  isRateLimited,
+  resetRateLimit,
+  getJwtConfigError,
+  createAdminSessionCookie,
+  clearAdminSessionCookie,
+} from '../auth.mjs';
 
 const getIp = (req) =>
   (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
@@ -7,7 +15,7 @@ const getIp = (req) =>
 export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => {
   const ip = getIp(req);
 
-  if (isRateLimited(ip)) {
+  if (await isRateLimited(ip)) {
     sendJson(res, 429, { success: false, error: 'Too many login attempts. Try again in 15 minutes.' }, origin);
     return;
   }
@@ -30,15 +38,24 @@ export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => 
     return;
   }
 
-  const valid = verifyLogin(username.trim(), password);
+  const trimmedUsername = username.trim();
+  const valid = verifyLogin(trimmedUsername, password);
 
   if (!valid) {
     sendJson(res, 401, { success: false, error: 'Invalid credentials.' }, origin);
     return;
   }
 
-  resetRateLimit(ip);
-  const token = signToken({ username, role: 'admin' });
-  sendJson(res, 200, { success: true, token }, origin);
+  await resetRateLimit(ip);
+  const token = signToken({ username: trimmedUsername, role: 'admin' });
+  sendJson(res, 200, { success: true }, origin, {
+    'Set-Cookie': createAdminSessionCookie(token),
+  });
+};
+
+export const handleAdminLogout = async (_req, res, { sendJson, origin }) => {
+  sendJson(res, 200, { success: true }, origin, {
+    'Set-Cookie': clearAdminSessionCookie(),
+  });
 };
 

@@ -6,6 +6,9 @@ import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getAyluxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
 
+const AYLUX_LOGO_SRC = '/Aylux-logo.png.webp';
+const AYLUX_LOGO_FALLBACK = '/Aylux-logo.png';
+
 const AyluxPage: React.FC = () => {
   const { t } = useTranslation();
 
@@ -15,13 +18,13 @@ const AyluxPage: React.FC = () => {
         title={t('aylux.seo.title')}
         description={t('aylux.seo.description')}
         keywords={t('aylux.seo.keywords')}
-        ogImage="/Aylux-logo.png.webp"
+        ogImage={AYLUX_LOGO_SRC}
         canonicalUrl="https://karahoca.com/aylux"
       />
       <BrandPageSchema
         brand="AYLUX"
         description={t('aylux.seo.description')}
-        image="/Aylux-logo.png.webp"
+        image={AYLUX_LOGO_SRC}
       />
       <AyluxPageContent />
     </>
@@ -64,7 +67,8 @@ const AyluxPageContent: React.FC = () => {
     brandNameArabic: t('aylux.brandNameArabic'),
     heroTitle: t('aylux.hero.title'),
     heroDescription: t('aylux.hero.description'),
-    heroImage: '/Aylux-logo.png.webp',
+    heroImage: AYLUX_LOGO_SRC,
+    heroImageFallback: AYLUX_LOGO_FALLBACK,
     heroImageAlt: t('aylux.hero.imageAlt'),
     badges: [t('aylux.hero.badge1'), t('aylux.hero.badge2'), t('aylux.hero.badge3')],
     aboutTitle: t('aylux.about.title'),

@@ -65,7 +65,7 @@ const PrivacyPage: React.FC = () => {
   return (
     <>
       <SEO title={`${d.title} | KARAHOCA`} description={d.sections[0].body.slice(0, 160)} canonicalUrl="https://karahoca.com/privacy" />
-      {!isMobile && <Header />}
+      <Header />
       <main style={{ minHeight: '60vh', padding: isMobile ? '2rem 1.25rem' : '4rem 2rem' }}>
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
           <h1 style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 700, marginBottom: 8 }}>{d.title}</h1>
@@ -78,7 +78,7 @@ const PrivacyPage: React.FC = () => {
           ))}
         </div>
       </main>
-      {!isMobile && <Footer />}
+      <Footer />
     </>
   );
 };

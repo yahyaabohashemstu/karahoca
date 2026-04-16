@@ -6,6 +6,9 @@ import BrandPageTemplate from '../components/BrandPageTemplate';
 import { getDioxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
 
+const DIOX_LOGO_SRC = '/Diox-logo.png.webp';
+const DIOX_LOGO_FALLBACK = '/Diox-logo.png.png';
+
 const DioxPage: React.FC = () => {
   const { t } = useTranslation();
 
@@ -15,13 +18,13 @@ const DioxPage: React.FC = () => {
         title={t('diox.seo.title')}
         description={t('diox.seo.description')}
         keywords={t('diox.seo.keywords')}
-        ogImage="/Diox-logo.png.webp"
+        ogImage={DIOX_LOGO_SRC}
         canonicalUrl="https://karahoca.com/diox"
       />
       <BrandPageSchema
         brand="DIOX"
         description={t('diox.seo.description')}
-        image="/Diox-logo.png.webp"
+        image={DIOX_LOGO_SRC}
       />
       <DioxPageContent />
     </>
@@ -64,7 +67,8 @@ const DioxPageContent: React.FC = () => {
     brandNameArabic: t('diox.brandNameArabic'),
     heroTitle: t('diox.hero.title'),
     heroDescription: t('diox.hero.description'),
-    heroImage: '/Diox-logo.png.webp',
+    heroImage: DIOX_LOGO_SRC,
+    heroImageFallback: DIOX_LOGO_FALLBACK,
     heroImageAlt: t('diox.hero.imageAlt'),
     badges: [t('diox.hero.badge1'), t('diox.hero.badge2'), t('diox.hero.badge3')],
     aboutTitle: t('diox.about.title'),

@@ -1,5 +1,4 @@
 import { getDb } from '../db.mjs';
-import { verifyToken } from '../auth.mjs';
 
 const LANG_LABELS = { ar: 'العربية', en: 'English', tr: 'Türkçe', ru: 'Русский' };
 const LANG_DIR = { ar: 'rtl', en: 'ltr', tr: 'ltr', ru: 'ltr' };
@@ -224,9 +223,7 @@ export function handleAdminCatalog(request, response, ctx) {
     return;
   }
 
-  // Accept token from query param (since browser opens in new tab without Authorization header)
-  const queryToken = u.searchParams.get('token');
-  const user = queryToken ? verifyToken(queryToken) : ctx.user;
+  const user = ctx.user || ctx.admin;
 
   if (!user) {
     response.writeHead(401, { 'Content-Type': 'text/plain' });

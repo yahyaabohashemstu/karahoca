@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { adminApi, getToken } from '../utils/adminApi';
+import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { buildApiUrl } from '../../utils/api';
 import { fmtDate } from '../utils/dateUtils';
@@ -20,10 +20,12 @@ export const AdminNewsletter: React.FC = () => {
     try {
       const response = await fetch(buildApiUrl(`/api/admin/newsletter/${encodeURIComponent(email)}`), {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+        credentials: 'include',
       });
+      if (response.status === 401) {
+        window.location.href = '/admin';
+        return;
+      }
       const payload = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || 'Failed to unsubscribe');
@@ -40,10 +42,12 @@ export const AdminNewsletter: React.FC = () => {
     setExporting(true);
     try {
       const response = await fetch(buildApiUrl('/api/admin/newsletter/export'), {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+        credentials: 'include',
       });
+      if (response.status === 401) {
+        window.location.href = '/admin';
+        return;
+      }
       if (!response.ok) {
         const payload = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(payload.error || 'Failed to export subscribers');

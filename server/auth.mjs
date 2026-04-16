@@ -1,4 +1,6 @@
 import { createRequire } from 'node:module';
+import { parse as parseCookieHeader, serialize as serializeCookie } from 'cookie';
+import { isRateLimited as redisIsRateLimited, resetRateLimit as redisResetRateLimit } from './redisClient.mjs';
 
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
@@ -8,6 +10,35 @@ const DEFAULT_JWT_SECRET = 'karahoca_admin_secret_change_in_production';
 const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'; // 24-hour session (override via env)
 const isProduction = process.env.NODE_ENV === 'production';
+export const ADMIN_SESSION_COOKIE_NAME = 'karahoca_admin_session';
+
+const parseJwtExpiresInSeconds = (value) => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const directSeconds = Number.parseInt(trimmed, 10);
+  if (Number.isFinite(directSeconds) && String(directSeconds) === trimmed && directSeconds > 0) {
+    return directSeconds;
+  }
+
+  const match = trimmed.match(/^(\d+)([smhd])$/i);
+  if (!match) return undefined;
+
+  const amount = Number.parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  const multipliers = { s: 1, m: 60, h: 3600, d: 86400 };
+  return amount * multipliers[unit];
+};
+
+const ADMIN_SESSION_MAX_AGE_SECONDS = parseJwtExpiresInSeconds(JWT_EXPIRES_IN);
+const ADMIN_SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'strict',
+  secure: isProduction,
+  path: '/',
+  ...(ADMIN_SESSION_MAX_AGE_SECONDS ? { maxAge: ADMIN_SESSION_MAX_AGE_SECONDS } : {}),
+};
 
 // Warn on startup if JWT_SECRET is weak
 if (JWT_SECRET === DEFAULT_JWT_SECRET) {
@@ -18,25 +49,15 @@ if (JWT_SECRET === DEFAULT_JWT_SECRET) {
   }
 }
 
-// Rate limiting (in-memory)
-const loginAttempts = new Map(); // ip -> { count, resetAt }
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+// ─── Rate limiting (Redis-backed, 5 attempts per 15 minutes) ────────────────
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_SEC = 15 * 60; // 15 minutes
 
-const isRateLimited = (ip) => {
-  const now = Date.now();
-  const record = loginAttempts.get(ip);
-  if (!record || now > record.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return false;
-  }
-  record.count++;
-  return record.count > MAX_ATTEMPTS;
-};
+const isRateLimited = (ip) =>
+  redisIsRateLimited(`rl:login:${ip}`, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_SEC);
 
-const resetRateLimit = (ip) => {
-  loginAttempts.delete(ip);
-};
+const resetRateLimit = (ip) =>
+  redisResetRateLimit(`rl:login:${ip}`);
 
 // ─── Auth functions ──────────────────────────────────────────────────────────
 
@@ -79,16 +100,47 @@ export const verifyToken = (token) => {
   }
 };
 
+export const createAdminSessionCookie = (token) =>
+  serializeCookie(ADMIN_SESSION_COOKIE_NAME, token, ADMIN_SESSION_COOKIE_OPTIONS);
+
+export const clearAdminSessionCookie = () =>
+  serializeCookie(ADMIN_SESSION_COOKIE_NAME, '', {
+    ...ADMIN_SESSION_COOKIE_OPTIONS,
+    expires: new Date(0),
+    maxAge: 0,
+  });
+
 // ─── Middleware ──────────────────────────────────────────────────────────────
 
-/** Extract JWT from Authorization header and attach decoded payload to request */
+const getRequestCookieHeader = (request) => {
+  const header = request?.headers?.cookie;
+  if (Array.isArray(header)) return header.join('; ');
+  return typeof header === 'string' ? header : '';
+};
+
+const getLegacyBearerToken = (request) => {
+  const authHeader = request?.headers?.authorization;
+  if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.slice(7).trim() || null;
+};
+
+/** Extract JWT from the admin session cookie and attach decoded payload to request */
 export const requireAuth = (request) => {
-  const authHeader = request.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  return verifyToken(token);
+  const cookieHeader = getRequestCookieHeader(request);
+  if (cookieHeader) {
+    const cookies = parseCookieHeader(cookieHeader);
+    const sessionToken = cookies[ADMIN_SESSION_COOKIE_NAME];
+    if (sessionToken) {
+      return verifyToken(sessionToken);
+    }
+  }
+
+  // Temporary migration bridge for pre-cookie admin clients during rollout.
+  const legacyBearerToken = getLegacyBearerToken(request);
+  if (!legacyBearerToken) return null;
+  return verifyToken(legacyBearerToken);
 };
 
 export { isRateLimited, resetRateLimit };
-
-

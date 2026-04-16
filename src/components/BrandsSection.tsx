@@ -1,16 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ImageWithFallback from './ImageWithFallback';
 
 /* ─── Real partner logos ──────────────────────────────────────────────────── */
-const PARTNERS: { name: string; logo: string; featured?: boolean }[] = [
-  { name: 'Altunsa',              logo: '/logos/altunsa-logo.png',    featured: true },
-  { name: 'Aktürk',              logo: '/logos/akturk-logo.png'                    },
-  { name: 'Moher Kimya',         logo: '/logos/moher-logo.png'                     },
-  { name: 'M.O.K',              logo: '/logos/mok-logo.png'                       },
-  { name: 'Dar Al Khairr',      logo: '/logos/dar-alkhairr-logo.png'              },
-  { name: 'Oroplus',            logo: '/logos/oroplus-logo.png'                   },
-  { name: 'Butter Fly',         logo: '/logos/butter-fly-logo.png'                },
+const PARTNERS: { name: string; logo: string; fallbackLogo: string; featured?: boolean }[] = [
+  { name: 'Altunsa', logo: '/logos/altunsa-logo.webp', fallbackLogo: '/logos/altunsa-logo.png', featured: true },
+  { name: 'Aktürk', logo: '/logos/akturk-logo.webp', fallbackLogo: '/logos/akturk-logo.png' },
+  { name: 'Moher Kimya', logo: '/logos/moher-logo.webp', fallbackLogo: '/logos/moher-logo.png' },
+  { name: 'M.O.K', logo: '/logos/mok-logo.webp', fallbackLogo: '/logos/mok-logo.png' },
+  { name: 'Dar Al Khairr', logo: '/logos/dar-alkhairr-logo.webp', fallbackLogo: '/logos/dar-alkhairr-logo.png' },
+  { name: 'Oroplus', logo: '/logos/oroplus-logo.webp', fallbackLogo: '/logos/oroplus-logo.png' },
+  { name: 'Butter Fly', logo: '/logos/butter-fly-logo.webp', fallbackLogo: '/logos/butter-fly-logo.png' },
 ];
 
 const BrandsSection: React.FC = () => {
@@ -30,8 +31,9 @@ const BrandsSection: React.FC = () => {
       <div className="container cards">
         <Link className="card glass-card fx-up" to="/diox" aria-label="DIOX">
           <div className="card__media" style={{ '--card-accent': 'var(--blue)' } as React.CSSProperties}>
-            <img
+            <ImageWithFallback
               src="/Diox-logo.png.webp"
+              fallbackSrc="/Diox-logo.png.png"
               alt="DIOX"
               style={{ height: '144px', width: '144px', objectFit: 'contain' }}
             />
@@ -46,8 +48,9 @@ const BrandsSection: React.FC = () => {
 
         <Link className="card glass-card fx-up" to="/aylux" aria-label="AYLUX">
           <div className="card__media" style={{ '--card-accent': 'var(--orange)' } as React.CSSProperties}>
-            <img
+            <ImageWithFallback
               src="/Aylux-logo.png.webp"
+              fallbackSrc="/Aylux-logo.png"
               alt="AYLUX"
               style={{ height: '144px', width: '144px', objectFit: 'contain' }}
             />
@@ -98,8 +101,9 @@ const BrandsSection: React.FC = () => {
                   className={`brands-logo-card${p.featured ? ' brands-logo-card--featured' : ''}`}
                   aria-label={p.name}
                 >
-                  <img
+                  <ImageWithFallback
                     src={p.logo}
+                    fallbackSrc={p.fallbackLogo}
                     alt={p.name}
                     className="brands-logo-img"
                     loading="lazy"

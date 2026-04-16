@@ -5,6 +5,8 @@ import { useWishlist, type WishlistItem } from '../hooks/useWishlist';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SEO from '../components/SEO';
+import ImageWithFallback from '../components/ImageWithFallback';
+import { toWebp } from '../utils/image';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
 const L = {
@@ -134,8 +136,9 @@ const WishlistPopup: React.FC<PopupProps> = ({ item, l, onClose, onRemove }) => 
 
         {/* ── Image ── */}
         <div style={ps.imageWrap}>
-          <img
-            src={item.image}
+          <ImageWithFallback
+            src={toWebp(item.image)}
+            fallbackSrc={item.image}
             alt={item.alt || item.name}
             style={ps.image}
             onError={e => { (e.target as HTMLImageElement).style.opacity = '0'; }}
@@ -285,8 +288,9 @@ const WishCard: React.FC<CardProps> = ({ item, l, onRemove, onView }) => {
         onClick={onView}
         aria-label={`${l.view}: ${item.name}`}
       >
-        <img
-          src={item.image}
+        <ImageWithFallback
+          src={toWebp(item.image)}
+          fallbackSrc={item.image}
           alt={item.alt || item.name}
           style={{ maxHeight: 160, maxWidth: '100%', objectFit: 'contain' }}
           loading="lazy"

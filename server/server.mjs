@@ -6,7 +6,7 @@ import { createReadStream, existsSync } from 'node:fs';
 
 import { initDb, getDb, incrementStat, logAudit } from './db.mjs';
 import { requireAuth } from './auth.mjs';
-import { handleAdminLogin } from './routes/admin-auth.mjs';
+import { handleAdminLogin, handleAdminLogout } from './routes/admin-auth.mjs';
 import { handleAdminStats } from './routes/admin-stats.mjs';
 import { handleAdminAnalytics } from './routes/admin-analytics.mjs';
 import { handleAdminChats } from './routes/admin-chats.mjs';
@@ -21,6 +21,7 @@ import { handleAdminCatalog } from './routes/admin-catalog.mjs';
 import { handlePublicProducts, handlePublicNews, handleChatLog } from './routes/public-data.mjs';
 import { startAutoBackup } from './backup.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
+import { cacheGet, cacheSet, closeRedis, isRateLimited as redisIsRateLimited } from './redisClient.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,13 +65,15 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';",
 };
 
-const createJsonHeaders = (requestOrigin = '') => {
+const createJsonHeaders = (requestOrigin = '', extraHeaders = {}) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     ...SECURITY_HEADERS,
+    ...extraHeaders,
   };
   if (requestOrigin) {
     headers['Access-Control-Allow-Origin'] = requestOrigin;
+    headers['Access-Control-Allow-Credentials'] = 'true';
     headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
     headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     headers.Vary = 'Origin';
@@ -167,8 +170,8 @@ const readRequestBody = async (request, maxBytes = MAX_BODY_BYTES) =>
     request.on('error', (err) => { if (!tooLarge) reject(err); });
   });
 
-const sendJson = (response, statusCode, payload, requestOrigin = '') => {
-  response.writeHead(statusCode, createJsonHeaders(requestOrigin));
+const sendJson = (response, statusCode, payload, requestOrigin = '', extraHeaders = {}) => {
+  response.writeHead(statusCode, createJsonHeaders(requestOrigin, extraHeaders));
   response.end(JSON.stringify(payload));
 };
 
@@ -228,7 +231,12 @@ const WELCOME_EMAIL_I18N = {
   },
 };
 
-const subscribeNewsletter = async ({ email, lang }) => {
+const subscribeNewsletter = async ({ email, lang, _honey }) => {
+  // Honeypot spam trap: bots fill the hidden _honey field.
+  // Silently return success without saving anything.
+  if (_honey) {
+    return { success: true, message: 'Subscribed!' };
+  }
   if (typeof email !== 'string') throw new Error('Invalid email address.');
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail.length > 254) throw new Error('Email address too long.');
@@ -443,81 +451,33 @@ const generateAiReply = async ({ prompt, lang }) => {
   return { success: true, reply };
 };
 
-// ─── AI response cache ───────────────────────────────────────────────────────
-const aiCache = new Map(); // key → { reply, expiresAt, hits }
-const AI_CACHE_TTL = 60 * 60 * 1000; // 1 hour
-const AI_CACHE_MAX = 500;
+// ─── AI response cache (Redis-backed, 24-hour TTL) ─────────────────────────
+const AI_CACHE_TTL_SEC = 24 * 60 * 60; // 24 hours
 
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 
-const getCachedReply = (prompt, lang) => {
-  const key = lang + ':' + normalizePrompt(prompt);
-  const entry = aiCache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    aiCache.delete(key);
-    return null;
-  }
-  entry.hits = (entry.hits || 0) + 1;
-  return entry.reply;
+const getCachedReply = async (prompt, lang) => {
+  const key = 'ai_cache:' + lang + ':' + normalizePrompt(prompt);
+  return cacheGet(key);
 };
 
-const setCachedReply = (prompt, lang, reply) => {
-  const key = lang + ':' + normalizePrompt(prompt);
-  aiCache.set(key, { reply, expiresAt: Date.now() + AI_CACHE_TTL, hits: 0 });
-  if (aiCache.size > AI_CACHE_MAX) {
-    const firstKey = aiCache.keys().next().value;
-    aiCache.delete(firstKey);
-  }
+const setCachedReply = async (prompt, lang, reply) => {
+  const key = 'ai_cache:' + lang + ':' + normalizePrompt(prompt);
+  await cacheSet(key, reply, AI_CACHE_TTL_SEC);
 };
 
-// ─── Rate limiter with memory cap ────────────────────────────────────────────
-const MAX_RATE_ENTRIES = 10_000; // prevent memory exhaustion from IP rotation attacks
+// ─── Rate limiters (Redis-backed with in-memory fallback) ───────────────────
+const CHAT_LIMIT = 30;    // max requests per window
+const CHAT_WINDOW_SEC = 60; // 1 minute
 
-const chatRateMap = new Map(); // ip → { count, resetAt }
-const CHAT_LIMIT = 30;         // max requests per window
-const CHAT_WINDOW = 60_000;    // 1 minute
+const isChatRateLimited = (ip) =>
+  redisIsRateLimited(`rl:chat:${ip}`, CHAT_LIMIT, CHAT_WINDOW_SEC);
 
-const isChatRateLimited = (ip) => {
-  const now = Date.now();
-  const rec = chatRateMap.get(ip);
-  if (!rec || now > rec.resetAt) {
-    if (chatRateMap.size >= MAX_RATE_ENTRIES) chatRateMap.delete(chatRateMap.keys().next().value);
-    chatRateMap.set(ip, { count: 1, resetAt: now + CHAT_WINDOW });
-    return false;
-  }
-  rec.count++;
-  if (rec.count > CHAT_LIMIT) return true;
-  return false;
-};
+const UNSUB_LIMIT = 10;          // max requests per window
+const UNSUB_WINDOW_SEC = 5 * 60; // 5 minutes
 
-// ─── Unsubscribe rate limiter (prevents abuse/enumeration) ──────────────────
-const unsubRateMap = new Map(); // ip → { count, resetAt }
-const UNSUB_LIMIT  = 10;        // max requests per window
-const UNSUB_WINDOW = 5 * 60_000; // 5 minutes
-
-const isUnsubRateLimited = (ip) => {
-  const now = Date.now();
-  const rec = unsubRateMap.get(ip);
-  if (!rec || now > rec.resetAt) {
-    if (unsubRateMap.size >= MAX_RATE_ENTRIES) unsubRateMap.delete(unsubRateMap.keys().next().value);
-    unsubRateMap.set(ip, { count: 1, resetAt: now + UNSUB_WINDOW });
-    return false;
-  }
-  rec.count++;
-  return rec.count > UNSUB_LIMIT;
-};
-
-// Prune stale entries every 5 minutes
-const rateLimitPruneInterval = setInterval(() => {
-  const now = Date.now();
-  for (const [ip, rec] of chatRateMap) {
-    if (now > rec.resetAt) chatRateMap.delete(ip);
-  }
-  for (const [ip, rec] of unsubRateMap) {
-    if (now > rec.resetAt) unsubRateMap.delete(ip);
-  }
-}, 300_000);
+const isUnsubRateLimited = (ip) =>
+  redisIsRateLimited(`rl:unsub:${ip}`, UNSUB_LIMIT, UNSUB_WINDOW_SEC);
 
 // ─── Admin auth guard ─────────────────────────────────────────────────────────
 
@@ -667,7 +627,11 @@ const server = createServer(async (request, response) => {
   const requestHostOrigin = getRequestHostOrigin(request);
   const originAllowed = isOriginAllowed(requestOrigin, requestHostOrigin);
   const url = request.url.split('?')[0]; // path without query string
-  const ctx = { sendJson: (res, code, payload, origin) => sendJson(res, code, payload, origin), origin: requestOrigin, url };
+  const ctx = {
+    sendJson: (res, code, payload, origin, extraHeaders) => sendJson(res, code, payload, origin, extraHeaders),
+    origin: requestOrigin,
+    url,
+  };
 
   if (request.method === 'OPTIONS') {
     if (!originAllowed) { sendJson(response, 403, { success: false, error: 'Origin is not allowed.' }); return; }
@@ -687,7 +651,7 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && url === '/api/ai/chat') {
       const clientIp = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown')
         .split(',')[0].trim();
-      if (isChatRateLimited(clientIp)) {
+      if (await isChatRateLimited(clientIp)) {
         sendJson(response, 429, { success: false, error: 'Too many requests. Please slow down.' }, requestOrigin);
         return;
       }
@@ -701,7 +665,7 @@ const server = createServer(async (request, response) => {
         }
       }
       // Check cache first
-      const cachedReply = getCachedReply(body.prompt, body.lang || 'ar');
+      const cachedReply = await getCachedReply(body.prompt, body.lang || 'ar');
       if (cachedReply) {
         sendJson(response, 200, { success: true, reply: cachedReply }, requestOrigin);
         return;
@@ -710,7 +674,7 @@ const server = createServer(async (request, response) => {
         const promptLen = (body.prompt || '').length;
         console.log(`[ai-chat] prompt length: ${promptLen} chars`);
         const result = await generateAiReply(body);
-        if (result?.reply) setCachedReply(body.prompt, body.lang || 'ar', result.reply);
+        if (result?.reply) await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
         sendJson(response, 200, result, requestOrigin);
       } catch (aiErr) {
         console.error(`[ai-chat] generateAiReply failed:`, aiErr.message || aiErr);
@@ -733,7 +697,7 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && url === '/api/newsletter/unsubscribe') {
       const unsubIp = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown')
         .split(',')[0].trim();
-      if (isUnsubRateLimited(unsubIp)) {
+      if (await isUnsubRateLimited(unsubIp)) {
         sendJson(response, 429, { success: false, error: 'Too many requests. Please try again later.' }, requestOrigin);
         return;
       }
@@ -842,9 +806,8 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // ── Catalog route (self-authenticates via query token for new-tab PDF) ──
-    if (url.startsWith('/api/admin/catalog')) {
-      handleAdminCatalog(request, response, { ...ctx, url: request.url });
+    if (request.method === 'POST' && url === '/api/admin/logout') {
+      await handleAdminLogout(request, response, ctx);
       return;
     }
 
@@ -857,7 +820,18 @@ const server = createServer(async (request, response) => {
       const body = ['POST','PUT','PATCH'].includes(request.method)
         ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
         : {};
-      const adminCtx = { ...ctx, body, admin: adminUser };
+      const adminCtx = { ...ctx, body, admin: adminUser, user: adminUser };
+
+      if (url === '/api/admin/session' && request.method === 'GET') {
+        sendJson(response, 200, {
+          success: true,
+          user: {
+            username: adminUser.username,
+            role: adminUser.role,
+          },
+        }, requestOrigin);
+        return;
+      }
 
       if (url === '/api/admin/stats' && request.method === 'GET') {
         handleAdminStats(request, response, adminCtx);
@@ -973,7 +947,7 @@ const server = createServer(async (request, response) => {
       }
 
       if (url.startsWith('/api/admin/catalog')) {
-        handleAdminCatalog(request, response, { ...ctx, url });
+        handleAdminCatalog(request, response, { ...adminCtx, url: request.url });
         return;
       }
 
@@ -1098,21 +1072,25 @@ server.listen(port, () => {
 const backupInterval = startAutoBackup();
 
 // ── Graceful shutdown ───────────────────────────────────────────────────────
-const shutdown = (signal) => {
+const shutdown = async (signal) => {
   console.log(`[server] ${signal} received — shutting down gracefully.`);
   clearInterval(newsSchedulerInterval);
   clearInterval(campaignInterval);
-  clearInterval(rateLimitPruneInterval);
   if (backupInterval) clearInterval(backupInterval);
-  server.close(() => {
+  server.close(async () => {
+    await closeRedis();
     console.log('[server] HTTP server closed.');
     process.exit(0);
   });
   // Force exit after 5s if server.close hangs
   setTimeout(() => process.exit(1), 5000).unref();
 };
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
 
 
 

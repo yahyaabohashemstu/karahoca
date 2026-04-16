@@ -16,6 +16,7 @@ const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const [email, setEmail] = useState('');
+  const [honeyValue, setHoneyValue] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
   const [welcomeEmailStatus, setWelcomeEmailStatus] = useState<WelcomeEmailStatus | null>(null);
@@ -59,6 +60,15 @@ const Footer: React.FC = () => {
       return;
     }
 
+    // Honeypot: bots fill hidden fields; real users never will.
+    // Silently fake success so bots think it worked.
+    if (honeyValue) {
+      setSubmissionState('success');
+      setEmail('');
+      setTimeout(() => setSubmissionState('idle'), 8000);
+      return;
+    }
+
     setSubmissionState('loading');
     setEmailError('');
 
@@ -68,7 +78,7 @@ const Footer: React.FC = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, lang: i18n.language })
+        body: JSON.stringify({ email, lang: i18n.language, _honey: honeyValue })
       });
 
       if (!response.ok) {
@@ -155,6 +165,17 @@ const Footer: React.FC = () => {
             onSubmit={handleSubscribe}
             noValidate
           >
+            {/* Honeypot: invisible to users, visible to bots */}
+            <input
+              type="text"
+              name="_honey"
+              value={honeyValue}
+              onChange={e => setHoneyValue(e.target.value)}
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0, overflow: 'hidden' }}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+            />
             <div className="newsletter__input-wrapper">
               <input
                 type="email"

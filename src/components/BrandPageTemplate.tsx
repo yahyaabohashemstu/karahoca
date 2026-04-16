@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FlipBook from './FlipBook';
+import ImageWithFallback from './ImageWithFallback';
 import { useWishlist } from '../hooks/useWishlist';
+import { toWebp } from '../utils/image';
 
 /** Build a WhatsApp share URL for the given product.
  *  Appends the product id as a URL hash so the recipient lands directly
@@ -55,6 +57,7 @@ interface BrandPageProps {
   heroTitle: string;
   heroDescription: string;
   heroImage: string;
+  heroImageFallback?: string;
   heroImageAlt: string;
   badges: string[];
   aboutTitle: string;
@@ -79,6 +82,7 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   heroTitle,
   heroDescription,
   heroImage,
+  heroImageFallback,
   heroImageAlt,
   badges,
   aboutTitle,
@@ -160,12 +164,16 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
             <div className="hero__visual">
               <div className="hero-orb hero-orb--1"></div>
               <div className="hero-orb hero-orb--2"></div>
-              <div className="card-3d" data-tilt="true">
-                <div className="card-3d__inner glass-panel">
-                  <img src={heroImage} alt={heroImageAlt} />
+                <div className="card-3d" data-tilt="true">
+                  <div className="card-3d__inner glass-panel">
+                    <ImageWithFallback
+                      src={heroImage}
+                      fallbackSrc={heroImageFallback}
+                      alt={heroImageAlt}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
           </div>
           <a href={`#${aboutId}`} className="scroll-indicator" aria-label={t('brandPage.scrollDown')}>
             <span className="scroll-indicator__dot"></span>
@@ -257,8 +265,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                         </div>
                       )}
                       <div className="product-card-front">
-                        <img
-                          src={product.image}
+                        <ImageWithFallback
+                          src={toWebp(product.image)}
+                          fallbackSrc={product.image}
                           alt={product.alt}
                           className="product-mini-image"
                           loading="lazy"
@@ -340,8 +349,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
               <div className="popup-image-section">
                 {/* Main image */}
                 <div className="popup-main-image-wrap">
-                  <img
-                    src={allPopupImages[galleryIndex]}
+                  <ImageWithFallback
+                    src={toWebp(allPopupImages[galleryIndex])}
+                    fallbackSrc={allPopupImages[galleryIndex]}
                     alt={selectedProduct.alt}
                     className="image-popup-img"
                     key={allPopupImages[galleryIndex]}
@@ -365,7 +375,11 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                           onClick={() => setGalleryIndex(idx)}
                           aria-label={`Image ${idx + 1}`}
                         >
-                          <img src={img} alt={`${selectedProduct.alt} ${idx + 1}`} />
+                          <ImageWithFallback
+                            src={toWebp(img)}
+                            fallbackSrc={img}
+                            alt={`${selectedProduct.alt} ${idx + 1}`}
+                          />
                         </button>
                       ))}
                     </div>

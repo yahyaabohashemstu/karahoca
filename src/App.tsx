@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WishlistProvider } from './hooks/useWishlist';
@@ -24,17 +24,6 @@ import TermsPage from './pages/TermsPage';
 import ThemeToggle from './components/ThemeToggle';
 import AIChatWidget from './components/AIChatWidget';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
-import MobileLayout from './mobile/MobileLayout';
-import MobileHome from './mobile/MobileHome';
-import MobileAboutPage from './mobile/MobileAboutPage';
-import MobileNewsPage from './mobile/MobileNewsPage';
-import MobileDioxPage from './mobile/MobileDioxPage';
-import MobileAyluxPage from './mobile/MobileAyluxPage';
-import MobileProductionPage from './mobile/MobileProductionPage';
-import MobileGoalPage from './mobile/MobileGoalPage';
-import MobileDryerPage from './mobile/MobileDryerPage';
-import PageLoader from './components/PageLoader';
-import { useIsMobile } from './hooks/useIsMobile';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { getLanguageDirection, normalizeLanguageCode } from './utils/language';
 import './styles/main.css';
@@ -45,27 +34,13 @@ const AdminApp = lazy(() => import('./admin/AdminApp').then(m => ({ default: m.A
 
 function MainSite() {
   const { i18n } = useTranslation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isHiding, setIsHiding] = useState(false);
 
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
 
-  const isMobile = useIsMobile(768);
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const currentDir = getLanguageDirection(currentLang);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsHiding(true);
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <>
@@ -73,59 +48,28 @@ function MainSite() {
       <CookieConsent />
       <OrganizationSchema />
       <WebsiteSchema />
-      {isLoading && <PageLoader hiding={isHiding} />}
 
-      {!isLoading && (
-        <>
-          {isMobile ? (
-            <div className="App" dir={currentDir} lang={currentLang}>
-              <MobileLayout>
-                <Routes>
-                  <Route path="/" element={<MobileHome />} />
-                  <Route path="/about" element={<MobileAboutPage />} />
-                  <Route path="/news" element={<MobileNewsPage />} />
-                  <Route path="/news/:slug" element={<NewsArticlePage />} />
-                  <Route path="/diox" element={<MobileDioxPage />} />
-                  <Route path="/aylux" element={<MobileAyluxPage />} />
-                  <Route path="/production" element={<MobileProductionPage />} />
-                  <Route path="/goal" element={<MobileGoalPage />} />
-                  <Route path="/dryer" element={<MobileDryerPage />} />
-                  <Route path="/wishlist" element={<WishlistPage />} />
-                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                  <Route path="/privacy" element={<PrivacyPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </MobileLayout>
-              <AIChatWidget />
-              <ThemeToggle />
-              <WhatsAppButton phoneNumber="905305914990" />
-            </div>
-          ) : (
-            <div className="App" dir={currentDir} lang={currentLang}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/news" element={<NewsPage />} />
-                <Route path="/news/:slug" element={<NewsArticlePage />} />
-                <Route path="/diox" element={<DioxPage />} />
-                <Route path="/aylux" element={<AyluxPage />} />
-                <Route path="/production" element={<ProductionPage />} />
-                <Route path="/goal" element={<GoalPage />} />
-                <Route path="/dryer" element={<DryerPage />} />
-                <Route path="/wishlist" element={<WishlistPage />} />
-                <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-              <AIChatWidget />
-              <ThemeToggle />
-              <WhatsAppButton phoneNumber="905305914990" />
-            </div>
-          )}
-        </>
-      )}
+      <div className="App" dir={currentDir} lang={currentLang}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/news" element={<NewsPage />} />
+          <Route path="/news/:slug" element={<NewsArticlePage />} />
+          <Route path="/diox" element={<DioxPage />} />
+          <Route path="/aylux" element={<AyluxPage />} />
+          <Route path="/production" element={<ProductionPage />} />
+          <Route path="/goal" element={<GoalPage />} />
+          <Route path="/dryer" element={<DryerPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+        <AIChatWidget />
+        <ThemeToggle />
+        <WhatsAppButton phoneNumber="905305914990" />
+      </div>
     </>
   );
 }

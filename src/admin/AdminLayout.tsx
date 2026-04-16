@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AdminSidebar } from './components/AdminSidebar';
-import { clearToken } from './utils/adminApi';
+import { adminApi } from './utils/adminApi';
 
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
-    clearToken();
-    navigate('/admin');
+    void (async () => {
+      try {
+        await adminApi.logout();
+      } finally {
+        navigate('/admin', { replace: true });
+      }
+    })();
   };
 
   return (

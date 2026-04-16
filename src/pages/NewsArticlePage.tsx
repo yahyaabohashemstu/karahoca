@@ -43,12 +43,12 @@ const NewsArticlePage: React.FC = () => {
   if (!article) {
     return (
       <>
-        {!isMobile && <Header />}
+        <Header />
         <main style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1.5rem', textAlign: 'center' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{t('newsPage.notFound', 'Article not found')}</h1>
           <Link to="/news" className="btn btn--primary">{t('newsPage.backToNews', 'Back to News')}</Link>
         </main>
-        {!isMobile && <Footer />}
+        <Footer />
       </>
     );
   }
@@ -75,7 +75,7 @@ const NewsArticlePage: React.FC = () => {
         { name: article.title, url: `/news/${article.slug}` },
       ]} />
 
-      {!isMobile && <Header />}
+      <Header />
 
       <main className="news-article-page">
         <article className="news-article">
@@ -126,7 +126,7 @@ const NewsArticlePage: React.FC = () => {
         </article>
       </main>
 
-      {!isMobile && <Footer />}
+      <Footer />
     </>
   );
 };
