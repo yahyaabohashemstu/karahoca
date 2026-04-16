@@ -508,54 +508,26 @@ body.light-mode .brand__logo {
 /* Enhanced hero section */
 .hero {
   position: relative;
-  min-height: 92vh;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
+  padding: 0 0 8rem;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* ── Full-bleed background image ─────────────────────────────────────── */
-.hero__bg {
+.hero::before {
+  content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
+  background: linear-gradient(135deg, rgba(255, 91, 46, 0.05), rgba(10, 42, 94, 0.05));
+  pointer-events: none;
 }
 
-.hero__bg-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 30%;
-  display: block;
-}
-
-/* Overlay: darken top half (sky area where text sits) + gentle overall tint */
-.hero__bg-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.3) 100%);
-}
-
-body.light-mode .hero__bg-overlay {
-  background:
-    linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 55%, rgba(255,255,255,0.5) 100%);
-}
-
-/* ── Content layer — positioned top-right over clear sky ── */
-.hero__content {
-  position: absolute;
-  top: -2rem;
-  right: 5%;
-  z-index: 1;
-  max-width: 520px;
-  text-align: right;
-}
-html[dir="ltr"] .hero__content {
-  right: auto;
-  left: 5%;
-  text-align: left;
+.hero__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
 }
 
 .hero-title {
@@ -563,10 +535,6 @@ html[dir="ltr"] .hero__content {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 1.5rem;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.4);
-}
-body.light-mode .hero-title {
-  text-shadow: 0 2px 16px rgba(255,255,255,0.6);
 }
 
 .lead {
@@ -575,21 +543,12 @@ body.light-mode .hero-title {
   max-width: 50ch;
   margin-bottom: 2rem;
 }
-.hero .lead {
-  text-shadow: 0 1px 12px rgba(0,0,0,0.5);
-  color: rgba(255,255,255,0.92);
-}
-body.light-mode .hero .lead {
-  text-shadow: 0 1px 8px rgba(255,255,255,0.5);
-  color: rgba(21,61,122,0.85);
-}
 
 .hero__cta {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .hero__badges {
@@ -597,7 +556,6 @@ body.light-mode .hero .lead {
   gap: 0.5rem;
   list-style: none;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .chip {
@@ -620,7 +578,7 @@ body.light-mode .hero .lead {
   transform: translateY(-2px);
 }
 
-/* Hero visual elements (kept for other pages that may use them) */
+/* Enhanced hero visual */
 .hero__visual {
   position: relative;
   min-height: 400px;
@@ -2532,8 +2490,8 @@ html[dir="ltr"] .theme-toggle {
     display: none;
   }
 
-  .hero__content {
-    max-width: 680px;
+  .hero__grid {
+    grid-template-columns: 1.1fr 0.9fr;
   }
 
   .split {
@@ -2575,8 +2533,8 @@ html[dir="ltr"] .theme-toggle {
 }
 
 @media (min-width: 1200px) {
-  .hero__content {
-    padding: 10rem 0;
+  .hero {
+    padding: 8rem 0 10rem;
   }
 
   .section {
