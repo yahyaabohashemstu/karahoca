@@ -4087,6 +4087,37 @@ body.light-mode .news-modal__close {
 }
 
 /* Logo grid — single row, all logos share space equally */
+/* ── Partner logos infinite marquee ──────────────────────────────────── */
+.brands-marquee {
+  width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.brands-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 30s linear infinite;
+}
+
+.brands-marquee:hover .brands-marquee__track {
+  animation-play-state: paused;
+}
+
+.brands-marquee__set {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding-inline-end: 14px;
+}
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(-100% / 3)); }
+}
+
+/* Legacy grid selector (kept for backward compat) */
 .brands-logos-grid {
   display: flex;
   flex-wrap: nowrap;
@@ -4262,13 +4293,10 @@ body.light-mode .brands-logo-card--featured {
   .brands-partner-row     { padding: 12px; }
   .brands-partner-content { padding: 28px 22px 22px; }
   .brands-partner-logos   { padding: 18px 14px 24px; }
-  /* Mobile: allow wrapping into 2 rows of ~4 */
-  .brands-logos-grid {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+  .brands-marquee__track  { animation-duration: 20s; }
+  .brands-marquee__set    { gap: 10px; padding-inline-end: 10px; }
   .brands-logo-card {
-    flex: 1 1 calc(25% - 8px);
+    flex: 0 0 auto;
     max-width: none;
     height: 72px;
     padding: 10px 12px;
