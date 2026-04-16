@@ -546,7 +546,7 @@ body.light-mode .hero__bg-overlay {
 /* ── Content layer — positioned top-right over clear sky ── */
 .hero__content {
   position: absolute;
-  top: 6rem;
+  top: 2rem;
   right: 5%;
   z-index: 1;
   max-width: 520px;
