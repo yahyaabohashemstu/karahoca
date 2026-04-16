@@ -45,12 +45,15 @@ const getOrCreateUserId = (): string => {
 
 const logChatToServer = (userId: string, sessionId: string, messages: ChatMessage[], language: string): void => {
   if (!messages.length) return;
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 5000); // 5s timeout
   const payload = { userId, sessionId, messages, language };
   fetch(buildApiUrl('/api/chat/log'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }).catch(() => {});
+    signal: controller.signal,
+  }).catch(() => {}).finally(() => clearTimeout(tid));
 };
 
 interface UIStrings {
@@ -174,7 +177,8 @@ const formatTimestamp = (lang: string) =>
     minute: '2-digit',
   });
 
-const sanitizeInput = (value: string) => value.replace(/\s+/g, ' ').trim();
+const sanitizeInput = (value: string) =>
+  value.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000);
 
 const ARABIC_SCRIPT_PATTERN = /[\u0600-\u06FF]/u;
 const CYRILLIC_SCRIPT_PATTERN = /[\u0400-\u04FF]/u;
@@ -456,11 +460,13 @@ const AIChatWidget: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const statusIdRef = useRef(0); // counter to avoid race conditions in auto-clear
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const userIdRef = useRef<string>(getOrCreateUserId());
   const sessionIdRef = useRef<string>(`sess-${Date.now()}`);
+  const notifAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (isOpen || welcomeHintShownRef.current) {
@@ -473,9 +479,12 @@ const AIChatWidget: React.FC = () => {
       welcomeHintShownRef.current = true;
 
       try {
-        const audio = new Audio('/notification-sound.mp3');
-        audio.volume = 0.5;
-        audio.play().catch(() => {});
+        if (!notifAudioRef.current) {
+          notifAudioRef.current = new Audio('/notification-sound.mp3');
+          notifAudioRef.current.volume = 0.5;
+        }
+        notifAudioRef.current.currentTime = 0;
+        notifAudioRef.current.play().catch(() => {});
       } catch {
         // Ignore browsers that block autoplay or do not support audio.
       }
@@ -609,9 +618,9 @@ const AIChatWidget: React.FC = () => {
         typeof payload?.reply === 'string' ? payload.reply.trim() : '';
 
       if (!assistantReply) {
+        const sid = ++statusIdRef.current;
         setStatusMessage(uiText.noAnswerFallback);
-        // Auto-clear status after 8 seconds
-        setTimeout(() => setStatusMessage(s => s === uiText.noAnswerFallback ? null : s), 8000);
+        setTimeout(() => { if (statusIdRef.current === sid) setStatusMessage(null); }, 8000);
         return;
       }
 
@@ -641,10 +650,10 @@ const AIChatWidget: React.FC = () => {
         : (/empty response|empty reply/i.test(getErrorMessage(error))
           ? uiText.noAnswerFallback
           : uiText.fallbackReply);
+      const sid = ++statusIdRef.current;
       setStatusMessage(errMsg);
       setSuggestions([]);
-      // Auto-clear error after 8 seconds
-      setTimeout(() => setStatusMessage(s => s === errMsg ? null : s), 8000);
+      setTimeout(() => { if (statusIdRef.current === sid) setStatusMessage(null); }, 8000);
     } finally {
       setIsLoading(false);
       sendLockRef.current = false;

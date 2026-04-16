@@ -467,6 +467,12 @@ body.light-mode .ai-assistant__message th {
   }
 }
 
+@media (max-width: 360px) {
+  .ai-assistant__window {
+    width: min(280px, 95vw);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ai-assistant__toggle,
   .ai-assistant__message {
