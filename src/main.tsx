@@ -5,7 +5,6 @@ import 'modern-normalize/modern-normalize.css'
 // reference resolves on first paint. See src/styles/tokens.css.
 import './styles/tokens.css'
 import './index.css'
-import './styles/mobile.css'
 import './i18n'
 import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
