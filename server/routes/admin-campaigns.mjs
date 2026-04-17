@@ -344,30 +344,55 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
 
   // Detect if A/B test is configured (subject_b_ar must be filled)
   const hasAbTest = !!(campaign.subject_b_ar || campaign.subject_b_en);
+  const lang = 'ar'; // default — future: store subscriber preferred language
 
   let sent = 0;
   const errors = [];
   let sentA = 0;
   let sentB = 0;
 
-  for (let i = 0; i < subscribers.length; i++) {
-    const { email, unsubscribe_key: unsubscribeKey } = subscribers[i];
-    const lang = 'ar'; // default — future: store subscriber preferred language
-    const subscriberKey = ensureSubscriberUnsubscribeKey(db, email, unsubscribeKey);
+  // ─── Phase 1: PRE-INSERT all email_sends rows in a SINGLE transaction ─
+  // better-sqlite3 transactions are synchronous only. The send loop below
+  // contains `await sendEmail(...)` which CANNOT live inside db.transaction.
+  // So we split the work: batch all inserts up front (~100 ms for 5k rows
+  // vs ~several seconds when committed one-by-one), then do the async sends.
+  const insertSend = db.prepare(
+    'INSERT INTO email_sends(campaign_id, email, ab_variant) VALUES(?,?,?)',
+  );
+  const updateResend = db.prepare('UPDATE email_sends SET resend_id=? WHERE id=?');
 
-    // Assign A/B variant: alternate evenly
-    const variant = (hasAbTest && i % 2 === 1) ? 'b' : 'a';
+  // Each item describes the work for one subscriber, with pre-allocated send id.
+  const sendQueue = [];
 
+  const stageAllSends = db.transaction(() => {
+    for (let i = 0; i < subscribers.length; i++) {
+      const { email, unsubscribe_key: unsubscribeKey } = subscribers[i];
+      const variant = hasAbTest && i % 2 === 1 ? 'b' : 'a';
+      // ensureSubscriberUnsubscribeKey may INSERT/UPDATE — it's included
+      // inside the transaction so the key allocation is atomic with the
+      // send-row insert.
+      const subscriberKey = ensureSubscriberUnsubscribeKey(db, email, unsubscribeKey);
+      const info = insertSend.run(campaignId, email, variant);
+      sendQueue.push({
+        email,
+        variant,
+        subscriberKey,
+        sendId: info.lastInsertRowid,
+      });
+    }
+  });
+  stageAllSends();
+
+  // ─── Phase 2: dispatch emails sequentially ───────────────────────────
+  // Sequential (not parallel) because Resend rate-limits outbound requests
+  // and because we already paid the cost of batching the DB inserts above.
+  // Individual failures are collected; partial-failure semantics match
+  // the previous behaviour exactly.
+  for (const { email, variant, subscriberKey, sendId } of sendQueue) {
     const subject = variant === 'b'
       ? (campaign[`subject_b_${lang}`] || campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title)
       : (campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title);
     const body = campaign[`body_${lang}`] || campaign.body_ar || '';
-
-    // Insert a send record first to get the ID for the tracking pixel
-    const info = db.prepare(
-      'INSERT INTO email_sends(campaign_id, email, ab_variant) VALUES(?,?,?)'
-    ).run(campaignId, email, variant);
-    const sendId = info.lastInsertRowid;
 
     try {
       const emailContent = buildEmailContent({
@@ -389,7 +414,7 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
         html: emailContent.html,
         attachments: emailContent.attachments,
       });
-      db.prepare('UPDATE email_sends SET resend_id=? WHERE id=?').run(resendId, sendId);
+      updateResend.run(resendId, sendId);
       sent++;
       if (variant === 'b') sentB++; else sentA++;
     } catch (err) {

@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 import { MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, readRequestBody } from '../middlewares/bodyParser.mjs';
 import { sendJson } from '../middlewares/cors.mjs';
-import { requireAdminAuth } from '../middlewares/adminAuth.mjs';
+import { requireAdminAuth, requireCsrfToken } from '../middlewares/adminAuth.mjs';
 import { getDb } from '../services/db.mjs';
+import { createAdminCsrfCookie, generateCsrfToken, readAdminCsrfCookie } from '../auth.mjs';
 
 import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
 import { handleAdminStats } from './admin-stats.mjs';
@@ -116,6 +117,14 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   const adminUser = requireAdminAuth(request, response, origin);
   if (!adminUser) return true; // response already written by middleware
 
+  // CSRF double-submit check — ONLY for mutation methods. GET/HEAD/OPTIONS
+  // are intentionally exempt (they don't change state and the SPA reads
+  // data before it has a chance to handshake the CSRF cookie on the very
+  // first page view after login).
+  if (!requireCsrfToken(request, response, origin)) {
+    return true; // 403 already written by middleware
+  }
+
   const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
   const body = ['POST', 'PUT', 'PATCH'].includes(request.method)
     ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
@@ -123,10 +132,18 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   const adminCtx = { ...ctx, body, admin: adminUser, user: adminUser };
 
   if (url === '/api/admin/session' && request.method === 'GET') {
+    // Heal existing sessions that predate the CSRF rollout: if the JWT is
+    // valid but no CSRF cookie is present, mint one now so the next
+    // mutation has a token to double-submit. Existing cookies are left
+    // alone — rotating mid-session would race with in-flight forms.
+    const extra = {};
+    if (!readAdminCsrfCookie(request)) {
+      extra['Set-Cookie'] = createAdminCsrfCookie(generateCsrfToken());
+    }
     sendJson(response, 200, {
       success: true,
       user: { username: adminUser.username, role: adminUser.role },
-    }, origin);
+    }, origin, extra);
     return true;
   }
 

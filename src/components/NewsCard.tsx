@@ -16,7 +16,14 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, onOpen, compact = false, feat
   return (
     <article className={`news-card glass-panel${compact ? ' news-card--compact' : ''}${featured ? ' news-card--featured' : ''}`}>
       <figure className="news-card__media">
-        <img src={news.image} alt={news.alt} loading="lazy" />
+        <img
+          src={news.image}
+          alt={news.alt}
+          width={640}
+          height={360}
+          loading="lazy"
+          decoding="async"
+        />
       </figure>
 
       <div className="news-card__body">

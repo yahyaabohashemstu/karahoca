@@ -39,6 +39,7 @@ import { handleAdminRoutes } from './routes/api-admin.mjs';
 import { serveStaticOrSpa } from './routes/static-spa.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
+import { handleHealth } from './routes/api-health.mjs';
 
 // Schedulers
 import { startNewsScheduler } from './schedulers/news.mjs';
@@ -60,7 +61,11 @@ const handleRequest = async (request, response) => {
   const requestHostOrigin = getRequestHostOrigin(request);
   const originAllowed = isOriginAllowed(requestOrigin, requestHostOrigin);
   const url = request.url.split('?')[0];
-  const ctx = { origin: requestOrigin, url };
+  // Existing admin route handlers (admin-auth.mjs, admin-*.mjs) destructure
+  // `sendJson` from ctx — keep it there so they continue to work without a
+  // call-site sweep. Importing sendJson from middlewares/cors.mjs directly
+  // is the new preferred style.
+  const ctx = { origin: requestOrigin, url, sendJson };
 
   // CORS preflight
   if (request.method === 'OPTIONS') {
@@ -83,6 +88,13 @@ const handleRequest = async (request, response) => {
   }
 
   try {
+    // ── Health probe (Coolify / Docker HEALTHCHECK / uptime monitors) ───
+    // Placed first so it has the lowest latency and never hits rate limits.
+    if (request.method === 'GET' && url === '/api/health') {
+      handleHealth(request, response, ctx);
+      return;
+    }
+
     // ── Public API ───────────────────────────────────────────────────────
     if (request.method === 'POST' && url === '/api/ai/chat') {
       await handleAiChat(request, response, ctx);

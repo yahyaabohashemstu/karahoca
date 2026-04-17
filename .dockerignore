@@ -1,0 +1,78 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Keep the build context MINIMAL. Everything listed here is excluded from
+# the layer sent to the Docker daemon, which means:
+#   - faster builds (less to hash)
+#   - smaller final images (nothing accidentally ends up in /app)
+#   - no secrets / data leaks via container images
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Dependencies (we reinstall inside the builder stage)
+node_modules/
+**/node_modules/
+
+# Build artifacts (builder stage regenerates)
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Runtime data (local-only SQLite DB, backups, uploads)
+server/data/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local logs
+*.log
+dev-output.log
+vite.log
+logs/
+
+# Git metadata
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Non-code artefacts sitting in repo root
+*.pdf
+*.mp3
+*.psd
+*.rar
+*.zip
+*.7z
+*.mov
+*.mp4
+
+# Temporary exploration / planning files
+PROJECT_AUDIT_REPORT.md
+MOBILE_*.md
+karahoca-mobile-pack/
+karahoca-react-vite.rar
+
+# Ad-hoc HTTP test scripts that shipped into the repo root at some point
+api.js
+blaze_api_try_all.js
+blaze_test_payload.json
+blazeai.http
+
+# Node / npm internals
+npm-debug.log
+package-lock.json.backup
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Claude Code / agent tooling
+.claude/
+memory/

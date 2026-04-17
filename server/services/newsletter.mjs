@@ -1,17 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { getDb, incrementStat, generateOpaqueSubscriberKey } from './db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-// services/ lives one level below server/, so data/ is `../data`.
-const dataDirectory = path.join(__dirname, '..', 'data');
-const newsletterFile = path.join(dataDirectory, 'newsletter.json');
-
-const ensureDataDirectory = () => mkdir(dataDirectory, { recursive: true });
 
 // ── Welcome email i18n strings ──────────────────────────────────────────────
 const WELCOME_EMAIL_I18N = {
@@ -146,7 +134,6 @@ export const subscribeNewsletter = async ({ email, lang, _honey }) => {
   ) {
     throw new Error('Invalid email address.');
   }
-  await ensureDataDirectory();
 
   const db = getDb();
   const now = new Date().toISOString();
@@ -175,24 +162,14 @@ export const subscribeNewsletter = async ({ email, lang, _honey }) => {
 
   subscriberKey = ensureSubscriberUnsubscribeKey(db, normalizedEmail, subscriberKey);
 
-  // Backup JSON mirror — non-fatal.
-  let subscribers = [];
-  try {
-    const rawFile = await readFile(newsletterFile, 'utf8');
-    const parsed = JSON.parse(rawFile);
-    subscribers = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    subscribers = [];
-  }
-  const alreadyInBackup = subscribers.some((entry) => entry.email === normalizedEmail);
-  if (!alreadyInBackup) {
-    subscribers.push({ email: normalizedEmail, subscribedAt: new Date().toISOString() });
-    try {
-      await writeFile(newsletterFile, JSON.stringify(subscribers, null, 2), 'utf8');
-    } catch (e) {
-      console.warn('[newsletter] Could not write backup JSON file:', e.message);
-    }
-  }
+  // ─── REMOVED: server/data/newsletter.json dual-write ─────────────────────
+  // Previously every subscribe awaited a readFile + writeFile on
+  // `server/data/newsletter.json`. The file was never read by any runtime
+  // code (SQLite is the single source of truth). On the hot path this added
+  // disk I/O latency per request for zero benefit. If a human-readable
+  // export is ever needed, emit it from a cron or admin button — not from
+  // the subscribe handler.
+  // ─────────────────────────────────────────────────────────────────────────
 
   const welcomeEmail = inserted
     ? await sendWelcomeEmail({ normalizedEmail, lang, subscriberKey })

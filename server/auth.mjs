@@ -66,6 +66,49 @@ const ADMIN_SESSION_COOKIE_OPTIONS = {
   ...(ADMIN_SESSION_MAX_AGE_SECONDS ? { maxAge: ADMIN_SESSION_MAX_AGE_SECONDS } : {}),
 };
 
+// ─── CSRF double-submit cookie ───────────────────────────────────────────────
+// A SEPARATE cookie alongside the session JWT. Key differences vs the session
+// cookie:
+//   - httpOnly = FALSE   → the admin SPA reads it with document.cookie
+//   - same-origin only   → browsers refuse to send cross-site, and attacker
+//                          pages can't read it because of the same-origin
+//                          cookie access rule
+// The admin UI reads this value and echoes it back as the `X-CSRF-Token`
+// header on every mutation request. The server rejects the request if the
+// header is missing, if the cookie is missing, or if they don't match
+// (timing-safe comparison).
+export const ADMIN_CSRF_COOKIE_NAME = 'karahoca_admin_csrf';
+export const ADMIN_CSRF_HEADER_NAME = 'x-csrf-token';
+const ADMIN_CSRF_COOKIE_OPTIONS = {
+  httpOnly: false, // MUST be readable by the admin SPA
+  sameSite: 'strict',
+  secure: isProduction,
+  path: '/',
+  ...(ADMIN_SESSION_MAX_AGE_SECONDS ? { maxAge: ADMIN_SESSION_MAX_AGE_SECONDS } : {}),
+};
+
+/** 32 bytes of entropy, base64url — safe in cookies and HTTP headers. */
+export const generateCsrfToken = () => randomBytes(32).toString('base64url');
+
+export const createAdminCsrfCookie = (token) =>
+  serializeCookie(ADMIN_CSRF_COOKIE_NAME, token, ADMIN_CSRF_COOKIE_OPTIONS);
+
+export const clearAdminCsrfCookie = () =>
+  serializeCookie(ADMIN_CSRF_COOKIE_NAME, '', {
+    ...ADMIN_CSRF_COOKIE_OPTIONS,
+    expires: new Date(0),
+    maxAge: 0,
+  });
+
+/** Read the CSRF cookie value from an incoming request. */
+export const readAdminCsrfCookie = (request) => {
+  const header = request?.headers?.cookie;
+  const raw = Array.isArray(header) ? header.join('; ') : typeof header === 'string' ? header : '';
+  if (!raw) return '';
+  const cookies = parseCookieHeader(raw);
+  return cookies[ADMIN_CSRF_COOKIE_NAME] || '';
+};
+
 // ─── Rate limiting (Redis-backed, 5 attempts per 15 minutes) ────────────────
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_WINDOW_SEC = 15 * 60; // 15 minutes

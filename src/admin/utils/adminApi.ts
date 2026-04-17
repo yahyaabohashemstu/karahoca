@@ -12,14 +12,40 @@ const buildRequestError = (message: string, status: number): AdminRequestError =
   return error;
 };
 
+// CSRF double-submit: the server sets a `karahoca_admin_csrf` cookie on
+// login (NOT httpOnly so the SPA can read it) and expects the same value
+// echoed back as an `X-CSRF-Token` header on every mutation. Browsers never
+// send custom headers cross-origin without CORS preflight, so an attacker
+// page cannot replay these requests even if a SameSite edge-case leaks the
+// session cookie. Safe-method calls (GET/HEAD/OPTIONS) skip the header.
+const CSRF_COOKIE_NAME = 'karahoca_admin_csrf';
+
+const readCsrfToken = (): string | null => {
+  if (typeof document === 'undefined') return null;
+  // Match the cookie even if it is not the first one in the jar.
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]+)`),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 const request = async <T>(method: string, path: string, body?: unknown, options: RequestOptions = {}): Promise<T> => {
   const { redirectOn401 = true } = options;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (MUTATION_METHODS.has(method.toUpperCase())) {
+    const csrf = readCsrfToken();
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+  }
+
   const response = await fetch(buildApiUrl(path), {
     method,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 

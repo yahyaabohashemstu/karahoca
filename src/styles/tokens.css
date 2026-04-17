@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   KARAHOCA Design Tokens
+   ─────────────────────────────────────────────────────────────────────────
+   The single source of truth for every color, spacing, radius, shadow,
+   z-index and motion value in this codebase. Every other stylesheet should
+   consume these via var(--token-name). Raw hex / rgba / px literals are
+   a regression and should be replaced with the appropriate token.
+
+   This file MUST load before any other stylesheet — it is imported first
+   from src/main.tsx.
+
+   Naming: semantic, not presentational. `--color-brand-primary`, not
+   `--color-blue`. Changing the brand blue later means editing ONE line
+   here instead of 11 call-sites.
+
+   Breakpoints: CSS custom properties cannot be used inside @media queries
+   (yet), so px values are still hand-written in media rules. The variables
+   here are the contract consumed by JavaScript (e.g. matchMedia helpers).
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── BRAND ─────────────────────────────────────────────────────────── */
+  --color-brand-primary:      #153D7A;  /* KARAHOCA blue */
+  --color-brand-primary-deep: #0a2a5e;  /* darker on-press / shadow */
+  --color-brand-accent:       #f54b1a;  /* KARAHOCA orange */
+  --color-brand-accent-hot:   #ff5b2e;  /* hover/pressed variant */
+  --color-brand-accent-light: #ff8c42;  /* softer accent */
+
+  /* ── NEUTRALS (truncated Tailwind-ish slate scale) ────────────────── */
+  --color-white:    #ffffff;
+  --color-ink-900:  #15181b;
+  --color-ink-800:  #1e293b;
+  --color-ink-700:  #334155;
+  --color-ink-600:  #475569;
+  --color-ink-500:  #64748b;
+  --color-ink-400:  #94a3b8;
+  --color-ink-300:  #cbd5e1;
+  --color-ink-200:  #e2e8f0;
+  --color-ink-100:  #f1f5f9;
+  --color-ink-50:   #f5f7fa;
+  --color-ink-25:   #E8ECF2;  /* light-mode page bg */
+
+  /* ── STATE ─────────────────────────────────────────────────────────── */
+  --color-success:       #22c55e;
+  --color-success-deep:  #27ae60;
+  --color-success-soft:  #2ecc71;
+  --color-info:          #4f6ef7;
+  --color-info-light:    #6b84ff;
+  --color-warning:       #ff8c00;
+  --color-warning-light: #ffb89a;
+  --color-warning-soft:  #febc2e;
+  --color-danger:        #ef4444;
+  --color-danger-deep:   #d32f2f;
+  --color-danger-soft:   #ff4757;
+  --color-danger-mute:   #f87171;
+
+  /* Stoplight hues for the FlipBook header chrome */
+  --color-chrome-red:    #ff5f57;
+  --color-chrome-green:  #28c840;
+
+  /* ── GLASS / SURFACES (dark-mode defaults) ────────────────────────── */
+  --surface-glass-ghost:   rgba(255, 255, 255, 0.02);
+  --surface-glass-subtle:  rgba(255, 255, 255, 0.04);
+  --surface-glass-lite:    rgba(255, 255, 255, 0.05);
+  --surface-glass:         rgba(255, 255, 255, 0.08);
+  --surface-glass-medium:  rgba(255, 255, 255, 0.10);
+  --surface-glass-strong:  rgba(255, 255, 255, 0.12);
+  --surface-glass-stronger:rgba(255, 255, 255, 0.15);
+  --surface-glass-solid:   rgba(255, 255, 255, 0.20);
+  --surface-border-glass:  rgba(255, 255, 255, 0.15);
+
+  --surface-brand-tint-05: rgba(21, 61, 122, 0.05);
+  --surface-brand-tint-08: rgba(21, 61, 122, 0.08);
+  --surface-brand-tint-10: rgba(21, 61, 122, 0.10);
+  --surface-brand-tint-12: rgba(21, 61, 122, 0.12);
+  --surface-brand-tint-15: rgba(21, 61, 122, 0.15);
+  --surface-brand-tint-20: rgba(21, 61, 122, 0.20);
+
+  /* ── SEMANTIC ROLES (default = dark theme; light-mode remaps below) */
+  --color-page-bg:   #0a0e17;
+  --color-text:      var(--color-white);
+  --color-text-muted:rgba(255, 255, 255, 0.72);
+  --color-heading:   var(--color-white);
+  --color-link:      var(--color-brand-accent);
+  --color-focus-ring:var(--color-info);
+  --surface-card:    var(--surface-glass);
+  --surface-card-border: var(--surface-border-glass);
+  --shadow-glass:    0 4px 32px rgba(21, 61, 122, 0.08);
+
+  /* ── TYPOGRAPHY ────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ── SPACING (4-pt grid) ──────────────────────────────────────────── */
+  --space-0:  0;
+  --space-1:  0.25rem;   /*  4 */
+  --space-2:  0.5rem;    /*  8 */
+  --space-3:  0.75rem;   /* 12 */
+  --space-4:  1rem;      /* 16 */
+  --space-5:  1.5rem;    /* 24 */
+  --space-6:  2rem;      /* 32 */
+  --space-7:  3rem;      /* 48 */
+  --space-8:  4rem;      /* 64 */
+  --space-9:  6rem;      /* 96 */
+
+  /* ── RADII ─────────────────────────────────────────────────────────── */
+  --radius-xs:  4px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-2xl: 32px;
+  --radius-pill: 999px;
+
+  /* ── SHADOWS ───────────────────────────────────────────────────────── */
+  --shadow-sm: 0 2px 8px rgba(21, 61, 122, 0.08);
+  --shadow-md: 0 4px 16px rgba(21, 61, 122, 0.12);
+  --shadow-lg: 0 8px 32px rgba(21, 61, 122, 0.18);
+  --shadow-btn: 0 4px 16px rgba(79, 110, 247, 0.45);
+
+  /* ── Z-INDEX SCALE ─────────────────────────────────────────────────── */
+  --z-behind:    -1;
+  --z-base:       0;
+  --z-raised:     1;
+  --z-above:      2;
+  --z-elevated:   5;
+  --z-sticky:    10;
+  --z-sticky-hi: 20;
+  --z-dropdown:  50;
+  --z-nav:      100;
+  --z-overlay:  200;
+  --z-modal:    999;
+  --z-toast:   1500;
+  --z-boost:   1600;
+  --z-max:     9999;
+
+  /* ── MOTION ────────────────────────────────────────────────────────── */
+  --motion-instant:  75ms;
+  --motion-fast:    150ms;
+  --motion-base:    250ms;
+  --motion-medium:  300ms;
+  --motion-slow:    400ms;
+  --motion-slower:  600ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── LAYOUT CONTRACTS ──────────────────────────────────────────────── */
+  --container-max: 1280px;
+  --header-height: 64px;
+
+  /* Breakpoint contracts (documented for JS consumers — CSS media
+     queries still use the raw px values in main.css / mobile.css). */
+  --bp-xs: 380px;
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 900px;
+  --bp-xl: 1200px;
+}
+
+/* ── LIGHT MODE REMAPS ───────────────────────────────────────────────── */
+/* Remap the SEMANTIC roles only; BRAND constants stay fixed. Anything
+   that consumes a brand or state token without special-casing will keep
+   working, while page chrome (bg / text / surfaces) inverts correctly.  */
+body.light-mode {
+  --color-page-bg:      var(--color-ink-25);
+  --color-text:         var(--color-ink-900);
+  --color-text-muted:   rgba(21, 24, 27, 0.7);
+  --color-heading:      var(--color-ink-900);
+  --color-link:         var(--color-brand-accent);
+  --surface-card:       rgba(232, 236, 242, 0.7);
+  --surface-card-border:rgba(21, 61, 122, 0.15);
+  --shadow-glass:       0 4px 32px rgba(21, 61, 122, 0.08);
+}
+
+/* ── GLOBAL :focus-visible FALLBACK ──────────────────────────────────── */
+/* Accessibility floor: any focusable element without its own focus-visible
+   rule still gets a keyboard-visible outline. `:where()` keeps specificity
+   at 0 so component-level focus styles always win — this is a safety net,
+   not an override. Mouse clicks do not trigger :focus-visible in modern
+   browsers, so this never creates "ugly focus ring after click" UX. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── REDUCED-MOTION OVERRIDE ─────────────────────────────────────────── */
+/* Users asking for reduced motion get near-instant transitions without
+   each component having to opt in. Animations are still rendered (to
+   avoid layout shift) but with a trivially short duration.            */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-instant: 1ms;
+    --motion-fast:    1ms;
+    --motion-base:    1ms;
+    --motion-medium:  1ms;
+    --motion-slow:    1ms;
+    --motion-slower:  1ms;
+  }
+}

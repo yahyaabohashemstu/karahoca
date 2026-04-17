@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { WishlistContext, type WishlistItem } from './wishlist-store';
 
 const STORAGE_KEY = 'karahoca_wishlist';
@@ -62,8 +62,21 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     save([]);
   }, []);
 
+  // Memoize the context value so consumers only re-render when `items`
+  // actually changes. Without this, every parent re-render (e.g. a router
+  // navigation or a language switch) creates a NEW object literal here,
+  // React's Object.is check fails, and every wishlist consumer (Header,
+  // BrandPageTemplate, WishlistPage) re-renders for nothing.
+  //
+  // `toggle`, `remove`, `clear` are already stable via useCallback([]);
+  // `isInWishlist` depends on `items`, so it's already captured in deps.
+  const value = useMemo(
+    () => ({ items, isInWishlist, toggle, remove, clear }),
+    [items, isInWishlist, toggle, remove, clear],
+  );
+
   return (
-    <WishlistContext.Provider value={{ items, isInWishlist, toggle, remove, clear }}>
+    <WishlistContext.Provider value={value}>
       {children}
     </WishlistContext.Provider>
   );

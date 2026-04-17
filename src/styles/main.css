@@ -8,7 +8,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f6ef7, #6b84ff);
+  background: linear-gradient(135deg, var(--color-info), var(--color-info-light));
   color: #fff;
   border: none;
   cursor: pointer;
@@ -45,11 +45,11 @@
 /* الوضع الداكن هو الافتراضي */
 /* Light Mode Colors */
 body.light-mode {
-  --blue: #153D7A;
-  --orange: #f54b1a;
+  --blue: var(--color-brand-primary);
+  --orange: var(--color-brand-accent);
   --white: #ffffff;
-  --gray: #15181b;
-  --light-bg: #E8ECF2;
+  --gray: var(--color-ink-900);
+  --light-bg: var(--color-ink-25);
   --primary: var(--blue);
   --accent: var(--orange);
   --background: var(--white);
@@ -211,8 +211,8 @@ a,
 /* Enhanced Glassmorphism Design System */
 :root {
   /* Brand palette - preserved as requested */
-  --blue: #0a2a5e;
-  --orange: #ff5b2e;
+  --blue: var(--color-brand-primary-deep);
+  --orange: var(--color-brand-accent-hot);
   --white: #ffffff;
   --light-gray: #f5f7fa;
 
@@ -315,7 +315,7 @@ body {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-button:hover {
@@ -430,7 +430,7 @@ body.light-mode .brand__logo {
   position: relative;
   color: var(--text-muted);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   padding: 0.5rem 0;
   white-space: nowrap;
 }
@@ -494,7 +494,7 @@ body.light-mode .brand__logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, var(--color-danger), #dc2626);
   color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
@@ -525,7 +525,7 @@ body.light-mode .brand__logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ef4444;
+  background: var(--color-danger);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -544,7 +544,7 @@ body.light-mode .brand__logo {
   color: var(--text);
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -607,7 +607,7 @@ body.light-mode .brand__logo {
   height: 2px;
   background: var(--text);
   margin: 3px 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 1px;
 }
 
@@ -636,7 +636,7 @@ body.light-mode .brand__logo {
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -708,7 +708,7 @@ body.light-mode .brand__logo {
   border-radius: 50px;
   font-size: 0.875rem;
   color: var(--text-muted);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .glass-chip {
@@ -844,12 +844,15 @@ body.light-mode .brand__logo {
 /* Header wishlist button hover */
 .header-wishlist-btn:hover .header-wishlist-btn__icon {
   transform: scale(1.15);
-  stroke: #ef4444;
+  stroke: var(--color-danger);
 }
 
+/* Mobile overrides live in mobile.css inside @media (max-width: 768px)
+   — they load later in the cascade and win by source order, so this rule
+   does not need !important. */
 .section-title {
-  font-size: clamp(2rem, 5vw, 3rem) !important;
-  font-weight: 800 !important;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
   margin-bottom: 1rem;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -885,12 +888,12 @@ body.light-mode .brand__logo {
 
 /* ===== Goal Section Specific Styles ===== */
 .goal-subtitle {
-  font-size: 1rem !important;
+  font-size: 1rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.8);
   margin-top: 0.5rem;
   margin-bottom: 1.5rem;
-  font-weight: 400 !important;
+  font-weight: 400;
 }
 
 /* Enhanced cards */
@@ -945,7 +948,7 @@ body.light-mode .brand__logo {
   right: -24px;
   width: 110px;
   padding: 5px 0;
-  background: linear-gradient(135deg, #ff5b2e 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, var(--color-brand-accent-hot) 0%, #ff8c00 100%);
   color: #fff;
   font-size: 0.6rem;
   font-weight: 800;
@@ -1009,22 +1012,22 @@ body.light-mode .brand__logo {
   position: absolute;
   width: 100%;
   height: 100%;
-  background: rgba(15, 23, 42, 0.95) !important;
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 2rem 1.5rem !important;
-  gap: 1rem !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 1rem;
   transition: opacity 0.6s ease;
   opacity: 0;
   z-index: 1;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  /* ═ Anti-blur: stable compositing layer for opacity transition ═ */
+  /* Anti-blur: stable compositing layer for opacity transition */
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: opacity;
@@ -1079,18 +1082,19 @@ body.light-mode .brand__logo {
   z-index: 1;
 }
 
+/* Second pass — later declarations win the cascade by source order, no !important needed. */
 .product-card-back {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(12px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 2rem 1.5rem !important;
-  gap: 1rem !important;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 1rem;
   z-index: 2;
 }
 
@@ -1226,7 +1230,7 @@ body.light-mode .product-mini-info p {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .detail-item:hover {
@@ -1300,7 +1304,7 @@ body.light-mode .details-title {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   width: 100%;
 }
 
@@ -1376,14 +1380,14 @@ body.light-mode .detail-item-full .detail-label {
 .product-wishlist-btn:hover {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  color: var(--color-danger);
   transform: scale(1.08);
 }
 
 .product-wishlist-btn--active {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.35);
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 /* وضع فاتح — ألوان مرئية وواضحة */
@@ -1396,13 +1400,13 @@ body.light-mode .product-wishlist-btn {
 body.light-mode .product-wishlist-btn:hover {
   background: rgba(239, 68, 68, 0.09);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 body.light-mode .product-wishlist-btn--active {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 /* زر عرض الصورة */
@@ -1414,7 +1418,7 @@ body.light-mode .product-wishlist-btn--active {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1480,7 +1484,7 @@ body.light-mode .product-wishlist-btn--active {
   color: white;
   font-size: 1.2rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1753,7 +1757,7 @@ body.light-mode .product-wishlist-btn--active {
 .popup-gift-value {
   font-size: 1rem;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff5b2e, #ff8c00);
+  background: linear-gradient(90deg, var(--color-brand-accent-hot), #ff8c00);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1977,7 +1981,7 @@ body.light-mode .popup-wc-table tbody td:first-child {
 }
 
 .popup-thumbnail--active {
-  border-color: #6b84ff;
+  border-color: var(--color-info-light);
   background: rgba(107, 132, 255, 0.14);
   box-shadow: 0 0 0 1px rgba(107, 132, 255, 0.3);
 }
@@ -2061,7 +2065,7 @@ body.light-mode .no-details-text {
   border: 1px solid var(--glass-border);
   border-radius: 24px;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   text-decoration: none;
   color: inherit;
@@ -2139,7 +2143,7 @@ body.light-mode .no-details-text {
   text-decoration: none;
   font-weight: 600;
   position: relative;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .link::after {
@@ -2205,7 +2209,7 @@ body.light-mode .no-details-text {
   border-radius: 24px;
   overflow: hidden;
   aspect-ratio: 16 / 10;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   color: inherit;
   background: var(--glass-bg);
@@ -2292,7 +2296,7 @@ body.light-mode .no-details-text {
   padding: 2rem 1.5rem;
   text-align: center;
   position: relative;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   overflow: hidden;
 }
 
@@ -2444,7 +2448,7 @@ body.light-mode .no-details-text {
   place-items: center;
   border-radius: 12px;
   color: var(--text-muted);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .social:hover {
@@ -2469,7 +2473,7 @@ body.light-mode .no-details-text {
 .footer-link {
   color: var(--text-muted);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   padding: 0.25rem 0;
 }
 
@@ -2504,13 +2508,19 @@ body.light-mode .no-details-text {
   backdrop-filter: blur(10px);
   color: var(--text);
   outline: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .glass-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(255, 91, 46, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* a11y: keyboard-only focus ring (distinct from the mouse-click :focus polish above) */
+.glass-input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .glass-input::placeholder {
@@ -2543,7 +2553,7 @@ body.light-mode .no-details-text {
   display: grid;
   place-items: center;
   color: var(--text);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -2578,7 +2588,7 @@ html[dir="ltr"] .theme-toggle {
   display: block;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .scroll-indicator:hover {
@@ -2591,13 +2601,13 @@ html[dir="ltr"] .theme-toggle {
 .fx-reveal {
   opacity: 0;
   transform: translateY(30px);
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.8s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fx-up {
   opacity: 0;
   transform: translateY(40px) scale(0.95);
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.8s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .in-view.fx-reveal,
@@ -2755,7 +2765,7 @@ html[dir="ltr"] .theme-toggle {
 }
 
 .glass-input {
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .glass-input.input--error {
@@ -2873,20 +2883,20 @@ html[dir="ltr"] .theme-toggle {
 
 /* Light Mode Overrides */
 body.light-mode .newsletter__error {
-  color: #d32f2f;
+  color: var(--color-danger-deep);
 }
 
 body.light-mode .newsletter__success {
-  color: #27ae60;
+  color: var(--color-success-deep);
 }
 
 body.light-mode .glass-input.input--error {
-  border-color: #d32f2f;
+  border-color: var(--color-danger-deep);
   box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
 }
 
 body.light-mode .glass-input.input--success {
-  border-color: #27ae60;
+  border-color: var(--color-success-deep);
   box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
 }
 
@@ -3383,6 +3393,9 @@ body.light-mode .about-page .timeline-year {
 .news-card__media {
   position: relative;
   overflow: hidden;
+  /* CLS guard: reserve the box BEFORE the image loads. Cards ship at a fixed
+     16:9 ratio which the img fills via object-fit:cover below. */
+  aspect-ratio: 16 / 9;
 }
 
 .news-card__media::after {
@@ -3614,7 +3627,7 @@ body.light-mode .news-card__chip,
 body.light-mode .news-page__heroTag,
 body.light-mode .news-modal__close,
 body.light-mode .news-section__arrow {
-  color: #153D7A;
+  color: var(--color-brand-primary);
 }
 
 body.light-mode .news-card,
@@ -3708,7 +3721,7 @@ body.light-mode .news-modal__close {
   gap: 6px;
   padding: 8px 18px;
   border-radius: 50px;
-  background: linear-gradient(135deg, var(--accent, #f54b1a), #ff8c42);
+  background: linear-gradient(135deg, var(--accent, var(--color-brand-accent)), #ff8c42);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
@@ -3842,7 +3855,7 @@ body.light-mode .news-modal__close {
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--accent, #f54b1a);
+  color: var(--accent, var(--color-brand-accent));
   background: rgba(245,75,26,.1);
   border: 1px solid rgba(245,75,26,.22);
   border-radius: 50px;
@@ -4158,7 +4171,7 @@ body.light-mode .news-modal__close {
   font-weight: 900;
   line-height: 1.15;
   margin: 0;
-  background: linear-gradient(135deg, #ffffff 0%, #ffd0b8 50%, #ff5b2e 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffd0b8 50%, var(--color-brand-accent-hot) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4284,7 +4297,7 @@ body.light-mode .news-modal__close {
 
 /* Featured (altunsa) — orange site-accent top glow */
 .brands-logo-card--featured {
-  border-top-color: #ff5b2e;
+  border-top-color: var(--color-brand-accent-hot);
   box-shadow:
     0 4px 24px rgba(0,0,0,0.35),
     0 0 20px rgba(255,91,46,0.2),
@@ -4345,7 +4358,7 @@ body.light-mode .brands-partner-row::after {
 }
 
 body.light-mode .brands-partner-badge {
-  color: #4f6ef7;
+  color: var(--color-info);
   background: rgba(79,110,247,0.08);
   border-color: rgba(79,110,247,0.22);
 }
@@ -4373,7 +4386,7 @@ body.light-mode .brands-partner-divider {
 }
 
 body.light-mode .brands-logos-label {
-  background: linear-gradient(90deg, #4f6ef7, #7c3aed, #4f6ef7);
+  background: linear-gradient(90deg, var(--color-info), #7c3aed, var(--color-info));
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4578,7 +4591,7 @@ body.light-mode .catalog-print-trigger {
   }
 
   .catalog-print__header {
-    background: linear-gradient(135deg, #0a2a5e, #1e4a8c);
+    background: linear-gradient(135deg, var(--color-brand-primary-deep), #1e4a8c);
     color: #fff;
     padding: 32px 48px;
     display: flex;
@@ -4595,8 +4608,8 @@ body.light-mode .catalog-print-trigger {
   .catalog-print__brand-title {
     font-size: 22pt;
     font-weight: 800;
-    color: #0a2a5e;
-    border-bottom: 3px solid #ff5b2e;
+    color: var(--color-brand-primary-deep);
+    border-bottom: 3px solid var(--color-brand-accent-hot);
     padding-bottom: 8px;
     margin-bottom: 20px;
   }

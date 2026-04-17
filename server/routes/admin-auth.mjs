@@ -6,6 +6,9 @@ import {
   getJwtConfigError,
   createAdminSessionCookie,
   clearAdminSessionCookie,
+  createAdminCsrfCookie,
+  clearAdminCsrfCookie,
+  generateCsrfToken,
 } from '../auth.mjs';
 
 const getIp = (req) =>
@@ -48,14 +51,24 @@ export const handleAdminLogin = async (req, res, { body, sendJson, origin }) => 
 
   await resetRateLimit(ip);
   const token = signToken({ username: trimmedUsername, role: 'admin' });
+  // Mint a fresh CSRF token alongside the session. The SPA reads this cookie
+  // and echoes it back on every mutation as X-CSRF-Token (double-submit).
+  const csrfToken = generateCsrfToken();
+
   sendJson(res, 200, { success: true }, origin, {
-    'Set-Cookie': createAdminSessionCookie(token),
+    // Node's http response accepts an array for multiple Set-Cookie headers.
+    'Set-Cookie': [
+      createAdminSessionCookie(token),
+      createAdminCsrfCookie(csrfToken),
+    ],
   });
 };
 
 export const handleAdminLogout = async (_req, res, { sendJson, origin }) => {
   sendJson(res, 200, { success: true }, origin, {
-    'Set-Cookie': clearAdminSessionCookie(),
+    'Set-Cookie': [
+      clearAdminSessionCookie(),
+      clearAdminCsrfCookie(),
+    ],
   });
 };
-
