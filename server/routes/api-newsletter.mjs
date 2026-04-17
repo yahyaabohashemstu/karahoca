@@ -3,6 +3,7 @@ import { sendJson } from '../middlewares/cors.mjs';
 import { getClientIp, isNewsletterSubRateLimited, isUnsubRateLimited } from '../middlewares/security.mjs';
 import { subscribeNewsletter, unsubscribeBySubscriberKey } from '../services/newsletter.mjs';
 import { verifyUnsubscribeToken } from '../newsletterTokens.mjs';
+import { logger } from '../utils/logger.mjs';
 
 /**
  * POST /api/newsletter/subscribe
@@ -31,7 +32,7 @@ export const handleNewsletterSubscribe = async (request, response, { origin }) =
     };
     sendJson(response, 200, safeResult, origin);
   } catch (e) {
-    console.warn('[newsletter] subscribe failed:', e?.message);
+    logger.warn('[newsletter] subscribe failed:', e?.message);
     sendJson(
       response,
       400,
@@ -75,10 +76,10 @@ export const handleNewsletterUnsubscribe = async (request, response, { origin })
       sendJson(response, 200, { success: true, alreadyUnsubscribed: true }, origin);
       return;
     }
-    console.log('[newsletter] Unsubscribed via opaque token:', tokenPayload.subscriberKey.slice(0, 8));
+    logger.info('[newsletter] Unsubscribed via opaque token:', tokenPayload.subscriberKey.slice(0, 8));
     sendJson(response, 200, { success: true }, origin);
   } catch (e) {
-    console.error('[newsletter] Unsubscribe error:', e.message);
+    logger.error('[newsletter] Unsubscribe error:', e.message);
     sendJson(response, 500, { success: false, error: 'Server error.' }, origin);
   }
 };

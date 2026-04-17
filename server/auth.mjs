@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
 import { parse as parseCookieHeader, serialize as serializeCookie } from 'cookie';
 import { isRateLimited as redisIsRateLimited, resetRateLimit as redisResetRateLimit } from './redisClient.mjs';
+import { logger } from './utils/logger.mjs';
 
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
@@ -15,7 +16,7 @@ const rawJwtSecret = typeof process.env.JWT_SECRET === 'string' ? process.env.JW
 const hasStrongSecret = rawJwtSecret.length >= MIN_SECRET_LENGTH;
 
 if (isProduction && !hasStrongSecret) {
-  console.error(
+  logger.error(
     `[auth] FATAL: JWT_SECRET is not configured or is shorter than ${MIN_SECRET_LENGTH} characters. Refusing to start.`,
   );
   process.exit(1);
@@ -28,7 +29,7 @@ const JWT_SECRET = hasStrongSecret
   ? rawJwtSecret
   : (() => {
       if (!isTest) {
-        console.warn(
+        logger.warn(
           '[auth] JWT_SECRET is not set (dev/test). Using an ephemeral random secret for this process.',
         );
       }
@@ -137,7 +138,7 @@ export const verifyLogin = (username, password) => {
   const expectedHash = process.env.ADMIN_PASSWORD_HASH || '';
 
   if (!expectedHash) {
-    console.warn('[auth] ADMIN_PASSWORD_HASH not set. Admin login disabled.');
+    logger.warn('[auth] ADMIN_PASSWORD_HASH not set. Admin login disabled.');
     return false;
   }
 

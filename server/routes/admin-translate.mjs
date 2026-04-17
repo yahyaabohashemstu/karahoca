@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.mjs';
 /**
  * Fix unescaped literal newlines inside JSON string values.
  * Gemini sometimes returns real \n chars inside strings instead of \\n,
@@ -78,7 +79,7 @@ async function callGeminiWithRetry(apiKey, prompt) {
     for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
       if (attempt > 0) {
         const delay = RETRY_DELAYS[attempt - 1];
-        console.log(`[translate] ${model} attempt ${attempt + 1} — waiting ${delay}ms`);
+        logger.info(`[translate] ${model} attempt ${attempt + 1} — waiting ${delay}ms`);
         await sleep(delay);
       }
 
@@ -87,7 +88,7 @@ async function callGeminiWithRetry(apiKey, prompt) {
 
         if (res.ok) {
           if (attempt > 0 || model !== GEMINI_MODELS[0]) {
-            console.log(`[translate] success with ${model} on attempt ${attempt + 1}`);
+            logger.info(`[translate] success with ${model} on attempt ${attempt + 1}`);
           }
           return res; // ✅ done
         }
@@ -95,7 +96,7 @@ async function callGeminiWithRetry(apiKey, prompt) {
         const status = res.status;
         const errText = await res.text();
         log.push({ model, attempt, status, errText: errText.slice(0, 200) });
-        console.warn(`[translate] ${model} attempt ${attempt + 1} → HTTP ${status}`);
+        logger.warn(`[translate] ${model} attempt ${attempt + 1} → HTTP ${status}`);
 
         // Retriable errors: overloaded (503) or rate-limited (429)
         if (status === 503 || status === 429) {
@@ -107,7 +108,7 @@ async function callGeminiWithRetry(apiKey, prompt) {
 
       } catch (err) {
         log.push({ model, attempt, error: err.message });
-        console.warn(`[translate] ${model} attempt ${attempt + 1} threw: ${err.message}`);
+        logger.warn(`[translate] ${model} attempt ${attempt + 1} threw: ${err.message}`);
 
         // Timeout (AbortError) → skip to next model immediately
         if (err.name === 'AbortError') break;
@@ -118,7 +119,7 @@ async function callGeminiWithRetry(apiKey, prompt) {
     }
   }
 
-  console.error('[translate] all models exhausted:', JSON.stringify(log));
+  logger.error('[translate] all models exhausted:', JSON.stringify(log));
   throw new Error(
     'خدمة الترجمة مشغولة حالياً. يرجى المحاولة مرة أخرى بعد لحظات. ' +
     '(Gemini service temporarily unavailable after retries on all models.)'

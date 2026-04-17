@@ -4,6 +4,7 @@ import {
   recoverQueuedCampaignDispatches,
   queueCampaignDispatch,
 } from '../routes/admin-campaigns.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const DISPATCH_INTERVAL_MS = 60 * 1000;
 const QUEUE_DRAIN_INTERVAL_MS = 5 * 1000;
@@ -20,13 +21,13 @@ const dispatchDueCampaigns = async () => {
       )
       .all();
     for (const { id } of due) {
-      console.log(`[scheduler] Queueing campaign #${id}`);
+      logger.info(`[scheduler] Queueing campaign #${id}`);
       await queueCampaignDispatch(id).catch((e) =>
-        console.error(`[scheduler] Campaign #${id} failed:`, e.message),
+        logger.error(`[scheduler] Campaign #${id} failed:`, e.message),
       );
     }
   } catch (e) {
-    console.error('[scheduler] error:', e.message);
+    logger.error('[scheduler] error:', e.message);
   }
 };
 
@@ -34,7 +35,7 @@ const drainQueuedCampaigns = async () => {
   try {
     await processQueuedCampaignDispatches();
   } catch (e) {
-    console.error('[campaign-queue] worker error:', e.message);
+    logger.error('[campaign-queue] worker error:', e.message);
   }
 };
 

@@ -1,4 +1,5 @@
 import { getDb } from '../services/db.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/$/, '');
 
@@ -120,7 +121,7 @@ export const handleSitemap = (req, res) => {
     });
     res.end(xml);
   } catch (err) {
-    console.error('[sitemap] Error:', err);
+    logger.error('[sitemap] Error:', err);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Sitemap generation failed');
   }

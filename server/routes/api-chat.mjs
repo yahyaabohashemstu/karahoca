@@ -4,6 +4,7 @@ import { getClientIp, isChatRateLimited, isChatLogRateLimited } from '../middlew
 import { generateAiReply, getCachedReply, setCachedReply } from '../services/aiChat.mjs';
 import { logUserQuestion } from './admin-ai-knowledge.mjs';
 import { handleChatLog as handleChatLogLegacy } from './public-data.mjs';
+import { logger } from '../utils/logger.mjs';
 
 /**
  * POST /api/ai/chat
@@ -36,12 +37,12 @@ export const handleAiChat = async (request, response, { origin }) => {
 
   try {
     const promptLen = (body.prompt || '').length;
-    console.log(`[ai-chat] prompt length: ${promptLen} chars`);
+    logger.info(`[ai-chat] prompt length: ${promptLen} chars`);
     const result = await generateAiReply(body);
     if (result?.reply) await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
     sendJson(response, 200, result, origin);
   } catch (aiErr) {
-    console.error('[ai-chat] generateAiReply failed:', aiErr.message || aiErr);
+    logger.error('[ai-chat] generateAiReply failed:', aiErr.message || aiErr);
     sendJson(
       response,
       aiErr.statusCode || 503,

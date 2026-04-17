@@ -10,6 +10,7 @@ import { Resend } from 'resend';
 import { generateOpaqueSubscriberKey, getDb, logAudit } from '../db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { dequeueQueueItem, enqueueQueueItem } from '../redisClient.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -506,7 +507,7 @@ export const processQueuedCampaignDispatches = async () => {
         } catch {
           // Best-effort status recovery only.
         }
-        console.error(`[campaign-queue] Campaign #${job?.campaignId ?? 'unknown'} failed:`, error?.message || error);
+        logger.error(`[campaign-queue] Campaign #${job?.campaignId ?? 'unknown'} failed:`, error?.message || error);
       }
     }
   } finally {

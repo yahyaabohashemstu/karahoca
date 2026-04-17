@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
+import { logger } from '../utils/logger.mjs';
 
 const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3');
@@ -408,7 +409,7 @@ const migrateNewsletterSubscriberKeys = () => {
     updateKey.run(createUniqueNewsletterSubscriberKey(), row.email);
   }
 
-  console.log(`[db] Backfilled opaque unsubscribe keys for ${missingRows.length} subscriber(s)`);
+  logger.info(`[db] Backfilled opaque unsubscribe keys for ${missingRows.length} subscriber(s)`);
 };
 
 // ─── DIOX Powder Products Migration (2026) ───────────────────────────────────
@@ -521,7 +522,7 @@ const migrateDioxPowderProducts = () => {
   txn();
 
   markMigration('diox_powder_products_2026');
-  console.log('[db] DIOX powder products migration complete');
+  logger.info('[db] DIOX powder products migration complete');
 };
 
 // ─── Fix: Force-update gallery for DIOX powder products ─────────────────────
@@ -567,7 +568,7 @@ const migrateDioxPowderGalleryFix = () => {
   txn();
 
   markMigration('diox_powder_gallery_fix_2026');
-  console.log('[db] DIOX powder gallery fix migration complete');
+  logger.info('[db] DIOX powder gallery fix migration complete');
 };
 
 // ─── Delete 6kg product completely ───────────────────────────────────────────
@@ -579,7 +580,7 @@ const migrateDiox6kgDelete = () => {
   db.prepare(`DELETE FROM products WHERE id = 'diox-auto-powder-6kg'`).run();
 
   markMigration('diox_6kg_delete_2026');
-  console.log('[db] DIOX 6kg product deleted');
+  logger.info('[db] DIOX 6kg product deleted');
 };
 
 // ─── Gift field migration for AYLUX Auto Powder 1 ────────────────────────────
@@ -596,7 +597,7 @@ const migrateAutoPowder1Gift = () => {
   `).run();
 
   markMigration('aylux_auto_powder1_gift_2026');
-  console.log('[db] AYLUX auto powder 1 gift field set');
+  logger.info('[db] AYLUX auto powder 1 gift field set');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
@@ -815,7 +816,7 @@ const migrateProducts = () => {
   }
 
   markMigration('initial_products');
-  console.log('[db] Products migration complete');
+  logger.info('[db] Products migration complete');
 };
 
 const migrateCatalogAssetPathsAndMetadata = () => {
@@ -901,7 +902,7 @@ const migrateCatalogAssetPathsAndMetadata = () => {
   }
 
   markMigration('catalog_asset_paths_and_metadata_v2');
-  console.log('[db] Catalog asset paths and metadata migration complete');
+  logger.info('[db] Catalog asset paths and metadata migration complete');
 };
 
 // ─── Aylux Category Title Fix ────────────────────────────────────────────────
@@ -942,7 +943,7 @@ const migrateAyluxCategoryTitleFix = () => {
   }
 
   markMigration('aylux_category_title_fix_v1');
-  console.log('[db] Aylux category title fix migration complete');
+  logger.info('[db] Aylux category title fix migration complete');
 };
 
 // ─── Hard-delete orphan / unwanted products ──────────────────────────────────
@@ -965,12 +966,12 @@ const migrateHardDeleteOrphans = () => {
     try { db.prepare('DELETE FROM wishlist WHERE product_id = ?').run(id); } catch (_) {}
     const info = delProduct.run(id);
     if (info.changes > 0) {
-      console.log(`[db] Hard-deleted orphan product: ${id}`);
+      logger.info(`[db] Hard-deleted orphan product: ${id}`);
     }
   }
 
   markMigration('hard_delete_orphan_products_v1');
-  console.log('[db] Orphan product hard-delete migration complete');
+  logger.info('[db] Orphan product hard-delete migration complete');
 };
 
 // ─── Delete AYLUX auto-powder2 (no-gift variant) ─────────────────────────────
@@ -980,7 +981,7 @@ const migrateDeleteAyluxAutoPowder2 = () => {
 
   try { db.prepare('DELETE FROM wishlist WHERE product_id = ?').run('aylux-auto-powder2'); } catch (_) {}
   const info = db.prepare('DELETE FROM products WHERE id = ?').run('aylux-auto-powder2');
-  if (info.changes > 0) console.log('[db] Deleted aylux-auto-powder2');
+  if (info.changes > 0) logger.info('[db] Deleted aylux-auto-powder2');
 
   markMigration('delete_aylux_auto_powder2_v1');
 };
@@ -1010,7 +1011,7 @@ const migrateNormalizeWeights = () => {
   }
 
   markMigration('normalize_weights_v2');
-  if (changed > 0) console.log(`[db] Normalized weights for ${changed} products`);
+  if (changed > 0) logger.info(`[db] Normalized weights for ${changed} products`);
 };
 
 // ─── News Migration ──────────────────────────────────────────────────────────
@@ -1143,7 +1144,7 @@ const migrateNews = () => {
   }
 
   markMigration('initial_news');
-  console.log('[db] News migration complete');
+  logger.info('[db] News migration complete');
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────
@@ -1175,9 +1176,9 @@ const migrateNewsletter = () => {
         });
       }
     }
-    console.log(`[db] Newsletter migration: ${subscribers.length} subscribers`);
+    logger.info(`[db] Newsletter migration: ${subscribers.length} subscribers`);
   } catch (e) {
-    console.error('[db] Newsletter migration failed:', e.message);
+    logger.error('[db] Newsletter migration failed:', e.message);
   }
 
   markMigration('initial_newsletter');

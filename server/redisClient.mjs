@@ -10,6 +10,7 @@
  */
 
 import Redis from 'ioredis';
+import { logger } from './utils/logger.mjs';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -40,7 +41,7 @@ try {
   redis.on('connect', () => {
     redisAvailable = true;
     fallbackWarned = false;
-    console.log('[redis] Connected to', REDIS_URL);
+    logger.info('[redis] Connected to', REDIS_URL);
   });
 
   redis.on('ready', () => {
@@ -49,7 +50,7 @@ try {
 
   redis.on('error', (err) => {
     if (redisAvailable) {
-      console.warn('[redis] Connection lost:', err.message);
+      logger.warn('[redis] Connection lost:', err.message);
     }
     redisAvailable = false;
     warnFallback();
@@ -60,10 +61,10 @@ try {
   });
 
   redis.on('reconnecting', () => {
-    console.log('[redis] Reconnecting...');
+    logger.info('[redis] Reconnecting...');
   });
 } catch (err) {
-  console.warn('[redis] Failed to initialize:', err.message);
+  logger.warn('[redis] Failed to initialize:', err.message);
   redisAvailable = false;
   warnFallback();
 }
@@ -71,7 +72,7 @@ try {
 function warnFallback() {
   if (!fallbackWarned) {
     fallbackWarned = true;
-    console.warn('[redis] Falling back to in-memory storage. Rate limits and cache will not persist across restarts.');
+    logger.warn('[redis] Falling back to in-memory storage. Rate limits and cache will not persist across restarts.');
   }
 }
 

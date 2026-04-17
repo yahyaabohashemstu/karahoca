@@ -2,6 +2,7 @@ import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { withTranslation } from 'react-i18next';
 import type { WithTranslation } from 'react-i18next';
+import { getClientSessionId } from '../utils/clientSession';
 import './ErrorBoundary.css';
 
 interface Props extends WithTranslation {
@@ -15,46 +16,123 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
+/**
+ * Retries an async function with exponential backoff delays until it
+ * succeeds OR the delays list is exhausted. Each delay is "best effort" —
+ * if the tab closes between attempts the retry is lost.
+ *
+ * The backoff schedule is injected so the ErrorBoundary test suite (or a
+ * caller) can supply a tighter schedule.
+ */
+const DEFAULT_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const postWithBackoff = async (
+  url: string,
+  payload: unknown,
+  delays: readonly number[] = DEFAULT_BACKOFF_MS,
+): Promise<void> => {
+  const attempts = delays.length + 1;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // `keepalive: true` lets the request survive the tab closing mid-flight.
+        keepalive: true,
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) return;
+      // 4xx is probably a bug in our payload — retrying won't help.
+      if (response.status >= 400 && response.status < 500) return;
+    } catch {
+      /* network error — fall through to delay */
+    }
+    // If there's a delay left for this attempt, wait; otherwise drop.
+    if (i < delays.length) {
+      await sleep(delays[i]);
+    }
+  }
+};
+
+/**
+ * Pulls a request id off an error that was thrown from an API fetch.
+ * The public `fetch`-wrapper utility (src/utils/api.ts) is expected to
+ * attach `reqId` or `requestId` to thrown errors — we read either.
+ */
+const extractRequestId = (err: unknown): string | null => {
+  if (!err || typeof err !== 'object') return null;
+  const bag = err as Record<string, unknown>;
+  if (typeof bag.reqId === 'string' && bag.reqId.length > 0 && bag.reqId.length <= 128) {
+    return bag.reqId;
+  }
+  if (typeof bag.requestId === 'string' && bag.requestId.length > 0 && bag.requestId.length <= 128) {
+    return bag.requestId;
+  }
+  const cause = bag.cause;
+  if (cause && typeof cause === 'object') {
+    return extractRequestId(cause);
+  }
+  return null;
+};
+
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: null
+    errorInfo: null,
   };
+
+  // Cached once per mount — useful so multiple errors in the same tab
+  // share a sessionId.
+  private readonly sessionId = getClientSessionId();
 
   public static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
       error,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     if (import.meta.env.DEV) {
+      // Dev: keep the browser's rich error object visible for debugging.
       console.error('Error caught by boundary:', error, errorInfo);
-    } else {
-      // Report error to server for production monitoring
-      fetch('/api/log-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: error.message,
-          stack: error.stack?.slice(0, 500),
-          component: errorInfo.componentStack?.slice(0, 300),
-          url: window.location.href,
-          ts: new Date().toISOString(),
-        }),
-      }).catch(() => {}); // non-fatal — ignore if endpoint unavailable
     }
 
-    this.setState({
-      error,
-      errorInfo
+    // Production + dev both: forward to server. Pino on the backend will
+    // bind its own reqId to the log line; we ship the FAILED-request's
+    // reqId (if any) as `clientReqId` so the two can be joined.
+    const clientReqId = extractRequestId(error);
+    void postWithBackoff('/api/log-error', {
+      message: error.message,
+      stack: error.stack?.slice(0, 500),
+      componentStack: errorInfo.componentStack?.slice(0, 500),
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      ts: new Date().toISOString(),
+      sessionId: this.sessionId,
+      ...(clientReqId ? { clientReqId } : {}),
     });
 
-    // يمكن إرسال الخطأ لخدمة تتبع الأخطاء مثل Sentry
-    // logErrorToService(error, errorInfo);
+    // Forward to Sentry if the SDK was installed at boot. No import from
+    // @sentry/react here — the SDK attaches itself to window.Sentry-like
+    // globals when main.tsx initialises it, and we access it loosely.
+    const sentry = (globalThis as { __karahocaSentry?: { captureException?: (e: unknown, ctx?: unknown) => void } })
+      .__karahocaSentry;
+    if (sentry?.captureException) {
+      try {
+        sentry.captureException(error, {
+          tags: { sessionId: this.sessionId, ...(clientReqId ? { clientReqId } : {}) },
+          extra: { componentStack: errorInfo.componentStack },
+        });
+      } catch {
+        /* never block the UI on telemetry */
+      }
+    }
+
+    this.setState({ error, errorInfo });
   }
 
   private handleReload = () => {
@@ -69,12 +147,10 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       const { t } = this.props;
 
-      // استخدام fallback مخصص إن وُجد
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // واجهة الخطأ الافتراضية
       return (
         <div className="error-boundary">
           <div className="error-boundary__container">
@@ -96,7 +172,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h1 className="error-boundary__title">{t('errorBoundary.title')}</h1>
-            
+
             <p className="error-boundary__message">
               {t('errorBoundary.message')}
             </p>
@@ -116,13 +192,13 @@ class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="error-boundary__actions">
-              <button 
+              <button
                 onClick={this.handleReload}
                 className="btn btn--primary"
               >
                 {t('errorBoundary.reload')}
               </button>
-              <button 
+              <button
                 onClick={this.handleGoHome}
                 className="btn btn--ghost"
               >
@@ -148,4 +224,3 @@ class ErrorBoundary extends Component<Props, State> {
 const TranslatedErrorBoundary = withTranslation()(ErrorBoundary);
 
 export default TranslatedErrorBoundary;
-

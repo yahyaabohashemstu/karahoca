@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../redisClient.mjs';
 import { buildProductContext, buildCustomQAContext } from '../routes/admin-ai-knowledge.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
@@ -93,7 +94,7 @@ export const generateAiReply = async ({ prompt, lang }) => {
 
   if (!aiResponse.ok) {
     const rawError = await aiResponse.text();
-    console.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
+    logger.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
     const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
     error.statusCode = aiResponse.status;
     throw error;

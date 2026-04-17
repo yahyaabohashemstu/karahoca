@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { logger } from './utils/logger.mjs';
 
 const DEFAULT_ADMIN_SECRET = 'karahoca_admin_secret_change_in_production';
 const DEV_NEWSLETTER_SECRET = 'karahoca_newsletter_token_dev_secret_change_in_production';
@@ -22,7 +23,7 @@ const resolveNewsletterSecret = () => {
 
   if (!warnedAboutFallbackSecret) {
     warnedAboutFallbackSecret = true;
-    console.warn('[newsletter-tokens] Falling back to the development unsubscribe token secret.');
+    logger.warn('[newsletter-tokens] Falling back to the development unsubscribe token secret.');
   }
 
   return DEV_NEWSLETTER_SECRET;

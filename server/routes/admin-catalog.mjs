@@ -1,4 +1,5 @@
 import { getDb } from '../db.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const LANG_LABELS = { ar: 'العربية', en: 'English', tr: 'Türkçe', ru: 'Русский' };
 const LANG_DIR = { ar: 'rtl', en: 'ltr', tr: 'ltr', ru: 'ltr' };
@@ -265,7 +266,7 @@ export function handleAdminCatalog(request, response, ctx) {
     response.writeHead(200, headers);
     response.end(html);
   } catch (err) {
-    console.error('[catalog] Error generating catalog:', err);
+    logger.error('[catalog] Error generating catalog:', err);
     response.writeHead(500, { 'Content-Type': 'text/plain' });
     response.end('An internal error occurred. Please try again later.');
   }

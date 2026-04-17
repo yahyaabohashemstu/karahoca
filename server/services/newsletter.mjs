@@ -1,5 +1,6 @@
 import { getDb, incrementStat, generateOpaqueSubscriberKey } from './db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
+import { logger } from '../utils/logger.mjs';
 
 // ── Welcome email i18n strings ──────────────────────────────────────────────
 const WELCOME_EMAIL_I18N = {
@@ -62,11 +63,11 @@ const sendWelcomeEmail = async ({ normalizedEmail, lang, subscriberKey }) => {
   const siteUrl = process.env.SITE_URL || 'https://karahoca.com';
 
   if (!resendKey) {
-    console.warn('[welcome-email] RESEND_API_KEY is not set.');
+    logger.warn('[welcome-email] RESEND_API_KEY is not set.');
     return { sent: false, error: 'RESEND_API_KEY is not configured on the server.' };
   }
   if (!fromEmail) {
-    console.warn('[welcome-email] FROM_EMAIL is not set.');
+    logger.warn('[welcome-email] FROM_EMAIL is not set.');
     return { sent: false, error: 'FROM_EMAIL is not configured on the server.' };
   }
 
@@ -109,13 +110,13 @@ const sendWelcomeEmail = async ({ normalizedEmail, lang, subscriberKey }) => {
     });
     const data = await resp.json().catch(() => ({}));
     if (resp.ok) {
-      console.log('[welcome-email] Sent OK, id:', data.id);
+      logger.info('[welcome-email] Sent OK, id:', data.id);
       return { sent: true, id: data.id };
     }
-    console.warn('[welcome-email] Resend error:', JSON.stringify(data));
+    logger.warn('[welcome-email] Resend error:', JSON.stringify(data));
     return { sent: false, error: data.message || data.name || `Resend HTTP ${resp.status}`, details: data };
   } catch (e) {
-    console.warn('[welcome-email] Network error:', e.message);
+    logger.warn('[welcome-email] Network error:', e.message);
     return { sent: false, error: e.message };
   }
 };

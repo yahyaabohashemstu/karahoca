@@ -1,4 +1,5 @@
 import { getDb } from '../services/db.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const INTERVAL_MS = 60 * 1000;
 
@@ -14,10 +15,10 @@ const publishDueNewsArticles = () => {
         AND active=1
     `).run();
     if (result.changes > 0) {
-      console.log(`[news-scheduler] Published ${result.changes} scheduled article(s).`);
+      logger.info(`[news-scheduler] Published ${result.changes} scheduled article(s).`);
     }
   } catch (e) {
-    console.error('[news-scheduler] error:', e.message);
+    logger.error('[news-scheduler] error:', e.message);
   }
 };
 

@@ -17,6 +17,7 @@ import { copyFile, readdir, unlink, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { logger } from './utils/logger.mjs';
 
 // ── Cloud backup imports (uncomment when R2/S3 credentials are ready) ─────────
 // import { readFile } from 'node:fs/promises';
@@ -138,7 +139,7 @@ const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 //     const delSig = createHmac('sha256', signingKey(secretKey, delDateStamp, region, 's3')).update(delSTS).digest('hex');
 //     const delAuth = `AWS4-HMAC-SHA256 Credential=${accessKey}/${delScope}, SignedHeaders=${delSignedH}, Signature=${delSig}`;
 //     await fetch(delUrl.toString(), { method: 'DELETE', headers: { Host: delUrl.host, 'x-amz-date': delAmzDate, 'x-amz-content-sha256': delPayload, Authorization: delAuth } }).catch(() => {});
-//     console.log(`[backup] Cloud rotated: ${key}`);
+//     logger.info(`[backup] Cloud rotated: ${key}`);
 //   }
 // };
 
@@ -146,7 +147,7 @@ const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export const runBackup = async () => {
   if (!existsSync(DB_PATH)) {
-    console.log('[backup] DB file not found yet, skipping.');
+    logger.info('[backup] DB file not found yet, skipping.');
     return;
   }
 
@@ -157,7 +158,7 @@ export const runBackup = async () => {
     await mkdir(BACKUP_DIR, { recursive: true });
     const localFile = path.join(BACKUP_DIR, `karahoca-${timestamp}.db`);
     await copyFile(DB_PATH, localFile);
-    console.log(`[backup] Local saved: ${localFile}`);
+    logger.info(`[backup] Local saved: ${localFile}`);
 
     // Rotate local copies
     const files = (await readdir(BACKUP_DIR))
@@ -166,11 +167,11 @@ export const runBackup = async () => {
     if (files.length > MAX_LOCAL_BACKUPS) {
       for (const f of files.slice(0, files.length - MAX_LOCAL_BACKUPS)) {
         await unlink(path.join(BACKUP_DIR, f));
-        console.log(`[backup] Local rotated: ${f}`);
+        logger.info(`[backup] Local rotated: ${f}`);
       }
     }
   } catch (err) {
-    console.error('[backup] Local backup failed:', err.message);
+    logger.error('[backup] Local backup failed:', err.message);
   }
 
   // [CLOUD BACKUP] ── Uncomment this block when R2/S3 credentials are ready ──
@@ -180,7 +181,7 @@ export const runBackup = async () => {
   //   process.env.BACKUP_S3_ACCESS_KEY &&
   //   process.env.BACKUP_S3_SECRET_KEY;
   // if (!hasCloudConfig) {
-  //   console.log('[backup] No cloud credentials configured — skipping cloud upload.');
+  //   logger.info('[backup] No cloud credentials configured — skipping cloud upload.');
   //   return;
   // }
   // try {
@@ -188,11 +189,11 @@ export const runBackup = async () => {
   //   const compressed = await gzipAsync(raw);
   //   const objectKey = `backups/karahoca-${timestamp}.db.gz`;
   //   const uploadedUrl = await uploadToS3(compressed, objectKey);
-  //   console.log(`[backup] Cloud uploaded: ${objectKey} (${Math.round(compressed.length / 1024)} KB gzipped)`);
-  //   rotateCloudBackups('backups/karahoca-').catch(e => console.error('[backup] Cloud rotation error:', e.message));
+  //   logger.info(`[backup] Cloud uploaded: ${objectKey} (${Math.round(compressed.length / 1024)} KB gzipped)`);
+  //   rotateCloudBackups('backups/karahoca-').catch(e => logger.error('[backup] Cloud rotation error:', e.message));
   //   return uploadedUrl;
   // } catch (err) {
-  //   console.error('[backup] Cloud backup failed:', err.message);
+  //   logger.error('[backup] Cloud backup failed:', err.message);
   // }
 };
 
@@ -200,12 +201,12 @@ export const startAutoBackup = (intervalMs = BACKUP_INTERVAL_MS) => {
   // Initial backup 30 seconds after server start (let DB settle)
   setTimeout(runBackup, 30_000);
   const id = setInterval(runBackup, intervalMs);
-  console.log(
+  logger.info(
     `[backup] Auto-backup every ${Math.round(intervalMs / 3_600_000)}h ` +
     `— local only (${MAX_LOCAL_BACKUPS} copies) | cloud backup disabled until R2 subscription is activated`
   );
   // [CLOUD BACKUP] Replace the log line above with this when cloud is enabled:
   // const hasCloud = !!(process.env.BACKUP_S3_ENDPOINT && process.env.BACKUP_S3_BUCKET && process.env.BACKUP_S3_ACCESS_KEY && process.env.BACKUP_S3_SECRET_KEY);
-  // console.log(`[backup] Auto-backup every ${Math.round(intervalMs / 3_600_000)}h — local (${MAX_LOCAL_BACKUPS} copies) + ${hasCloud ? 'cloud (R2/S3) ✓' : 'cloud NOT configured'}`);
+  // logger.info(`[backup] Auto-backup every ${Math.round(intervalMs / 3_600_000)}h — local (${MAX_LOCAL_BACKUPS} copies) + ${hasCloud ? 'cloud (R2/S3) ✓' : 'cloud NOT configured'}`);
   return id;
 };
