@@ -284,6 +284,32 @@ const createSchema = () => {
     );
     CREATE INDEX IF NOT EXISTS idx_ai_questions_status ON ai_user_questions(status);
 
+    -- ── AI knowledge base (Phase 3 extrication from src/data/aiKnowledge.ts) ─
+    -- Holds the static "base knowledge" sections that describe the company,
+    -- brands, pricing policy, and contact channels. Content is language-
+    -- neutral-ish (same Arabic blob served to every locale; the LLM is
+    -- instructed to translate on the fly). Seeded once at boot if empty —
+    -- admins can edit freely afterwards without triggering a re-seed.
+    CREATE TABLE IF NOT EXISTS ai_knowledge_sections (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tags TEXT DEFAULT '',
+      display_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_knowledge_active ON ai_knowledge_sections(active);
+
+    -- Free-form key/value store for assistant-wide settings (tone guidelines,
+    -- feature flags, per-deploy tweaks). Avoids a separate table per setting.
+    CREATE TABLE IF NOT EXISTS ai_assistant_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS migrations (
       name TEXT PRIMARY KEY,
       applied_at TEXT DEFAULT (datetime('now'))
@@ -395,6 +421,127 @@ const migrateInitialData = () => {
   migrateHardDeleteOrphans();
   migrateDeleteAyluxAutoPowder2();
   migrateNormalizeWeights();
+  migrateAiKnowledgeSeed();
+};
+
+/**
+ * Phase-3 extrication: seed the AI knowledge table from the static content
+ * that used to live in `src/data/aiKnowledge.ts`. One-shot — we only seed
+ * when the table is empty so admin edits through the panel are preserved
+ * across restarts.
+ */
+const migrateAiKnowledgeSeed = () => {
+  if (hasMigration('ai_knowledge_initial_seed')) return;
+  const existing = db.prepare('SELECT COUNT(*) AS c FROM ai_knowledge_sections').get();
+  if (existing?.c > 0) {
+    markMigration('ai_knowledge_initial_seed');
+    return;
+  }
+
+  const sections = [
+    {
+      id: 'company-identity',
+      title: 'هوية الشركة',
+      content:
+        'KARAHOCA KIMYA شركة تركية تعمل في تصنيع منتجات التنظيف المنزلية والصناعية مع التركيز على الجودة العالية والتقنيات الحديثة. تقع خطوط الإنتاج في تركيا مع شبكة توزيع تغطي السوق المحلي وأسواق التصدير.',
+      tags: 'company,identity',
+      display_order: 10,
+    },
+    {
+      id: 'brand-diox',
+      title: 'علامة DIOX',
+      content:
+        'علامة DIOX متخصصة في حلول التنظيف المنزلية الكاملة وتشمل منظفات الأسطح، الزجاج، المطبخ والحمام، بالإضافة إلى منتجات الغسيل مثل مساحيق الغسيل السائل والبودرة ومزيلات البقع ومطرّي الأقمشة.',
+      tags: 'diox,products,home-cleaning',
+      display_order: 20,
+    },
+    {
+      id: 'brand-aylux',
+      title: 'علامة AYLUX',
+      content:
+        'علامة AYLUX تقدم منتجات تنظيف فاخرة بمعايير عطرية مميزة، من بينها جل غسيل الصحون، منظفات الأرضيات والهواء، مساحيق الغسيل، مطري الأقمشة، ومنتجات النظافة الشخصية مثل الصابون السائل.',
+      tags: 'aylux,products,premium',
+      display_order: 30,
+    },
+    {
+      id: 'quality-certifications',
+      title: 'الاعتمادات والجودة',
+      content:
+        'تلتزم KARAHOCA بأنظمة تصنيع نظيفة وتتبنى اختبارات جودة دقيقة ومختبرات داخلية لضمان ثبات النتائج. الشركة تعمل وفق معايير التصنيع الجيد وتراقب سلسلة التوريد بعناية للحفاظ على سلامة المنتجات.',
+      tags: 'quality,certifications',
+      display_order: 40,
+    },
+    {
+      id: 'industrial-partnerships',
+      title: 'الخدمات الصناعية والشراكات',
+      content:
+        'يمكن لـ KARAHOCA توفير حلول تصنيع مخصصة وعقود تصنيع لصالح العلامات الخاصة، مع إمكانات تعبئة وتغليف مرنة وتطوير تركيبات جديدة بالتعاون مع العملاء.',
+      tags: 'b2b,manufacturing,private-label',
+      display_order: 50,
+    },
+    {
+      id: 'contact-channels',
+      title: 'قنوات التواصل',
+      content:
+        'للاستفسارات المباشرة يمكن التواصل عبر البريد info@karahoca.com أو عبر واتساب على الرقم +905305914990. كما يمكن استخدام نموذج الاتصال في الموقع الرسمي.',
+      tags: 'contact,support',
+      display_order: 60,
+    },
+    {
+      id: 'pricing-shipping-policy',
+      title: 'سياسة الأسعار والشحن | Pricing and Shipping Policy',
+      content:
+        'تختلف أسعار منتجاتنا بناءً على عدة عوامل رئيسية: نوع المنتج، الكمية المطلوبة، والحجم. نحن نقدم أسعاراً تنافسية بنظام البيع من أرض المصنع (Ex Works - EXW)، مما يمنح عملاءنا مرونة أكبر في ترتيبات الشحن. كما نسعى جاهدين لتوفير أفضل أسعار الشحن الممكنة من خلال شبكتنا اللوجستية الواسعة، ونزود عملاءنا بعروض أسعار شاملة تضمن لهم أفضل خدمة ممكنة. للحصول على عرض سعر مفصل ومخصص يناسب احتياجاتكم، يرجى التواصل مباشرة مع فريق خدمة العملاء لدينا عبر البريد الإلكتروني info@karahoca.com أو عبر واتساب على الرقم +905305914990.\n\nPricing for our products varies based on several key factors: product type, order quantity, and size. We offer competitive prices under Ex Works (EXW) terms from our factory, providing our clients with greater flexibility in shipping arrangements. We also work diligently to secure the best possible shipping rates through our extensive logistics network, and we provide our clients with comprehensive price quotes to ensure the best service possible. For a detailed and customized price quotation that meets your specific needs, please contact our customer service team directly via email at info@karahoca.com or through WhatsApp at +905305914990.',
+      tags: 'pricing,shipping,exw,quotation,أسعار,شحن',
+      display_order: 70,
+    },
+  ];
+
+  const insertSection = db.prepare(
+    'INSERT INTO ai_knowledge_sections (id, title, content, tags, display_order, active) VALUES (?, ?, ?, ?, ?, 1)',
+  );
+  const insertMany = db.transaction((rows) => {
+    for (const row of rows) {
+      insertSection.run(row.id, row.title, row.content, row.tags, row.display_order);
+    }
+  });
+  insertMany(sections);
+
+  // Tone guidelines — single row in the config table. Kept verbatim from the
+  // client-side string so existing prompt behaviour is preserved byte-for-byte.
+  const toneGuidelines = `
+🌍 LANGUAGE RESPONSE RULES (ABSOLUTE PRIORITY):
+- You MUST detect the language of the customer's question FIRST
+- You MUST respond in the EXACT SAME LANGUAGE as the question
+- Arabic question = Arabic response | English question = English response | Turkish question = Turkish response | Russian question = Russian response
+- DO NOT respond in Arabic if the question is in English
+- DO NOT respond in English if the question is in Arabic
+- DO NOT respond in Turkish if the question is in Russian
+- Translate the knowledge base content to match the customer's language
+
+TONE & STYLE:
+- Sound like a natural human sales/support assistant, not a keyword bot
+- Answer the customer's actual question directly before offering extra context
+- Do not answer with a generic list of available topics unless the customer explicitly asks what you can help with
+- If the question is broad, infer the most likely intent from the wording and answer naturally
+- If some commercial detail depends on quantity, size, or exact SKU, explain that clearly and ask only the needed follow-up
+- Provide answers in short paragraphs or easy-to-read bullet points
+- Always include brand names (DIOX, AYLUX, KARAHOCA) in English regardless of response language
+- Use the actual product data from the website catalog whenever the question is about products, variants, sizes, materials, counts, or comparisons
+- Use the actual website sections whenever the question is about company history, milestones, production, goals, dryer technology, news, newsletter, or contact details
+- If the customer asks to compare products, compare using the catalog fields that are actually available: brand, category, description, weight/size, material, and count
+- Never say that product comparison information is unavailable if the catalog already contains relevant product entries
+- If the customer asks about recent news, launches, contracts, or exhibitions, answer from the news items already shown on the website
+- If information is not in the knowledge base, acknowledge this clearly and provide contact information
+- Do not mention details outside of KARAHOCA's scope
+- Remind customers of official contact options: info@karahoca.com | WhatsApp: +90 530 591 4990
+`;
+
+  db.prepare(
+    'INSERT OR REPLACE INTO ai_assistant_config (key, value) VALUES (?, ?)',
+  ).run('tone_guidelines', toneGuidelines);
+
+  markMigration('ai_knowledge_initial_seed');
 };
 
 // ─── Newsletter opaque-key migration ────────────────────────────────────────

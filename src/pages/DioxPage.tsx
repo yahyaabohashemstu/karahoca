@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
-import BrandPageTemplate from '../components/BrandPageTemplate';
+import BrandPageTemplate from '../components/BrandPage';
 import { getDioxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
 

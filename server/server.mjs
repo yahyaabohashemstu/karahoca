@@ -50,6 +50,7 @@ import { serveStaticOrSpa } from './routes/static-spa.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
 import { handleHealth } from './routes/api-health.mjs';
+import { handleAiContext } from './routes/api-ai-context.mjs';
 
 // Schedulers
 import { startNewsScheduler } from './schedulers/news.mjs';
@@ -148,6 +149,10 @@ const handleRequest = async (request, response) => {
     // ── Public API ───────────────────────────────────────────────────────
     if (request.method === 'POST' && url === '/api/ai/chat') {
       await handleAiChat(request, response, ctx);
+      return;
+    }
+    if (request.method === 'GET' && url === '/api/ai/context') {
+      handleAiContext(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/subscribe') {

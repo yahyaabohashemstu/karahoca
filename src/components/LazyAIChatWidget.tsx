@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../styles/ai-chat.css';
 
-const AIChatWidget = lazy(() => import('./AIChatWidget'));
+const AIChatWidget = lazy(() => import('./AIChat'));
 
 const LazyAIChatWidget: React.FC = () => {
   const { t } = useTranslation();
