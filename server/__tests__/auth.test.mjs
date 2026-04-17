@@ -5,10 +5,11 @@
  * - Login rate limiting (Redis-backed, tested via in-memory fallback)
  * - Password hashing and verification
  * - JWT token signing and verification
- * - JWT security boundary enforcement in production mode
+ * - Admin session cookie creation/clearing (HttpOnly, SameSite, Secure)
+ * - requireAuth middleware (cookie-first, Bearer migration bridge)
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Force Redis fallback for deterministic test behavior
 process.env.REDIS_URL = 'redis://127.0.0.1:1';
@@ -200,5 +201,102 @@ describe('requireAuth Middleware', () => {
       headers: { cookie: buildCookieHeader(shortToken) },
     });
     expect(result).toBeNull();
+  });
+
+  it('returns null for a tampered cookie value', () => {
+    const token = auth.signToken({ username: 'admin', role: 'admin' });
+    const tampered = token.slice(0, -5) + 'XXXXX';
+    const result = auth.requireAuth({
+      headers: { cookie: buildCookieHeader(tampered) },
+    });
+    expect(result).toBeNull();
+  });
+
+  it('ignores an Authorization Bearer header when a valid cookie is present', () => {
+    // Cookie wins — the Bearer header must not be able to override an active cookie session.
+    const cookieToken = auth.signToken({ username: 'cookie-user', role: 'admin' });
+    const bearerToken = auth.signToken({ username: 'bearer-user', role: 'admin' });
+    const result = auth.requireAuth({
+      headers: {
+        cookie: buildCookieHeader(cookieToken),
+        authorization: `Bearer ${bearerToken}`,
+      },
+    });
+    expect(result).not.toBeNull();
+    expect(result.username).toBe('cookie-user');
+  });
+
+  it('falls back to Authorization Bearer when no cookie is present (migration bridge)', () => {
+    const token = auth.signToken({ username: 'legacy-admin', role: 'admin' });
+    const result = auth.requireAuth({
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(result).not.toBeNull();
+    expect(result.username).toBe('legacy-admin');
+  });
+
+  it('returns null for a non-Bearer Authorization scheme when no cookie', () => {
+    const result = auth.requireAuth({
+      headers: { authorization: 'Basic dXNlcjpwYXNz' },
+    });
+    expect(result).toBeNull();
+  });
+});
+
+// ─── Admin Session Cookies (createAdminSessionCookie / clearAdminSessionCookie) ─
+describe('Admin Session Cookies', () => {
+  it('ADMIN_SESSION_COOKIE_NAME is defined and non-empty', () => {
+    expect(typeof auth.ADMIN_SESSION_COOKIE_NAME).toBe('string');
+    expect(auth.ADMIN_SESSION_COOKIE_NAME.length).toBeGreaterThan(0);
+  });
+
+  describe('createAdminSessionCookie', () => {
+    const token = 'test.jwt.token';
+    const cookie = auth.createAdminSessionCookie(token);
+
+    it('starts with the cookie name and the given token', () => {
+      expect(cookie.startsWith(`${auth.ADMIN_SESSION_COOKIE_NAME}=${token}`)).toBe(true);
+    });
+
+    it('is marked HttpOnly (not accessible to JavaScript)', () => {
+      expect(cookie).toMatch(/HttpOnly/i);
+    });
+
+    it('is marked SameSite=Strict (CSRF protection)', () => {
+      expect(cookie).toMatch(/SameSite=Strict/i);
+    });
+
+    it('has Path=/ (applies to whole site)', () => {
+      expect(cookie).toMatch(/Path=\//);
+    });
+
+    it('sets a Max-Age matching JWT_EXPIRES_IN (3600s for "1h")', () => {
+      expect(cookie).toMatch(/Max-Age=3600/);
+    });
+
+    it('does NOT set Secure in non-production (allows local HTTP testing)', () => {
+      expect(cookie).not.toMatch(/;\s*Secure/i);
+    });
+  });
+
+  describe('clearAdminSessionCookie', () => {
+    const cleared = auth.clearAdminSessionCookie();
+
+    it('has an empty value', () => {
+      expect(cleared).toMatch(new RegExp(`^${auth.ADMIN_SESSION_COOKIE_NAME}=;`));
+    });
+
+    it('sets Max-Age=0 to expire immediately', () => {
+      expect(cleared).toMatch(/Max-Age=0/);
+    });
+
+    it('sets Expires to the Unix epoch (1970)', () => {
+      expect(cleared).toMatch(/Expires=Thu, 01 Jan 1970/);
+    });
+
+    it('preserves HttpOnly and SameSite=Strict flags', () => {
+      expect(cleared).toMatch(/HttpOnly/i);
+      expect(cleared).toMatch(/SameSite=Strict/i);
+    });
   });
 });

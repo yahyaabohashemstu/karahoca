@@ -6,12 +6,6 @@ import { buildApiUrl } from '../utils/api';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
-interface WelcomeEmailStatus {
-  sent: boolean;
-  id?: string;
-  error?: string;
-}
-
 const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -19,7 +13,6 @@ const Footer: React.FC = () => {
   const [honeyValue, setHoneyValue] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
-  const [welcomeEmailStatus, setWelcomeEmailStatus] = useState<WelcomeEmailStatus | null>(null);
   const currentYear = new Date().getFullYear();
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
@@ -28,6 +21,8 @@ const Footer: React.FC = () => {
   const contactAddress = t('footer.contact.address');
   const contactEmail = t('footer.contact.email');
   const contactPhone = t('footer.contact.phone');
+  const newsletterInputId = 'newsletter-email';
+  const newsletterErrorId = 'newsletter-email-error';
 
   const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,8 +80,8 @@ const Footer: React.FC = () => {
         throw new Error('Newsletter subscription failed');
       }
 
-      const data = await response.json().catch(() => ({}));
-      setWelcomeEmailStatus(data.welcomeEmail ?? null);
+      // Server returns sanitized result only (no transport IDs or backend errors).
+      await response.json().catch(() => ({}));
 
       setSubmissionState('success');
       setEmail('');
@@ -95,7 +90,6 @@ const Footer: React.FC = () => {
 
       setTimeout(() => {
         setSubmissionState('idle');
-        setWelcomeEmailStatus(null);
       }, 8000);
     } catch {
       setSubmissionState('error');
@@ -177,7 +171,12 @@ const Footer: React.FC = () => {
               aria-hidden="true"
             />
             <div className="newsletter__input-wrapper">
+              <label htmlFor={newsletterInputId} className="sr-only">
+                {t('footer.newsletter.emailLabel', { defaultValue: 'Email address' })}
+              </label>
               <input
+                id={newsletterInputId}
+                name="email"
                 type="email"
                 placeholder={t('footer.newsletter.placeholder')}
                 required
@@ -185,31 +184,19 @@ const Footer: React.FC = () => {
                 value={email}
                 onChange={handleEmailChange}
                 disabled={submissionState === 'loading'}
+                autoComplete="email"
                 aria-invalid={!!emailError}
-                aria-describedby={emailError ? 'email-error' : undefined}
+                aria-describedby={emailError ? newsletterErrorId : undefined}
+                aria-label={t('footer.newsletter.emailLabel', { defaultValue: 'Email address' })}
               />
               {emailError && (
-                <span id="email-error" className="newsletter__error" role="alert">
+                <span id={newsletterErrorId} className="newsletter__error" role="alert">
                   {emailError}
                 </span>
               )}
               {submissionState === 'success' && (
                 <span className="newsletter__success" role="status">
                   {t('footer.newsletter.success')}
-                  {welcomeEmailStatus && (
-                    <span style={{
-                      display: 'block',
-                      fontSize: '0.75em',
-                      marginTop: '4px',
-                      color: welcomeEmailStatus.sent ? '#22c55e' : '#f87171',
-                      direction: 'ltr',
-                      textAlign: 'left'
-                    }}>
-                      {welcomeEmailStatus.sent
-                        ? `✅ Welcome email sent (id: ${welcomeEmailStatus.id})`
-                        : `⚠️ Email error: ${welcomeEmailStatus.error}`}
-                    </span>
-                  )}
                 </span>
               )}
             </div>

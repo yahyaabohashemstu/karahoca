@@ -131,7 +131,7 @@ export const adminApi = {
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
   sendCampaign: (id: number, opts?: { excludedEmails?: string[] }) =>
-    request<{ success: boolean; sent: number; sentA?: number; sentB?: number; errors: Array<{ email: string; error: string }> }>(
+    request<{ success: boolean; queued: boolean; alreadyQueued?: boolean }>(
       'POST', `/api/admin/campaigns/${id}/send`,
       opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
     ),
@@ -308,7 +308,7 @@ export interface Campaign {
   subject_b_ar?: string; subject_b_en?: string; subject_b_tr?: string; subject_b_ru?: string;
   body_ar: string; body_en: string; body_tr: string; body_ru: string;
   image_url?: string;
-  status: 'draft' | 'scheduled' | 'sent';
+  status: 'draft' | 'scheduled' | 'queued' | 'sent';
   scheduled_at?: string;
   sent_at?: string;
   recipient_count: number;

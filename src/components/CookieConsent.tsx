@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const CONSENT_KEY = 'karahoca_cookie_consent';
-
-export type ConsentValue = 'all' | 'essential';
-
-export const getCookieConsent = (): ConsentValue | null => {
-  try {
-    const val = localStorage.getItem(CONSENT_KEY);
-    if (val === 'all' || val === 'essential') return val as ConsentValue;
-    return null;
-  } catch {
-    return null;
-  }
-};
+import { getCookieConsent, setCookieConsent, type ConsentValue } from '../utils/cookieConsent';
 
 const CookieConsent: React.FC = () => {
   const { t } = useTranslation();
@@ -28,8 +15,7 @@ const CookieConsent: React.FC = () => {
 
   const accept = (type: ConsentValue) => {
     try {
-      localStorage.setItem(CONSENT_KEY, type);
-      window.dispatchEvent(new CustomEvent('karahoca-cookie-consent', { detail: type }));
+      setCookieConsent(type);
     } catch {
       // localStorage may be unavailable (private mode)
     }

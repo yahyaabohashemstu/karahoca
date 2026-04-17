@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { randomBytes } from 'node:crypto';
 import { parse as parseCookieHeader, serialize as serializeCookie } from 'cookie';
 import { isRateLimited as redisIsRateLimited, resetRateLimit as redisResetRateLimit } from './redisClient.mjs';
 
@@ -6,10 +7,35 @@ const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const DEFAULT_JWT_SECRET = 'karahoca_admin_secret_change_in_production';
-const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'; // 24-hour session (override via env)
+const MIN_SECRET_LENGTH = 32;
 const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
+
+const rawJwtSecret = typeof process.env.JWT_SECRET === 'string' ? process.env.JWT_SECRET.trim() : '';
+const hasStrongSecret = rawJwtSecret.length >= MIN_SECRET_LENGTH;
+
+if (isProduction && !hasStrongSecret) {
+  console.error(
+    `[auth] FATAL: JWT_SECRET is not configured or is shorter than ${MIN_SECRET_LENGTH} characters. Refusing to start.`,
+  );
+  process.exit(1);
+}
+
+// Outside production (local dev / test) we synthesize a random per-process secret
+// so tokens signed in one process are not accepted by another. Never persisted,
+// never shipped. Production REQUIRES a real secret above.
+const JWT_SECRET = hasStrongSecret
+  ? rawJwtSecret
+  : (() => {
+      if (!isTest) {
+        console.warn(
+          '[auth] JWT_SECRET is not set (dev/test). Using an ephemeral random secret for this process.',
+        );
+      }
+      return randomBytes(48).toString('hex');
+    })();
+
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 export const ADMIN_SESSION_COOKIE_NAME = 'karahoca_admin_session';
 
 const parseJwtExpiresInSeconds = (value) => {
@@ -40,15 +66,6 @@ const ADMIN_SESSION_COOKIE_OPTIONS = {
   ...(ADMIN_SESSION_MAX_AGE_SECONDS ? { maxAge: ADMIN_SESSION_MAX_AGE_SECONDS } : {}),
 };
 
-// Warn on startup if JWT_SECRET is weak
-if (JWT_SECRET === DEFAULT_JWT_SECRET) {
-  if (isProduction) {
-    console.error('[auth] CRITICAL: JWT_SECRET is set to the default value in production! Set a strong unique secret in your environment variables.');
-  } else {
-    console.warn('[auth] WARNING: Using default JWT_SECRET. Set JWT_SECRET in your .env file before deploying to production.');
-  }
-}
-
 // ─── Rate limiting (Redis-backed, 5 attempts per 15 minutes) ────────────────
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_WINDOW_SEC = 15 * 60; // 15 minutes
@@ -64,8 +81,10 @@ const resetRateLimit = (ip) =>
 export const hashPassword = (plain) => bcrypt.hashSync(plain, 10);
 
 export const getJwtConfigError = () => {
-  if (isProduction && JWT_SECRET === DEFAULT_JWT_SECRET) {
-    return 'JWT_SECRET must be set to a non-default value in production.';
+  // In production, startup already exits(1) if the secret is weak. This
+  // remains as a belt-and-suspenders guard for any path that bypasses init.
+  if (isProduction && !hasStrongSecret) {
+    return 'JWT_SECRET must be set to a strong unique value in production.';
   }
   return null;
 };

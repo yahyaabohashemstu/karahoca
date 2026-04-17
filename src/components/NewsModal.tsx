@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { LocalizedNewsItem } from '../data/news';
@@ -8,28 +8,101 @@ interface NewsModalProps {
   onClose: () => void;
 }
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'textarea:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
 const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
   const { t } = useTranslation();
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!news) {
       return undefined;
     }
 
+    previousActiveElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const handleEscape = (event: KeyboardEvent) => {
+    window.requestAnimationFrame(() => {
+      (closeButtonRef.current ?? dialogRef.current)?.focus();
+    });
+
+    const getFocusableElements = () => {
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return [];
+      }
+
+      return Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+        .filter((element) => !element.hasAttribute('disabled') && !element.getAttribute('aria-hidden'));
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (!dialog.contains(activeElement)) {
+        event.preventDefault();
+        firstElement.focus();
+        return;
+      }
+
+      if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+        return;
+      }
+
+      if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
 
-    window.addEventListener('keydown', handleEscape);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('keydown', handleKeyDown);
+
+      const previousActiveElement = previousActiveElementRef.current;
+      if (previousActiveElement && document.contains(previousActiveElement)) {
+        previousActiveElement.focus();
+      }
     };
   }, [news, onClose]);
 
@@ -44,6 +117,8 @@ const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby={`news-modal-title-${news.id}`}
+        tabIndex={-1}
+        ref={dialogRef}
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -51,6 +126,7 @@ const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
           className="news-modal__close"
           onClick={onClose}
           aria-label={t('newsPage.modalClose')}
+          ref={closeButtonRef}
         >
           ×
         </button>

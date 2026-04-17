@@ -442,7 +442,11 @@ Customer Question: ${question}
 Respond using only the knowledge base above and match the customer's language exactly.`;
 };
 
-const AIChatWidget: React.FC = () => {
+interface AIChatWidgetProps {
+  initiallyOpen?: boolean;
+}
+
+const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) => {
   const { i18n } = useTranslation();
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isRtl = getLanguageDirection(currentLang) === 'rtl';
@@ -452,7 +456,7 @@ const AIChatWidget: React.FC = () => {
   const welcomeHintShownRef = useRef(false);
 
   const [showWelcomeHint, setShowWelcomeHint] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initiallyOpen);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const storedMessages = loadStoredMessages();
     return storedMessages.length > 0 ? storedMessages : [createWelcomeMessage(currentLang)];

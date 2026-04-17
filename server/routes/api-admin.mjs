@@ -1,0 +1,192 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, readRequestBody } from '../middlewares/bodyParser.mjs';
+import { sendJson } from '../middlewares/cors.mjs';
+import { requireAdminAuth } from '../middlewares/adminAuth.mjs';
+import { getDb } from '../services/db.mjs';
+
+import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
+import { handleAdminStats } from './admin-stats.mjs';
+import { handleAdminAnalytics } from './admin-analytics.mjs';
+import { handleAdminChats } from './admin-chats.mjs';
+import { handleAdminProducts, handleAdminCategories } from './admin-products.mjs';
+import { handleAdminNews } from './admin-news.mjs';
+import { handleAdminNewsletter } from './admin-newsletter.mjs';
+import { handleAdminTranslate } from './admin-translate.mjs';
+import { handleAdminGa } from './admin-ga.mjs';
+import { handleAdminCampaigns } from './admin-campaigns.mjs';
+import { handleAdminAiKnowledge } from './admin-ai-knowledge.mjs';
+import { handleAdminCatalog } from './admin-catalog.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, '..', 'data', 'uploads');
+
+const ALLOWED_UPLOAD_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+
+/** Validates magic bytes for the 4 supported image types. */
+const validateImageMagic = (buf, ext) => {
+  if ((ext === 'jpg' || ext === 'jpeg') && buf.length >= 3) {
+    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (ext === 'png' && buf.length >= 8) {
+    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  }
+  if (ext === 'gif' && buf.length >= 6) {
+    return buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46;
+  }
+  if (ext === 'webp' && buf.length >= 12) {
+    return buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+  }
+  return false;
+};
+
+const handleUploadImage = async (request, response, { origin, body }) => {
+  const { imageBase64, fileName } = body;
+  if (!imageBase64 || !fileName) {
+    sendJson(response, 400, { error: 'imageBase64 and fileName required' }, origin);
+    return;
+  }
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (!ALLOWED_UPLOAD_EXTS.has(ext)) {
+    sendJson(response, 400, { error: 'Unsupported file type' }, origin);
+    return;
+  }
+  const buf = Buffer.from(imageBase64, 'base64');
+  if (buf.length > 10 * 1024 * 1024) {
+    sendJson(response, 400, { error: 'File too large (max 10 MB)' }, origin);
+    return;
+  }
+  if (!validateImageMagic(buf, ext)) {
+    sendJson(response, 400, { error: 'File content does not match the declared image type' }, origin);
+    return;
+  }
+
+  const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  await mkdir(uploadsDir, { recursive: true });
+  await writeFile(path.join(uploadsDir, unique), buf);
+
+  // API_PUBLIC_URL = publicly reachable URL of this Node backend.
+  // Required because email clients load uploaded images directly from the
+  // API server (the nginx frontend does NOT proxy /api/ routes).
+  const apiBase = (process.env.API_PUBLIC_URL || process.env.SITE_URL || '').replace(/\/+$/, '');
+  const relativePath = `/api/uploads/${unique}`;
+  const absoluteUrl = apiBase ? `${apiBase}${relativePath}` : relativePath;
+  sendJson(response, 200, { success: true, path: relativePath, url: absoluteUrl }, origin);
+};
+
+const handleAuditLog = (request, response, { origin }) => {
+  const db = getDb();
+  const urlObj = new URL(request.url, 'http://localhost');
+  const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '100', 10), 500);
+  const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+  const entityType = urlObj.searchParams.get('entity') || null;
+  const where = entityType ? 'WHERE entity_type=?' : '';
+  const params = entityType ? [entityType, limit, offset] : [limit, offset];
+  const logs = db.prepare(`SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params);
+  const total = db.prepare(`SELECT COUNT(*) as c FROM admin_audit_log ${where}`).get(...(entityType ? [entityType] : [])).c;
+  sendJson(response, 200, { success: true, logs, total }, origin);
+};
+
+/**
+ * Dispatcher for every `/api/admin/*` URL. Login/logout are public; the rest
+ * require `requireAdminAuth` and receive a pre-parsed body.
+ *
+ * Returns `true` if the request was handled.
+ */
+export const handleAdminRoutes = async (request, response, ctx) => {
+  const { url, origin } = ctx;
+
+  // Public: login + logout
+  if (request.method === 'POST' && url === '/api/admin/login') {
+    const body = await readRequestBody(request);
+    await handleAdminLogin(request, response, { ...ctx, body });
+    return true;
+  }
+  if (request.method === 'POST' && url === '/api/admin/logout') {
+    await handleAdminLogout(request, response, ctx);
+    return true;
+  }
+
+  // Everything else under /api/admin/* requires admin auth.
+  if (!url.startsWith('/api/admin/')) return false;
+
+  const adminUser = requireAdminAuth(request, response, origin);
+  if (!adminUser) return true; // response already written by middleware
+
+  const isUpload = url === '/api/admin/upload-image' && request.method === 'POST';
+  const body = ['POST', 'PUT', 'PATCH'].includes(request.method)
+    ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
+    : {};
+  const adminCtx = { ...ctx, body, admin: adminUser, user: adminUser };
+
+  if (url === '/api/admin/session' && request.method === 'GET') {
+    sendJson(response, 200, {
+      success: true,
+      user: { username: adminUser.username, role: adminUser.role },
+    }, origin);
+    return true;
+  }
+
+  if (url === '/api/admin/stats' && request.method === 'GET') {
+    handleAdminStats(request, response, adminCtx);
+    return true;
+  }
+  if (url === '/api/admin/analytics' && request.method === 'GET') {
+    handleAdminAnalytics(request, response, adminCtx);
+    return true;
+  }
+  if (url === '/api/admin/audit-log' && request.method === 'GET') {
+    handleAuditLog(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/chats')) {
+    handleAdminChats(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/products')) {
+    handleAdminProducts(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/categories')) {
+    handleAdminCategories(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/newsletter')) {
+    handleAdminNewsletter(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/news')) {
+    handleAdminNews(request, response, adminCtx);
+    return true;
+  }
+  if (url === '/api/admin/translate' && request.method === 'POST') {
+    await handleAdminTranslate(request, response, adminCtx);
+    return true;
+  }
+  if (url === '/api/admin/ga' && request.method === 'GET') {
+    await handleAdminGa(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/campaigns')) {
+    await handleAdminCampaigns(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/ai-knowledge')) {
+    handleAdminAiKnowledge(request, response, adminCtx);
+    return true;
+  }
+  if (url === '/api/admin/upload-image' && request.method === 'POST') {
+    await handleUploadImage(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/catalog')) {
+    handleAdminCatalog(request, response, { ...adminCtx, url: request.url });
+    return true;
+  }
+
+  sendJson(response, 404, { success: false, error: 'Admin route not found.' }, origin);
+  return true;
+};

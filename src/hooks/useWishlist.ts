@@ -1,5 +1,14 @@
-// Re-export from WishlistContext so all components share one global state.
-// The old local-useState approach caused separate instances per component;
-// the context approach ensures the Header count and BrandPage stay in sync.
-export { useWishlist, WishlistProvider } from '../contexts/WishlistContext';
-export type { WishlistItem } from '../contexts/WishlistContext';
+import { useContext } from 'react';
+import { WishlistContext } from '../contexts/wishlist-store';
+
+export type { WishlistItem } from '../contexts/wishlist-store';
+
+export const useWishlist = () => {
+  const context = useContext(WishlistContext);
+
+  if (!context) {
+    throw new Error('useWishlist must be used within WishlistProvider');
+  }
+
+  return context;
+};

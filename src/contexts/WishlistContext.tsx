@@ -1,43 +1,38 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-
-export interface WishlistItem {
-  id: string;
-  /** DB product id (e.g. "aylux-dishwash-gel") — used for WhatsApp deep-link */
-  productDbId?: string;
-  name: string;
-  description: string;
-  image: string;
-  alt: string;
-  brand: string;
-  details?: {
-    weight?: string;
-    material?: string;
-    count?: string;
-    gift?: string;
-    weightCountTable?: Array<{ weight: string; count: number }>;
-  };
-}
+import React, { useState, useCallback } from 'react';
+import { WishlistContext, type WishlistItem } from './wishlist-store';
 
 const STORAGE_KEY = 'karahoca_wishlist';
 
+const logStorageError = (action: 'load' | 'save', error: unknown) => {
+  if (import.meta.env.DEV) {
+    console.warn(`Wishlist ${action} failed.`, error);
+  }
+};
+
 const load = (): WishlistItem[] => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as WishlistItem[]; }
-  catch { return []; }
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]') as WishlistItem[];
+  } catch (error) {
+    logStorageError('load', error);
+    return [];
+  }
 };
 
 const save = (items: WishlistItem[]) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch {}
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch (error) {
+    logStorageError('save', error);
+  }
 };
-
-interface WishlistCtx {
-  items: WishlistItem[];
-  isInWishlist: (id: string) => boolean;
-  toggle: (item: WishlistItem) => void;
-  remove: (id: string) => void;
-  clear: () => void;
-}
-
-const WishlistContext = createContext<WishlistCtx | null>(null);
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<WishlistItem[]>(load);
@@ -72,10 +67,4 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {children}
     </WishlistContext.Provider>
   );
-};
-
-export const useWishlist = (): WishlistCtx => {
-  const ctx = useContext(WishlistContext);
-  if (!ctx) throw new Error('useWishlist must be used within WishlistProvider');
-  return ctx;
 };

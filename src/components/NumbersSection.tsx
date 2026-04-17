@@ -1,28 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../hooks/useIsMobile';
-
-/** Sanitize SVG using DOMParser — removes event handlers, scripts, and dangerous attributes */
-const sanitizeSvg = (rawSvg: string): string => {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
-    doc.querySelectorAll('script, foreignObject').forEach(el => el.remove());
-    doc.querySelectorAll('*').forEach(el => {
-      Array.from(el.attributes).forEach(attr => {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on')) { el.removeAttribute(attr.name); return; }
-        if ((name === 'href' || name === 'xlink:href' || name === 'src') &&
-            /^(javascript:|data:text)/i.test(attr.value.trim())) {
-          el.removeAttribute(attr.name);
-        }
-      });
-    });
-    return new XMLSerializer().serializeToString(doc.documentElement);
-  } catch {
-    return '';
-  }
-};
+import { loadSanitizedSvgIntoContainer } from '../utils/safeSvg';
 
 const NumbersSection: React.FC = () => {
   const { t } = useTranslation();
@@ -170,17 +149,13 @@ const NumbersSection: React.FC = () => {
       timers.push(id);
     };
 
-    fetch('/Experience.svg')
-      .then((response) => response.text())
-      .then((rawSvg) => {
-        if (!isMounted) {
+    loadSanitizedSvgIntoContainer(container, '/Experience.svg')
+      .then((svgElement) => {
+        if (!isMounted || !svgElement) {
           return;
         }
 
-        container.innerHTML = sanitizeSvg(rawSvg);
-
-        const svgElement = container.querySelector('svg');
-        const textElement = svgElement?.querySelector('#animated-number');
+        const textElement = svgElement.querySelector('#animated-number');
 
         if (!(textElement instanceof SVGTextElement)) {
           return;
@@ -259,7 +234,7 @@ const NumbersSection: React.FC = () => {
       })
       .catch(() => {
         if (isMounted) {
-          container.innerHTML = '';
+          container.replaceChildren();
         }
       });
 

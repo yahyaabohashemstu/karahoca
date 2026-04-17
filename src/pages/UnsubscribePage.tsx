@@ -4,23 +4,28 @@ import { useTranslation } from 'react-i18next';
 import { buildApiUrl } from '../utils/api';
 import SEO from '../components/SEO';
 
-type Status = 'loading' | 'success' | 'already' | 'not-found' | 'error';
+type UnsubscribeStatus = 'loading' | 'success' | 'already' | 'invalid' | 'error';
 
 const UnsubscribePage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const token = searchParams.get('token') || '';
   const { t } = useTranslation();
-  const [status, setStatus] = useState<Status>('loading');
+  const [status, setStatus] = useState<UnsubscribeStatus>('loading');
 
   useEffect(() => {
-    if (!email) {
-      setStatus('error');
+    if (!token) {
+      setStatus('invalid');
       return;
     }
 
     const controller = new AbortController();
 
-    fetch(buildApiUrl(`/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}`), {
+    fetch(buildApiUrl('/api/newsletter/unsubscribe'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
       signal: controller.signal,
     })
       .then((res) => res.json())
@@ -29,8 +34,11 @@ const UnsubscribePage: React.FC = () => {
           setStatus('already');
         } else if (data.success) {
           setStatus('success');
-        } else if (data.error === 'Email not found.') {
-          setStatus('not-found');
+        } else if (
+          data.error === 'Invalid or expired unsubscribe token.' ||
+          data.error === 'Unsubscribe target not found.'
+        ) {
+          setStatus('invalid');
         } else {
           setStatus('error');
         }
@@ -40,29 +48,29 @@ const UnsubscribePage: React.FC = () => {
       });
 
     return () => controller.abort();
-  }, [email]);
+  }, [token]);
 
-  const icon: Record<Status, string> = {
+  const icon: Record<UnsubscribeStatus, string> = {
     loading: '⏳',
     success: '✅',
     already: '✅',
-    'not-found': '❓',
+    invalid: '🔒',
     error: '❌',
   };
 
-  const title: Record<Status, string> = {
+  const title: Record<UnsubscribeStatus, string> = {
     loading: t('unsubscribe.loading'),
     success: t('unsubscribe.success'),
     already: t('unsubscribe.already'),
-    'not-found': t('unsubscribe.notFound'),
+    invalid: t('unsubscribe.invalid'),
     error: t('unsubscribe.error'),
   };
 
-  const desc: Record<Status, string> = {
+  const desc: Record<UnsubscribeStatus, string> = {
     loading: t('unsubscribe.loadingDesc'),
     success: t('unsubscribe.successDesc'),
     already: t('unsubscribe.alreadyDesc'),
-    'not-found': t('unsubscribe.notFoundDesc'),
+    invalid: t('unsubscribe.invalidDesc'),
     error: t('unsubscribe.errorDesc'),
   };
 
@@ -94,9 +102,6 @@ const UnsubscribePage: React.FC = () => {
       >
         <div style={{ fontSize: 48, marginBottom: 16 }}>{icon[status]}</div>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>{title[status]}</h1>
-        {email && status !== 'loading' && (
-          <p style={{ opacity: 0.6, fontSize: 14, marginBottom: 8, direction: 'ltr' }}>{email}</p>
-        )}
         <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>{desc[status]}</p>
         <Link
           to="/"

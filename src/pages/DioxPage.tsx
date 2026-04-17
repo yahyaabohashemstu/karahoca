@@ -60,7 +60,7 @@ const DioxPageContent: React.FC = () => {
       }
     });
     return () => { cancelled = true; };
-  }, [currentLang]);
+  }, [currentLang, t]);
 
   const dioxData = {
     brandName: 'DIOX',

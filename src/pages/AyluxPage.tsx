@@ -60,7 +60,7 @@ const AyluxPageContent: React.FC = () => {
       }
     });
     return () => { cancelled = true; };
-  }, [currentLang]);
+  }, [currentLang, t]);
 
   const ayluxData = {
     brandName: 'AYLUX',

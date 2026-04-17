@@ -39,6 +39,15 @@ const applyDocumentLanguage = (lng?: string | null) => {
   document.documentElement.lang = normalizedLanguage;
 };
 
+// Detection order is deliberate: `htmlTag` FIRST so the `<html lang="...">`
+// value baked into the HTML shell (or a prerendered route) is authoritative
+// for the very first render. This is required for hydration safety — the
+// first client render MUST emit the same language the prerendered HTML
+// used, or React logs a hydration mismatch.
+//
+// After mount, `useLocaleSync` reconciles to the user's stored preference
+// (localStorage → navigator → fallback) by calling `i18n.changeLanguage()`,
+// which triggers a second render — by then hydration is already complete.
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -49,6 +58,7 @@ void i18n
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     cleanCode: true,
+    initImmediate: false, // ensure init resolves synchronously — no async chunk race before first render
     debug: import.meta.env.DEV,
 
     interpolation: {
@@ -56,7 +66,7 @@ void i18n
     },
 
     detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
+      order: ['htmlTag', 'localStorage', 'navigator'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng'
     },

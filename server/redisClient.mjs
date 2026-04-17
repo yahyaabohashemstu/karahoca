@@ -21,6 +21,7 @@ let fallbackWarned = false;
 // In-memory fallback stores (used ONLY when Redis is down)
 const memCache = new Map();   // key → { value, expiresAt }
 const memCounters = new Map(); // key → { count, expiresAt }
+const memQueues = new Map(); // key → string[]
 
 // ─── Initialize Redis ───────────────────────────────────────────────────────
 try {
@@ -189,6 +190,57 @@ export async function resetRateLimit(key) {
     }
   }
   memCounters.delete(key);
+}
+
+/**
+ * Push a serialized job onto a FIFO queue.
+ * @param {string} key
+ * @param {string} value
+ * @returns {Promise<void>}
+ */
+export async function enqueueQueueItem(key, value) {
+  if (redisAvailable) {
+    try {
+      await redis.rpush(key, value);
+      return;
+    } catch {
+      // fall through
+    }
+  }
+
+  const queue = memQueues.get(key) || [];
+  queue.push(value);
+  if (queue.length > 5000) {
+    queue.shift();
+  }
+  memQueues.set(key, queue);
+}
+
+/**
+ * Pop the next serialized job from a FIFO queue.
+ * @param {string} key
+ * @returns {Promise<string|null>}
+ */
+export async function dequeueQueueItem(key) {
+  if (redisAvailable) {
+    try {
+      return await redis.lpop(key);
+    } catch {
+      // fall through
+    }
+  }
+
+  const queue = memQueues.get(key);
+  if (!queue?.length) {
+    return null;
+  }
+
+  const nextItem = queue.shift() ?? null;
+  if (!queue.length) {
+    memQueues.delete(key);
+  }
+
+  return nextItem;
 }
 
 /**

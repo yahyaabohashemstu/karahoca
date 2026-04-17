@@ -32,64 +32,77 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
     SELECT * FROM product_categories WHERE brand=? ORDER BY display_order ASC
   `).all(brand);
 
-  const result = categories.map(cat => {
-    const products = db.prepare(`
-      SELECT
-        id,
-        name_${l} as name,
-        description_${l} as description,
-        image,
-        gallery,
-        alt_${l} as alt,
-        weight,
-        material_${l} as material,
-        count_${l} as count,
-        gift_${l} as gift,
-        weight_count_table,
-        image_scale
-      FROM products
-      WHERE category_id=? AND active=1
-      ORDER BY display_order ASC
-    `).all(cat.id);
+  const products = db.prepare(`
+    SELECT
+      p.id,
+      p.category_id,
+      p.name_${l} as name,
+      p.description_${l} as description,
+      p.image,
+      p.gallery,
+      p.alt_${l} as alt,
+      p.weight,
+      p.material_${l} as material,
+      p.count_${l} as count,
+      p.gift_${l} as gift,
+      p.weight_count_table,
+      p.image_scale
+    FROM products p
+    INNER JOIN product_categories c ON c.id = p.category_id
+    WHERE c.brand = ? AND p.active = 1
+    ORDER BY c.display_order ASC, p.display_order ASC
+  `).all(brand);
 
-    return {
-      id: cat.id,
-      key: cat.key,
-      title: cat[`title_${l}`] || cat.title_ar,
-      products: products.map(p => {
-        let gallery;
-        if (p.gallery) {
-          try {
-            const raw = JSON.parse(p.gallery);
-            gallery = Array.isArray(raw) ? raw.map(normalizeLegacyAssetPath) : undefined;
-          } catch { gallery = undefined; }
+  const productsByCategory = new Map();
+
+  for (const product of products) {
+    let gallery;
+    if (product.gallery) {
+      try {
+        const raw = JSON.parse(product.gallery);
+        gallery = Array.isArray(raw) ? raw.map(normalizeLegacyAssetPath) : undefined;
+      } catch {
+        gallery = undefined;
+      }
+    }
+
+    const normalizedProduct = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      image: normalizeLegacyAssetPath(product.image),
+      alt: product.alt,
+      gallery: gallery && gallery.length > 0 ? gallery : undefined,
+      details: {
+        weight: normalizeWeight(product.weight),
+        material: product.material,
+        count: product.count,
+        ...(product.gift ? { gift: product.gift } : {}),
+      },
+      weightCountTable: (() => {
+        if (!product.weight_count_table) return undefined;
+        try {
+          const parsed = JSON.parse(product.weight_count_table);
+          if (!Array.isArray(parsed) || !parsed.length) return undefined;
+          return parsed.map(row => ({ ...row, weight: normalizeWeight(row.weight) }));
+        } catch {
+          return undefined;
         }
-        return {
-          id: p.id,
-          name: p.name,
-          description: p.description,
-          image: normalizeLegacyAssetPath(p.image),
-          alt: p.alt,
-          gallery: gallery && gallery.length > 0 ? gallery : undefined,
-          details: {
-            weight: normalizeWeight(p.weight),
-            material: p.material,
-            count: p.count,
-            ...(p.gift ? { gift: p.gift } : {}),
-          },
-          weightCountTable: (() => {
-            if (!p.weight_count_table) return undefined;
-            try {
-              const parsed = JSON.parse(p.weight_count_table);
-              if (!Array.isArray(parsed) || !parsed.length) return undefined;
-              return parsed.map(row => ({ ...row, weight: normalizeWeight(row.weight) }));
-            } catch { return undefined; }
-          })(),
-          imageScale: p.image_scale ?? 0.85,
-        };
-      })
+      })(),
+      imageScale: product.image_scale ?? 0.85,
     };
-  });
+
+    const bucket = productsByCategory.get(product.category_id) || [];
+    bucket.push(normalizedProduct);
+    productsByCategory.set(product.category_id, bucket);
+  }
+
+  const result = categories.map(cat => ({
+    id: cat.id,
+    key: cat.key,
+    title: cat[`title_${l}`] || cat.title_ar,
+    products: productsByCategory.get(cat.id) || [],
+  }));
 
   sendJson(res, 200, { success: true, brand, categories: result }, origin);
 };

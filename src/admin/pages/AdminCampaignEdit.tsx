@@ -300,18 +300,19 @@ export const AdminCampaignEdit: React.FC = () => {
 
   const sendNow = async () => {
     const selectedCount = allSubscribers.length - excluded.size;
-    if (!confirm(`Send this campaign to ${selectedCount} subscriber${selectedCount !== 1 ? 's' : ''} NOW?`)) return;
+    if (!confirm(`Queue this campaign for immediate delivery to ${selectedCount} subscriber${selectedCount !== 1 ? 's' : ''}?`)) return;
     setSending(true);
     setError('');
     setSuccess('');
     try {
-      const r = await adminApi.sendCampaign(parseInt(id!, 10), {
+      const response = await adminApi.sendCampaign(parseInt(id!, 10), {
         excludedEmails: excluded.size > 0 ? [...excluded] : [],
       });
-      const abNote = (r.sentA !== undefined && r.sentB !== undefined && r.sentB > 0)
-        ? ` (A: ${r.sentA}, B: ${r.sentB})`
-        : '';
-      setSuccess(`✅ Sent to ${r.sent} subscriber${r.sent !== 1 ? 's' : ''}${abNote}!`);
+      if (response.alreadyQueued) {
+        setSuccess('Campaign is already queued for background delivery.');
+      } else {
+        setSuccess(`Queued for background delivery to ${selectedCount} subscriber${selectedCount !== 1 ? 's' : ''}.`);
+      }
       await refreshCampaign();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Send failed');
@@ -335,6 +336,8 @@ export const AdminCampaignEdit: React.FC = () => {
                   color:
                     form.status === 'sent'
                       ? '#22c55e'
+                      : form.status === 'queued'
+                        ? '#0ea5e9'
                       : form.status === 'scheduled'
                         ? '#4f6ef7'
                         : '#f59e0b',
@@ -344,6 +347,7 @@ export const AdminCampaignEdit: React.FC = () => {
                 {form.status}
               </strong>
               {form.status === 'sent' && ` · ${form.recipient_count} sent · ${form.open_count} opens`}
+              {form.status === 'queued' && ' · queued for background delivery'}
               {form.status === 'scheduled' && form.scheduled_at && ` · ${fmtDate(form.scheduled_at)}`}
             </p>
           )}
@@ -353,19 +357,19 @@ export const AdminCampaignEdit: React.FC = () => {
           <button onClick={save} className="adm-btn adm-btn-primary" disabled={saving}>
             {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving…</> : '💾 Save'}
           </button>
-          {!isNew && form.status !== 'sent' && (
+          {!isNew && form.status !== 'sent' && form.status !== 'queued' && (
             <button onClick={scheduleLater} className="adm-btn adm-btn-secondary" disabled={scheduling}>
               {scheduling ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Scheduling…</> : '🕐 Schedule'}
             </button>
           )}
-          {!isNew && form.status !== 'sent' && (
+          {!isNew && form.status !== 'sent' && form.status !== 'queued' && (
             <button
               onClick={sendNow}
               className="adm-btn"
               disabled={sending}
               style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', border: 'none' }}
             >
-              {sending ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Sending…</> : '🚀 Send Now'}
+              {sending ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Queueing…</> : '🚀 Queue Send'}
             </button>
           )}
         </div>
@@ -433,6 +437,10 @@ export const AdminCampaignEdit: React.FC = () => {
             ) : form.status === 'sent' ? (
               <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
                 ✅ Campaign already sent on {form.scheduled_at ? fmtDate(form.scheduled_at) : '—'}.
+              </div>
+            ) : form.status === 'queued' ? (
+              <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
+                ⏳ Campaign is queued for background delivery. The worker will pick it up automatically.
               </div>
             ) : (
               <>

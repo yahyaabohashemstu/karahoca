@@ -1,3 +1,46 @@
+/* ─── Back-to-top button ────────────────────────────────────────────────
+   Moved out of index.html inline <style> so CSP can forbid inline styles. */
+.back-to-top {
+  position: fixed;
+  bottom: 5rem;
+  inset-inline-end: 1.5rem;
+  z-index: 999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f6ef7, #6b84ff);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(79, 110, 247, 0.45);
+  transition: opacity 0.25s, transform 0.25s;
+  opacity: 0.92;
+}
+.back-to-top:hover { opacity: 1; transform: translateY(-3px); }
+.back-to-top:active { transform: scale(0.93); }
+
+/* ─── Lazy-route Suspense fallback ──────────────────────────────────────
+   Minimal full-viewport placeholder shown while a route chunk streams in. */
+.route-fallback {
+  min-height: 60vh;
+  width: 100%;
+  display: block;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 100%);
+  background-size: 200% 100%;
+  animation: routeFallbackShimmer 1.4s linear infinite;
+}
+@keyframes routeFallbackShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-fallback { animation: none; }
+}
+
 /* Light Mode Colors */
 /* الوضع الداكن هو الافتراضي */
 /* Light Mode Colors */
@@ -287,6 +330,18 @@ body {
   margin-inline: auto;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .gradient-text {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -323,7 +378,7 @@ body {
 .nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 0;
 }
 
@@ -334,6 +389,10 @@ body {
   font-weight: 800;
   letter-spacing: 0.6px;
   text-decoration: none;
+}
+
+.header__brand {
+  flex-shrink: 0;
 }
 
 .brand__logo {
@@ -360,8 +419,11 @@ body.light-mode .brand__logo {
 
 .menu {
   display: none;
-  gap: 2rem;
+  flex: 1 1 auto;
   align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  min-width: 0;
 }
 
 .nav-link {
@@ -370,6 +432,7 @@ body.light-mode .brand__logo {
   text-decoration: none;
   transition: all 0.3s ease;
   padding: 0.5rem 0;
+  white-space: nowrap;
 }
 
 .nav-link::after {
@@ -389,6 +452,83 @@ body.light-mode .brand__logo {
 
 .nav-link:hover::after {
   width: 100%;
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.header__language {
+  display: flex;
+  align-items: center;
+}
+
+.header__wishlist-btn,
+.header__contact {
+  display: none;
+}
+
+.header-wishlist-btn {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+}
+
+.header-wishlist-btn__icon {
+  transition: transform 0.25s ease, stroke 0.25s ease, fill 0.25s ease;
+}
+
+.header-wishlist-btn__badge {
+  position: absolute;
+  inset-block-start: -0.35rem;
+  inset-inline-end: -0.35rem;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: 0.25rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45);
+}
+
+.header__contact,
+.header__contact-link {
+  white-space: nowrap;
+}
+
+.header__contact-link {
+  width: 100%;
+}
+
+.mobile-menu__wishlist {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-menu__badge {
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: 0.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 /* Enhanced buttons */
@@ -487,13 +627,15 @@ body.light-mode .brand__logo {
 .mobile-menu {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0 1rem;
   margin: 0 1rem;
   border-radius: 0 0 20px 20px;
   transform-origin: top;
-  height: 0;
+  max-height: 0;
+  opacity: 0;
   overflow: hidden;
+  pointer-events: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
@@ -502,7 +644,10 @@ body.light-mode .brand__logo {
 }
 
 .mobile-menu.is-open {
-  height: 220px;
+  max-height: 28rem;
+  opacity: 1;
+  padding: 1rem;
+  pointer-events: auto;
 }
 
 /* Enhanced hero section */
@@ -697,7 +842,7 @@ body.light-mode .brand__logo {
 }
 
 /* Header wishlist button hover */
-.header-wishlist-btn:hover svg {
+.header-wishlist-btn:hover .header-wishlist-btn__icon {
   transform: scale(1.15);
   stroke: #ef4444;
 }
@@ -2485,6 +2630,11 @@ html[dir="ltr"] .theme-toggle {
     display: flex;
   }
 
+  .header__wishlist-btn,
+  .header__contact {
+    display: inline-flex;
+  }
+
   .hamburger,
   .mobile-menu {
     display: none;
@@ -2529,6 +2679,16 @@ html[dir="ltr"] .theme-toggle {
   .category-title {
     font-size: 1.3rem;
     margin: 2rem 0 1rem 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .nav {
+    justify-content: space-between;
+  }
+
+  .header__brand {
+    flex: 1 1 auto;
   }
 }
 
@@ -3095,17 +3255,6 @@ body.light-mode .about-page .timeline-year {
 }
 
 /* Mobile styles moved to mobile-fixes.css for better organization */
-
-/* ============================================= */
-/* Russian Language Specific Fixes              */
-/* ============================================= */
-html[lang="ru"] .nav .menu {
-  margin-left: 18rem !important;
-}
-
-html[lang="ru"] .site-header .menu {
-  margin-left: 18rem !important;
-}
 
 /* ====================================
    News Section & News Page

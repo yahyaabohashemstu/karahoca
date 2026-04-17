@@ -14,31 +14,8 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp">
 
-  <!-- Back-to-top button styles -->
-  <style>
-    .back-to-top {
-      position: fixed;
-      bottom: 5rem;
-      inset-inline-end: 1.5rem;
-      z-index: 999;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #4f6ef7, #6b84ff);
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 16px rgba(79, 110, 247, 0.45);
-      transition: opacity 0.25s, transform 0.25s;
-      opacity: 0.92;
-    }
-    .back-to-top:hover { opacity: 1; transform: translateY(-3px); }
-    .back-to-top:active { transform: scale(0.93); }
-  </style>
+  <!-- Back-to-top + route-fallback styles live in src/styles/main.css so we
+       can serve a strict CSP (no inline <style> tags). -->
 
   <!-- Hotjar Analytics — set VITE_HOTJAR_ID in your .env to activate -->
   <!-- To enable: sign up at https://www.hotjar.com (free plan available),

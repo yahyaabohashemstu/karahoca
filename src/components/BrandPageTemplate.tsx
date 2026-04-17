@@ -170,6 +170,11 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                       src={heroImage}
                       fallbackSrc={heroImageFallback}
                       alt={heroImageAlt}
+                      width={800}
+                      height={800}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                     />
                   </div>
                 </div>
@@ -204,7 +209,14 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
               <div className="about-media glass-media">
                 <div className="animated-blob blob"></div>
                 <div className="animated-blob blob--alt"></div>
-                <img src="/KARAHOCA-1-newPhoto.webp" alt={`${t('brandPage.productsAlt')} ${brandNameArabic}`} />
+                <img
+                  src="/KARAHOCA-1-newPhoto.webp"
+                  alt={`${t('brandPage.productsAlt')} ${brandNameArabic}`}
+                  width={900}
+                  height={600}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -271,6 +283,9 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                           alt={product.alt}
                           className="product-mini-image"
                           loading="lazy"
+                          decoding="async"
+                          width={320}
+                          height={320}
                           style={product.imageScale ? { transform: `translateX(-50%) scale(${product.imageScale / 0.85})` } : undefined}
                         />
                         <div className="product-mini-info">
@@ -354,6 +369,10 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                     fallbackSrc={allPopupImages[galleryIndex]}
                     alt={selectedProduct.alt}
                     className="image-popup-img"
+                    width={900}
+                    height={900}
+                    loading="eager"
+                    decoding="async"
                     key={allPopupImages[galleryIndex]}
                   />
                 </div>
@@ -379,6 +398,10 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
                             src={toWebp(img)}
                             fallbackSrc={img}
                             alt={`${selectedProduct.alt} ${idx + 1}`}
+                            width={96}
+                            height={96}
+                            loading="lazy"
+                            decoding="async"
                           />
                         </button>
                       ))}

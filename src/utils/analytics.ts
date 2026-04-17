@@ -1,5 +1,5 @@
 import ReactGA from 'react-ga4';
-import { getCookieConsent } from '../components/CookieConsent';
+import { getCookieConsent } from './cookieConsent';
 
 /**
  * Core event emitter — respects cookie consent.

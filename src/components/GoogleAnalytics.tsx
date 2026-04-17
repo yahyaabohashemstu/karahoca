@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import ReactGA from 'react-ga4';
-import { getCookieConsent } from './CookieConsent';
+import { COOKIE_CONSENT_EVENT, getCookieConsent } from '../utils/cookieConsent';
 
 const GoogleAnalytics: React.FC = () => {
   const location = useLocation();
@@ -27,7 +27,6 @@ const GoogleAnalytics: React.FC = () => {
   // Initialize on mount if consent was already given in a previous session
   useEffect(() => {
     tryInit();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for consent being granted in this session
@@ -35,9 +34,8 @@ const GoogleAnalytics: React.FC = () => {
     const handler = (e: Event) => {
       if ((e as CustomEvent<string>).detail === 'all') tryInit();
     };
-    window.addEventListener('karahoca-cookie-consent', handler);
-    return () => window.removeEventListener('karahoca-cookie-consent', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    window.addEventListener(COOKIE_CONSENT_EVENT, handler);
+    return () => window.removeEventListener(COOKIE_CONSENT_EVENT, handler);
   }, []);
 
   // Send page-view on each navigation (only when initialized)

@@ -7,7 +7,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resend } from 'resend';
 
-import { getDb, logAudit } from '../db.mjs';
+import { generateOpaqueSubscriberKey, getDb, logAudit } from '../db.mjs';
+import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
+import { dequeueQueueItem, enqueueQueueItem } from '../redisClient.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +35,7 @@ const IMAGE_CONTENT_TYPES = {
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
 };
+const CAMPAIGN_DISPATCH_QUEUE = 'queue:campaign_dispatch';
 
 const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(value);
 
@@ -143,8 +146,23 @@ const escapeHtmlAttribute = (value = '') =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+const ensureSubscriberUnsubscribeKey = (db, email, currentKey = '') => {
+  const normalizedKey = typeof currentKey === 'string' ? currentKey.trim() : '';
+  if (normalizedKey) {
+    return normalizedKey;
+  }
+
+  let nextKey = generateOpaqueSubscriberKey();
+  while (db.prepare('SELECT 1 FROM newsletter_subscribers WHERE unsubscribe_key = ? AND email != ?').get(nextKey, email)) {
+    nextKey = generateOpaqueSubscriberKey();
+  }
+
+  db.prepare('UPDATE newsletter_subscribers SET unsubscribe_key = ? WHERE email = ?').run(nextKey, email);
+  return nextKey;
+};
+
 // ── HTML email template ───────────────────────────────────────────────────────
-const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, requestHostOrigin = '' }) => {
+const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageUrl, requestHostOrigin = '' }) => {
   const isRtl = lang === 'ar';
   const dir   = isRtl ? 'rtl' : 'ltr';
   const font  = isRtl
@@ -176,7 +194,6 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, reque
       </td></tr>`
     : '';
 
-  const unsub = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(email)}&lang=${lang}`;
   const apiBaseUrl = trimTrailingSlash(API_PUBLIC_URL || requestHostOrigin || SITE_URL);
   const pixel = apiBaseUrl ? `${apiBaseUrl}/api/email/open?id=${sendId}` : '';
   // Wrap the main CTA link with click tracking redirect
@@ -234,7 +251,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, email, imageUrl, reque
               📞 <a href="tel:+905305914990" style="color:#4f6ef7;text-decoration:none">+90 530 591 4990</a>
             </p>
             <p style="margin:0">
-              <a href="${unsub}" style="color:#bbb;font-size:11px">
+              <a href="${unsubscribeUrl}" style="color:#bbb;font-size:11px">
                 ${isRtl ? 'إلغاء الاشتراك' : lang === 'tr' ? 'Aboneliği iptal et' : lang === 'ru' ? 'Отписаться' : 'Unsubscribe'}
               </a>
             </p>
@@ -308,12 +325,12 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
 
   // Atomically claim this campaign to prevent duplicate sends from the scheduler
   const claimed = db.prepare(
-    "UPDATE email_campaigns SET status='sending' WHERE id=? AND status IN ('draft','scheduled')"
+    "UPDATE email_campaigns SET status='sending', updated_at=datetime('now') WHERE id=? AND status IN ('draft','scheduled','queued')"
   ).run(campaignId);
   if (claimed.changes === 0) throw new Error('Campaign could not be claimed for sending');
 
   let subscribers = db.prepare(
-    "SELECT email FROM newsletter_subscribers WHERE active=1"
+    "SELECT email, unsubscribe_key FROM newsletter_subscribers WHERE active=1"
   ).all();
 
   if (excludedEmails.size > 0) {
@@ -334,8 +351,9 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   let sentB = 0;
 
   for (let i = 0; i < subscribers.length; i++) {
-    const { email } = subscribers[i];
+    const { email, unsubscribe_key: unsubscribeKey } = subscribers[i];
     const lang = 'ar'; // default — future: store subscriber preferred language
+    const subscriberKey = ensureSubscriberUnsubscribeKey(db, email, unsubscribeKey);
 
     // Assign A/B variant: alternate evenly
     const variant = (hasAbTest && i % 2 === 1) ? 'b' : 'a';
@@ -357,7 +375,11 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
         body,
         lang,
         sendId,
-        email,
+        unsubscribeUrl: buildUnsubscribeUrl({
+          siteUrl: SITE_URL,
+          subscriberKey,
+          lang,
+        }),
         imageUrl: campaign.image_url,
         requestHostOrigin,
       });
@@ -375,11 +397,113 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
     }
   }
 
+  if (sent === 0 && errors.length > 0) {
+    db.prepare(
+      "UPDATE email_campaigns SET status='draft', updated_at=datetime('now') WHERE id=?"
+    ).run(campaignId);
+    return { sent, sentA, sentB, errors };
+  }
+
   db.prepare(
-    "UPDATE email_campaigns SET status='sent', sent_at=datetime('now'), recipient_count=? WHERE id=?"
+    "UPDATE email_campaigns SET status='sent', sent_at=datetime('now'), recipient_count=?, updated_at=datetime('now') WHERE id=?"
   ).run(sent, campaignId);
 
   return { sent, sentA, sentB, errors };
+};
+
+export const queueCampaignDispatch = async (campaignId, options = {}) => {
+  const db = getDb();
+  const campaign = db.prepare('SELECT id, title, status FROM email_campaigns WHERE id=?').get(campaignId);
+  if (!campaign) throw new Error('Campaign not found');
+  if (campaign.status === 'sent') throw new Error('Campaign already sent');
+  if (campaign.status === 'sending') throw new Error('Campaign is already being dispatched');
+  if (campaign.status === 'queued') {
+    return { queued: true, alreadyQueued: true };
+  }
+
+  const nextStatus = campaign.status === 'scheduled' ? 'scheduled' : 'draft';
+  const queued = db.prepare(`
+    UPDATE email_campaigns
+    SET status='queued', updated_at=datetime('now')
+    WHERE id=? AND status IN ('draft','scheduled')
+  `).run(campaignId);
+
+  if (queued.changes === 0) {
+    throw new Error('Campaign could not be queued for dispatch');
+  }
+
+  await enqueueQueueItem(CAMPAIGN_DISPATCH_QUEUE, JSON.stringify({
+    campaignId,
+    requestHostOrigin: typeof options.requestHostOrigin === 'string' ? options.requestHostOrigin : '',
+    excludedEmails: Array.isArray(options.excludedEmails) ? options.excludedEmails : [],
+    fallbackStatus: nextStatus,
+  }));
+
+  return { queued: true, alreadyQueued: false };
+};
+
+let isProcessingCampaignQueue = false;
+
+export const processQueuedCampaignDispatches = async () => {
+  if (isProcessingCampaignQueue) {
+    return;
+  }
+
+  isProcessingCampaignQueue = true;
+
+  try {
+    while (true) {
+      const rawJob = await dequeueQueueItem(CAMPAIGN_DISPATCH_QUEUE);
+      if (!rawJob) {
+        break;
+      }
+
+      let job;
+      try {
+        job = JSON.parse(rawJob);
+      } catch {
+        continue;
+      }
+
+      try {
+        await dispatchCampaign(job.campaignId, {
+          requestHostOrigin: job.requestHostOrigin,
+          excludedEmails: Array.isArray(job.excludedEmails) ? job.excludedEmails : [],
+        });
+      } catch (error) {
+        const fallbackStatus = job?.fallbackStatus === 'scheduled' ? 'scheduled' : 'draft';
+        try {
+          getDb().prepare(`
+            UPDATE email_campaigns
+            SET status=?, updated_at=datetime('now')
+            WHERE id=? AND status='queued'
+          `).run(fallbackStatus, job.campaignId);
+        } catch {
+          // Best-effort status recovery only.
+        }
+        console.error(`[campaign-queue] Campaign #${job?.campaignId ?? 'unknown'} failed:`, error?.message || error);
+      }
+    }
+  } finally {
+    isProcessingCampaignQueue = false;
+  }
+};
+
+export const recoverQueuedCampaignDispatches = async () => {
+  const queuedCampaigns = getDb().prepare(`
+    SELECT id
+    FROM email_campaigns
+    WHERE status = 'queued'
+  `).all();
+
+  for (const campaign of queuedCampaigns) {
+    await enqueueQueueItem(CAMPAIGN_DISPATCH_QUEUE, JSON.stringify({
+      campaignId: campaign.id,
+      requestHostOrigin: '',
+      excludedEmails: [],
+      fallbackStatus: 'draft',
+    }));
+  }
 };
 
 // ── Click tracking redirect ───────────────────────────────────────────────────
@@ -463,12 +587,19 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   if (sendMatch && req.method === 'POST') {
     const id = parseInt(sendMatch[1], 10);
     const excludedEmails = Array.isArray(body?.excludedEmails) ? body.excludedEmails : [];
-    const result = await dispatchCampaign(id, {
+    const result = await queueCampaignDispatch(id, {
       requestHostOrigin: getRequestHostOrigin(req),
       excludedEmails,
     });
     const camp = db.prepare('SELECT title FROM email_campaigns WHERE id=?').get(id);
-    logAudit({ action: 'SEND', entityType: 'campaign', entityId: id, entityName: camp?.title, adminUser, details: `Sent to ${result.sent} recipients` });
+    logAudit({
+      action: 'QUEUE',
+      entityType: 'campaign',
+      entityId: id,
+      entityName: camp?.title,
+      adminUser,
+      details: result.alreadyQueued ? 'Campaign already queued for delivery' : 'Queued campaign for background delivery',
+    });
     sendJson(res, 200, { success: true, ...result }, origin);
     return;
   }

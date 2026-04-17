@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import 'modern-normalize/modern-normalize.css'
 import './index.css'
 import './styles/mobile-fixes.css'
@@ -7,8 +7,19 @@ import './styles/mobile.css'
 import './i18n'
 import App from './App.tsx'
 
-createRoot(document.getElementById('root')!).render(
+const rootNode = document.getElementById('root')!;
+const tree = (
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+  </StrictMode>
+);
+
+// Auto-detect prerendered content: if the server (or our build-time prerender
+// script) baked content into #root, we HYDRATE on top of it. Otherwise —
+// plain CSR boot. This lets the same bundle work for prerendered and
+// non-prerendered routes in the same deploy.
+if (rootNode.hasChildNodes()) {
+  hydrateRoot(rootNode, tree);
+} else {
+  createRoot(rootNode).render(tree);
+}

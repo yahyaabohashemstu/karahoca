@@ -5,10 +5,10 @@ import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: '#f59e0b', scheduled: '#4f6ef7', sent: '#22c55e',
+  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sent: '#22c55e',
 };
 const STATUS_ICON: Record<string, string> = {
-  draft: '✏️', scheduled: '🕐', sent: '✅',
+  draft: '✏️', scheduled: '🕐', queued: '⏳', sent: '✅',
 };
 const TPL_LABEL: Record<string, string> = {
   custom: 'Custom', new_product: '🧴 New Product', offer: '🏷️ Special Offer', news: '📰 Company News',
@@ -26,16 +26,14 @@ export const AdminCampaigns: React.FC = () => {
   };
 
   const handleSend = async (id: number) => {
-    if (!confirm('Send this campaign to ALL active subscribers now?')) return;
+    if (!confirm('Queue this campaign for immediate delivery to ALL active subscribers?')) return;
     setSending(id); setMsg('');
     try {
       const res = await adminApi.sendCampaign(id);
-      if (res.sent === 0 && res.errors?.length) {
-        setMsg(`❌ Send failed: ${res.errors[0]?.error || 'Unknown error'}`);
-      } else if (res.sent === 0) {
-        setMsg('⚠️ No subscribers to send to, or RESEND_API_KEY not configured in server .env');
+      if (res.alreadyQueued) {
+        setMsg('⚠️ Campaign is already queued for background delivery.');
       } else {
-        setMsg(`✅ Sent to ${res.sent} subscribers!${res.errors?.length ? ` (${res.errors.length} failed)` : ''}`);
+        setMsg('✅ Campaign queued for background delivery.');
       }
       reload();
     } catch (e: unknown) {
@@ -74,6 +72,7 @@ export const AdminCampaigns: React.FC = () => {
                 { label: 'Total',     value: data.campaigns.length,                              color: 'var(--adm-accent)' },
                 { label: 'Drafts',    value: data.campaigns.filter(c => c.status === 'draft').length,    color: '#f59e0b' },
                 { label: 'Scheduled', value: data.campaigns.filter(c => c.status === 'scheduled').length, color: '#4f6ef7' },
+                { label: 'Queued',    value: data.campaigns.filter(c => c.status === 'queued').length,    color: '#0ea5e9' },
                 { label: 'Sent',      value: data.campaigns.filter(c => c.status === 'sent').length,     color: '#22c55e' },
                 { label: 'Opens',     value: data.campaigns.reduce((s, c) => s + c.open_count, 0),       color: '#8b5cf6' },
                 { label: 'Clicks',    value: data.campaigns.reduce((s, c) => s + (c.click_count ?? 0), 0), color: '#f59e0b' },
@@ -120,6 +119,9 @@ export const AdminCampaigns: React.FC = () => {
                         {c.scheduled_at && c.status === 'scheduled' && (
                           <span style={{ color: '#4f6ef7' }}>Scheduled: {new Date(c.scheduled_at).toLocaleString()}</span>
                         )}
+                        {c.status === 'queued' && (
+                          <span style={{ color: '#0ea5e9' }}>Queued for background delivery</span>
+                        )}
                         {c.status === 'sent' && (
                           <>
                             <span>👥 {c.recipient_count} recipients</span>
@@ -150,13 +152,13 @@ export const AdminCampaigns: React.FC = () => {
                           📊 Stats
                         </Link>
                       )}
-                      {c.status !== 'sent' && (
+                      {(c.status === 'draft' || c.status === 'scheduled') && (
                         <button
                           className="adm-btn adm-btn-sm adm-btn-primary"
                           onClick={() => handleSend(c.id)}
                           disabled={sending === c.id}
                         >
-                          {sending === c.id ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Sending…</> : '🚀 Send Now'}
+                          {sending === c.id ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Queueing…</> : '🚀 Queue Send'}
                         </button>
                       )}
                       <Link to={`/admin/campaigns/${c.id}`} className="adm-btn adm-btn-sm">✏️ Edit</Link>

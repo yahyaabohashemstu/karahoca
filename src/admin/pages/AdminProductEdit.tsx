@@ -16,6 +16,22 @@ const EMPTY: Partial<Product> = {
   image: '', gallery: '', weight: '', weight_count_table: '', image_scale: 0.85, category_id: '', display_order: 0, active: 1,
 };
 
+const hasWeightCountRows = (rawTable: string | null | undefined) => {
+  if (!rawTable) {
+    return false;
+  }
+
+  try {
+    const parsedTable = JSON.parse(rawTable);
+    return Array.isArray(parsedTable) && parsedTable.length > 0;
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Unable to parse product weight-count table.', error);
+    }
+    return false;
+  }
+};
+
 export const AdminProductEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
@@ -38,9 +54,7 @@ export const AdminProductEdit: React.FC = () => {
     if (!isNew) {
       adminApi.getProduct(id!).then(r => {
         setForm(r.product);
-        if (r.product.weight_count_table) {
-          try { if (JSON.parse(r.product.weight_count_table).length > 0) setShowWCTable(true); } catch {}
-        }
+        setShowWCTable(hasWeightCountRows(r.product.weight_count_table));
         setLoading(false);
       }).catch(e => {
         setError(e.message);
