@@ -1,5 +1,18 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import '../styles/flipbook.css';
+
+// Reference-safe comparator for the `imageUrls?: string[]` prop. Pages are
+// stored as a flat string array in brandCatalog — a new literal with the
+// same 30-ish slugs would otherwise trigger a full PDF viewer re-render
+// and reset the user's zoom/pan/spread state. Element-wise compare keeps
+// that state stable while still catching a genuine catalog swap.
+const imageUrlsEqual = (a?: readonly string[], b?: readonly string[]) => {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
 
 // ── Spread model ─────────────────────────────────────────────────────────────
 // spread 0 → left = null (empty/brand),  right = pages[0]  (cover)
@@ -573,4 +586,22 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   );
 };
 
-export default FlipBook;
+/**
+ * Custom `areEqual` comparator for React.memo.
+ *
+ * Skips re-render when the parent re-renders with the SAME viewer content.
+ * Scalar props use Object.is; `imageUrls` uses element-wise compare.
+ * Critical for preserving the user's zoom/pan/spread state across parent
+ * re-renders (language toggles, wishlist changes, etc.).
+ */
+const flipBookPropsAreEqual = (prev: FlipBookProps, next: FlipBookProps): boolean => {
+  if (prev.pdfUrl !== next.pdfUrl) return false;
+  if (prev.downloadUrl !== next.downloadUrl) return false;
+  if (prev.brandName !== next.brandName) return false;
+  return imageUrlsEqual(prev.imageUrls, next.imageUrls);
+};
+
+const MemoizedFlipBook = memo(FlipBook, flipBookPropsAreEqual);
+MemoizedFlipBook.displayName = 'FlipBook';
+
+export default MemoizedFlipBook;

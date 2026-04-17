@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Header from '../components/Header';
@@ -7,6 +7,37 @@ import FlipBook from './FlipBook';
 import ImageWithFallback from './ImageWithFallback';
 import { useWishlist } from '../hooks/useWishlist';
 import { toWebp } from '../utils/image';
+
+// ─── Structural equality helpers for the React.memo comparator ────────────
+// The goal of the comparator below is to skip re-renders when a parent
+// re-renders and passes FRESHLY-CONSTRUCTED arrays/objects with the same
+// content as before (common source of wasted renders in React).
+//
+// We avoid a single catch-all deep-equal to keep the comparator cheap:
+//   - scalars are handled via Object.is,
+//   - flat string arrays (badges / catalogImages) use per-element compare,
+//   - nested structures (aboutSections, categories) use JSON.stringify — a
+//     reliable hash for pure data with no functions/dates/undefined fields.
+//     The categories tree is ≤ a few dozen products per brand, so the
+//     stringify cost is negligible compared to re-rendering the entire
+//     subtree's DOM. If the tree ever grows to thousands of rows, swap
+//     this for a bespoke walker.
+const arrayOfPrimitivesEqual = (a?: readonly unknown[], b?: readonly unknown[]) => {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
+const deepValueEqual = (a: unknown, b: unknown) => {
+  if (a === b) return true;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+};
 
 /** Build a WhatsApp share URL for the given product.
  *  Appends the product id as a URL hash so the recipient lands directly
@@ -517,4 +548,52 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
   );
 };
 
-export default BrandPageTemplate;
+/**
+ * Custom `areEqual` comparator for React.memo.
+ *
+ * Ignores REFERENCE changes on array / object props when their CONTENT is
+ * unchanged — the common case when a parent re-renders (for any reason,
+ * e.g. language switch bubbling up) while passing the same static catalog
+ * data. Catches any genuine value change so the product grid updates when
+ * the admin edits it.
+ *
+ * Ordering: cheapest checks first (string identity), then flat arrays,
+ * then the nested structures. Returns `true` = skip render.
+ */
+const propsAreEqual = (prev: BrandPageProps, next: BrandPageProps): boolean => {
+  // Strings / scalars — Object.is (null-safe for undefined vs null).
+  if (
+    prev.brandName !== next.brandName ||
+    prev.brandNameArabic !== next.brandNameArabic ||
+    prev.heroTitle !== next.heroTitle ||
+    prev.heroDescription !== next.heroDescription ||
+    prev.heroImage !== next.heroImage ||
+    prev.heroImageFallback !== next.heroImageFallback ||
+    prev.heroImageAlt !== next.heroImageAlt ||
+    prev.aboutTitle !== next.aboutTitle ||
+    prev.aboutSubtitle !== next.aboutSubtitle ||
+    prev.aboutMainHeading !== next.aboutMainHeading ||
+    prev.productsTitle !== next.productsTitle ||
+    prev.productsSubtitle !== next.productsSubtitle ||
+    prev.pageClass !== next.pageClass ||
+    prev.aboutId !== next.aboutId ||
+    prev.pdfUrl !== next.pdfUrl
+  ) {
+    return false;
+  }
+
+  // Flat string arrays — element-wise compare avoids reference-only diffs.
+  if (!arrayOfPrimitivesEqual(prev.badges, next.badges)) return false;
+  if (!arrayOfPrimitivesEqual(prev.catalogImages, next.catalogImages)) return false;
+
+  // Nested objects — structural compare via JSON serialization.
+  if (!deepValueEqual(prev.aboutSections, next.aboutSections)) return false;
+  if (!deepValueEqual(prev.categories, next.categories)) return false;
+
+  return true;
+};
+
+const MemoizedBrandPageTemplate = memo(BrandPageTemplate, propsAreEqual);
+MemoizedBrandPageTemplate.displayName = 'BrandPageTemplate';
+
+export default MemoizedBrandPageTemplate;

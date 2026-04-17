@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import type { KeyboardEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -867,4 +867,20 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
   );
 };
 
-export default AIChatWidget;
+/**
+ * React.memo with the DEFAULT shallow comparator.
+ *
+ * The sole prop is `initiallyOpen?: boolean` — Object.is handles that
+ * correctly, so a custom comparator would only add cost without value.
+ *
+ * What this buys us: when a parent re-renders for unrelated reasons
+ * (route navigation, language switch, wishlist mutation in a sibling),
+ * the widget's 800-line render function is skipped. All internal state
+ * (`messages`, `isOpen`, `isTyping`, input draft) lives in `useState` —
+ * React preserves it across skipped renders, so the user's in-flight
+ * chat survives parent churn unchanged.
+ */
+const MemoizedAIChatWidget = memo(AIChatWidget);
+MemoizedAIChatWidget.displayName = 'AIChatWidget';
+
+export default MemoizedAIChatWidget;
