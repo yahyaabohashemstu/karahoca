@@ -361,12 +361,31 @@ const migrateInitialData = () => {
   try { db.exec("ALTER TABLE products ADD COLUMN image_scale REAL DEFAULT 0.85"); } catch { /* already exists */ }
 
   // ── Performance indexes ─────────────────────────────────────────────────
+  // Each wrapped in try/catch so an index that fails on a corrupt row (very
+  // rare) doesn't prevent the server from booting — we'd rather run slow
+  // than not at all.
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_newsletter_email ON newsletter_subscribers(email)"); } catch { /* */ }
   try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_newsletter_unsubscribe_key ON newsletter_subscribers(unsubscribe_key)"); } catch { /* */ }
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_products_active ON products(active)"); } catch { /* */ }
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_products_brand_active ON products(brand, active)"); } catch { /* */ }
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_news_active ON news(active)"); } catch { /* */ }
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_campaigns_status ON email_campaigns(status)"); } catch { /* */ }
+
+  // ── PHASE 6.2 indexes (read-heavy hot paths) ────────────────────────────
+  // Composite (active, status) on news: hit on every SPA fallback render
+  // (static-spa injectMeta looks up `WHERE slug=? AND active=1`), every
+  // sitemap generation (`WHERE active=1 AND status='published'`), and
+  // every public /api/news call. With active FIRST, SQLite can short-circuit
+  // inactive rows before status comparison — the common case where most
+  // news rows ARE active but only a subset are `published`.
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_news_active_status ON news(active, status)"); } catch { /* */ }
+
+  // email_sends.email: needed for campaign dedup ("did this address already
+  // receive this campaign?") and future bounce/complaint webhook handling
+  // (the webhook posts the email, we look up every send to mark deliverable).
+  // Without this, bounce handling at scale would full-scan email_sends on
+  // every webhook call.
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_email_sends_email ON email_sends(email)"); } catch { /* */ }
 
   migrateDioxPowderProducts();
   migrateDioxPowderGalleryFix();
