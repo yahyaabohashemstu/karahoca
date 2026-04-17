@@ -83,7 +83,11 @@ export const BrandPageSchema: React.FC<ProductSchemaProps> = ({ brand, descripti
     name: brand,
     description,
     logo: image ? `${SITE_URL}${image}` : LOGO_URL,
-    url: `${SITE_URL}/${brand.toLowerCase()}`,
+    // Brand pages now live at `/<lang>/<brand>`. We point at the x-default
+    // (Arabic) variant here because schema.org URLs must be absolute and
+    // language-specific — the per-language <link rel="alternate"> is
+    // emitted separately by <SEO />.
+    url: `${SITE_URL}/ar/${brand.toLowerCase()}`,
     manufacturer: {
       '@type': 'Organization',
       name: 'KARAHOCA',
@@ -124,7 +128,7 @@ export const ArticleSchema: React.FC<ArticleSchemaProps> = ({
       logo: { '@type': 'ImageObject', url: LOGO_URL },
     },
     author: { '@type': 'Organization', name: 'KARAHOCA' },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/news` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/${lang}/news` },
   };
   return (
     <Helmet>
@@ -161,7 +165,7 @@ export const AboutPageSchema: React.FC = () => {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
     name: 'About KARAHOCA',
-    url: `${SITE_URL}/about`,
+    url: `${SITE_URL}/ar/about`,
     description: 'KARAHOCA is a Turkish cleaning products manufacturer with 30+ years of experience, producing DIOX and AYLUX brands for 15+ countries.',
     inLanguage: ['ar', 'en', 'tr', 'ru'],
     mainEntity: {

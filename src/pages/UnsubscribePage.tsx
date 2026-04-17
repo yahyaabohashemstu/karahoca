@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { buildApiUrl } from '../utils/api';
 import SEO from '../components/SEO';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 type UnsubscribeStatus = 'loading' | 'success' | 'already' | 'invalid' | 'error';
 
@@ -10,6 +11,7 @@ const UnsubscribePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
   const { t } = useTranslation();
+  const { lp } = useLocalizedPath();
   const [status, setStatus] = useState<UnsubscribeStatus>('loading');
 
   useEffect(() => {
@@ -104,7 +106,7 @@ const UnsubscribePage: React.FC = () => {
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>{title[status]}</h1>
         <p style={{ opacity: 0.7, fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>{desc[status]}</p>
         <Link
-          to="/"
+          to={lp('/')}
           style={{
             display: 'inline-block',
             padding: '12px 32px',

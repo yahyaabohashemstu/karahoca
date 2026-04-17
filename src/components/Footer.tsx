@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackFormSubmit, trackNewsletterSubscription } from '../utils/analytics';
 import { buildApiUrl } from '../utils/api';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -14,15 +15,21 @@ const CURRENT_YEAR = new Date().getFullYear();
 const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const { lp } = useLocalizedPath();
   const [email, setEmail] = useState('');
   const [honeyValue, setHoneyValue] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
   const currentYear = CURRENT_YEAR;
-  const isHomePage = location.pathname === '/';
-  const brandsHref = isHomePage ? '#brands' : '/#brands';
-  const aboutHref = isHomePage ? '#about' : '/about';
-  const numbersHref = isHomePage ? '#numbers' : '/#numbers';
+
+  const homePath = lp('/');
+  const isHomePage = useMemo(
+    () => location.pathname.replace(/\/+$/, '') === homePath.replace(/\/+$/, ''),
+    [location.pathname, homePath],
+  );
+  const brandsHref = isHomePage ? '#brands' : `${homePath}#brands`;
+  const aboutHref = isHomePage ? '#about' : lp('/about');
+  const numbersHref = isHomePage ? '#numbers' : `${homePath}#numbers`;
   const contactAddress = t('footer.contact.address');
   const contactEmail = t('footer.contact.email');
   const contactPhone = t('footer.contact.phone');
@@ -135,9 +142,9 @@ const Footer: React.FC = () => {
 
         <nav className="footer__links" aria-label={t('footer.links.title')}>
           <strong>{t('footer.links.title')}</strong>
-          <Link to="/" className="footer-link">{t('footer.links.home')}</Link>
+          <Link to={lp('/')} className="footer-link">{t('footer.links.home')}</Link>
           <a href={brandsHref} className="footer-link">{t('footer.links.brands')}</a>
-          <Link to="/news" className="footer-link">{t('footer.links.news')}</Link>
+          <Link to={lp('/news')} className="footer-link">{t('footer.links.news')}</Link>
           <a href={aboutHref} className="footer-link">{t('footer.links.about')}</a>
           <a href={numbersHref} className="footer-link">{t('footer.links.numbers')}</a>
         </nav>
@@ -225,8 +232,8 @@ const Footer: React.FC = () => {
       <div className="container footnote" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.5rem 1.5rem' }}>
         <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
         <nav style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
-          <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.privacy', 'Privacy Policy')}</Link>
-          <Link to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
+          <Link to={lp('/privacy')} style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.privacy', 'Privacy Policy')}</Link>
+          <Link to={lp('/terms')} style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
         </nav>
       </div>
     </footer>

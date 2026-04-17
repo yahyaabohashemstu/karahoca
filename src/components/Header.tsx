@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useWishlist } from '../hooks/useWishlist';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 interface HeaderProps {
   className?: string;
@@ -11,15 +12,26 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const { t } = useTranslation();
   const location = useLocation();
+  const { lp } = useLocalizedPath();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { items } = useWishlist();
   const wishCount = items.length;
-  const isHomePage = location.pathname === '/';
-  const brandsHref = isHomePage ? '#brands' : '/#brands';
-  const newsHref = isHomePage ? '#news' : '/#news';
-  const numbersHref = isHomePage ? '#numbers' : '/#numbers';
-  const aboutHref = isHomePage ? '#about' : '/about';
-  const contactHref = isHomePage ? '#contact' : '/#contact';
+
+  // Home for the current language is `/<lang>/`. Compare normalised forms
+  // so `/ar` and `/ar/` both count as "home" for anchor-link targeting.
+  const homePath = lp('/');
+  const isHomePage = useMemo(() => {
+    const current = location.pathname.replace(/\/+$/, '');
+    const home = homePath.replace(/\/+$/, '');
+    return current === home;
+  }, [location.pathname, homePath]);
+
+  const hashLink = (hash: string) => (isHomePage ? hash : `${homePath}${hash}`);
+  const brandsHref = hashLink('#brands');
+  const newsHref = hashLink('#news');
+  const numbersHref = hashLink('#numbers');
+  const aboutHref = isHomePage ? '#about' : lp('/about');
+  const contactHref = hashLink('#contact');
   const wishlistLabel = t('nav.wishlist', { defaultValue: 'Wishlist' });
 
   useEffect(() => {
@@ -37,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   return (
     <header className={`site-header glass-panel ${className}`}>
       <div className="container nav">
-        <Link to="/" className="brand header__brand">
+        <Link to={lp('/')} className="brand header__brand">
           <img
             src="/karahoca-logo-1-Photoroom.webp"
             alt="KARAHOCA"
@@ -54,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
         <div className="header__actions">
           <Link
-            to="/wishlist"
+            to={lp('/wishlist')}
             className="nav-link header-wishlist-btn"
             aria-label={wishlistLabel}
             title={wishlistLabel}
@@ -111,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         <a href={newsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.news')}</a>
         <a href={numbersHref} className="nav-link" onClick={closeMobileMenu}>{t('numbers.title')}</a>
         <a href={aboutHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.about')}</a>
-        <Link to="/wishlist" className="nav-link mobile-menu__wishlist" onClick={closeMobileMenu}>
+        <Link to={lp('/wishlist')} className="nav-link mobile-menu__wishlist" onClick={closeMobileMenu}>
           <span>{wishlistLabel}</span>
           {wishCount > 0 && (
             <span className="mobile-menu__badge">

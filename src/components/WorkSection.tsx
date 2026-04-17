@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 const WorkSection: React.FC = () => {
   const { t } = useTranslation();
-  
+  const { lp } = useLocalizedPath();
+
   return (
     <section id="work" className="section glass-section section--alt">
       <div className="section-divider"></div>
@@ -15,8 +17,8 @@ const WorkSection: React.FC = () => {
       </div>
       <div className="container work__grid">
         <Link 
-          className="card glass-card fx-up" 
-          to="/production" 
+          className="card glass-card fx-up"
+          to={lp('/production')}
           aria-label={t('work.production.aria')}
           style={{ display: 'block', textAlign: 'center' }}
         >
@@ -49,8 +51,8 @@ const WorkSection: React.FC = () => {
         </Link>
         
         <Link 
-          className="card glass-card fx-up" 
-          to="/dryer" 
+          className="card glass-card fx-up"
+          to={lp('/dryer')}
           aria-label={t('work.dryer.aria')}
           style={{ display: 'block', textAlign: 'center' }}
         >
@@ -83,8 +85,8 @@ const WorkSection: React.FC = () => {
         </Link>
 
         <Link 
-          className="card glass-card fx-up" 
-          to="/goal" 
+          className="card glass-card fx-up"
+          to={lp('/goal')}
           aria-label={t('work.goal.aria')}
           style={{ display: 'block', textAlign: 'center' }}
         >

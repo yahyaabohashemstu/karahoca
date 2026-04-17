@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from './ImageWithFallback';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 /* ─── Real partner logos ──────────────────────────────────────────────────── */
 const PARTNERS: { name: string; logo: string; fallbackLogo: string; featured?: boolean }[] = [
@@ -16,6 +17,7 @@ const PARTNERS: { name: string; logo: string; fallbackLogo: string; featured?: b
 
 const BrandsSection: React.FC = () => {
   const { t } = useTranslation();
+  const { lp } = useLocalizedPath();
 
   return (
     <section id="brands" className="section glass-section">
@@ -29,7 +31,7 @@ const BrandsSection: React.FC = () => {
 
       {/* ── Brand cards (DIOX + AYLUX) ───────────────────────────── */}
       <div className="container cards">
-        <Link className="card glass-card fx-up" to="/diox" aria-label="DIOX">
+        <Link className="card glass-card fx-up" to={lp('/diox')} aria-label="DIOX">
           <div className="card__media" style={{ '--card-accent': 'var(--blue)' } as React.CSSProperties}>
             <ImageWithFallback
               src="/Diox-logo.png.webp"
@@ -46,7 +48,7 @@ const BrandsSection: React.FC = () => {
           </div>
         </Link>
 
-        <Link className="card glass-card fx-up" to="/aylux" aria-label="AYLUX">
+        <Link className="card glass-card fx-up" to={lp('/aylux')} aria-label="AYLUX">
           <div className="card__media" style={{ '--card-accent': 'var(--orange)' } as React.CSSProperties}>
             <ImageWithFallback
               src="/Aylux-logo.png.webp"

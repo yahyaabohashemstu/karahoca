@@ -2,10 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 const NotFoundPage: React.FC = () => {
   const { i18n } = useTranslation();
   const lang = i18n.resolvedLanguage || i18n.language || 'ar';
+  const { lp } = useLocalizedPath();
 
   const messages: Record<string, { title: string; sub: string; btn: string }> = {
     ar: { title: 'الصفحة غير موجودة', sub: 'عذراً، لم نتمكن من إيجاد الصفحة التي تبحث عنها.', btn: 'العودة للرئيسية' },
@@ -36,7 +38,7 @@ const NotFoundPage: React.FC = () => {
       <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '1rem 0 0.5rem' }}>{m.title}</h1>
       <p style={{ fontSize: '1rem', color: 'var(--text-secondary, #999)', maxWidth: 420, margin: '0 auto 2rem' }}>{m.sub}</p>
       <Link
-        to="/"
+        to={lp('/')}
         style={{
           display: 'inline-block',
           padding: '0.75rem 2rem',

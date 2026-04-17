@@ -42,10 +42,18 @@ const distDir = path.join(projectRoot, 'dist');
 const distIndex = path.join(distDir, 'index.html');
 const dbPath = path.join(projectRoot, 'server', 'data', 'karahoca.db');
 
-const STATIC_ROUTES = ['/', '/diox', '/aylux', '/about', '/news', '/production', '/goal', '/dryer', '/privacy', '/terms'];
+// Language-agnostic slugs. Expanded into `/<lang><slug>` for every supported
+// language at prerender time so each language variant gets its own static
+// snapshot with correctly-baked <html lang="..."> and SEO tags.
+const STATIC_SLUGS = ['/', '/diox', '/aylux', '/about', '/news', '/production', '/goal', '/dryer', '/privacy', '/terms'];
+const SUPPORTED_LANGS = ['ar', 'en', 'tr', 'ru'];
+const DEFAULT_LANG = 'ar';
+
+const joinLang = (lang, slug) => (slug === '/' ? `/${lang}/` : `/${lang}${slug}`);
+
 const ROUTE_TIMEOUT_MS = 20_000;
 const NAV_TIMEOUT_MS = 15_000;
-const MAX_NEWS_ROUTES = 50; // prerender at most N latest articles to bound build time
+const MAX_NEWS_ROUTES = 50; // prerender at most N latest articles PER LANGUAGE to bound build time
 
 // ─── Preflight ──────────────────────────────────────────────────────────────
 if (process.env.SKIP_PRERENDER === '1') {
@@ -112,16 +120,22 @@ const snapshotScript = () => {
 };
 
 // ─── Write the prerendered HTML to the right dist/<route>/index.html ───────
+// Routes look like `/ar`, `/ar/`, `/en/diox`, `/ru/news/my-slug`, etc. The
+// bare `/` target still writes to dist/index.html so the SPA fallback for a
+// naked domain keeps working. The default-language root (`/ar/`) also
+// writes a COPY to dist/index.html so a user hitting the naked domain gets
+// meaningful HTML while the client redirects them to their preferred lang.
 const writeRouteHtml = async (routePath, html) => {
-  let outPath;
-  if (routePath === '/') {
-    outPath = distIndex;
-  } else {
-    const relative = routePath.replace(/^\/+/, '').replace(/\/+$/, '');
-    outPath = path.join(distDir, relative, 'index.html');
-  }
+  const relative = routePath.replace(/^\/+/, '').replace(/\/+$/, '');
+  const outPath = relative === '' ? distIndex : path.join(distDir, relative, 'index.html');
   await mkdir(path.dirname(outPath), { recursive: true });
   await writeFile(outPath, html, 'utf8');
+
+  // Mirror the default-language root to the dist root so a bare-domain
+  // request without JS still sees readable HTML.
+  if (routePath === `/${DEFAULT_LANG}/` || routePath === `/${DEFAULT_LANG}`) {
+    await writeFile(distIndex, html, 'utf8');
+  }
   return path.relative(projectRoot, outPath);
 };
 
@@ -166,10 +180,25 @@ const run = async () => {
   const originalShell = await readFile(distIndex, 'utf8');
   await copyFile(distIndex, path.join(distDir, 'index.original.html'));
 
-  const newsRoutes = await discoverNewsRoutes();
-  const allRoutes = [...STATIC_ROUTES, ...newsRoutes];
+  const newsSlugs = await discoverNewsRoutes(); // returns ['/news/slug-a', ...]
 
-  console.log(`[prerender] Target routes: ${allRoutes.length} (${STATIC_ROUTES.length} static + ${newsRoutes.length} news)`);
+  // Fan out every static slug and news slug across all supported languages.
+  // We DON'T prerender the naked root `/` — it's a client-side redirect to
+  // the preferred language and has no indexable content of its own.
+  const allRoutes = [];
+  for (const lang of SUPPORTED_LANGS) {
+    for (const slug of STATIC_SLUGS) {
+      allRoutes.push(joinLang(lang, slug));
+    }
+    for (const newsSlug of newsSlugs) {
+      allRoutes.push(joinLang(lang, newsSlug));
+    }
+  }
+
+  console.log(
+    `[prerender] Target routes: ${allRoutes.length} (${SUPPORTED_LANGS.length} langs × ` +
+    `${STATIC_SLUGS.length} static + ${newsSlugs.length} news)`,
+  );
 
   const { origin, close: closeServer } = await startPrerenderServer({
     rootDir: distDir,

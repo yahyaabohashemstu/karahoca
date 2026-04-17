@@ -1,9 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 const AboutSection: React.FC = () => {
   const { t } = useTranslation();
+  const { lp } = useLocalizedPath();
   return (
     <section id="about" className="section glass-section section--alt">
       <div className="section-divider"></div>
@@ -28,8 +30,8 @@ const AboutSection: React.FC = () => {
           }}>
             {t('about.shortDescription')}
           </p>
-          <Link 
-            to="/about" 
+          <Link
+            to={lp('/about')}
             className="btn btn--primary"
             style={{ 
               fontSize: '1.2em', 

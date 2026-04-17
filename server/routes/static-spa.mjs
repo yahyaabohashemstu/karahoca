@@ -106,13 +106,31 @@ const escAttr = (s) =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-const injectMeta = (html, routePath) => {
-  let meta = ROUTE_META[routePath];
+/**
+ * Strip a leading `/<lang>` prefix from a route path so the language-agnostic
+ * ROUTE_META table keeps matching after the Phase-1 URL restructure.
+ * Unknown / missing prefixes return the original path untouched.
+ */
+const SUPPORTED_LANG_SET = new Set(['ar', 'en', 'tr', 'ru']);
+const stripLangPrefix = (routePath) => {
+  const m = routePath.match(/^\/([a-z]{2})(\/.*|$)/i);
+  if (!m) return routePath;
+  const candidate = m[1].toLowerCase();
+  if (!SUPPORTED_LANG_SET.has(candidate)) return routePath;
+  return m[2] || '/';
+};
 
-  // Dynamic news article meta from database.
-  if (!meta && routePath.startsWith('/news/')) {
+const injectMeta = (html, routePath) => {
+  const bareRoute = stripLangPrefix(routePath);
+  let meta = ROUTE_META[bareRoute] || ROUTE_META[routePath];
+
+  // Dynamic news article meta from database. Check the lang-stripped path
+  // so /ar/news/slug and /news/slug both resolve.
+  const isNews = bareRoute.startsWith('/news/') || routePath.startsWith('/news/');
+  const newsPath = bareRoute.startsWith('/news/') ? bareRoute : routePath;
+  if (!meta && isNews) {
     try {
-      const slug = routePath.replace('/news/', '');
+      const slug = newsPath.replace('/news/', '');
       const db = getDb();
       const row = db
         .prepare(`SELECT title_en, excerpt_en, image FROM news WHERE slug=? AND active=1`)
@@ -134,8 +152,11 @@ const injectMeta = (html, routePath) => {
   const t = escAttr(meta.title);
   const d = escAttr(meta.description);
   const img = escAttr(`${siteUrl}${meta.image}`);
+  // Canonical uses the REAL request path (with lang prefix) so social
+  // shares and search results link back to the language variant the user
+  // actually loaded.
   const url = escAttr(`${siteUrl}${routePath}`);
-  const ogType = routePath.startsWith('/news/') ? 'article' : 'website';
+  const ogType = isNews ? 'article' : 'website';
 
   const jsonLd = JSON.stringify({
     '@context': 'https://schema.org',

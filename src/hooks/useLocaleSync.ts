@@ -1,68 +1,44 @@
 import { useEffect, startTransition } from 'react';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { normalizeLanguageCode, supportedLanguageCodes } from '../utils/language';
 
-const LOCALSTORAGE_KEY = 'i18nextLng';
-
 /**
- * Reconcile the active i18n language to the user's stored preference AFTER
- * React hydration completes.
+ * Reconcile the active i18n language to the `:lang` URL parameter.
  *
- * Why this exists: i18n is intentionally initialized from `<html lang="...">`
- * first (see `src/i18n.ts`) so the first client render matches the server-
- * rendered / prerendered HTML — this is what prevents hydration mismatches.
+ * Post Phase-1 refactor, the URL is the single source of truth for language.
+ * This hook runs inside `LocalizedShell` and fires whenever the validated
+ * `:lang` segment changes — e.g. the user clicks the language switcher,
+ * navigates between `/ar/...` and `/en/...`, or follows a deep link shared
+ * by another user in a different language.
  *
- * But the user's real preference lives in localStorage (or navigator). We
- * can only safely switch to it AFTER hydration, otherwise React would compare
- * "English text" to the prerendered "Arabic text" and scream.
+ * Why `startTransition`:
+ *   `i18n.changeLanguage()` fans out a re-render of every component using
+ *   `useTranslation()` — essentially the entire page. Marking the update
+ *   as a transition keeps the current render on screen at high priority
+ *   while the translated render is built at low priority, so the switch
+ *   feels smooth instead of stuttering a frame on slow devices.
  *
- * Why `startTransition` around the switch:
- * The language change fans out a re-render of every component using
- * `useTranslation()` — in this app that's essentially the entire tree.
- * Without a transition, React marks those updates as urgent and the main
- * thread is blocked long enough to drop frames on the first paint after
- * hydration (the "Arabic flash → English flicker" you see on returning
- * users whose stored preference differs from the prerendered default).
- *
- * `startTransition` tells React the switch is non-urgent: keep the
- * current (Arabic) render on screen while scheduling the new (English)
- * one at low priority. The user sees a smooth transition instead of a
- * stutter. When combined with React.memo on heavy components
- * (BrandPageTemplate, FlipBook, AIChatWidget) the total re-render cost
- * of the language switch drops dramatically.
+ * Why this hook is idempotent:
+ *   No-ops when the URL lang is unsupported (an outer redirect handles that)
+ *   and when i18n is already on the target language (avoids a re-render).
  */
 export const useLocaleSync = () => {
   const { i18n } = useTranslation();
+  const { lang: rawLang } = useParams<{ lang?: string }>();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    let desired: string | null = null;
-
-    try {
-      desired = window.localStorage.getItem(LOCALSTORAGE_KEY);
-    } catch {
-      // Safari private mode / strict storage policies — fall through to
-      // navigator.language so we still honour the user's browser locale.
-      desired = null;
+    if (!rawLang) return;
+    if (!(supportedLanguageCodes as readonly string[]).includes(rawLang.toLowerCase())) {
+      return;
     }
 
-    if (!desired && typeof navigator !== 'undefined') {
-      desired = navigator.language || null;
-    }
-
-    const normalized = normalizeLanguageCode(desired);
-    if (!supportedLanguageCodes.includes(normalized)) return;
-
+    const desired = normalizeLanguageCode(rawLang);
     const current = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-    if (current === normalized) return;
+    if (current === desired) return;
 
-    // `i18n.changeLanguage` is async but returns a Promise we don't need to
-    // await here — its INTERNAL state updates (the reason the whole tree
-    // re-renders) fire synchronously inside the function call. Those state
-    // updates are what `startTransition` captures and marks as non-urgent.
     startTransition(() => {
-      void i18n.changeLanguage(normalized);
+      void i18n.changeLanguage(desired);
     });
-  }, [i18n]);
+  }, [rawLang, i18n]);
 };

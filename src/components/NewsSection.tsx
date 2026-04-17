@@ -5,6 +5,7 @@ import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
 import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
 const AUTO_SCROLL_SPEED_PX_PER_MS = 0.03;
@@ -30,6 +31,7 @@ const ARROW_LABELS = {
 
 const NewsSection: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { lp } = useLocalizedPath();
   const [activeNews, setActiveNews] = useState<LocalizedNewsItem | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -207,7 +209,7 @@ const NewsSection: React.FC = () => {
           <p className="section-subtitle">{t('newsPage.sectionSubtitle')}</p>
         </div>
 
-        <Link to="/news" className="btn btn--ghost news-section__all">
+        <Link to={lp('/news')} className="btn btn--ghost news-section__all">
           {t('newsPage.viewAll')}
         </Link>
       </div>

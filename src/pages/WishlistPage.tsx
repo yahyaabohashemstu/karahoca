@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SEO from '../components/SEO';
 import ImageWithFallback from '../components/ImageWithFallback';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { toWebp } from '../utils/image';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
@@ -370,6 +371,7 @@ const WishCard: React.FC<CardProps> = ({ item, l, onRemove, onView }) => {
 const WishlistPage: React.FC = () => {
   const { i18n } = useTranslation();
   const { items, remove, clear } = useWishlist();
+  const { lp } = useLocalizedPath();
   const lang = (i18n.resolvedLanguage || i18n.language || 'ar').slice(0, 2) as keyof typeof L;
   const l = L[lang] ?? L.en;
 
@@ -400,8 +402,8 @@ const WishlistPage: React.FC = () => {
             <h1 style={styles.emptyTitle}>{l.empty}</h1>
             <p style={styles.emptyHint}>{l.emptyHint}</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Link to="/diox" style={styles.emptyBtnDiox}>{l.browseDiox}</Link>
-              <Link to="/aylux" style={styles.emptyBtnAylux}>{l.browseAylux}</Link>
+              <Link to={lp('/diox')} style={styles.emptyBtnDiox}>{l.browseDiox}</Link>
+              <Link to={lp('/aylux')} style={styles.emptyBtnAylux}>{l.browseAylux}</Link>
             </div>
           </div>
         </main>

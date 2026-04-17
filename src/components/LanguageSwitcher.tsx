@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackEvent } from '../utils/analytics';
-import { normalizeLanguageCode } from '../utils/language';
+import { normalizeLanguageCode, supportedLanguageCodes } from '../utils/language';
+import { splitLocalePath } from '../utils/localizedPath';
 import './LanguageSwitcher.css';
 
 interface Language {
@@ -19,27 +21,44 @@ const languages: Language[] = [
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' }
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
 ];
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) => {
   const { i18n, t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const currentLanguageCode = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
 
   const currentLanguage = languages.find(lang => lang.code === currentLanguageCode) || languages[0];
 
-  const handleLanguageChange = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
+  const handleLanguageChange = (nextCode: string) => {
     setIsOpen(false);
-    
-    // تتبع تغيير اللغة في Analytics
-    trackEvent('Language', 'Change', languageCode);
-    
+
+    if (!(supportedLanguageCodes as readonly string[]).includes(nextCode)) return;
+    if (nextCode === currentLanguageCode) return;
+
+    // The URL is the source of truth for language. Navigate to the same
+    // logical page under the new language prefix — react-router's param
+    // change cascades through `useLocaleSync`, which calls `i18n.changeLanguage`
+    // inside a `startTransition` so the tree re-renders smoothly.
+    const { rest } = splitLocalePath(location.pathname);
+    const targetPath = `/${nextCode}${rest === '/' ? '/' : rest}`;
+    navigate(`${targetPath}${location.search}${location.hash}`);
+
+    // Persist preference so the root redirect honours it on next visit.
+    try {
+      window.localStorage.setItem('i18nextLng', nextCode);
+    } catch {
+      // localStorage may be unavailable (Safari private / strict storage);
+      // the next visit will fall back to navigator.language detection.
+    }
+
+    trackEvent('Language', 'Change', nextCode);
   };
 
-  // إغلاق القائمة عند النقر خارجها
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -133,4 +152,3 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
 };
 
 export default LanguageSwitcher;
-

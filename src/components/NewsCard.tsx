@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { LocalizedNewsItem } from '../data/news';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 interface NewsCardProps {
   news: LocalizedNewsItem;
@@ -12,6 +13,7 @@ interface NewsCardProps {
 
 const NewsCard: React.FC<NewsCardProps> = ({ news, onOpen, compact = false, featured = false }) => {
   const { t } = useTranslation();
+  const { lp } = useLocalizedPath();
 
   return (
     <article className={`news-card glass-panel${compact ? ' news-card--compact' : ''}${featured ? ' news-card--featured' : ''}`}>
@@ -48,7 +50,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, onOpen, compact = false, feat
           </button>
         ) : (
           <Link
-            to={`/news/${news.slug}`}
+            to={lp(`/news/${news.slug}`)}
             className="news-card__action"
             aria-label={`${t('newsPage.readMore')} - ${news.title}`}
           >

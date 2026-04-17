@@ -1,7 +1,14 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { lazy, Suspense } from 'react';
-import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WishlistProvider } from './contexts/WishlistContext';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -12,7 +19,13 @@ import LazyAIChatWidget from './components/LazyAIChatWidget';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { useLocaleSync } from './hooks/useLocaleSync';
-import { getLanguageDirection, normalizeLanguageCode } from './utils/language';
+import {
+  getLanguageDirection,
+  normalizeLanguageCode,
+  supportedLanguageCodes,
+  type SupportedLanguageCode,
+} from './utils/language';
+import { detectPreferredLang, DEFAULT_LANG } from './utils/localizedPath';
 import './styles/main.css';
 import './styles/employee.css';
 import './styles/professional-system.css';
@@ -47,53 +60,108 @@ const RouteFallback = () => (
   />
 );
 
-function MainSite() {
-  const { i18n } = useTranslation();
+// ─── Locale routing helpers ────────────────────────────────────────────────
 
+const isSupportedLang = (value: string | undefined): value is SupportedLanguageCode =>
+  !!value && (supportedLanguageCodes as readonly string[]).includes(value.toLowerCase());
+
+/**
+ * Client-side redirect for the naked root URL `/` → `/<preferred-lang>/`.
+ *
+ * Preference resolution is centralised in `detectPreferredLang()`:
+ *   localStorage → navigator → DEFAULT_LANG. We use `replace` so the root
+ *   URL never ends up in history (no broken Back button after first load).
+ */
+const RootLangRedirect = () => {
+  const preferred = typeof window === 'undefined' ? DEFAULT_LANG : detectPreferredLang();
+  return <Navigate to={`/${preferred}/`} replace />;
+};
+
+/**
+ * Any request that didn't match `/admin/*`, `/:lang/*`, or `/`. Two cases:
+ *
+ *   (a) Legacy pre-refactor URL like `/about` or `/news/my-article` — we
+ *       preserve the pathname and just prepend the detected language, so
+ *       old inbound links keep working and search engines get a clean 301
+ *       (well, 302 via client, but the redirect is stable and canonicals
+ *       point at the new URL).
+ *
+ *   (b) Garbage like `/ar-SA/foo` where the first segment looks like a lang
+ *       code but isn't supported. Same treatment — prepend the detected
+ *       language; if the result doesn't match any real route the inner
+ *       `NotFoundPage` handles it.
+ */
+const LegacyPathRedirect = () => {
+  const location = useLocation();
+  const preferred = typeof window === 'undefined' ? DEFAULT_LANG : detectPreferredLang();
+  const { pathname, search, hash } = location;
+  const target = `/${preferred}${pathname === '/' ? '/' : pathname}${search}${hash}`;
+  return <Navigate to={target} replace />;
+};
+
+/**
+ * Parent route element for `/:lang/...`.
+ *
+ * Responsibilities:
+ *   1. Validate that `:lang` is one of our four supported codes. If not,
+ *      rewrite to `/<default>/<originalPath>` — that keeps paths like
+ *      `/about` (which matches `/:lang` with lang="about") from rendering
+ *      a blank page; they get bounced to `/<default>/about` and only the
+ *      inner NotFoundPage decides if they truly 404.
+ *   2. Sync i18n to the URL via `useLocaleSync` so every useTranslation()
+ *      consumer sees the right language without manual wiring.
+ *   3. Emit `<html lang dir>` via Helmet so screen readers, RTL scrollbars,
+ *      and form controls read the correct direction from the root element
+ *      (the old pattern set `dir` on an inner <div class="App">, which
+ *      broke native browser RTL).
+ *   4. Render site chrome (analytics, cookie consent, chat widget, theme
+ *      toggle, WhatsApp CTA) ONCE so they survive in-app navigation
+ *      without remounting.
+ */
+const LocalizedShell = () => {
+  const { lang: rawLang } = useParams<{ lang: string }>();
+  const location = useLocation();
+
+  // All hooks must run unconditionally before any early return. The sync
+  // hook below is a no-op when the URL lang is unsupported, so running it
+  // before the redirect is safe.
+  useLocaleSync();
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
-  // Reconcile i18n to localStorage/navigator AFTER hydration completes.
-  // First client render uses the language baked into <html lang="..."> so it
-  // exactly matches the prerendered / server-injected HTML.
-  useLocaleSync();
 
-  const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const currentDir = getLanguageDirection(currentLang);
+  if (!isSupportedLang(rawLang)) {
+    const target = `/${DEFAULT_LANG}${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={target} replace />;
+  }
+
+  const lang = normalizeLanguageCode(rawLang);
+  const dir = getLanguageDirection(lang);
 
   return (
     <>
+      {/* Applies `<html lang dir>` on the REAL root element, not an inner
+          div. Page-level <SEO /> components may override the same attrs
+          later in the render — Helmet just merges idempotently. */}
+      <Helmet>
+        <html lang={lang} dir={dir} />
+      </Helmet>
+
       <GoogleAnalytics />
       <CookieConsent />
       <OrganizationSchema />
       <WebsiteSchema />
 
-      <div className="App" dir={currentDir} lang={currentLang}>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/news" element={<NewsPage />} />
-            <Route path="/news/:slug" element={<NewsArticlePage />} />
-            <Route path="/diox" element={<DioxPage />} />
-            <Route path="/aylux" element={<AyluxPage />} />
-            <Route path="/production" element={<ProductionPage />} />
-            <Route path="/goal" element={<GoalPage />} />
-            <Route path="/dryer" element={<DryerPage />} />
-            <Route path="/wishlist" element={<WishlistPage />} />
-            <Route path="/unsubscribe" element={<UnsubscribePage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-        <LazyAIChatWidget />
-        <ThemeToggle />
-        <WhatsAppButton phoneNumber="905305914990" />
-      </div>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+
+      <LazyAIChatWidget />
+      <ThemeToggle />
+      <WhatsAppButton phoneNumber="905305914990" />
     </>
   );
-}
+};
 
 function App() {
   return (
@@ -102,6 +170,8 @@ function App() {
         <WishlistProvider>
           <Router>
             <Routes>
+              {/* Admin stays outside the localised tree — it's an internal
+                  tool and does not need SEO language routing. */}
               <Route
                 path="/admin/*"
                 element={
@@ -110,7 +180,32 @@ function App() {
                   </Suspense>
                 }
               />
-              <Route path="*" element={<MainSite />} />
+
+              {/* Root → language redirect. */}
+              <Route path="/" element={<RootLangRedirect />} />
+
+              {/* Localised site tree. Every public page lives under here. */}
+              <Route path="/:lang" element={<LocalizedShell />}>
+                <Route index element={<Home />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="news" element={<NewsPage />} />
+                <Route path="news/:slug" element={<NewsArticlePage />} />
+                <Route path="diox" element={<DioxPage />} />
+                <Route path="aylux" element={<AyluxPage />} />
+                <Route path="production" element={<ProductionPage />} />
+                <Route path="goal" element={<GoalPage />} />
+                <Route path="dryer" element={<DryerPage />} />
+                <Route path="wishlist" element={<WishlistPage />} />
+                <Route path="unsubscribe" element={<UnsubscribePage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="terms" element={<TermsPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+
+              {/* Any non-admin, non-root, non-language-prefixed path. Keeps
+                  legacy bookmarks and external links alive after the URL
+                  restructure. */}
+              <Route path="*" element={<LegacyPathRedirect />} />
             </Routes>
           </Router>
         </WishlistProvider>
