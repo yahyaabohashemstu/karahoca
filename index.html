@@ -8,18 +8,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KARAHOCA — الرئيسية</title>
   <meta name="description" content="منظفات بجودة عالمية — ابتكار، نقاء، وأداء خارق.">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <!-- Async stylesheet load: browser downloads without render-blocking, then
-       onload swaps `rel="preload"` → `rel="stylesheet"` to apply the font.
-       The <noscript> block keeps the font applied when JS is disabled. -->
-  <link rel="preload" as="style"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
-        onload="this.onload=null;this.rel='stylesheet'">
-  <noscript>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap">
-  </noscript>
+  <!-- Inter is self-hosted via @fontsource/inter (see src/main.tsx). No
+       runtime dependency on fonts.gstatic.com / fonts.googleapis.com — the
+       woff2 subsets are bundled into the Vite output so the first paint
+       doesn't pay a DNS + TLS handshake for the font CDN. -->
+  <meta name="robots" content="index, follow">
+  <!-- Intentionally omitted preconnect to Google Fonts; it would create a
+       wasteful round-trip to a domain we no longer use. -->
+  <link rel="dns-prefetch" href="https://wa.me">
   <link rel="manifest" href="/manifest.json">
   <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp" fetchpriority="high">
 

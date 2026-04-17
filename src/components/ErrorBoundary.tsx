@@ -3,6 +3,8 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { withTranslation } from 'react-i18next';
 import type { WithTranslation } from 'react-i18next';
 import { getClientSessionId } from '../utils/clientSession';
+import { readCsrfToken } from '../utils/apiFetch';
+import { buildApiUrl } from '../utils/api';
 import './ErrorBoundary.css';
 
 interface Props extends WithTranslation {
@@ -29,18 +31,27 @@ const DEFAULT_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const postWithBackoff = async (
-  url: string,
+  path: string,
   payload: unknown,
   delays: readonly number[] = DEFAULT_BACKOFF_MS,
 ): Promise<void> => {
   const attempts = delays.length + 1;
+  // Fully-resolved URL — we can't use `apiFetch` here because it reads the
+  // document, and Error-boundary reports should survive a tab-closing mid-
+  // flight via `keepalive`. We still attach the CSRF header manually so the
+  // public CSRF guard on /api/log-error accepts the request.
+  const url = buildApiUrl(path);
   for (let i = 0; i < attempts; i++) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const csrf = readCsrfToken();
+    if (csrf) headers['X-CSRF-Token'] = csrf;
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         // `keepalive: true` lets the request survive the tab closing mid-flight.
         keepalive: true,
+        credentials: 'same-origin',
         body: JSON.stringify(payload),
       });
       if (response.ok) return;

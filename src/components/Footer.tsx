@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackFormSubmit, trackNewsletterSubscription } from '../utils/analytics';
-import { buildApiUrl } from '../utils/api';
+import { apiFetch } from '../utils/apiFetch';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
     setEmailError('');
 
     try {
-      const response = await fetch(buildApiUrl('/api/newsletter/subscribe'), {
+      const response = await apiFetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

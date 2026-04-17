@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildApiUrl } from '../utils/api';
+import { apiFetch } from '../utils/apiFetch';
 import { trackChatOpen, trackChatClose } from '../utils/analytics';
 import {
   getLanguageDirection,
@@ -74,7 +74,7 @@ const logChatToServer = (
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 5000);
   const payload = { userId, sessionId, messages, language };
-  fetch(buildApiUrl('/api/chat/log'), {
+  apiFetch('/api/chat/log', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -581,7 +581,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         const timeoutId = setTimeout(() => controller.abort(), 120_000);
         let response: Response;
         try {
-          response = await fetch(buildApiUrl('/api/ai/chat'), {
+          response = await apiFetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, lang: currentLang }),

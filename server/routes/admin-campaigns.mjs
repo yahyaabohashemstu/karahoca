@@ -11,6 +11,16 @@ import { generateOpaqueSubscriberKey, getDb, logAudit } from '../db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { dequeueQueueItem, enqueueQueueItem } from '../redisClient.mjs';
 import { logger } from '../utils/logger.mjs';
+import { buildUpdater } from '../services/safeUpdate.mjs';
+
+const CAMPAIGN_UPDATE_FIELDS = [
+  'title', 'template_type',
+  'subject_ar', 'subject_en', 'subject_tr', 'subject_ru',
+  'subject_b_ar', 'subject_b_en', 'subject_b_tr', 'subject_b_ru',
+  'body_ar', 'body_en', 'body_tr', 'body_ru',
+  'image_url',
+];
+const updateCampaignRow = buildUpdater('email_campaigns', CAMPAIGN_UPDATE_FIELDS);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -662,9 +672,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     }
 
     if (req.method === 'PUT') {
-      const fields = ['title','template_type','subject_ar','subject_en','subject_tr','subject_ru','subject_b_ar','subject_b_en','subject_b_tr','subject_b_ru','body_ar','body_en','body_tr','body_ru','image_url'];
-      const sets = fields.filter(f => body[f] !== undefined).map(f => `${f}=@${f}`).join(', ');
-      if (sets) db.prepare(`UPDATE email_campaigns SET ${sets}, updated_at=datetime('now') WHERE id=@id`).run({ ...body, id });
+      updateCampaignRow(id, body);
       sendJson(res, 200, { success: true, campaign: db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id) }, origin);
       return;
     }

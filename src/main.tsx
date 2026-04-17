@@ -4,10 +4,64 @@ import 'modern-normalize/modern-normalize.css'
 // Design tokens MUST load before every other stylesheet so every var(--*)
 // reference resolves on first paint. See src/styles/tokens.css.
 import './styles/tokens.css'
+// Self-hosted Inter — Vite inlines the woff2 subsets into the bundle so
+// there is no Google Fonts / `fonts.gstatic.com` round-trip on first visit.
+// We load weights 300 / 400 / 600 / 800 to match the former Google Fonts
+// request so text rendering stays identical.
+import '@fontsource/inter/300.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/800.css'
 import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
+
+// ─── Global unhandled-rejection handler ────────────────────────────────────
+// React's ErrorBoundary only catches render-time errors. Promise rejections
+// escaping an async event handler (`fetch().then(...)` without a `.catch`)
+// bypass it entirely. Browsers surface them to the console but NOT to any
+// telemetry unless we wire it ourselves. Two hooks:
+//   - `unhandledrejection` → a Promise was rejected and nothing awaited / caught it
+//   - `error`              → a runtime error fired outside any handler (very rare)
+// Both forward to Sentry if present, otherwise log with enough context for
+// a developer to reproduce. Deliberately ignores AbortError — those are
+// intentional user-navigation cancellations.
+if (typeof window !== 'undefined') {
+  const forwardToSentry = (
+    level: 'error' | 'warning',
+    error: unknown,
+    extra?: Record<string, unknown>,
+  ) => {
+    type SentryLike = {
+      captureException?: (e: unknown, ctx?: { extra?: Record<string, unknown>; level?: string }) => void;
+    };
+    const sentry = (globalThis as { __karahocaSentry?: SentryLike }).__karahocaSentry;
+    if (sentry?.captureException) {
+      try { sentry.captureException(error, { extra, level }); } catch { /* noop */ }
+    }
+  };
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    if (reason instanceof DOMException && reason.name === 'AbortError') return;
+    if (reason instanceof Error && reason.name === 'AbortError') return;
+    console.warn('[unhandledrejection]', reason);
+    forwardToSentry('error', reason, { source: 'unhandledrejection' });
+  });
+
+  window.addEventListener('error', (event) => {
+    // Ignore resource-load errors (they already surface via network panel);
+    // we only want actual runtime exceptions.
+    if (!event.error) return;
+    forwardToSentry('error', event.error, {
+      source: 'window.onerror',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
+  });
+}
 
 // ─── Sentry (optional) ──────────────────────────────────────────────────────
 // Gated behind VITE_SENTRY_DSN so absence is a silent no-op. We dynamically

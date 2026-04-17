@@ -10,10 +10,10 @@ const CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' https://www.googletagmanager.com https://static.hotjar.com https://script.hotjar.com",
   "script-src-attr 'none'",
-  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src-elem 'self'",
   "style-src-attr 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "font-src 'self' data:",
   "connect-src 'self' https: wss:",
   "frame-src 'self' https://vars.hotjar.com",
   "media-src 'self' data: blob:",
@@ -59,3 +59,9 @@ export const isUnsubRateLimited = makeLimiter('rl:unsub', 10, 5 * 60);
 export const isNewsletterSubRateLimited = makeLimiter('rl:news-sub', 3, 60 * 60);
 export const isLogErrorRateLimited = makeLimiter('rl:log-err', 10, 60);
 export const isChatLogRateLimited = makeLimiter('rl:chat-log', 20, 60);
+
+// /api/health itself is a mutation-free probe but unlimited probes are a
+// cheap amplification vector (/health currently returns DB + Redis state).
+// 120 req/min per IP is generous enough for legitimate uptime monitors
+// hitting every few seconds and tight enough to shut down floods.
+export const isHealthRateLimited = makeLimiter('rl:health', 120, 60);

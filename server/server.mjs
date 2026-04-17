@@ -40,6 +40,7 @@ import {
   sendJson,
 } from './middlewares/cors.mjs';
 import { handleServerError } from './middlewares/errorHandler.mjs';
+import { requirePublicCsrfToken } from './middlewares/publicCsrf.mjs';
 
 // Routes
 import { handleAiChat, handleChatLogRoute } from './routes/api-chat.mjs';
@@ -140,14 +141,20 @@ const handleRequest = async (request, response) => {
 
   try {
     // ── Health probe (Coolify / Docker HEALTHCHECK / uptime monitors) ───
-    // Placed first so it has the lowest latency and never hits rate limits.
+    // Placed first so it has the lowest latency; internally rate-limited
+    // so unbounded probes don't become an amplification channel.
     if (request.method === 'GET' && url === '/api/health') {
-      handleHealth(request, response, ctx);
+      await handleHealth(request, response, ctx);
       return;
     }
 
     // ── Public API ───────────────────────────────────────────────────────
+    // All state-changing public routes are gated by double-submit CSRF
+    // (public cookie issued by the SPA fallback handler). GET endpoints
+    // (product catalog, news, sitemap, etc.) skip this check — they are
+    // safe reads.
     if (request.method === 'POST' && url === '/api/ai/chat') {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleAiChat(request, response, ctx);
       return;
     }
@@ -156,18 +163,25 @@ const handleRequest = async (request, response) => {
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/subscribe') {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleNewsletterSubscribe(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/unsubscribe') {
+      // Unsubscribe is deliberately exempt from CSRF: the unsubscribe
+      // token itself is an unguessable server-issued secret delivered via
+      // email, so possession of the token IS the authorization. Requiring
+      // an additional CSRF token would break one-click unsubscribe links.
       await handleNewsletterUnsubscribe(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/log-error') {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleLogError(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/chat/log') {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleChatLogRoute(request, response, ctx);
       return;
     }
@@ -184,11 +198,11 @@ const handleRequest = async (request, response) => {
       return;
     }
     if (request.method === 'GET' && url.startsWith('/api/products/')) {
-      handlePublicProducts(request, response, ctx);
+      await handlePublicProducts(request, response, ctx);
       return;
     }
     if (request.method === 'GET' && url === '/api/news') {
-      handlePublicNews(request, response, ctx);
+      await handlePublicNews(request, response, ctx);
       return;
     }
 

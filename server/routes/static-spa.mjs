@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { sendJson } from '../middlewares/cors.mjs';
 import { getDb } from '../services/db.mjs';
+import { ensurePublicCsrfCookie } from '../middlewares/publicCsrf.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -229,8 +230,15 @@ export const serveStaticOrSpa = async (request, response, { origin, url }) => {
       if (!s.isFile()) return false;
       const ext = path.extname(fp).toLowerCase();
       const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
-      const headers = { 'Content-Type': mime, 'Content-Length': String(s.size) };
-      if (ext !== '.html') headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+      const baseHeaders = { 'Content-Type': mime, 'Content-Length': String(s.size) };
+      let headers = baseHeaders;
+      if (ext === '.html') {
+        // HTML responses: ensure a public CSRF cookie is present so any
+        // subsequent POST from the SPA can echo it as X-CSRF-Token.
+        ({ headers } = ensurePublicCsrfCookie(request, baseHeaders));
+      } else {
+        headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+      }
       response.writeHead(200, headers);
       createReadStream(fp).pipe(response);
       return true;
@@ -245,10 +253,11 @@ export const serveStaticOrSpa = async (request, response, { origin, url }) => {
   if (spaHtmlTemplate) {
     const injected = injectMeta(spaHtmlTemplate, url.split('?')[0].split('#')[0]);
     const buf = Buffer.from(injected, 'utf8');
-    response.writeHead(200, {
+    const { headers } = ensurePublicCsrfCookie(request, {
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Length': String(buf.length),
     });
+    response.writeHead(200, headers);
     response.end(buf);
     return true;
   }

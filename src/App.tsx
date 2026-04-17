@@ -16,6 +16,7 @@ import GoogleAnalytics from './components/GoogleAnalytics';
 import CookieConsent from './components/CookieConsent';
 import ThemeToggle from './components/ThemeToggle';
 import LazyAIChatWidget from './components/LazyAIChatWidget';
+import BackendStatusBanner from './components/BackendStatusBanner';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { useLocaleSync } from './hooks/useLocaleSync';
@@ -147,6 +148,7 @@ const LocalizedShell = () => {
         <html lang={lang} dir={dir} />
       </Helmet>
 
+      <BackendStatusBanner />
       <GoogleAnalytics />
       <CookieConsent />
       <OrganizationSchema />

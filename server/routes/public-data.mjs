@@ -1,4 +1,6 @@
 import { getDb, incrementStat, normalizeWeight } from '../db.mjs';
+import { getPublicCached, setPublicCached } from '../services/publicCache.mjs';
+import { createJsonHeaders } from '../middlewares/cors.mjs';
 
 const normalizeLegacyAssetPath = (assetPath) => {
   if (typeof assetPath !== 'string') {
@@ -18,7 +20,14 @@ const normalizeLegacyAssetPath = (assetPath) => {
 
 // ─── GET /api/products/:brand ────────────────────────────────────────────────
 
-export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
+const sendCachedJson = (res, cachedBody, origin) => {
+  const headers = createJsonHeaders(origin);
+  headers['X-Cache'] = 'HIT';
+  res.writeHead(200, headers);
+  res.end(cachedBody);
+};
+
+export const handlePublicProducts = async (req, res, { sendJson, origin, url }) => {
   const db = getDb();
   const match = url.match(/^\/api\/products\/([^/?]+)/);
   if (!match) { sendJson(res, 400, { success: false, error: 'Brand required.' }, origin); return; }
@@ -27,6 +36,13 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
   const lang = new URL(req.url, 'http://localhost').searchParams.get('lang') || 'ar';
   const validLangs = ['ar', 'en', 'tr', 'ru'];
   const l = validLangs.includes(lang) ? lang : 'ar';
+
+  // Short-circuit on cache hit (5-min TTL, admin mutations bust).
+  const cached = await getPublicCached('products', [brand, l]);
+  if (cached) {
+    sendCachedJson(res, cached, origin);
+    return;
+  }
 
   const categories = db.prepare(`
     SELECT * FROM product_categories WHERE brand=? ORDER BY display_order ASC
@@ -104,16 +120,30 @@ export const handlePublicProducts = (req, res, { sendJson, origin, url }) => {
     products: productsByCategory.get(cat.id) || [],
   }));
 
-  sendJson(res, 200, { success: true, brand, categories: result }, origin);
+  const serialised = JSON.stringify({ success: true, brand, categories: result });
+  // Populate the cache for subsequent reads. Fire-and-forget — failures
+  // fall back to the in-memory LRU path inside the Redis client.
+  void setPublicCached('products', [brand, l], serialised);
+
+  const headers = createJsonHeaders(origin);
+  headers['X-Cache'] = 'MISS';
+  res.writeHead(200, headers);
+  res.end(serialised);
 };
 
 // ─── GET /api/news ───────────────────────────────────────────────────────────
 
-export const handlePublicNews = (req, res, { sendJson, origin }) => {
+export const handlePublicNews = async (req, res, { sendJson, origin }) => {
   const db = getDb();
   const lang = new URL(req.url, 'http://localhost').searchParams.get('lang') || 'ar';
   const validLangs = ['ar', 'en', 'tr', 'ru'];
   const l = validLangs.includes(lang) ? lang : 'ar';
+
+  const cached = await getPublicCached('news', [l]);
+  if (cached) {
+    sendCachedJson(res, cached, origin);
+    return;
+  }
 
   const items = db.prepare(`
     SELECT
@@ -154,7 +184,13 @@ export const handlePublicNews = (req, res, { sendJson, origin }) => {
     };
   });
 
-  sendJson(res, 200, { success: true, items: formatted }, origin);
+  const serialised = JSON.stringify({ success: true, items: formatted });
+  void setPublicCached('news', [l], serialised);
+
+  const headers = createJsonHeaders(origin);
+  headers['X-Cache'] = 'MISS';
+  res.writeHead(200, headers);
+  res.end(serialised);
 };
 
 // ─── POST /api/chat/log ──────────────────────────────────────────────────────

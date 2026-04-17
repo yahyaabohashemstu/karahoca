@@ -1,5 +1,7 @@
 import { getDb, logAudit } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
+import { buildUpdater } from '../services/safeUpdate.mjs';
+import { invalidateNewsCache } from '../services/publicCache.mjs';
 
 const NEWS_FIELDS = [
   'slug', 'image', 'published_at', 'status', 'publish_at',
@@ -9,6 +11,8 @@ const NEWS_FIELDS = [
   'body_ar', 'body_en', 'body_tr', 'body_ru',
   'active',
 ];
+
+const updateNewsRow = buildUpdater('news', NEWS_FIELDS);
 
 const VALID_STATUSES = new Set(['draft', 'published', 'scheduled']);
 
@@ -58,14 +62,12 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
         if (Array.isArray(updateBody[k])) updateBody[k] = JSON.stringify(updateBody[k]);
       }
 
-      const sets = NEWS_FIELDS.filter(f => updateBody[f] !== undefined)
-        .map(f => `${f} = @${f}`).join(', ');
-      if (!sets) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
+      const result = updateNewsRow(id, updateBody);
+      if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
 
-      db.prepare(`UPDATE news SET ${sets}, updated_at=datetime('now') WHERE id=@id`)
-        .run({ ...updateBody, id });
       const updated = db.prepare('SELECT * FROM news WHERE id=?').get(id);
       logAudit({ action: 'UPDATE', entityType: 'news', entityId: id, entityName: updated?.title_ar || updated?.title_en || id, adminUser });
+      void invalidateNewsCache();
       sendJson(res, 200, { success: true, item: serializeBody(updated) }, origin);
       return;
     }
@@ -74,6 +76,7 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
       const art = db.prepare('SELECT title_ar, title_en FROM news WHERE id=?').get(id);
       db.prepare("UPDATE news SET active=0, updated_at=datetime('now') WHERE id=?").run(id);
       logAudit({ action: 'DELETE', entityType: 'news', entityId: id, entityName: art?.title_ar || art?.title_en || id, adminUser });
+      void invalidateNewsCache();
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -141,6 +144,7 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
 
     const created = db.prepare('SELECT * FROM news WHERE id=?').get(id);
     logAudit({ action: 'CREATE', entityType: 'news', entityId: id, entityName: body.title_ar || body.title_en || id, adminUser });
+    void invalidateNewsCache();
     sendJson(res, 201, { success: true, item: serializeBody(created) }, origin);
     return;
   }

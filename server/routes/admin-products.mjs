@@ -1,5 +1,7 @@
 import { getDb, logAudit, normalizeWeight } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
+import { buildUpdater } from '../services/safeUpdate.mjs';
+import { invalidateProductsCache } from '../services/publicCache.mjs';
 
 const PRODUCT_FIELDS = [
   'brand', 'category_id',
@@ -14,6 +16,15 @@ const PRODUCT_FIELDS = [
   'image_scale',
   'display_order', 'active',
 ];
+
+// Safe UPDATE helpers — column names are validated at module init, SQL is
+// pre-compiled and cached per unique field subset; no runtime interpolation.
+const updateProductRow = buildUpdater('products', PRODUCT_FIELDS);
+const CATEGORY_FIELDS = ['title_ar', 'title_en', 'title_tr', 'title_ru', 'display_order', 'key'];
+const updateCategoryRow = buildUpdater('product_categories', CATEGORY_FIELDS, {
+  // product_categories has no updated_at column.
+  touchUpdatedAt: false,
+});
 
 export const handleAdminProducts = (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
@@ -40,6 +51,9 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
       action: 'REORDER', entityType: 'product', entityId: null,
       entityName: `${items.length} products reordered`, adminUser,
     });
+    // Bust the public products cache so the next read rebuilds with the
+    // new display order.
+    void invalidateProductsCache();
     sendJson(res, 200, { success: true }, origin);
     return;
   }
@@ -66,22 +80,21 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
         } catch {}
       }
 
-      const sets = PRODUCT_FIELDS.filter(f => body[f] !== undefined)
-        .map(f => `${f} = @${f}`).join(', ');
-      if (!sets) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
+      const result = updateProductRow(id, body);
+      if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
 
-      db.prepare(`UPDATE products SET ${sets}, updated_at=datetime('now') WHERE id=@id`)
-        .run({ ...body, id });
       const updated = db.prepare('SELECT * FROM products WHERE id=?').get(id);
       logAudit({ action: 'UPDATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
+      void invalidateProductsCache(updated?.brand);
       sendJson(res, 200, { success: true, product: updated }, origin);
       return;
     }
 
     if (req.method === 'DELETE') {
-      const prod = db.prepare('SELECT name_ar, name_en FROM products WHERE id=?').get(id);
+      const prod = db.prepare('SELECT brand, name_ar, name_en FROM products WHERE id=?').get(id);
       db.prepare("UPDATE products SET active=0, updated_at=datetime('now') WHERE id=?").run(id);
       logAudit({ action: 'DELETE', entityType: 'product', entityId: id, entityName: prod?.name_ar || prod?.name_en || id, adminUser });
+      void invalidateProductsCache(prod?.brand);
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -176,6 +189,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
 
     const product = db.prepare('SELECT * FROM products WHERE id=?').get(id);
     logAudit({ action: 'CREATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
+    void invalidateProductsCache(product?.brand);
     sendJson(res, 201, { success: true, product }, origin);
     return;
   }
@@ -193,10 +207,10 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url })
     const id = decodeURIComponent(idMatch[1]);
 
     if (req.method === 'PUT') {
-      const fields = ['title_ar','title_en','title_tr','title_ru','display_order','key'];
-      const sets = fields.filter(f => body[f] !== undefined).map(f => `${f}=@${f}`).join(', ');
-      if (sets) db.prepare(`UPDATE product_categories SET ${sets} WHERE id=@id`).run({ ...body, id });
-      sendJson(res, 200, { success: true, category: db.prepare('SELECT * FROM product_categories WHERE id=?').get(id) }, origin);
+      updateCategoryRow(id, body);
+      const cat = db.prepare('SELECT * FROM product_categories WHERE id=?').get(id);
+      void invalidateProductsCache(cat?.brand);
+      sendJson(res, 200, { success: true, category: cat }, origin);
       return;
     }
 
@@ -206,7 +220,9 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url })
         sendJson(res, 400, { success: false, error: `Cannot delete: ${productCount} active products in this category.` }, origin);
         return;
       }
+      const cat = db.prepare('SELECT brand FROM product_categories WHERE id=?').get(id);
       db.prepare('DELETE FROM product_categories WHERE id=?').run(id);
+      void invalidateProductsCache(cat?.brand);
       sendJson(res, 200, { success: true }, origin);
       return;
     }

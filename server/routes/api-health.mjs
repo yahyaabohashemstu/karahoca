@@ -1,6 +1,7 @@
 import { getDb } from '../services/db.mjs';
 import { isRedisConnected } from '../redisClient.mjs';
 import { sendJson } from '../middlewares/cors.mjs';
+import { getClientIp, isHealthRateLimited } from '../middlewares/security.mjs';
 
 // Track process start time once. `process.uptime()` already returns seconds
 // since the Node process started, but we cache the wall-clock timestamp so
@@ -33,8 +34,14 @@ const bootedAt = Date.now();
  * traffic is worse than being removed from the load balancer. Redis being
  * down only degrades performance, not correctness, so we stay healthy.
  */
-export const handleHealth = (request, response, ctx = {}) => {
+export const handleHealth = async (request, response, ctx = {}) => {
   const origin = ctx.origin || '';
+
+  const ip = getClientIp(request);
+  if (await isHealthRateLimited(ip)) {
+    sendJson(response, 429, { status: 'rate-limited' }, origin);
+    return;
+  }
 
   let dbOk = false;
   let dbError = null;

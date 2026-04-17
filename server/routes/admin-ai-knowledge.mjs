@@ -4,6 +4,14 @@
  * - User questions log (auto-captured, admin reviews)
  */
 import { getDb } from '../db.mjs';
+import { buildUpdater } from '../services/safeUpdate.mjs';
+
+const AI_QA_UPDATE_FIELDS = [
+  'question_ar', 'question_en', 'question_tr', 'question_ru',
+  'answer_ar', 'answer_en', 'answer_tr', 'answer_ru',
+  'tags', 'active',
+];
+const updateAiQaRow = buildUpdater('ai_custom_qa', AI_QA_UPDATE_FIELDS);
 
 // ── Build product context string from DB ─────────────────────────────────────
 export const buildProductContext = (lang = 'ar') => {
@@ -120,9 +128,7 @@ export const handleAdminAiKnowledge = (req, res, { sendJson, origin, url, body }
     const id = parseInt(idMatch[1], 10);
 
     if (req.method === 'PUT') {
-      const fields = ['question_ar','question_en','question_tr','question_ru','answer_ar','answer_en','answer_tr','answer_ru','tags','active'];
-      const sets = fields.filter(f => body[f] !== undefined).map(f => `${f}=@${f}`).join(', ');
-      if (sets) db.prepare(`UPDATE ai_custom_qa SET ${sets}, updated_at=datetime('now') WHERE id=@id`).run({ ...body, id });
+      updateAiQaRow(id, body);
       sendJson(res, 200, { success: true, entry: db.prepare('SELECT * FROM ai_custom_qa WHERE id=?').get(id) }, origin);
       return;
     }

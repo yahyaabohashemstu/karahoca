@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { buildApiUrl } from '../utils/api';
+import { apiFetch } from '../utils/apiFetch';
 import SEO from '../components/SEO';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
@@ -22,7 +22,12 @@ const UnsubscribePage: React.FC = () => {
 
     const controller = new AbortController();
 
-    fetch(buildApiUrl('/api/newsletter/unsubscribe'), {
+    // Unsubscribe is CSRF-exempt on the server because the unsubscribe
+    // token itself is unguessable and delivered via email — possession of
+    // the token IS the authorization. `apiFetch` is still fine here: it
+    // just adds a CSRF header when the cookie is present, and the server
+    // does not require it on this endpoint.
+    apiFetch('/api/newsletter/unsubscribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
