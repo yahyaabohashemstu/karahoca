@@ -21,12 +21,12 @@
     "@aws-sdk/client-s3": "^3.1031.0",
     "@sentry/node": "^10.49.0",
     "@sentry/react": "^10.49.0",
+    "@smithy/node-http-handler": "^4.5.3",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
     "cookie": "^1.1.1",
     "i18next": "^25.6.0",
     "i18next-browser-languagedetector": "^8.2.0",
-    "i18next-http-backend": "^3.0.2",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "pdfjs-dist": "^5.6.205",
@@ -40,8 +40,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.3",
     "remark-gfm": "^4.0.1",
-    "resend": "^6.9.4",
-    "uuid": "^13.0.0"
+    "resend": "^6.9.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

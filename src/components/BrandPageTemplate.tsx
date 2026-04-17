@@ -148,6 +148,22 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
     }
   }, [categories]);
 
+  // a11y: close the product image popup on Escape. Only active while the
+  // popup is open — the listener self-removes when the modal closes.
+  // `globalThis.KeyboardEvent` disambiguates from React's synthetic
+  // KeyboardEvent<Element> type that resolves in .tsx files.
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedProduct(null);
+        setGalleryIndex(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedProduct]);
+
   // All images for the popup: main image first, then gallery colour variants
   const allPopupImages = selectedProduct
     ? [selectedProduct.image, ...(selectedProduct.gallery ?? [])]
@@ -383,9 +399,16 @@ const BrandPageTemplate: React.FC<BrandPageProps> = ({
 
       </main>
 
-      {/* Image Popup */}
+      {/* Image Popup — role="dialog" + aria-modal announce modal-ness to
+          screen readers; aria-label gives the modal a name for SR users.   */}
       {selectedProduct && (
-        <div className="image-popup-overlay" onClick={closeImagePopup}>
+        <div
+          className="image-popup-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedProduct.name}
+          onClick={closeImagePopup}
+        >
           <div className="image-popup-content" onClick={(e) => e.stopPropagation()}>
             <button className="image-popup-close" onClick={closeImagePopup}>
               ✕

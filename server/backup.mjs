@@ -48,9 +48,16 @@ import {
   ListObjectsV2Command,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 
 import { logger } from './utils/logger.mjs';
 import { getDb } from './services/db.mjs';
+
+// Module-level lock: if a previous backup is still running (e.g. S3 hung
+// near the 24h interval boundary) the next tick MUST NOT start a second
+// concurrent run — two `db.backup()` calls + two S3 uploads to the same
+// staging path would race and potentially corrupt either side.
+let backupInProgress = false;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,6 +95,14 @@ const getS3Client = () => {
     // AWS SDK already retries with exponential backoff on transient errors
     // (network, 5xx). `maxAttempts: 4` = initial + 3 retries, ~7s total cap.
     maxAttempts: 4,
+    // Hard timeouts on the underlying HTTP connection so a stuck socket
+    // never pins the file handle / buffer in memory indefinitely. The
+    // SDK's maxAttempts already multiplies retries, so these caps are
+    // per-attempt, giving a worst-case upper bound of ~4 × 60s = 4 min.
+    requestHandler: new NodeHttpHandler({
+      connectionTimeout: 10_000,
+      requestTimeout: 60_000,
+    }),
   });
   logger.info(
     {
@@ -188,14 +203,33 @@ const rotateLocalBackups = async () => {
 
 // ─── Main backup entry point ────────────────────────────────────────────────
 export const runBackup = async () => {
-  if (!existsSync(DB_PATH)) {
-    logger.info('[backup] DB file not found yet, skipping');
+  // Overlap guard: if S3 hangs past the 24h interval (even with per-request
+  // timeouts stacking up via retries) we must NOT start a second concurrent
+  // backup — two `.backup()` calls would race on the same staging path.
+  if (backupInProgress) {
+    logger.warn('[backup] previous run still in progress — skipping this tick');
     return;
   }
+  backupInProgress = true;
 
-  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
-  const backupFilename = `karahoca-${timestamp}.db`;
-  const localBackupPath = path.join(BACKUP_DIR, backupFilename);
+  try {
+    if (!existsSync(DB_PATH)) {
+      logger.info('[backup] DB file not found yet, skipping');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+    const backupFilename = `karahoca-${timestamp}.db`;
+    const localBackupPath = path.join(BACKUP_DIR, backupFilename);
+    await runBackupInner(backupFilename, localBackupPath);
+  } finally {
+    backupInProgress = false;
+  }
+};
+
+// The original body, extracted so the lock wrapping above stays a single
+// try/finally and the branching logic below is unchanged.
+const runBackupInner = async (backupFilename, localBackupPath) => {
 
   // ── Step 1: online .backup() to the staging file ─────────────────────────
   // Use better-sqlite3's native backup API so pages-in-flight are handled

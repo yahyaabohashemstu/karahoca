@@ -10,9 +10,18 @@
   <meta name="description" content="منظفات بجودة عالمية — ابتكار، نقاء، وأداء خارق.">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- Async stylesheet load: browser downloads without render-blocking, then
+       onload swaps `rel="preload"` → `rel="stylesheet"` to apply the font.
+       The <noscript> block keeps the font applied when JS is disabled. -->
+  <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+        onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap">
+  </noscript>
   <link rel="manifest" href="/manifest.json">
-  <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp">
+  <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp" fetchpriority="high">
 
   <!-- Back-to-top + route-fallback styles live in src/styles/main.css so we
        can serve a strict CSP (no inline <style> tags). -->

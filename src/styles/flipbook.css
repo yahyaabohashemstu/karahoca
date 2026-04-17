@@ -348,8 +348,14 @@
   cursor: pointer;
   transition: background .18s, border-color .18s, opacity .18s, transform .14s;
 }
-.fb-nav--l { left: 10px; }
-.fb-nav--r { right: 10px; }
+/* Outer nav arrows use LOGICAL insets so they flip in RTL — the arrow
+   characters (‹ / ›) naturally pair with the reader's reading direction:
+   in RTL the "prev" arrow (‹) appears on the visual right and "next" (›)
+   on the left, matching Arabic book-reading flow. The INTERIOR book
+   geometry (halves, spine, flip overlays, page shadows) stays on physical
+   properties because it's animation geometry, not reader-direction UX. */
+.fb-nav--l { inset-inline-start: 10px; }
+.fb-nav--r { inset-inline-end:   10px; }
 
 .fb-nav:hover:not(.fb-nav--off) {
   background: rgba(255,255,255,.18);
@@ -370,8 +376,8 @@
   background: rgba(0,0,0,.5);
   border-color: rgba(255,255,255,.35);
 }
-.fb--fs .fb-nav--l { left: 18px; }
-.fb--fs .fb-nav--r { right: 18px; }
+.fb--fs .fb-nav--l { inset-inline-start: 18px; }
+.fb--fs .fb-nav--r { inset-inline-end:   18px; }
 .fb--fs .fb-nav:hover:not(.fb-nav--off) {
   transform: translateY(-50%) scale(1.1);
   background: rgba(255,255,255,.2);
@@ -636,8 +642,8 @@
     height: 28px;
     font-size: 1rem;
   }
-  .fb-nav--l { left: 4px; }
-  .fb-nav--r { right: 4px; }
+  .fb-nav--l { inset-inline-start: 4px; }
+  .fb-nav--r { inset-inline-end:   4px; }
 
   .fb-book {
     aspect-ratio: 37.47 / 23.68;  /* Single landscape page on mobile */

@@ -44,15 +44,25 @@ const drainQueuedCampaigns = async () => {
  * schedules both loops. Returns an object of interval handles for shutdown.
  */
 export const startCampaignSchedulers = () => {
-  void dispatchDueCampaigns();
-  void recoverQueuedCampaignDispatches();
-  void drainQueuedCampaigns();
+  // Immediate-on-boot passes — each .catch'd so a rejection during startup
+  // (e.g. Redis reconnect hiccup) doesn't crash the process before the
+  // schedulers even begin.
+  dispatchDueCampaigns().catch((err) => logger.error({ err }, '[scheduler] initial dispatch rejection'));
+  recoverQueuedCampaignDispatches().catch((err) => logger.error({ err }, '[scheduler] initial recover rejection'));
+  drainQueuedCampaigns().catch((err) => logger.error({ err }, '[campaign-queue] initial drain rejection'));
 
+  // Scheduled loops — `.catch` on EVERY tick so a one-off failure (network
+  // blip, transient DB lock) is logged once instead of surfacing as a silent
+  // unhandledRejection + eventual process.exit(1) from our top-level guard.
   const dispatchInterval = setInterval(() => {
-    void dispatchDueCampaigns();
+    dispatchDueCampaigns().catch((err) =>
+      logger.error({ err }, '[scheduler] dispatch tick rejection'),
+    );
   }, DISPATCH_INTERVAL_MS);
   const queueInterval = setInterval(() => {
-    void drainQueuedCampaigns();
+    drainQueuedCampaigns().catch((err) =>
+      logger.error({ err }, '[campaign-queue] drain tick rejection'),
+    );
   }, QUEUE_DRAIN_INTERVAL_MS);
 
   return { dispatchInterval, queueInterval };

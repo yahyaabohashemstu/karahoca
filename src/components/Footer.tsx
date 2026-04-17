@@ -6,6 +6,11 @@ import { buildApiUrl } from '../utils/api';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
+// Module-scope: evaluated once at bundle load time, so SSR/prerender and
+// first client render return the same year → no hydration mismatch on the
+// New Year's Eve rollover edge case.
+const CURRENT_YEAR = new Date().getFullYear();
+
 const Footer: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -13,7 +18,7 @@ const Footer: React.FC = () => {
   const [honeyValue, setHoneyValue] = useState('');
   const [emailError, setEmailError] = useState('');
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
-  const currentYear = new Date().getFullYear();
+  const currentYear = CURRENT_YEAR;
   const isHomePage = location.pathname === '/';
   const brandsHref = isHomePage ? '#brands' : '/#brands';
   const aboutHref = isHomePage ? '#about' : '/about';

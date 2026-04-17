@@ -22,28 +22,22 @@
   0%, 80%, 100% { opacity: 0.5; }
   40% { opacity: 1; }
 }
+/* Logical positioning: `inset-inline-end` maps to `right` in LTR and
+   `left` in RTL automatically, so we need ONE rule where there were two.
+   `align-items` still splits because flexbox alignment is not yet a
+   logical property. */
 .ai-assistant {
   position: fixed;
   bottom: 2rem;
-  left: auto;
-  right: auto;
+  inset-inline-end: 2rem;
   z-index: 120;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-html[dir="rtl"] .ai-assistant {
-  left: 2rem;
-  right: auto;
-  align-items: flex-start;
-}
-
-html[dir="ltr"] .ai-assistant {
-  right: 2rem;
-  left: auto;
-  align-items: flex-end;
-}
+html[dir="rtl"] .ai-assistant { align-items: flex-start; }
+html[dir="ltr"] .ai-assistant { align-items: flex-end;   }
 
 .ai-assistant__toggle {
   width: 64px;
@@ -446,15 +440,9 @@ body.light-mode .ai-assistant__message th {
     bottom: 1rem;
   }
 
-  html[dir="rtl"] .ai-assistant {
-    left: 1rem;
-    right: auto;
-  }
-
-  html[dir="ltr"] .ai-assistant {
-    right: 1rem;
-    left: auto;
-  }
+  /* Mobile: shrink the inline offset. Logical property collapses the
+     two dir-specific rules into one. */
+  .ai-assistant { inset-inline-end: 1rem; }
 
   .ai-assistant__toggle {
     width: 46px;

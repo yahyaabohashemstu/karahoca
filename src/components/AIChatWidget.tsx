@@ -472,6 +472,19 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
   const sessionIdRef = useRef<string>(`sess-${Date.now()}`);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // a11y: close the chat panel on Escape. Only active while the widget is
+  // open so we don't swallow Escape for sibling modals.
+  // `globalThis.KeyboardEvent` disambiguates from React's synthetic
+  // KeyboardEvent<Element> type that resolves in .tsx files.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen || welcomeHintShownRef.current) {
       setShowWelcomeHint(false);
@@ -699,9 +712,15 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
   return (
     <div className="ai-assistant" aria-live="polite">
       {showWelcomeHint && (
-        <div
+        <button
+          type="button"
           className="ai-assistant__welcome-hint"
           style={{
+            // `all: unset` wipes the default <button> chrome (border, native
+            // font, system bg) so the hint visually matches the previous
+            // <div> exactly. Everything below builds up from a neutral base.
+            all: 'unset',
+            boxSizing: 'border-box',
             position: 'absolute',
             bottom: isMobile ? '6px' : '8px',
             left: isRtl ? (isMobile ? '58px' : '72px') : 'auto',
@@ -712,7 +731,7 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
             boxShadow: '0 4px 24px rgba(10,42,94,0.10)',
             padding: isMobile ? '0.42rem 1rem' : '0.5rem 1.5rem',
             fontSize: isMobile ? '0.92rem' : '1.08rem',
-            fontWeight: '500',
+            fontWeight: 500,
             zIndex: 999,
             cursor: 'pointer',
             transition: 'opacity 0.5s',
@@ -725,10 +744,11 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
             lineHeight: 1.35,
           }}
           onClick={() => setShowWelcomeHint(false)}
+          aria-label={uiText.closeWelcomeHint}
           title={uiText.closeWelcomeHint}
         >
           {uiText.welcomeHint}
-        </div>
+        </button>
       )}
 
       {!isOpen && (

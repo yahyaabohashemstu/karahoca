@@ -199,6 +199,13 @@ export async function resetRateLimit(key) {
  * @param {string} value
  * @returns {Promise<void>}
  */
+// Map-level cap — each individual queue is capped at 5000 items below,
+// but without this limit a bug (or attacker) generating many unique queue
+// keys would grow the Map itself unboundedly. FIFO eviction: when full,
+// drop the oldest key (safe because the outer app considers queue
+// contents ephemeral and can always re-enqueue from the DB source of truth).
+const MAX_QUEUE_KEYS = 1000;
+
 export async function enqueueQueueItem(key, value) {
   if (redisAvailable) {
     try {
@@ -207,6 +214,11 @@ export async function enqueueQueueItem(key, value) {
     } catch {
       // fall through
     }
+  }
+
+  if (!memQueues.has(key) && memQueues.size >= MAX_QUEUE_KEYS) {
+    const oldestKey = memQueues.keys().next().value;
+    if (oldestKey !== undefined) memQueues.delete(oldestKey);
   }
 
   const queue = memQueues.get(key) || [];
