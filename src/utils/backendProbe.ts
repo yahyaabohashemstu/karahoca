@@ -1,4 +1,4 @@
-import { buildApiUrl } from './api';
+import { apiFetch } from './apiFetch';
 
 /**
  * Boot-time reachability probe for the Node API backend.
@@ -70,9 +70,8 @@ export const startBackendProbe = async (): Promise<void> => {
     const timer = setTimeout(() => controller.abort(), 5000);
     let response: Response;
     try {
-      response = await fetch(buildApiUrl('/api/health'), {
+      response = await apiFetch('/api/health', {
         method: 'GET',
-        credentials: 'same-origin',
         cache: 'no-store',
         signal: controller.signal,
       });

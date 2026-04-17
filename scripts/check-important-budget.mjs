@@ -36,8 +36,13 @@ const BUDGETS = [
   { file: 'src/styles/main.css', max: 109 },
   { file: 'src/styles/employee.css', max: 2 },
   { file: 'src/components/LanguageSwitcher.css', max: 10 },
-  // admin.css is deliberately excluded — it's a separate cleanup track.
-  // When admin.css is cleaned up, add it here with its new ceiling.
+  // admin.css: 303 total, 300 of which live inside `@media print` rules
+  // where `!important` is genuinely justified (browser default print styles
+  // often use !important themselves, and printer drivers respect explicit
+  // overrides more reliably). The 3 non-print usages are tactical form-
+  // error / hover overrides. Budget frozen at current level so any growth
+  // beyond legitimate print additions gets flagged.
+  { file: 'src/styles/admin.css', max: 303 },
 ];
 
 const countImportant = (filePath) => {

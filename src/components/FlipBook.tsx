@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
 import '../styles/flipbook.css';
 
 // Reference-safe comparator for the `imageUrls?: string[]` prop. Pages are
@@ -67,11 +68,10 @@ interface FlipBookProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, brandName = '' }) => {
 
-  // ── Page data ───────────────────────────────────────────────────────────────
-  const [pages, setPages]   = useState<string[]>([]);
-  const [loadPct, setLoadPct] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
+  // ── Page data (delegated to useFlipBookLoader) ──────────────────────────────
+  // All I/O — image preloading AND PDF fallback rendering — lives in the
+  // hook. FlipBook itself only owns navigation/zoom/pan/render state.
+  const { pages, loading, loadPct, loadErr } = useFlipBookLoader(imageUrls, pdfUrl);
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [spread, setSpread]     = useState(0);
@@ -115,105 +115,19 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   canNextRef.current  = canNext;
   flippingRef.current = flipping;
 
-  // ── Image-based loading (preferred) ────────────────────────────────────────
+  // ── Reset UI state when the source content changes ──────────────────────
+  // The actual fetching is in useFlipBookLoader; we only reset the
+  // navigation state here so the viewer returns to the cover when a new
+  // catalog is loaded. Guarded so the reset only fires on true content
+  // changes, not on every render of the hook's returned values.
   useEffect(() => {
-    if (!imageUrls || imageUrls.length === 0) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setLoadErr(null);
-    setPages([]);
-    setLoadPct(0);
     setSpread(0);
+  }, [imageUrls, pdfUrl]);
 
-    const loaded: string[] = [];
-    let count = 0;
-
-    imageUrls.forEach((url, i) => {
-      const img = new Image();
-      img.onload = () => {
-        if (cancelled) return;
-        loaded[i] = url;
-        count++;
-        setLoadPct(Math.round((count / imageUrls.length) * 100));
-        if (count === imageUrls.length) {
-          setPages(loaded);
-          setLoading(false);
-        }
-      };
-      img.onerror = () => {
-        if (cancelled) return;
-        loaded[i] = url; // still include — browser will show broken
-        count++;
-        if (count === imageUrls.length) {
-          setPages(loaded);
-          setLoading(false);
-        }
-      };
-      img.src = url;
-    });
-
-    return () => { cancelled = true; };
-  }, [imageUrls]);
-
-  // ── PDF-based loading (legacy fallback) ────────────────────────────────────
-  useEffect(() => {
-    if (imageUrls && imageUrls.length > 0) return; // images take priority
-    if (!pdfUrl) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setLoadErr(null);
-    setPages([]);
-    setLoadPct(0);
-    setSpread(0);
-
-    (async () => {
-      try {
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
-        const resp = await fetch(pdfUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = new Uint8Array(await resp.arrayBuffer());
-
-        const pdf = await pdfjsLib.getDocument({ data }).promise;
-        if (cancelled) return;
-
-        const n = pdf.numPages;
-        const rendered: string[] = [];
-
-        for (let i = 1; i <= n; i++) {
-          if (cancelled) return;
-          const page = await pdf.getPage(i);
-          const vp   = page.getViewport({ scale: 1.5 });
-          const cvs  = document.createElement('canvas');
-          cvs.width  = vp.width;
-          cvs.height = vp.height;
-          await page.render({ canvas: cvs, viewport: vp }).promise;
-          rendered.push(cvs.toDataURL('image/jpeg', 0.85));
-          setLoadPct(Math.round((i / n) * 100));
-          if (i <= 2 || i % 5 === 0) setPages([...rendered]);
-        }
-
-        if (!cancelled) {
-          setPages([...rendered]);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLoadErr(err instanceof Error ? err.message : 'Failed to load PDF');
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [pdfUrl, imageUrls]);
+  // Clear any lingering timer on unmount.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   // ── Navigation ───────────────────────────────────────────────────────────
   const goNext = useCallback(() => {

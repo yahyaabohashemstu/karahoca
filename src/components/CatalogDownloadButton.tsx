@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { normalizeLanguageCode } from '../utils/language';
-import { buildApiUrl } from '../utils/api';
+import { apiFetch } from '../utils/apiFetch';
 import { trackCatalogDownload } from '../utils/analytics';
 
 interface CatalogProduct {
@@ -152,7 +152,7 @@ const CatalogDownloadButton: React.FC = () => {
   });
 
   const fetchBrand = async (brand: string): Promise<BrandData> => {
-    const res = await fetch(buildApiUrl(`/api/products/${brand}?lang=${lang}`));
+    const res = await apiFetch(`/api/products/${brand}?lang=${lang}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch ${brand}`);
     }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { buildApiUrl } from '../../utils/api';
 import { fmtDate } from '../utils/dateUtils';
 
 export const AdminNewsletter: React.FC = () => {
@@ -18,18 +17,10 @@ export const AdminNewsletter: React.FC = () => {
     if (!confirm(`Unsubscribe ${email}?`)) return;
     setDeleting(email);
     try {
-      const response = await fetch(buildApiUrl(`/api/admin/newsletter/${encodeURIComponent(email)}`), {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (response.status === 401) {
-        window.location.href = '/admin';
-        return;
-      }
-      const payload = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || 'Failed to unsubscribe');
-      }
+      // Route through adminApi so the admin CSRF double-submit cookie is
+      // attached. The previous raw `fetch` bypassed the helper and would
+      // have been rejected 403 by the server's admin-CSRF guard.
+      await adminApi.deleteSubscriber(email);
       await reload();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to unsubscribe');
@@ -41,18 +32,7 @@ export const AdminNewsletter: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const response = await fetch(buildApiUrl('/api/admin/newsletter/export'), {
-        credentials: 'include',
-      });
-      if (response.status === 401) {
-        window.location.href = '/admin';
-        return;
-      }
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(payload.error || 'Failed to export subscribers');
-      }
-      const blob = await response.blob();
+      const blob = await adminApi.exportNewsletterCsv();
       const objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;

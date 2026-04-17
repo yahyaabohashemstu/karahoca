@@ -1,4 +1,4 @@
-import { buildApiUrl } from "../utils/api";
+import { apiFetch } from "../utils/apiFetch";
 import type { SupportedLanguageCode } from "../utils/language";
 
 interface LocalizedTextMap {
@@ -274,7 +274,7 @@ export const fetchNewsFromApi = async (
   language: SupportedLanguageCode,
 ): Promise<LocalizedNewsItem[] | null> => {
   try {
-    const res = await fetch(buildApiUrl(`/api/news?lang=${language}`));
+    const res = await apiFetch(`/api/news?lang=${language}`);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       success: boolean;

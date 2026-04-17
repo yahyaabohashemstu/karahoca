@@ -138,6 +138,23 @@ export async function cacheSet(key, value, ttlSeconds) {
   }
 }
 
+/**
+ * Delete a cached value by key. Idempotent — missing keys resolve silently.
+ * @param {string} key
+ * @returns {Promise<void>}
+ */
+export async function cacheDelete(key) {
+  if (redisAvailable) {
+    try {
+      await redis.del(key);
+      return;
+    } catch {
+      // fall through
+    }
+  }
+  memCache.delete(key);
+}
+
 // ─── Rate Limiter: Atomic counter with sliding window ───────────────────────
 
 /**

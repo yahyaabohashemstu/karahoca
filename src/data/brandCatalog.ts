@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { buildApiUrl } from "../utils/api";
+import { apiFetch } from "../utils/apiFetch";
 import type { SupportedLanguageCode } from "../utils/language";
 
 export interface BrandProductDetails {
@@ -597,7 +597,7 @@ export const fetchBrandCatalogFromApi = async (
   lang: SupportedLanguageCode,
 ): Promise<BrandCategoryData[] | null> => {
   try {
-    const res = await fetch(buildApiUrl(`/api/products/${brand}?lang=${lang}`));
+    const res = await apiFetch(`/api/products/${brand}?lang=${lang}`);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       success: boolean;

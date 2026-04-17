@@ -5,6 +5,7 @@ import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
 import { getDioxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
+import { catalogPdfUrl, catalogPageImages } from '../utils/catalogUrls';
 
 const DIOX_LOGO_SRC = '/Diox-logo.png.webp';
 const DIOX_LOGO_FALLBACK = '/Diox-logo.png.png';
@@ -86,10 +87,8 @@ const DioxPageContent: React.FC = () => {
     contactId: 'contact-diox',
     aboutId: 'about-diox',
     pageClass: 'diox-page',
-    catalogImages: Array.from({ length: 18 }, (_, i) =>
-      `/Catalog/diox-pages/page-${String(i + 1).padStart(2, '0')}.webp`
-    ),
-    pdfUrl: '/Catalog/DIOX-KATALOG.pdf'
+    catalogImages: catalogPageImages('diox', 18),
+    pdfUrl: catalogPdfUrl('DIOX-KATALOG.pdf')
   };
 
   const allProducts = categories.flatMap(c =>

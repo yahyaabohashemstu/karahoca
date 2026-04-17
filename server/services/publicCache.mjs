@@ -1,4 +1,4 @@
-import { cacheGet, cacheSet } from '../redisClient.mjs';
+import { cacheGet, cacheSet, cacheDelete } from '../redisClient.mjs';
 
 /**
  * Thin wrapper around the Redis client's cache primitives, scoped to the
@@ -52,26 +52,39 @@ export const setPublicCached = async (namespace, parts, serialisedValue, ttlSeco
 // a per-variant eviction on admin write is both cheap and correct.
 
 const LANGS = ['ar', 'en', 'tr', 'ru'];
+// Brand set for bulk invalidation. Kept centralised so an entirely-new
+// brand (unlikely but possible) is one edit away from being cache-busted
+// by admin writes.
+const BRANDS = ['DIOX', 'AYLUX'];
 
 /**
  * Explicitly invalidate the cached public-products response for a brand
  * (admin mutation → next read rebuilds from SQLite). Brand is optional —
  * pass nothing to evict every brand × every language.
+ *
+ * Uses `cacheDelete` (Redis DEL / in-memory Map.delete) so invalidation
+ * is immediate and unambiguous. An earlier version tried to write a short-
+ * TTL empty string, but `setPublicCached` deliberately skips empty values
+ * (to reject accidental clobbers), so the eviction silently became a
+ * no-op. Going straight to DELETE fixes that class of bug permanently.
  */
 export const invalidateProductsCache = async (brand) => {
-  const brands = brand ? [brand.toUpperCase()] : [null];
+  // When brand is not supplied, fan out across every brand we know about.
+  // The cache keys are stored under real brand names ('DIOX', 'AYLUX'),
+  // not a `null` sentinel — iterating the known set is the only way to
+  // evict all of them deterministically without a Redis SCAN (which the
+  // in-memory fallback wouldn't honour anyway).
+  const brands = brand ? [brand.toUpperCase()] : BRANDS;
   const promises = [];
   for (const b of brands) {
     for (const lang of LANGS) {
-      promises.push(setPublicCached('products', [b, lang], '', 1));
+      promises.push(cacheDelete(buildKey('products', [b, lang])));
     }
   }
-  // Awaiting is optional — fire-and-forget keeps the admin mutation path
-  // latency unchanged. We still await briefly to surface any Redis errors.
   try { await Promise.allSettled(promises); } catch { /* noop */ }
 };
 
 export const invalidateNewsCache = async () => {
-  const promises = LANGS.map((lang) => setPublicCached('news', [lang], '', 1));
+  const promises = LANGS.map((lang) => cacheDelete(buildKey('news', [lang])));
   try { await Promise.allSettled(promises); } catch { /* noop */ }
 };

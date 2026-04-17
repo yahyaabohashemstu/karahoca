@@ -140,6 +140,28 @@ export const adminApi = {
     const q = page ? `?page=${page}` : '';
     return request<NewsletterResponse>('GET', `/api/admin/newsletter${q}`);
   },
+  deleteSubscriber: (email: string) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/newsletter/${encodeURIComponent(email)}`),
+  /**
+   * CSV export returns a file blob (not JSON) so it bypasses the typed
+   * `request` helper. This function handles auth + CSRF inline, surfaces
+   * 401 as a redirect, and returns a blob the caller can save.
+   */
+  exportNewsletterCsv: async (): Promise<Blob> => {
+    const response = await fetch(buildApiUrl('/api/admin/newsletter/export'), {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (response.status === 401) {
+      window.location.href = '/admin';
+      throw buildRequestError('Session expired. Please log in again.', 401);
+    }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      throw buildRequestError(payload.error || `Export failed (${response.status})`, response.status);
+    }
+    return response.blob();
+  },
 
   // AI Translation
   translate: (data: TranslateRequest) =>

@@ -1,4 +1,4 @@
-import { buildApiUrl } from '../../utils/api';
+import { apiFetch } from '../../utils/apiFetch';
 import type { AiContextPayload, KnowledgeSection } from './types';
 
 /**
@@ -55,7 +55,7 @@ export const loadAiContext = async (): Promise<AiContextPayload> => {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       let response: Response;
       try {
-        response = await fetch(buildApiUrl('/api/ai/context'), {
+        response = await apiFetch('/api/ai/context', {
           method: 'GET',
           signal: controller.signal,
         });
