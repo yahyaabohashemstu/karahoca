@@ -7,7 +7,7 @@
     "dev": "node scripts/run-stack.mjs dev",
     "dev:web": "vite",
     "dev:api": "node server-bootstrap.mjs",
-    "build": "tsc -b && vite build && node scripts/optimize-images.mjs && node scripts/prerender.mjs",
+    "build": "tsc -b && vite build && node scripts/optimize-images.mjs && node scripts/prune-dist.mjs && node scripts/prerender.mjs",
     "prerender": "node scripts/prerender.mjs",
     "optimize-images": "node scripts/optimize-images.mjs",
     "lint": "eslint . && node scripts/check-important-budget.mjs",
