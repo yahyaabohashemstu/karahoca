@@ -61,11 +61,10 @@ export const trackNewsletterSubscription = (language: string): void => {
 };
 
 // ── Downloads ────────────────────────────────────────────────────────────────
-
-/** Product catalog PDF download triggered */
-export const trackCatalogDownload = (language: string): void => {
-  trackEvent('Download', 'Catalog PDF', language);
-};
+// `trackCatalogDownload` was removed alongside the orphan
+// `CatalogDownloadButton` component — the only call site. The generic
+// `trackDownload` stays because it may be reused by any future download
+// surface (newsletter attachments, signed assets, etc.).
 
 /** Generic file download */
 export const trackDownload = (filename: string): void => {
