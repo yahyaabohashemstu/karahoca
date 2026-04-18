@@ -1443,17 +1443,45 @@ body.light-mode .product-wishlist-btn--active {
 
 /* Popup للصور */
 .image-popup-overlay {
+  /* The Phase-3 a11y refactor switched this from <div> to a native <dialog>.
+     A native <dialog> ships UA chrome (white background, border, padding,
+     auto-margins for centering) we don't want, plus a default
+     `display: none` when not open which our `display: flex` was clobbering
+     — that's why an empty placeholder dialog used to render a permanent
+     full-screen blurred backdrop on /diox and /aylux. The rules below
+     strip the UA chrome and the `:not([open])` block restores the
+     default-hidden behaviour. */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
   background: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
   backdrop-filter: blur(8px);
+  color: inherit;
+}
+
+/* CRITICAL — restore browser-native hidden behaviour for the closed
+   dialog. Without this, the placeholder element rendered when no product
+   is selected covers the page with the blurred overlay. */
+.image-popup-overlay:not([open]) {
+  display: none;
+}
+
+/* Hide the ::backdrop the browser renders on top of our custom backdrop
+   for modal dialogs — we already paint the dim layer via the dialog
+   element itself, so the UA backdrop would double the darkness. */
+.image-popup-overlay::backdrop {
+  background: transparent;
 }
 
 .image-popup-content {
