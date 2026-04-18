@@ -9,11 +9,19 @@
   z-index: 999;
 }
 
-/* Inline mode for navbar */
+/* Inline mode for navbar.
+ *
+ * `inset: auto` resets ALL four positioning edges (top/right/bottom/left).
+ * Necessary because the more-specific `[dir="rtl"] .language-switcher`
+ * rule below sets `right: 2rem`, which the previous `left: auto`-only
+ * override didn't cancel — that's what made the AR button slide 2rem
+ * leftward and overlap with the Contact button in Arabic mode. The
+ * shorthand resets all four edges in one declaration so any future RTL/
+ * positioning rule won't quietly leak through again.
+ */
 .language-switcher--inline {
   position: relative;
-  bottom: auto;
-  left: auto;
+  inset: auto;
   display: inline-flex;
   align-items: center;
   z-index: 1;
