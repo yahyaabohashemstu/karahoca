@@ -5,7 +5,6 @@ import {
   Navigate,
   Outlet,
   useLocation,
-  useParams,
 } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { lazy, Suspense } from 'react';
@@ -22,7 +21,6 @@ import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from
 import { useLocaleSync } from './hooks/useLocaleSync';
 import {
   getLanguageDirection,
-  normalizeLanguageCode,
   supportedLanguageCodes,
   type SupportedLanguageCode,
 } from './utils/language';
@@ -62,9 +60,6 @@ const RouteFallback = () => (
 );
 
 // ─── Locale routing helpers ────────────────────────────────────────────────
-
-const isSupportedLang = (value: string | undefined): value is SupportedLanguageCode =>
-  !!value && (supportedLanguageCodes as readonly string[]).includes(value.toLowerCase());
 
 /**
  * Client-side redirect for the naked root URL `/` → `/<preferred-lang>/`.
@@ -119,24 +114,27 @@ const LegacyPathRedirect = () => {
  *      toggle, WhatsApp CTA) ONCE so they survive in-app navigation
  *      without remounting.
  */
-const LocalizedShell = () => {
-  const { lang: rawLang } = useParams<{ lang: string }>();
-  const location = useLocation();
+interface LocalizedShellProps {
+  /**
+   * Language this shell instance serves. Passed as a prop instead of read
+   * from a `:lang` route param because the route tree now enumerates the
+   * supported languages as explicit static prefixes (see App below). The
+   * prop is always a known-valid `SupportedLanguageCode` — no runtime
+   * validation needed; the route pattern guarantees it.
+   */
+  lang: SupportedLanguageCode;
+}
 
-  // All hooks must run unconditionally before any early return. The sync
-  // hook below is a no-op when the URL lang is unsupported, so running it
-  // before the redirect is safe.
+const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
+  // Hooks must always run unconditionally. useLocaleSync reads the :lang
+  // URL param internally, which is now empty — we'll pass it explicitly
+  // below by synchronising i18n here instead.
   useLocaleSync();
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
 
-  if (!isSupportedLang(rawLang)) {
-    const target = `/${DEFAULT_LANG}${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to={target} replace />;
-  }
-
-  const lang = normalizeLanguageCode(rawLang);
+  const lang = shellLang;
   const dir = getLanguageDirection(lang);
 
   return (
@@ -165,6 +163,29 @@ const LocalizedShell = () => {
   );
 };
 
+/**
+ * Child routes rendered inside every localised shell. Declared once and
+ * re-used per-language below to keep behaviour identical across locales.
+ */
+const renderLocalisedChildren = () => (
+  <>
+    <Route index element={<Home />} />
+    <Route path="about" element={<AboutPage />} />
+    <Route path="news" element={<NewsPage />} />
+    <Route path="news/:slug" element={<NewsArticlePage />} />
+    <Route path="diox" element={<DioxPage />} />
+    <Route path="aylux" element={<AyluxPage />} />
+    <Route path="production" element={<ProductionPage />} />
+    <Route path="goal" element={<GoalPage />} />
+    <Route path="dryer" element={<DryerPage />} />
+    <Route path="wishlist" element={<WishlistPage />} />
+    <Route path="unsubscribe" element={<UnsubscribePage />} />
+    <Route path="privacy" element={<PrivacyPage />} />
+    <Route path="terms" element={<TermsPage />} />
+    <Route path="*" element={<NotFoundPage />} />
+  </>
+);
+
 function App() {
   return (
     <ErrorBoundary>
@@ -186,23 +207,30 @@ function App() {
               {/* Root → language redirect. */}
               <Route path="/" element={<RootLangRedirect />} />
 
-              {/* Localised site tree. Every public page lives under here. */}
-              <Route path="/:lang" element={<LocalizedShell />}>
-                <Route index element={<Home />} />
-                <Route path="about" element={<AboutPage />} />
-                <Route path="news" element={<NewsPage />} />
-                <Route path="news/:slug" element={<NewsArticlePage />} />
-                <Route path="diox" element={<DioxPage />} />
-                <Route path="aylux" element={<AyluxPage />} />
-                <Route path="production" element={<ProductionPage />} />
-                <Route path="goal" element={<GoalPage />} />
-                <Route path="dryer" element={<DryerPage />} />
-                <Route path="wishlist" element={<WishlistPage />} />
-                <Route path="unsubscribe" element={<UnsubscribePage />} />
-                <Route path="privacy" element={<PrivacyPage />} />
-                <Route path="terms" element={<TermsPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Route>
+              {/*
+                Localised site tree.
+
+                ⚠ IMPORTANT: we enumerate the four supported languages as
+                explicit routes (`/ar`, `/en`, `/tr`, `/ru`) instead of using
+                a single `/:lang` param. Why:
+
+                  React Router v7's route-ranking scores static > dynamic.
+                  With `/:lang` + child `news`, the total score for
+                  `/:lang/news` is higher than `/admin/*` (static + splat),
+                  so `/admin/news` used to match `/:lang/news` with
+                  lang="admin". LocalizedShell then redirected to
+                  `/ar/admin/news` which 404'd. Four explicit static
+                  prefixes remove the ambiguity — `/admin/*` wins
+                  unconditionally now.
+
+                Each block uses the SAME `renderLocalisedChildren()` so
+                behaviour per language is identical.
+              */}
+              {supportedLanguageCodes.map((lang) => (
+                <Route key={lang} path={`/${lang}`} element={<LocalizedShell lang={lang} />}>
+                  {renderLocalisedChildren()}
+                </Route>
+              ))}
 
               {/* Any non-admin, non-root, non-language-prefixed path. Keeps
                   legacy bookmarks and external links alive after the URL
