@@ -1,13 +1,26 @@
 name: CI
 
-# Runs on every PR and on pushes to main. Failing this workflow should
-# block merges — configure branch protection on main to require it.
+# ─────────────────────────────────────────────────────────────────────────
+# Trigger configuration
+# ─────────────────────────────────────────────────────────────────────────
+# Currently set to MANUAL ONLY (`workflow_dispatch`) because the repository
+# owner's GitHub Actions billing is paused — automatic runs on every push
+# would otherwise fire failure-notification emails for every commit.
+#
+# To re-enable automatic runs once billing is resolved, replace the `on:`
+# block with the auto trigger below:
+#
+#   on:
+#     push:
+#       branches: [main]
+#     pull_request:
+#       branches: [main]
+#
+# And configure branch protection on main to require this workflow.
+# ─────────────────────────────────────────────────────────────────────────
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
