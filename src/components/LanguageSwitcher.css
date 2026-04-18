@@ -2,26 +2,33 @@
    Language Switcher Component
    ========================================== */
 
-.language-switcher {
+/* The STANDALONE language switcher floats in the bottom corner. The inline
+ * variant (used inside the navbar — currently the only consumer) needs none
+ * of this positioning. Scoping the standalone styles with
+ * `:not(.language-switcher--inline)` instead of relying on the inline rule
+ * to override is the only way to win the specificity war reliably:
+ *
+ *   `[dir="rtl"] .language-switcher`        → (0,2,0)
+ *   `.language-switcher--inline`            → (0,1,0)  ← LOSES on `right`
+ *
+ * An earlier attempt added `inset: auto` to the inline rule, but `inset` is
+ * a shorthand that desugars into individual `top/right/bottom/left: auto`
+ * declarations whose specificity is still (0,1,0) — the more-specific RTL
+ * rule's `right: 2rem` won and the AR pill slid 2rem inward (leftward in
+ * RTL), overlapping the Contact button. By scoping the standalone rules
+ * with `:not(...)` we guarantee they never even MATCH the inline element,
+ * so there's no cascade fight to lose.
+ */
+.language-switcher:not(.language-switcher--inline) {
   position: fixed;
   bottom: 7rem;
   left: 2rem;
   z-index: 999;
 }
 
-/* Inline mode for navbar.
- *
- * `inset: auto` resets ALL four positioning edges (top/right/bottom/left).
- * Necessary because the more-specific `[dir="rtl"] .language-switcher`
- * rule below sets `right: 2rem`, which the previous `left: auto`-only
- * override didn't cancel — that's what made the AR button slide 2rem
- * leftward and overlap with the Contact button in Arabic mode. The
- * shorthand resets all four edges in one declaration so any future RTL/
- * positioning rule won't quietly leak through again.
- */
+/* Inline mode for navbar — minimal, no positioning fights. */
 .language-switcher--inline {
   position: relative;
-  inset: auto;
   display: inline-flex;
   align-items: center;
   z-index: 1;
@@ -170,8 +177,12 @@
   flex-shrink: 0;
 }
 
-/* RTL Support */
-[dir="rtl"] .language-switcher {
+/* RTL Support — STANDALONE variant only. The inline switcher is excluded
+ * via the same `:not()` scoping pattern used in the base rule above; if
+ * we let `[dir="rtl"] .language-switcher` match the inline variant, its
+ * `right: 2rem` would slide the navbar pill 2rem leftward into the
+ * Contact button (the original symptom of this whole class of bugs). */
+[dir="rtl"] .language-switcher:not(.language-switcher--inline) {
   left: auto;
   right: 2rem;
 }
@@ -194,14 +205,15 @@
   transform: translateX(-4px);
 }
 
-/* Responsive Design */
+/* Responsive Design — STANDALONE positioning rules scoped to non-inline
+ * variant only, same reasoning as the base block above. */
 @media (max-width: 768px) {
-  .language-switcher {
+  .language-switcher:not(.language-switcher--inline) {
     bottom: 6.5rem;
     left: 1rem;
   }
 
-  [dir="rtl"] .language-switcher {
+  [dir="rtl"] .language-switcher:not(.language-switcher--inline) {
     left: auto;
     right: 1rem;
   }
