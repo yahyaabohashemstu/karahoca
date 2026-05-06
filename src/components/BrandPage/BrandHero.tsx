@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import ImageWithFallback from '../ImageWithFallback';
+import { ArrowRight, Sparkle } from '@phosphor-icons/react';
+import PageHero from '../PageHero';
 
 interface BrandHeroProps {
   brandName: string;
@@ -21,8 +22,9 @@ interface BrandHeroProps {
 /**
  * Hero band + About panel for a brand page (DIOX / AYLUX).
  *
- * Pure presentation — no state, no effects. Extracted from the former
- * `BrandPageTemplate.tsx` monolith.
+ * v3: now uses the unified <PageHero> primitive — same eyebrow/CTA/visual
+ * paradigm as the home Hero so the user feels one consistent design language
+ * across navigation. The brand name appears in the eyebrow as a microlabel.
  */
 const BrandHeroComponent: React.FC<BrandHeroProps> = ({
   brandName,
@@ -43,46 +45,43 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
 
   return (
     <>
-      <section className="hero">
-        <div className="container hero__grid">
-          <div className="hero__copy">
-            <h1 className="fx-reveal hero-title">
-              <span className="gradient-text">{brandName}</span><br />
-              {heroTitle}
-            </h1>
-            <p className="lead fx-reveal">{heroDescription}</p>
-            <div className="hero__cta fx-reveal">
-              <a href="#products" className="btn btn--primary btn-hover-effect">{t('brandPage.exploreProducts')}</a>
-              <a href="#contact" className="btn btn--ghost btn-hover-effect">{t('brandPage.requestQuote')}</a>
-            </div>
-            <ul className="hero__badges">
-              {badges.map((badge) => (
-                <li key={badge} className="chip glass-chip">{badge}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="hero__visual">
-            <div className="hero__visual-shell">
-              <div className="hero__visual-core">
-                <ImageWithFallback
-                  src={heroImage}
-                  fallbackSrc={heroImageFallback}
-                  alt={heroImageAlt}
-                  width={800}
-                  height={800}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                  className="hero__visual-img"
-                />
-                <div className="hero__visual-highlight" aria-hidden="true" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        sectionId="brand-hero"
+        eyebrow={
+          <>
+            <Sparkle weight="fill" size={12} aria-hidden="true" />
+            <span>{brandName}</span>
+          </>
+        }
+        title={heroTitle}
+        description={heroDescription}
+        primaryAction={
+          <a href="#products" className="btn-premium btn-premium--primary">
+            <span className="btn-premium__label">
+              {t('brandPage.exploreProducts')}
+            </span>
+            <span className="btn-premium__icon" aria-hidden="true">
+              <ArrowRight size={16} weight="bold" />
+            </span>
+          </a>
+        }
+        tertiaryAction={
+          <a href="#contact" className="btn-premium btn-premium--tertiary">
+            {t('brandPage.requestQuote')}
+            <span className="btn-premium__chevron" aria-hidden="true">→</span>
+          </a>
+        }
+        chips={badges}
+        image={heroImage}
+        imageFallback={heroImageFallback}
+        imageAlt={heroImageAlt}
+        imageLCP
+      />
 
-      <section id={aboutId} className="section glass-section section--alt brand-about">
+      <section
+        id={aboutId}
+        className="section glass-section section--alt brand-about"
+      >
         <div className="section-divider" aria-hidden="true" />
         <div className="container section__head fx-reveal">
           <h2 className="section-title">{aboutTitle}</h2>
@@ -95,7 +94,9 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
               {aboutSections.map((section, index) => (
                 <React.Fragment key={index}>
                   <div className="brand-about__panel-divider" aria-hidden="true" />
-                  <div className="brand-about__section-title">{section.title}</div>
+                  <div className="brand-about__section-title">
+                    {section.title}
+                  </div>
                   <p className="brand-about__section-body">{section.content}</p>
                 </React.Fragment>
               ))}

@@ -1,4 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ArrowsOutSimple } from '@phosphor-icons/react';
 
 import Header from '../Header';
 import Footer from '../Footer';
@@ -95,6 +97,7 @@ const BrandPage: React.FC<BrandPageProps> = ({
   pdfUrl,
   catalogImages,
 }) => {
+  const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
 
   // Deep-link: open the matching product modal on first mount when the URL
@@ -147,21 +150,28 @@ const BrandPage: React.FC<BrandPageProps> = ({
             see the richest brand visual first. */}
         {(catalogImages || pdfUrl) && (
           <section id="catalog" className="section bfb-section">
-            <div className="section-divider"></div>
+            <div className="section-divider" aria-hidden="true" />
 
             <div className="container bfb-header fx-reveal">
               <div className="bfb-header__left">
-                <span className="bfb-eyebrow">Interactive Catalog</span>
-                <h2 className="bfb-title">
-                  كتالوج <span className="gradient-text">{brandName}</span> التفاعلي
+                <span className="bfb-eyebrow">{t('flipbook.eyebrow')}</span>
+                <h2 className="bfb-title gradient-text">
+                  {t('flipbook.title', { brand: brandName })}
                 </h2>
-                <p className="bfb-subtitle">
-                  تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة
-                </p>
+                <p className="bfb-subtitle">{t('flipbook.subtitle')}</p>
               </div>
               <div className="bfb-header__badges">
-                <span className="bfb-badge"><span className="bfb-badge__dot bfb-badge__dot--green"></span>متاح الآن</span>
-                <span className="bfb-badge">⛶ ملء الشاشة</span>
+                <span className="bfb-badge">
+                  <span
+                    className="bfb-badge__dot bfb-badge__dot--green"
+                    aria-hidden="true"
+                  />
+                  {t('flipbook.available')}
+                </span>
+                <span className="bfb-badge">
+                  <ArrowsOutSimple size={12} weight="bold" aria-hidden="true" />
+                  {t('flipbook.fullscreen')}
+                </span>
               </div>
             </div>
 

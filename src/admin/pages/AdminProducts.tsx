@@ -199,7 +199,7 @@ export const AdminProducts: React.FC = () => {
         </div>
 
         {reorderItems.length === 0 && (
-          <div className="adm-alert" style={{ marginTop: 16 }}>
+          <div className="adm-alert adm-mt-lg">
             No products loaded. Close and open a brand filter first.
           </div>
         )}
@@ -297,7 +297,7 @@ export const AdminProducts: React.FC = () => {
                   )}
 
                   {/* Names */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="adm-flex-1 adm-min-w-0">
                     <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {p.name_en}
                     </div>

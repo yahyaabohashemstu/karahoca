@@ -1,6 +1,11 @@
 /* ==========================================
    Language Switcher Component
+   ──────────────────────────────────────────
+   Wrapped in @layer overrides so dropdown / option color rules win over
+   main.css base rules without needing !important. Per tokens.css layer
+   definition: base, components, layout, themes, utilities, overrides.
    ========================================== */
+@layer overrides {
 
 /* The STANDALONE language switcher floats in the bottom corner. The inline
  * variant (used inside the navbar — currently the only consumer) needs none
@@ -90,8 +95,8 @@
   left: 0;
   min-width: 160px;
   padding: 0.5rem;
-  background: rgba(26, 35, 50, 0.98) !important; /* خلفية داكنة للوضع الداكن */
-  backdrop-filter: none !important;
+  background: rgba(26, 35, 50, 0.98); /* خلفية داكنة للوضع الداكن */
+  backdrop-filter: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   box-shadow: 
@@ -140,7 +145,7 @@
   background: transparent;
   border: none;
   border-radius: 12px;
-  color: rgba(255, 255, 255, 0.7) !important; /* أبيض رمادي للوضع الداكن */
+  color: rgba(255, 255, 255, 0.7); /* أبيض رمادي للوضع الداكن */
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
@@ -152,8 +157,8 @@
 }
 
 .language-switcher__option--active {
-  background: transparent !important; /* إزالة الخلفية البرتقالية */
-  color: var(--primary) !important; /* فقط النص برتقالي */
+  background: transparent; /* إزالة الخلفية البرتقالية */
+  color: var(--primary); /* فقط النص برتقالي */
 }
 
 .language-switcher__option--active:hover {
@@ -273,8 +278,8 @@ body.light-mode .language-switcher__button:hover {
 }
 
 body.light-mode .language-switcher__dropdown {
-  background: rgb(255, 255, 255) !important;
-  backdrop-filter: none !important;
+  background: rgb(255, 255, 255);
+  backdrop-filter: none;
   border-color: rgba(21, 61, 122, 0.15);
   box-shadow: 
     0 8px 32px rgba(21, 61, 122, 0.15),
@@ -282,7 +287,7 @@ body.light-mode .language-switcher__dropdown {
 }
 
 body.light-mode .language-switcher__option {
-  color: #666666 !important; /* رمادي غامق للخيارات غير النشطة */
+  color: #666666; /* رمادي غامق للخيارات غير النشطة */
 }
 
 body.light-mode .language-switcher__option:hover {
@@ -290,8 +295,8 @@ body.light-mode .language-switcher__option:hover {
 }
 
 body.light-mode .language-switcher__option--active {
-  background: transparent !important; /* إزالة الخلفية */
-  color: var(--orange) !important; /* فقط النص برتقالي */
+  background: transparent; /* إزالة الخلفية */
+  color: var(--orange); /* فقط النص برتقالي */
 }
 
 body.light-mode .language-switcher__option--active:hover {
@@ -315,3 +320,5 @@ body.light-mode .language-switcher__option--active:hover {
     transition: none;
   }
 }
+
+} /* end @layer overrides */

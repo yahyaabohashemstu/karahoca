@@ -3021,3 +3021,203 @@
     border-radius: 5pt;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Admin utility classes — replaces 200+ inline style occurrences
+   ─────────────────────────────────────────────────────────────────────
+   Naming follows BEM-lite: adm-{property}-{value}.
+   All values map to design tokens (no raw px/colors). Spacing scale uses
+   admin's existing radius/spacing variables.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Display & flex */
+.adm-flex { display: flex; }
+.adm-flex-col { display: flex; flex-direction: column; }
+.adm-flex-row { display: flex; flex-direction: row; }
+.adm-flex-wrap { flex-wrap: wrap; }
+.adm-flex-nowrap { flex-wrap: nowrap; }
+.adm-flex-1 { flex: 1; }
+.adm-flex-shrink-0 { flex-shrink: 0; }
+.adm-grid { display: grid; }
+.adm-inline-flex { display: inline-flex; }
+.adm-block { display: block; }
+.adm-inline-block { display: inline-block; }
+.adm-hidden { display: none; }
+
+/* Alignment */
+.adm-items-center { align-items: center; }
+.adm-items-start { align-items: flex-start; }
+.adm-items-end { align-items: flex-end; }
+.adm-items-stretch { align-items: stretch; }
+.adm-justify-center { justify-content: center; }
+.adm-justify-between { justify-content: space-between; }
+.adm-justify-end { justify-content: flex-end; }
+.adm-justify-start { justify-content: flex-start; }
+.adm-text-center { text-align: center; }
+.adm-text-left { text-align: left; }
+.adm-text-right { text-align: right; }
+.adm-text-end { text-align: end; }
+
+/* Gap */
+.adm-gap-xs { gap: 4px; }
+.adm-gap-sm { gap: 8px; }
+.adm-gap-md { gap: 12px; }
+.adm-gap-lg { gap: 16px; }
+.adm-gap-xl { gap: 24px; }
+.adm-gap-2xl { gap: 32px; }
+
+/* Margins */
+.adm-m-0 { margin: 0; }
+.adm-mt-0 { margin-top: 0; }
+.adm-mt-xs { margin-top: 4px; }
+.adm-mt-sm { margin-top: 8px; }
+.adm-mt-md { margin-top: 12px; }
+.adm-mt-lg { margin-top: 16px; }
+.adm-mt-xl { margin-top: 24px; }
+.adm-mt-2xl { margin-top: 32px; }
+.adm-mb-0 { margin-bottom: 0; }
+.adm-mb-xs { margin-bottom: 4px; }
+.adm-mb-sm { margin-bottom: 8px; }
+.adm-mb-md { margin-bottom: 12px; }
+.adm-mb-lg { margin-bottom: 16px; }
+.adm-mb-xl { margin-bottom: 24px; }
+.adm-mb-2xl { margin-bottom: 32px; }
+.adm-ml-auto { margin-inline-start: auto; }
+.adm-mr-auto { margin-inline-end: auto; }
+.adm-mx-auto { margin-inline: auto; }
+
+/* Padding */
+.adm-p-xs { padding: 4px; }
+.adm-p-sm { padding: 8px; }
+.adm-p-md { padding: 12px; }
+.adm-p-lg { padding: 16px; }
+.adm-p-xl { padding: 24px; }
+.adm-p-2xl { padding: 32px; }
+.adm-py-md { padding-block: 12px; }
+.adm-py-lg { padding-block: 16px; }
+.adm-px-md { padding-inline: 12px; }
+.adm-px-lg { padding-inline: 16px; }
+
+/* Width */
+.adm-w-full { width: 100%; }
+.adm-w-auto { width: auto; }
+.adm-min-w-0 { min-width: 0; }
+.adm-max-w-prose { max-width: 65ch; }
+
+/* Sizing helpers */
+.adm-flex-row-sm { display: flex; gap: 8px; }
+.adm-flex-row-md { display: flex; gap: 12px; }
+.adm-flex-row-lg { display: flex; gap: 16px; }
+.adm-flex-col-sm { display: flex; flex-direction: column; gap: 8px; }
+.adm-flex-col-md { display: flex; flex-direction: column; gap: 12px; }
+.adm-flex-col-lg { display: flex; flex-direction: column; gap: 16px; }
+
+/* Typography helpers */
+.adm-text-xs { font-size: 11px; }
+.adm-text-sm { font-size: 12px; }
+.adm-text-base { font-size: 13px; }
+.adm-text-md { font-size: 14px; }
+.adm-text-lg { font-size: 16px; }
+.adm-text-xl { font-size: 20px; }
+.adm-fw-medium { font-weight: 500; }
+.adm-fw-semibold { font-weight: 600; }
+.adm-fw-bold { font-weight: 700; }
+.adm-fw-extrabold { font-weight: 800; }
+.adm-text-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.adm-text-uppercase { text-transform: uppercase; }
+.adm-text-capitalize { text-transform: capitalize; }
+.adm-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Common admin patterns */
+.adm-card-tinted {
+  background: var(--adm-surface2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.adm-pill {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all var(--adm-transition);
+}
+
+.adm-pill--active {
+  background: var(--adm-accent);
+  color: #fff;
+}
+
+.adm-pill--inactive {
+  background: var(--adm-surface);
+  color: var(--adm-text-muted);
+}
+
+.adm-pill--ghost {
+  border: 1px solid var(--adm-border);
+  background: var(--adm-surface);
+  color: var(--adm-text-muted);
+}
+
+/* Scoped progress / range bar utility (replaces inline width: %) */
+.adm-progress-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--adm-glass);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.adm-progress-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  transition: width var(--adm-transition);
+}
+
+/* Filter chip — for status/lang filter pills */
+.adm-filter-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--adm-border);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  transition: all var(--adm-transition);
+  background: var(--adm-surface2);
+  color: var(--adm-text-muted);
+}
+
+.adm-filter-chip.is-active {
+  background: var(--adm-accent);
+  color: #fff;
+  border-color: var(--adm-accent);
+}
+
+/* Empty inline tags row */
+.adm-tag-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.adm-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--adm-surface2);
+  color: var(--adm-text-dim);
+}

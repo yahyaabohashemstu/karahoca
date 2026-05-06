@@ -375,8 +375,8 @@ export const AdminCampaignEdit: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
-      {success && <div className="adm-alert adm-alert-success" style={{ marginBottom: 16 }}>✅ {success}</div>}
+      {error && <div className="adm-alert adm-alert-error adm-mb-lg">⚠ {error}</div>}
+      {success && <div className="adm-alert adm-alert-success adm-mb-lg">✅ {success}</div>}
 
       {!isNew && (
         <div className="adm-tabs">
@@ -393,9 +393,9 @@ export const AdminCampaignEdit: React.FC = () => {
       )}
 
       {activeTab === 'edit' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="adm-flex-col-lg">
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 16 }}>Campaign Settings</div>
+            <div className="adm-card-title adm-mb-lg">Campaign Settings</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="adm-form-group">
                 <label className="adm-label">Campaign Title *</label>
@@ -428,7 +428,7 @@ export const AdminCampaignEdit: React.FC = () => {
           </div>
 
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 12 }}>Campaign Timing</div>
+            <div className="adm-card-title adm-mb-md">Campaign Timing</div>
 
             {isNew ? (
               <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
@@ -469,7 +469,7 @@ export const AdminCampaignEdit: React.FC = () => {
                   </button>
                 </div>
                 {form.status === 'scheduled' && form.scheduled_at && (
-                  <div className="adm-text-muted adm-text-sm" style={{ marginTop: 8 }}>
+                  <div className="adm-text-muted adm-text-sm adm-mt-sm">
                     Currently scheduled for {fmtDate(form.scheduled_at)}.
                   </div>
                 )}
@@ -478,7 +478,7 @@ export const AdminCampaignEdit: React.FC = () => {
           </div>
 
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 12 }}>
+            <div className="adm-card-title adm-mb-md">
               Campaign Image <span style={{ fontSize: 11, color: 'var(--adm-text-dim)', fontWeight: 400, textTransform: 'none' }}>(optional — shown at top of email)</span>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -487,7 +487,7 @@ export const AdminCampaignEdit: React.FC = () => {
                 value={(form as Record<string, string>).image_url || ''}
                 onChange={(e) => set('image_url', e.target.value)}
                 placeholder="https://... or upload from device"
-                style={{ flex: 1 }}
+                
               />
               <button
                 type="button"
@@ -620,8 +620,8 @@ export const AdminCampaignEdit: React.FC = () => {
           />
 
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 16 }}>Content</div>
-            <div className="adm-tabs" style={{ marginBottom: 16 }}>
+            <div className="adm-card-title adm-mb-lg">Content</div>
+            <div className="adm-tabs adm-mb-lg">
               {LANGS.map((l) => (
                 <button
                   key={l.key}
@@ -723,7 +723,7 @@ export const AdminCampaignEdit: React.FC = () => {
               group.length ? `${Math.round((group.filter(s => s.opened).length / group.length) * 100)}%` : '—';
             const clicks = (group: typeof sends) => group.reduce((n, s) => n + (s.click_count ?? 0), 0);
             return (
-              <div className="adm-card" style={{ marginBottom: 24 }}>
+              <div className="adm-card adm-mb-xl">
                 <div className="adm-card-title" style={{ marginBottom: 14 }}>
                   🧪 A/B Test Results
                 </div>

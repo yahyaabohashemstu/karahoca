@@ -790,6 +790,13 @@
     },
     "a11y": {
       "skipToContent": "Skip to content"
+    },
+    "flipbook": {
+      "eyebrow": "Interactive Catalog",
+      "title": "{{brand}} Interactive Catalog",
+      "subtitle": "Browse the full product line with a smooth digital reading experience — flip pages and view in fullscreen mode",
+      "available": "Available now",
+      "fullscreen": "Fullscreen"
     }
   },
   "common": {

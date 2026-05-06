@@ -122,8 +122,7 @@ const Footer: React.FC = () => {
           <img
             src="/cropped-karahoca-logo-s-.webp"
             alt="KARAHOCA"
-            className="brand__logo"
-            style={{ height: '64px', width: 'auto', objectFit: 'contain' }}
+            className="brand__logo footer__logo"
           />
           <p>{t('footer.description')}</p>
           <div className="footer__socials">
@@ -156,12 +155,7 @@ const Footer: React.FC = () => {
             {contactEmail}<br />
             <a
               href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`}
-              style={{
-                color: 'inherit',
-                textDecoration: 'none',
-                direction: 'ltr',
-                display: 'inline-block'
-              }}
+              className="footer__phone"
             >
               {contactPhone}
             </a>
@@ -177,7 +171,7 @@ const Footer: React.FC = () => {
               name="_honey"
               value={honeyValue}
               onChange={e => setHoneyValue(e.target.value)}
-              style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0, overflow: 'hidden' }}
+              className="footer__honeypot"
               tabIndex={-1}
               autoComplete="off"
               aria-hidden="true"
@@ -229,11 +223,17 @@ const Footer: React.FC = () => {
           </form>
         </section>
       </div>
-      <div className="container footnote" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.5rem 1.5rem' }}>
-        <p style={{ margin: 0 }}>{t('footer.copyright', { year: currentYear })}</p>
-        <nav style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
-          <Link to={lp('/privacy')} style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.privacy', 'Privacy Policy')}</Link>
-          <Link to={lp('/terms')} style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
+      <div className="container footnote footer__footnote">
+        <p className="footer__copy">
+          {t('footer.copyright', { year: currentYear })}
+        </p>
+        <nav className="footer__legal-nav" aria-label={t('footer.legal', 'Legal')}>
+          <Link to={lp('/privacy')} className="footer__legal-link">
+            {t('footer.privacy', 'Privacy Policy')}
+          </Link>
+          <Link to={lp('/terms')} className="footer__legal-link">
+            {t('footer.terms', 'Terms of Service')}
+          </Link>
         </nav>
       </div>
     </footer>

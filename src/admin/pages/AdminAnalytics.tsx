@@ -1,4 +1,35 @@
 import React, { useState } from 'react';
+import {
+  MagnifyingGlass,
+  Link as LinkIcon,
+  ArrowSquareOut,
+  ShareNetwork,
+  EnvelopeSimple,
+  CurrencyDollar,
+  Image as ImageIcon,
+  Question,
+  DeviceMobile,
+  Desktop,
+  DeviceTablet,
+  Globe,
+  Sparkle,
+  Users,
+  ChartLineUp,
+  Clock,
+  ArrowUUpLeft,
+  FileText,
+  Files,
+  ChatCircle,
+  UserCircle,
+  Envelope,
+  Newspaper,
+  Drop,
+  Flame,
+  GearSix,
+  Translate,
+  Warning,
+  type Icon as PhosphorIcon,
+} from '@phosphor-icons/react';
 import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
@@ -14,6 +45,9 @@ const fmtDuration = (s: number) => {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 };
 
+/* Country flags via emoji are kept — flag glyphs are unicode functional
+   symbols (region indicators), not decorative emoji. They render natively
+   on every platform and are the standard way to show locale identity. */
 const COUNTRY_FLAG: Record<string, string> = {
   Turkey: '🇹🇷', Türkiye: '🇹🇷', 'United States': '🇺🇸', 'Saudi Arabia': '🇸🇦',
   Germany: '🇩🇪', France: '🇫🇷', 'United Kingdom': '🇬🇧', UAE: '🇦🇪',
@@ -29,19 +63,33 @@ const SOURCE_COLOR: Record<string, string> = {
   Display: '#153D7A', Unassigned: '#6b7280',
 };
 
-const SOURCE_ICON: Record<string, string> = {
-  'Organic Search': '🔍', Direct: '🔗', Referral: '↗️',
-  'Organic Social': '📲', Email: '📧', 'Paid Search': '💰',
-  Display: '🖼️', Unassigned: '❓',
+/* Phosphor-only icon maps (replaces emoji dictionaries) */
+const SOURCE_ICON: Record<string, PhosphorIcon> = {
+  'Organic Search': MagnifyingGlass,
+  Direct: LinkIcon,
+  Referral: ArrowSquareOut,
+  'Organic Social': ShareNetwork,
+  Email: EnvelopeSimple,
+  'Paid Search': CurrencyDollar,
+  Display: ImageIcon,
+  Unassigned: Question,
 };
 
 const DEVICE_COLOR: Record<string, string> = {
   mobile: '#4f6ef7', desktop: '#22c55e', tablet: '#f59e0b',
 };
 
-const DEVICE_ICON: Record<string, string> = {
-  mobile: '📱', desktop: '🖥️', tablet: '📟',
+const DEVICE_ICON: Record<string, PhosphorIcon> = {
+  mobile: DeviceMobile,
+  desktop: Desktop,
+  tablet: DeviceTablet,
 };
+
+const renderIcon = (
+  Icon: PhosphorIcon | undefined,
+  size = 18,
+): React.ReactNode =>
+  Icon ? <Icon size={size} weight="duotone" aria-hidden="true" /> : null;
 
 type TrendDatum = { label: string; value: number; helper?: string };
 
@@ -166,7 +214,9 @@ const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> 
           const color = DEVICE_COLOR[item.device.toLowerCase()] ?? '#6b7280';
           return (
             <div key={item.device} className="adm-device-legend-item">
-              <span className="adm-device-legend-icon">{DEVICE_ICON[item.device.toLowerCase()] ?? '💻'}</span>
+              <span className="adm-device-legend-icon">
+                {renderIcon(DEVICE_ICON[item.device.toLowerCase()] ?? Desktop, 16)}
+              </span>
               <div>
                 <strong>{item.device}</strong>
                 <span style={{ color }}>{percentage}% · {item.sessions.toLocaleString()} sessions</span>
@@ -184,7 +234,7 @@ const RankingRow: React.FC<{
   value: number;
   max: number;
   color: string;
-  icon?: string;
+  icon?: React.ReactNode;
   rank?: number;
 }> = ({ label, value, max, color, icon, rank }) => {
   const width = max > 0 ? (value / max) * 100 : 0;
@@ -206,7 +256,7 @@ const RankingRow: React.FC<{
 };
 
 const MetricCard: React.FC<{
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
@@ -223,7 +273,7 @@ const MetricCard: React.FC<{
 
 const Panel: React.FC<{
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   children: React.ReactNode;
   accent?: string;
   copy?: string;
@@ -232,7 +282,10 @@ const Panel: React.FC<{
   <section className={`adm-analytics-panel${className ? ` ${className}` : ''}`} style={{ borderTopColor: accent }}>
     <div className="adm-analytics-panel-head">
       <div>
-        <div className="adm-card-title">{icon} {title}</div>
+        <div className="adm-card-title adm-card-title--with-icon">
+          <span className="adm-card-title-icon">{icon}</span>
+          <span>{title}</span>
+        </div>
         {copy && <p className="adm-analytics-panel-copy">{copy}</p>}
       </div>
     </div>
@@ -243,7 +296,7 @@ const Panel: React.FC<{
 const SetupGuide: React.FC<{ steps: string[] }> = ({ steps }) => (
   <div className="adm-analytics-rich-alert warning">
     <div className="adm-analytics-rich-alert-head">
-      <span>⚙️</span>
+      <GearSix size={20} weight="duotone" aria-hidden="true" />
       <div>
         <strong>Google Analytics 4 setup required</strong>
         <p>Complete the following steps to connect the property cleanly.</p>
@@ -348,16 +401,16 @@ export const AdminAnalytics: React.FC = () => {
         return (
           <>
             <div className="adm-analytics-kpi-grid">
-              <MetricCard icon="🔗" label="Sessions" value={fmt(sm.sessions)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
-              <MetricCard icon="🟢" label="Active Users" value={fmt(sm.activeUsers)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
-              <MetricCard icon="✨" label="New Users" value={fmt(sm.newUsers)} gradient="linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.28)" />
-              <MetricCard icon="📄" label="Page Views" value={fmt(sm.pageViews)} gradient="linear-gradient(135deg, rgba(21,61,122,0.18), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.28)" />
-              <MetricCard icon="↩️" label="Bounce Rate" value={`${sm.bounceRate}%`} gradient="linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05))" border="rgba(239,68,68,0.24)" />
-              <MetricCard icon="⏱️" label="Avg Session" value={fmtDuration(sm.avgSessionDuration)} sub="per session" gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
+              <MetricCard icon={renderIcon(LinkIcon, 22)} label="Sessions" value={fmt(sm.sessions)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
+              <MetricCard icon={renderIcon(Users, 22)} label="Active Users" value={fmt(sm.activeUsers)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
+              <MetricCard icon={renderIcon(Sparkle, 22)} label="New Users" value={fmt(sm.newUsers)} gradient="linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.28)" />
+              <MetricCard icon={renderIcon(FileText, 22)} label="Page Views" value={fmt(sm.pageViews)} gradient="linear-gradient(135deg, rgba(21,61,122,0.18), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.28)" />
+              <MetricCard icon={renderIcon(ArrowUUpLeft, 22)} label="Bounce Rate" value={`${sm.bounceRate}%`} gradient="linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05))" border="rgba(239,68,68,0.24)" />
+              <MetricCard icon={renderIcon(Clock, 22)} label="Avg Session" value={fmtDuration(sm.avgSessionDuration)} sub="per session" gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
             </div>
 
             {(gad.byDay?.length ?? 0) > 0 && (
-              <Panel title="Sessions per day" icon="📈" accent="#4f6ef7" copy="A smoother 30-day trend view for sessions and audience behavior.">
+              <Panel title="Sessions per day" icon={renderIcon(ChartLineUp)} accent="#4f6ef7" copy="A smoother 30-day trend view for sessions and audience behavior.">
                 <TrendChart
                   id="ga-sessions"
                   data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: `${item.users} users` }))}
@@ -368,14 +421,22 @@ export const AdminAnalytics: React.FC = () => {
             )}
 
             <div className="adm-analytics-grid-3">
-              <Panel title="Top countries" icon="🌍" accent="#4f6ef7" copy="Markets generating the highest session volume.">
+              <Panel title="Top countries" icon={renderIcon(Globe)} accent="#4f6ef7" copy="Markets generating the highest session volume.">
                 <div className="adm-ranking-list">
                   {(gad.byCountry ?? []).map((item, index) => (
                     <RankingRow
                       key={item.country}
                       rank={index + 1}
                       label={item.country}
-                      icon={COUNTRY_FLAG[item.country] ?? '🌐'}
+                      icon={
+                        COUNTRY_FLAG[item.country] ? (
+                          <span className="adm-flag" aria-hidden="true">
+                            {COUNTRY_FLAG[item.country]}
+                          </span>
+                        ) : (
+                          renderIcon(Globe, 14)
+                        )
+                      }
                       value={item.sessions}
                       max={gad.byCountry?.[0]?.sessions ?? 1}
                       color="#4f6ef7"
@@ -384,17 +445,17 @@ export const AdminAnalytics: React.FC = () => {
                 </div>
               </Panel>
 
-              <Panel title="Devices" icon="📱" accent="#153D7A" copy="Traffic split by device family for responsive planning.">
+              <Panel title="Devices" icon={renderIcon(DeviceMobile)} accent="#153D7A" copy="Traffic split by device family for responsive planning.">
                 <DonutChart items={gad.byDevice ?? []} />
               </Panel>
 
-              <Panel title="Traffic sources" icon="🔀" accent="#f59e0b" copy="How visitors are discovering the website.">
+              <Panel title="Traffic sources" icon={renderIcon(ShareNetwork)} accent="#f59e0b" copy="How visitors are discovering the website.">
                 <div className="adm-ranking-list">
                   {(gad.bySource ?? []).map((item) => (
                     <RankingRow
                       key={item.source}
                       label={item.source}
-                      icon={SOURCE_ICON[item.source] ?? '🌐'}
+                      icon={renderIcon(SOURCE_ICON[item.source] ?? Globe, 14)}
                       value={item.sessions}
                       max={gad.bySource?.[0]?.sessions ?? 1}
                       color={SOURCE_COLOR[item.source] ?? '#6b7280'}
@@ -405,7 +466,7 @@ export const AdminAnalytics: React.FC = () => {
             </div>
 
             {(gad.byPage?.length ?? 0) > 0 && (
-              <Panel title="Top pages" icon="📑" accent="#22c55e" copy="The most viewed destinations across the site." className="adm-analytics-panel-wide">
+              <Panel title="Top pages" icon={renderIcon(Files)} accent="#22c55e" copy="The most viewed destinations across the site." className="adm-analytics-panel-wide">
                 <div className="adm-analytics-grid-2 compact">
                   {gad.byPage!.map((item, index) => (
                     <RankingRow
@@ -428,27 +489,32 @@ export const AdminAnalytics: React.FC = () => {
       <div className="analytics-print-break" />
 
       <div className="adm-analytics-section-divider">
-        <span>💬</span>
+        <ChatCircle size={18} weight="duotone" aria-hidden="true" />
         <strong>Internal Stats — Bot &amp; Newsletter</strong>
       </div>
 
       {internal.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading internal analytics…</div>}
-      {internal.error && <div className="adm-alert adm-alert-error">⚠ {internal.error}</div>}
+      {internal.error && (
+        <div className="adm-alert adm-alert-error">
+          <Warning size={16} weight="fill" aria-hidden="true" />
+          {internal.error}
+        </div>
+      )}
 
       {summary && (
         <div className="adm-analytics-kpi-grid compact">
-          <MetricCard icon="💬" label="Messages" value={String(summary.total_messages)} gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
-          <MetricCard icon="👤" label="Chat Users" value={String(summary.total_users)} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
-          <MetricCard icon="✉️" label="Subscribers" value={String(summary.total_subscribers)} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
-          <MetricCard icon="📰" label="News Articles" value={String(summary.total_news)} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
-          <MetricCard icon="🧴" label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(21,61,122,0.16), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.24)" />
+          <MetricCard icon={renderIcon(ChatCircle, 22)} label="Messages" value={String(summary.total_messages)} gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
+          <MetricCard icon={renderIcon(UserCircle, 22)} label="Chat Users" value={String(summary.total_users)} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
+          <MetricCard icon={renderIcon(Envelope, 22)} label="Subscribers" value={String(summary.total_subscribers)} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
+          <MetricCard icon={renderIcon(Newspaper, 22)} label="News Articles" value={String(summary.total_news)} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
+          <MetricCard icon={renderIcon(Drop, 22)} label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(21,61,122,0.16), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.24)" />
         </div>
       )}
 
       {internal.data && (
         <>
           <div className="adm-analytics-grid-2">
-            <Panel title="Chat messages per day" icon="💬" accent="#4f6ef7" copy="Daily message activity captured by the assistant.">
+            <Panel title="Chat messages per day" icon={renderIcon(ChatCircle)} accent="#4f6ef7" copy="Daily message activity captured by the assistant.">
               <TrendChart
                 id="chat-per-day"
                 data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
@@ -457,7 +523,7 @@ export const AdminAnalytics: React.FC = () => {
               />
             </Panel>
 
-            <Panel title="Newsletter signups per day" icon="✉️" accent="#22c55e" copy="Daily subscription growth across the current period.">
+            <Panel title="Newsletter signups per day" icon={renderIcon(Envelope)} accent="#22c55e" copy="Daily subscription growth across the current period.">
               <TrendChart
                 id="newsletter-per-day"
                 data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
@@ -471,7 +537,7 @@ export const AdminAnalytics: React.FC = () => {
           <div className="analytics-print-break" />
 
           <div className="adm-analytics-grid-2">
-            <Panel title="Chat language distribution" icon="🌐" accent="#153D7A" copy="How users are distributed by conversation language.">
+            <Panel title="Chat language distribution" icon={renderIcon(Translate)} accent="#153D7A" copy="How users are distributed by conversation language.">
               <div className="adm-ranking-list">
                 {(internal.data.langDistribution ?? []).length ? (
                   (() => {
@@ -491,7 +557,7 @@ export const AdminAnalytics: React.FC = () => {
               </div>
             </Panel>
 
-            <Panel title="Most active users" icon="🔥" accent="#f59e0b" copy="Users generating the heaviest conversation load right now.">
+            <Panel title="Most active users" icon={renderIcon(Flame)} accent="#f59e0b" copy="Users generating the heaviest conversation load right now.">
               {(internal.data.topUsers ?? []).length ? (
                 <div className="adm-analytics-user-stack">
                   {internal.data.topUsers.map((user, index) => (

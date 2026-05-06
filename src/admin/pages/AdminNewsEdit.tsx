@@ -134,11 +134,11 @@ export const AdminNewsEdit: React.FC = () => {
         </button>
       </div>
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
+      {error && <div className="adm-alert adm-alert-error adm-mb-lg">⚠ {error}</div>}
 
       <div className="adm-grid-2">
         {/* Left: metadata */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="adm-flex-col-lg">
           <div className="adm-card">
             <div className="adm-card-title">Article Info</div>
             <div className="adm-form-group">
@@ -158,7 +158,7 @@ export const AdminNewsEdit: React.FC = () => {
                   value={form.image ?? ''}
                   onChange={e => setStr('image', e.target.value)}
                   placeholder="/news/image.webp or paste URL"
-                  style={{ flex: 1 }}
+                  
                 />
                 <button
                   type="button"

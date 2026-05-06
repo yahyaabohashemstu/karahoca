@@ -790,6 +790,13 @@
     },
     "a11y": {
       "skipToContent": "İçeriğe geç"
+    },
+    "flipbook": {
+      "eyebrow": "İnteraktif Katalog",
+      "title": "{{brand}} İnteraktif Katalog",
+      "subtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda izleyin",
+      "available": "Şimdi mevcut",
+      "fullscreen": "Tam Ekran"
     }
   },
   "common": {

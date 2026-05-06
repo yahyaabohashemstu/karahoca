@@ -252,16 +252,8 @@ body {
   overflow-x: hidden;
 }
 
-.bg-elements {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-
-  height: 100%;
-  pointer-events: none;
-  z-index: -1;
-}
+/* .bg-elements + .floating-orb removed per design audit (banned "floating
+   meaningless blobs"). DOM no longer references these classes. */
 
 @keyframes float {
 
@@ -711,30 +703,9 @@ body.light-mode .brand__logo {
   place-items: center;
 }
 
-.hero-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(30px);
-  opacity: 0.6;
-  animation: float 15s ease-in-out infinite;
-}
-
-.hero-orb--1 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, var(--blue), transparent 70%);
-  top: -20%;
-  left: -10%;
-}
-
-.hero-orb--2 {
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, var(--orange), transparent 70%);
-  bottom: -20%;
-  right: -10%;
-  animation-delay: -7s;
-}
+/* .hero-orb / .hero-orb--1 / .hero-orb--2 removed — replaced by the single
+   .hero__halo navy-tinted radial in premium.css. The old `float` keyframes
+   below are kept because .animated-blob still uses them (about-media). */
 
 .card-3d {
   perspective: 1000px;
@@ -2587,44 +2558,30 @@ html[dir="ltr"] .theme-toggle {
 }
 
 .theme-toggle:hover {
-  transform: scale(1.15) rotate(180deg);
-  box-shadow: var(--glow-primary), 0 0 40px rgba(255, 91, 46, 0.3);
-  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.06);
+  box-shadow: var(--shadow-md);
+  background: rgba(255, 255, 255, 0.10);
 }
 
-/* Scroll indicator */
-.scroll-indicator {
-  position: absolute;
-  left: 50%;
-  bottom: 2rem;
-  transform: translateX(-50%);
-  width: 32px;
-  height: 48px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
-  display: block;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
+/* .scroll-indicator removed per design audit (banned "filler"). DOM no
+   longer references this class; visitors discover content by scrolling
+   without a chrome arrow. */
 
-.scroll-indicator:hover {
-  border-color: var(--primary);
-  background: rgba(255, 91, 46, 0.1);
-  transform: translateX(-50%) scale(1.1);
-}
-
-/* Animation classes */
+/* Animation classes — premium spring physics, GPU-only animated props */
 .fx-reveal {
   opacity: 0;
   transform: translateY(30px);
-  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.8s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform var(--motion-slow) var(--easing-elegant),
+    opacity var(--motion-slow) var(--easing-elegant);
 }
 
 .fx-up {
   opacity: 0;
   transform: translateY(40px) scale(0.95);
-  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.8s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform var(--motion-slow) var(--easing-elegant),
+    opacity var(--motion-slow) var(--easing-elegant);
 }
 
 .in-view.fx-reveal,

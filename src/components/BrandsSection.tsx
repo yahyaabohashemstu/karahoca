@@ -31,13 +31,13 @@ const BrandsSection: React.FC = () => {
 
       {/* ── Brand cards (DIOX + AYLUX) ───────────────────────────── */}
       <div className="container cards">
-        <Link className="card glass-card fx-up" to={lp('/diox')} aria-label="DIOX">
-          <div className="card__media" style={{ '--card-accent': 'var(--blue)' } as React.CSSProperties}>
+        <Link className="card glass-card fx-up brand-card brand-card--diox" to={lp('/diox')} aria-label="DIOX">
+          <div className="card__media brand-card__media">
             <ImageWithFallback
               src="/Diox-logo.png.webp"
               fallbackSrc="/Diox-logo.png.png"
               alt="DIOX"
-              style={{ height: '144px', width: '144px', objectFit: 'contain' }}
+              className="brand-card__logo"
             />
             <div className="card-glow" />
           </div>
@@ -48,13 +48,13 @@ const BrandsSection: React.FC = () => {
           </div>
         </Link>
 
-        <Link className="card glass-card fx-up" to={lp('/aylux')} aria-label="AYLUX">
-          <div className="card__media" style={{ '--card-accent': 'var(--orange)' } as React.CSSProperties}>
+        <Link className="card glass-card fx-up brand-card brand-card--aylux" to={lp('/aylux')} aria-label="AYLUX">
+          <div className="card__media brand-card__media">
             <ImageWithFallback
               src="/Aylux-logo.png.webp"
               fallbackSrc="/Aylux-logo.png"
               alt="AYLUX"
-              style={{ height: '144px', width: '144px', objectFit: 'contain' }}
+              className="brand-card__logo"
             />
             <div className="card-glow" />
           </div>

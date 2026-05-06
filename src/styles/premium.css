@@ -11,6 +11,40 @@
    main.css (which loads after) win cleanly without !important.
    ════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════
+   Overrides layer — wins over main.css regardless of source order
+   because @layer overrides comes LAST in tokens.css definition.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer overrides {
+  /* Card hover — replaces banned "bunny hop" -12px translate with subtle
+     -4px lift + tinted shadow (Apple/Linear premium feel). */
+  .glass-card {
+    transition:
+      transform var(--motion-medium) var(--easing-spring),
+      box-shadow var(--motion-medium) var(--easing-spring),
+      border-color var(--motion-medium) var(--easing-spring),
+      background-color var(--motion-medium) var(--easing-spring);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: var(--surface-border-glass-strong);
+      background: var(--surface-glass-medium);
+    }
+  }
+
+  /* Mobile menu — replace max-height jump with transform scale animation
+     for smooth 60fps toggle without layout reflow. */
+  .mobile-menu {
+    transform-origin: top;
+    transition:
+      transform var(--motion-medium) var(--easing-spring),
+      opacity var(--motion-medium) var(--easing-spring);
+  }
+}
+
 @layer components {
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -68,6 +102,50 @@ body.light-mode .hero__halo {
   align-items: flex-start;
   gap: clamp(1rem, 2vw, 1.75rem);
   max-width: 56ch;
+}
+
+/* Stagger animation — pure CSS (replaces framer-motion).
+   Each child animates with its own delay using CSS custom property index. */
+.hero__stagger > .hero__stagger-item {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: heroStaggerEnter var(--motion-slower) var(--easing-elegant) forwards;
+}
+
+.hero__stagger > .hero__stagger-item:nth-child(1) { animation-delay: 50ms;  }
+.hero__stagger > .hero__stagger-item:nth-child(2) { animation-delay: 130ms; }
+.hero__stagger > .hero__stagger-item:nth-child(3) { animation-delay: 210ms; }
+.hero__stagger > .hero__stagger-item:nth-child(4) { animation-delay: 290ms; }
+.hero__stagger > .hero__stagger-item:nth-child(5) { animation-delay: 370ms; }
+
+@keyframes heroStaggerEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Visual entry — separate animation for the image side */
+.hero__visual--enter {
+  opacity: 0;
+  transform: scale(0.96);
+  animation: heroVisualEnter var(--motion-slower) var(--easing-elegant) 200ms forwards;
+}
+
+@keyframes heroVisualEnter {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__stagger > .hero__stagger-item,
+  .hero__visual--enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Eyebrow tag — premium "editorial prelude" pattern */
@@ -823,7 +901,361 @@ html[dir="rtl"] .work-bento__cta svg {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   Footer v3 — replaces inline-styled footnote
+   ═══════════════════════════════════════════════════════════════════ */
+
+.footer__logo {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+}
+
+.footer__phone {
+  color: inherit;
+  text-decoration: none;
+  direction: ltr;
+  display: inline-block;
+}
+
+.footer__honeypot {
+  position: absolute;
+  inset-inline-start: -9999px;
+  opacity: 0;
+  height: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.footer__footnote {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+}
+
+.footer__copy {
+  margin: 0;
+}
+
+.footer__legal-nav {
+  display: flex;
+  gap: 1rem;
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+}
+
+.footer__legal-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--motion-base) var(--easing-spring);
+}
+
+.footer__legal-link:hover {
+  color: var(--color-brand-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BrandsSection v3 — replaces inline-styled brand cards
+   ═══════════════════════════════════════════════════════════════════ */
+
+.brand-card--diox {
+  --card-accent: var(--color-brand-primary);
+}
+
+.brand-card--aylux {
+  --card-accent: var(--color-brand-accent);
+}
+
+.brand-card__media {
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--card-accent) 15%, transparent),
+    transparent 70%);
+}
+
+.brand-card__logo {
+  height: 144px;
+  width: 144px;
+  object-fit: contain;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NumbersSection v3 — replaces inline-styled SVG containers
+   ═══════════════════════════════════════════════════════════════════ */
+
+.numbers-section__visual {
+  width: 180px;
+  height: 204px;
+  margin: 18px auto 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.numbers-section__svg {
+  display: block;
+  object-fit: contain;
+}
+
+.numbers-section__svg--map {
+  width: 400px;
+  height: 280px;
+}
+
+.numbers-section__svg--rate {
+  width: 320px;
+  height: 230px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AboutPage sections — premium replacements for inline-styled blocks
+   ═══════════════════════════════════════════════════════════════════ */
+
+.about-history__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.about-history__card {
+  padding: clamp(1.5rem, 3vw, 3rem);
+  margin-top: 1.5rem;
+}
+
+.about-history__paragraph {
+  font-size: var(--font-size-lead);
+  line-height: var(--leading-loose);
+  margin: 0 0 1.25rem 0;
+  text-wrap: pretty;
+}
+
+.about-history__paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.about-history__divider {
+  margin: 1.5rem auto;
+  width: 60%;
+}
+
+/* About vision */
+.about-vision__copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.about-vision__card {
+  padding: clamp(1.5rem, 3vw, 2rem);
+  margin-top: 1.5rem;
+}
+
+.about-vision__lead {
+  font-size: var(--font-size-lead);
+  line-height: var(--leading-loose);
+  margin: 0 0 1.25rem 0;
+  text-wrap: pretty;
+}
+
+.about-vision__divider {
+  margin: 1.5rem auto;
+  width: 60%;
+}
+
+.about-vision__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.about-vision__stat {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.about-vision__stat-num {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-tight);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-vision__stat-label {
+  font-size: var(--font-size-body);
+  margin-top: 0.5rem;
+  color: var(--color-text-muted);
+}
+
+.about-vision__media-wrap {
+  width: 100%;
+}
+
+.about-vision__media {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  position: relative;
+}
+
+.about-vision__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* About values */
+.about-values__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.about-values__title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: 1rem;
+}
+
+.about-values__body {
+  font-size: var(--font-size-lead);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+  color: var(--color-text-muted);
+  text-wrap: pretty;
+}
+
+.about-milestones {
+  margin-top: 3rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SubPageTemplate — card grids
+   ═══════════════════════════════════════════════════════════════════ */
+
+.subpage-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.subpage-cards__media {
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--card-accent) 15%, transparent),
+    transparent 70%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Admin — empty states / card titles with icons / translation helper
+   ═══════════════════════════════════════════════════════════════════ */
+
+.adm-empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.adm-empty-icon {
+  color: var(--adm-text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.adm-empty-text {
+  margin: 0;
+}
+
+.adm-card-title--with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adm-card-title-icon {
+  display: inline-flex;
+  align-items: center;
+  color: currentColor;
+  opacity: 0.8;
+}
+
+.adm-card-title--success {
+  color: var(--adm-success);
+  margin-bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adm-card-title--info {
+  color: var(--adm-info);
+  margin-bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adm-translation-helper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.adm-spinner--sm {
+  width: 14px;
+  height: 14px;
+}
+
+.adm-badge--multiline {
+  max-width: 420px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.adm-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.5rem;
+  min-width: 32px;
+}
+
+.adm-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.adm-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ProductGrid actions row */
+.product-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.product-actions-row__primary {
+  flex: 1;
+}
+
+/* Popup details spacing */
+.popup-details-grid--spaced {
+  margin-top: 0.7rem;
+}
+
 } /* end @layer components */
+
 
 
 

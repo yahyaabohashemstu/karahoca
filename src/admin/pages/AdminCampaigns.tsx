@@ -54,8 +54,8 @@ export const AdminCampaigns: React.FC = () => {
       </div>
 
       {msg && (
-        <div className={`adm-alert ${msg.startsWith('✅') ? 'adm-alert-success' : 'adm-alert-error'}`}
-             style={{ marginBottom: 16 }}>
+        <div className={`adm-alert adm-mb-lg ${msg.startsWith('✅') ? 'adm-alert-success' : 'adm-alert-error'}`}
+>
           {msg}
         </div>
       )}
@@ -94,7 +94,7 @@ export const AdminCampaigns: React.FC = () => {
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="adm-flex-col-md">
               {data!.campaigns.map(c => (
                 <div key={c.id} style={{
                   background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',

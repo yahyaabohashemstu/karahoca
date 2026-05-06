@@ -211,7 +211,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({ product, onClose }
                       </table>
                     </div>
                     {product.details.material && (
-                      <div className="popup-details-grid" style={{ marginTop: '0.7rem' }}>
+                      <div className="popup-details-grid popup-details-grid--spaced">
                         <div className="popup-detail-item">
                           <span className="popup-detail-label">{t('brandPage.material')}</span>
                           <span className="popup-detail-value">{product.details.material}</span>

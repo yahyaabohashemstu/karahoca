@@ -102,10 +102,9 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                             <span className="detail-value">{product.details?.count || t('brandPage.notSpecified')}</span>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <div className="product-actions-row">
                           <button
-                            className="image-preview-btn"
-                            style={{ flex: 1 }}
+                            className="image-preview-btn product-actions-row__primary"
                             onClick={() => onProductOpen(product)}
                             aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
                           >

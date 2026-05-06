@@ -113,14 +113,14 @@ export const AdminCategories: React.FC = () => {
             {value || 'All Brands'}
           </button>
         ))}
-        <span className="adm-text-muted adm-text-sm" style={{ marginLeft: 'auto' }}>
+        <span className="adm-text-muted adm-text-sm adm-ml-auto">
           {categories.length} categories
         </span>
       </div>
 
       {(editing === 'new' || typeof editing === 'string') && (
-        <div className="adm-card" style={{ marginBottom: 16 }}>
-          <div className="adm-card-title" style={{ marginBottom: 16 }}>
+        <div className="adm-card adm-mb-lg">
+          <div className="adm-card-title adm-mb-lg">
             {editing === 'new' ? 'Create Category' : 'Edit Category'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
@@ -157,9 +157,9 @@ export const AdminCategories: React.FC = () => {
             </div>
           </div>
 
-          {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 12 }}>⚠ {error}</div>}
+          {error && <div className="adm-alert adm-alert-error adm-mb-md">⚠ {error}</div>}
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="adm-flex-row-sm">
             <button onClick={save} className="adm-btn adm-btn-primary" disabled={saving}>
               {saving ? 'Saving…' : '💾 Save Category'}
             </button>

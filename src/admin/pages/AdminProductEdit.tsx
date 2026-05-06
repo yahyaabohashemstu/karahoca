@@ -205,11 +205,11 @@ export const AdminProductEdit: React.FC = () => {
         </button>
       </div>
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
+      {error && <div className="adm-alert adm-alert-error adm-mb-lg">⚠ {error}</div>}
 
       <div className="adm-grid-2">
         {/* Left: metadata */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="adm-flex-col-lg">
           <div className="adm-card">
             <div className="adm-card-title">Product Info</div>
             <div className="adm-form-group">
@@ -236,7 +236,7 @@ export const AdminProductEdit: React.FC = () => {
                   value={form.image ?? ''}
                   onChange={e => set('image', e.target.value)}
                   placeholder="/products/image.webp or paste URL"
-                  style={{ flex: 1 }}
+                  
                 />
                 <button
                   type="button"
@@ -337,7 +337,7 @@ export const AdminProductEdit: React.FC = () => {
                   step={5}
                   value={Math.round((form.image_scale ?? 0.85) * 100)}
                   onChange={e => set('image_scale', Number(e.target.value) / 100)}
-                  style={{ flex: 1 }}
+                  
                 />
                 <span style={{ fontSize: 13, fontWeight: 600, minWidth: 42, textAlign: 'center' }}>
                   {Math.round((form.image_scale ?? 0.85) * 100)}%
@@ -426,7 +426,7 @@ export const AdminProductEdit: React.FC = () => {
                     style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--adm-border, #ddd)' }} />
                 )}
                 <input className="adm-input" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
-                  placeholder={`Image path or URL #${idx + 1}`} style={{ flex: 1 }} />
+                  placeholder={`Image path or URL #${idx + 1}`}  />
                 <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
                   onClick={() => galleryFileRefs.current[idx]?.click()}
                   disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}>
