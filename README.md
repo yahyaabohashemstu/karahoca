@@ -5,7 +5,7 @@
 # Karahoca Kimya — Official Website
 
 **Production-grade multi-language corporate site** for Karahoca Kimya
-React 18 · TypeScript · Vite · Node.js · SQLite · Redis · Gemini · Resend
+React 18 · TypeScript · Vite · Node.js · SQLite · Redis · OpenRouter · Resend
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -48,7 +48,7 @@ Official web presence for **Karahoca Kimya**, a Turkish manufacturer of househol
 - **Marketing pages** — Home, About, Production, Goal, Dryer, Partners
 - **Brand pages** — DIOX and AYLUX product lines with interactive flipbook catalogs
 - **News & Blog** — Multi-language articles with an admin CMS
-- **AI Chat Assistant** — Gemini-powered, server-side prompt building, DB-backed knowledge base
+- **AI Chat Assistant** — OpenRouter-powered (Gemma 3 27B by default), server-side prompt building, DB-backed knowledge base
 - **Newsletter** — Double-opt-in subscribe, tokenised one-click unsubscribe, campaign dispatch via Resend
 - **Admin Dashboard** — CRUD for products, news, subscribers, campaigns, analytics, AI knowledge base
 
@@ -89,7 +89,7 @@ Four languages with **URL-prefixed routing** (`/ar/...`, `/en/...`, `/tr/...`, `
               ▼                   ▼                     ▼
       ┌──────────────┐    ┌──────────────┐    ┌────────────────────┐
       │ SQLite       │    │ Redis        │    │ External APIs       │
-      │ (persistent  │    │ (cache +     │    │ · Gemini (AI chat)  │
+      │ (persistent  │    │ (cache +     │    │ · OpenRouter (AI)   │
       │  volume)     │    │  rate-limit) │    │ · Resend (email)    │
       │  backups →   │    │              │    │ · Sentry (errors)   │
       │  S3/R2       │    │              │    │ · Google Analytics  │
@@ -272,7 +272,7 @@ karahoca-react-vite/
 │   │   ├── db.mjs                        # SQLite init, schema, migrations, seeds
 │   │   ├── safeUpdate.mjs                # Validated UPDATE builder (zero dynamic SQL)
 │   │   ├── publicCache.mjs               # Namespaced Redis cache + bust helpers
-│   │   ├── aiChat.mjs                    # Gemini call + reply cache
+│   │   ├── aiChat.mjs                    # OpenRouter call + reply cache
 │   │   ├── newsletter.mjs                # Subscribe / unsubscribe state machine
 │   │   └── (others)
 │   │
@@ -307,7 +307,7 @@ karahoca-react-vite/
 
 - **Node.js** 22 or later
 - **npm** 10 or later
-- A **Google Gemini API key** — [Google AI Studio](https://aistudio.google.com)
+- An **OpenRouter API key** — [openrouter.ai/keys](https://openrouter.ai/keys) (powers both the public AI chat and the admin auto-translation)
 - A **Resend API key** + verified sending domain (for newsletters)
 - **Redis** (optional — app falls back to in-memory cache/rate-limits if absent)
 
@@ -364,8 +364,9 @@ JWT_SECRET=change_me_to_a_long_random_secret_at_least_32_chars
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$2b$10$...                 # bcryptjs hashSync output
 
-# ── AI chat (server-side only — never exposed to the browser) ──────────
-GEMINI_API_KEY=your_gemini_api_key
+# ── AI (OpenRouter — server-side only, powers both the chat widget and
+#       the admin auto-translation feature) ────────────────────────────
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # ── Email / newsletter ────────────────────────────────────────────────
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
@@ -408,7 +409,7 @@ AWS_SECRET_ACCESS_KEY=
 MAX_CLOUD_BACKUPS=30
 ```
 
-> **Security note:** `GEMINI_API_KEY`, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, and `AWS_SECRET_ACCESS_KEY` are server-side only. They are never shipped in the browser bundle. `VITE_*` prefixed variables are public by design.
+> **Security note:** `OPENROUTER_API_KEY`, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, and `AWS_SECRET_ACCESS_KEY` are server-side only. They are never shipped in the browser bundle. `VITE_*` prefixed variables are public by design.
 
 ---
 
@@ -431,7 +432,7 @@ Path: `/admin/login` → `/admin/dashboard`
 **All mutations require a valid CSRF token** — the admin SPA reads the `karahoca_admin_csrf` cookie set at login and echoes it as `X-CSRF-Token`. Server rejects any mismatch with 403.
 
 Admin features:
-- **AI translation** — one-click translate product/news fields to AR · EN · TR · RU via Gemini
+- **AI translation** — one-click translate product/news fields to AR · EN · TR · RU via OpenRouter
 - **Campaign A/B subjects** — per-language alternate subject lines, tracked separately
 - **Subject exclusion list** — skip subscribers on a per-campaign basis
 - **Atomic dispatch claim** — `status='sending'` prevents duplicate sends when scheduler + manual button race
@@ -480,7 +481,7 @@ All endpoints under `/api/*`. The public HTML response sets a `karahoca_csrf` co
 | `GET / DELETE` | `/api/admin/chats[/:userId]` | Chat user viewer |
 | `GET / POST / PUT / DELETE` | `/api/admin/ai-knowledge[/:id]` | Custom Q&A |
 | `GET / PUT` | `/api/admin/ai-knowledge/questions` | User questions triage |
-| `POST` | `/api/admin/translate` | Gemini auto-translation |
+| `POST` | `/api/admin/translate` | OpenRouter auto-translation |
 | `POST` | `/api/admin/upload-image` | Magic-byte validated image upload |
 | `GET` | `/api/admin/audit-log` | Action audit trail |
 | `GET` | `/api/admin/stats` | Dashboard counters |
@@ -627,7 +628,7 @@ Current deployment: **two services on [Coolify](https://coolify.io)**.
 - [ ] `ADMIN_PASSWORD_HASH` is a bcrypt hash (never plaintext)
 - [ ] `VITE_BACKEND_URL` points to the public API domain if separate from the SPA domain
 - [ ] `ALLOWED_ORIGINS` / `FRONTEND_URL` / `SITE_URL` match production domains
-- [ ] `GEMINI_API_KEY` is set for AI chat
+- [ ] `OPENROUTER_API_KEY` is set for AI chat + auto-translation
 - [ ] `RESEND_API_KEY` + `FROM_EMAIL` use a verified domain
 - [ ] `REDIS_URL` is set if Redis is available
 - [ ] `S3_BUCKET_NAME` + AWS keys are set if cloud backups are desired

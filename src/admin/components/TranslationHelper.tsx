@@ -9,7 +9,7 @@ interface TranslationHelperProps {
   onTranslated: (translations: Record<string, Record<string, string>>) => void;
 }
 
-/** Returns a short, user-friendly message for common Gemini/network errors. */
+/** Returns a short, user-friendly message for common translation/network errors. */
 function friendlyError(raw: string): string {
   const s = raw.toLowerCase();
   if (s.includes('503') || s.includes('unavailable') || s.includes('high demand') || s.includes('مشغولة'))

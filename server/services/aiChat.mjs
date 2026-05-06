@@ -35,16 +35,11 @@ const SYSTEM_PROMPT = [
 
 const extractModelText = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
-  // OpenAI / OpenRouter format
+  // OpenAI / OpenRouter chat-completions response shape.
   if (payload.choices?.[0]?.message?.content) {
     return payload.choices[0].message.content.trim();
   }
-  // Gemini format (legacy fallback)
-  const candidates = payload.candidates;
-  if (!Array.isArray(candidates) || candidates.length === 0) return null;
-  const textParts = candidates[0]?.content?.parts?.map((part) => part?.text).filter(Boolean);
-  if (!Array.isArray(textParts) || textParts.length === 0) return null;
-  return textParts.join('\n').trim();
+  return null;
 };
 
 /** Build enriched prompt: append live DB products + custom Q&A */

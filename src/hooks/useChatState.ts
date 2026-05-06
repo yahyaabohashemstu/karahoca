@@ -634,7 +634,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         );
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.error('Gemini request failed:', getErrorMessage(error));
+          console.error('AI chat request failed:', getErrorMessage(error));
         }
         const errMsg =
           error instanceof Error && error.name === 'AbortError'
