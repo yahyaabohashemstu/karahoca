@@ -27,6 +27,13 @@ ARG NODE_VERSION=22
 # ─── Stage 1: full deps (build-time, Debian so Chromium works) ──────────────
 FROM node:${NODE_VERSION}-bookworm-slim AS deps
 WORKDIR /app
+# Pin the Puppeteer cache path BEFORE `npm ci` so the postinstall script
+# downloads Chromium into a location the `builder` stage can predictably
+# COPY from. Without this env, Puppeteer writes to its default location
+# (`~/.cache/puppeteer`, i.e. `/root/.cache/puppeteer`), and the builder
+# stage's `COPY --from=deps /app/.cache/puppeteer` fails with
+# "/app/.cache/puppeteer not found".
+ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 # Chromium system libs for Puppeteer + build toolchain for native modules.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
