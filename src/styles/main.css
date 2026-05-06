@@ -1010,12 +1010,21 @@ body.light-mode .brand__logo {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.product-card-flip-container:hover .product-card-front {
-  opacity: 0;
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   Hover-flip: ONLY on real pointer devices (mouse / trackpad).
+   On touch devices :hover sticks after a tap — that left the back face
+   permanently visible on phones. The `(hover: hover) and (pointer: fine)`
+   media query gates this so phones/tablets show the front face only.
+   Touch users access details via the "view image" button (modal).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (hover: hover) and (pointer: fine) {
+  .product-card-flip-container:hover .product-card-front {
+    opacity: 0;
+  }
 
-.product-card-flip-container:hover .product-card-back {
-  opacity: 1;
+  .product-card-flip-container:hover .product-card-back {
+    opacity: 1;
+  }
 }
 
 /* ═ Override glass-card hover for product cards ═
@@ -7401,6 +7410,28 @@ body.light-mode .catalog-print-trigger {
     overflow-wrap: break-word;
     hyphens: auto;
   }
+
+  /* Product cards — all mobile (≤ 768px)
+     ─────────────────────────────────────────────────────────────
+     Two-up grid centered, with the flip container relaxed from
+     its desktop fixed 300px so cards fill the cell. The ≤ 480px
+     block below collapses this to a single column for narrow
+     phones. Hover-flip is also disabled on touch devices via
+     the `(hover: hover) and (pointer: fine)` guard above, so
+     cards always show their front face (image + name) on touch
+     and details open via the "view image" modal button.      */
+  .products-grid-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 0 1rem;
+    justify-items: center;
+  }
+
+  .product-card-flip-container {
+    width: 100%;
+    max-width: 320px;
+    height: 400px;
+  }
 }
 
 /* Small phones (< 480px) - Most critical fixes */
@@ -7720,18 +7751,31 @@ body.light-mode .catalog-print-trigger {
     font-size: 1rem;
   }
 
-  /* Product cards */
+  /* Product cards — small phones (≤ 480px)
+     ─────────────────────────────────────────────────────────────
+     Single column, centered, capped max-width so cards stay
+     readable on 320–480px devices. The desktop rule pinned the
+     flip container at width: 300px which left awkward whitespace
+     in a 1fr grid cell — relax to 100% with a max-width cap so
+     cards properly fill (and stay centered in) each row.       */
   .products-grid,
   .products-grid-compact {
     grid-template-columns: 1fr;
-    gap: 1rem;
-    padding: 0 0.5rem;
+    gap: 1.25rem;
+    padding: 0 1rem;
+    justify-items: center;
   }
 
   .product-card,
   .product-card-mini {
     width: 100%;
     max-width: 100%;
+  }
+
+  .product-card-flip-container {
+    width: 100%;
+    max-width: 340px;
+    height: 420px;
   }
 
   /* Split layouts */
