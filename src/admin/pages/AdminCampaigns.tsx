@@ -74,7 +74,7 @@ export const AdminCampaigns: React.FC = () => {
                 { label: 'Scheduled', value: data.campaigns.filter(c => c.status === 'scheduled').length, color: '#4f6ef7' },
                 { label: 'Queued',    value: data.campaigns.filter(c => c.status === 'queued').length,    color: '#0ea5e9' },
                 { label: 'Sent',      value: data.campaigns.filter(c => c.status === 'sent').length,     color: '#22c55e' },
-                { label: 'Opens',     value: data.campaigns.reduce((s, c) => s + c.open_count, 0),       color: '#8b5cf6' },
+                { label: 'Opens',     value: data.campaigns.reduce((s, c) => s + c.open_count, 0),       color: '#153D7A' },
                 { label: 'Clicks',    value: data.campaigns.reduce((s, c) => s + (c.click_count ?? 0), 0), color: '#f59e0b' },
               ].map(card => (
                 <div key={card.label} className="adm-stat-card" style={{ padding: '16px 18px' }}>
@@ -148,7 +148,7 @@ export const AdminCampaigns: React.FC = () => {
                       {c.status === 'sent' && (
                         <Link to={`/admin/campaigns/${c.id}?tab=stats`}
                               className="adm-btn adm-btn-sm"
-                              style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.25)' }}>
+                              style={{ background: 'rgba(21,61,122,0.12)', color: '#153D7A', border: '1px solid rgba(21,61,122,0.25)' }}>
                           📊 Stats
                         </Link>
                       )}

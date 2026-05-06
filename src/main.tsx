@@ -4,14 +4,11 @@ import 'modern-normalize/modern-normalize.css'
 // Design tokens MUST load before every other stylesheet so every var(--*)
 // reference resolves on first paint. See src/styles/tokens.css.
 import './styles/tokens.css'
-// Self-hosted Inter — Vite inlines the woff2 subsets into the bundle so
-// there is no Google Fonts / `fonts.gstatic.com` round-trip on first visit.
-// We load weights 300 / 400 / 600 / 800 to match the former Google Fonts
-// request so text rendering stays identical.
-import '@fontsource/inter/300.css'
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/800.css'
+// Self-hosted Geist Variable — Vercel's premium grotesk, loaded as a
+// single variable font file so any weight 100–900 is available without
+// shipping multiple woff2 subsets. Replaces Inter (banned per design audit
+// — too generic for a premium brand).
+import '@fontsource-variable/geist/index.css'
 import './index.css'
 import './i18n'
 import App from './App.tsx'

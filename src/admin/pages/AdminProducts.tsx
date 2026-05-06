@@ -248,15 +248,15 @@ export const AdminProducts: React.FC = () => {
                     padding: '9px 16px',
                     borderBottom: '1px solid var(--adm-border)',
                     background: isDragging
-                      ? 'rgba(99, 102, 241, 0.05)'
+                      ? 'rgba(79, 110, 247, 0.05)'
                       : isOver && srcInSameCat
-                        ? 'rgba(99, 102, 241, 0.1)'
+                        ? 'rgba(79, 110, 247, 0.1)'
                         : 'transparent',
                     cursor: isDragging ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     opacity: isDragging ? 0.45 : 1,
                     borderLeft: isOver && srcInSameCat
-                      ? '3px solid var(--adm-primary, #6366f1)'
+                      ? '3px solid var(--adm-primary, #4f6ef7)'
                       : '3px solid transparent',
                     transition: 'background 0.12s, border-color 0.12s, opacity 0.12s',
                   }}

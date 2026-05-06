@@ -219,7 +219,7 @@
          backdrop-filter: blur(12px);
          border: 1px solid rgba(255, 255, 255, 0.15);
          overflow: hidden;
-         box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+         box-shadow: 0 25px 80px rgba(21, 61, 122, 0.4);
      }
 
      .employees-svg {
@@ -407,7 +407,7 @@
      .spotlight,
      .wave,
      .smoke {
-         animation: none !important;
+         animation: none;
      }
  }
 
@@ -422,7 +422,7 @@
          width: min(90vw, 360px);
          height: min(90vw, 360px);
          backdrop-filter: blur(7px);
-         box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+         box-shadow: 0 14px 42px rgba(21, 61, 122, 0.28);
          contain: layout paint style;
          isolation: isolate;
      }

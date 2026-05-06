@@ -46,7 +46,7 @@ const NewsArticlePage: React.FC = () => {
     return (
       <>
         <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1.5rem', textAlign: 'center' }}>
+        <main id="main" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1.5rem', textAlign: 'center' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{t('newsPage.notFound', 'Article not found')}</h1>
           <Link to={lp('/news')} className="btn btn--primary">{t('newsPage.backToNews', 'Back to News')}</Link>
         </main>

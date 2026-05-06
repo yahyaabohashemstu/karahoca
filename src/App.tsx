@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WishlistProvider } from './contexts/WishlistContext';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -28,6 +29,7 @@ import { detectPreferredLang, DEFAULT_LANG } from './utils/localizedPath';
 import './styles/main.css';
 import './styles/employee.css';
 import './styles/professional-system.css';
+import './styles/premium.css';
 
 // Route-level code splitting: every page is a separate chunk so a visitor to
 // /privacy does not download /diox, /aylux, etc. Cuts initial JS dramatically.
@@ -133,6 +135,7 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
+  const { t } = useTranslation();
 
   const lang = shellLang;
   const dir = getLanguageDirection(lang);
@@ -145,6 +148,13 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
       <Helmet>
         <html lang={lang} dir={dir} />
       </Helmet>
+
+      {/* Skip-to-content link — WCAG 2.4.1 Bypass Blocks. Hidden until
+          keyboard-focused; jumps the user past the nav chrome to the
+          main landmark id="main". */}
+      <a href="#main" className="skip-link">
+        {t('a11y.skipToContent', { defaultValue: 'Skip to content' })}
+      </a>
 
       <BackendStatusBanner />
       <GoogleAnalytics />

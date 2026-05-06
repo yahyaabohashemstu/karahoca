@@ -22,15 +22,9 @@ const Home: React.FC = () => {
         ogImage="/KARAHOCA-1-newPhoto.webp"
         canonicalUrl="https://karahoca.com/"
       />
-      <div className="bg-elements">
-        <div className="floating-orb orb-1"></div>
-        <div className="floating-orb orb-2"></div>
-        <div className="floating-orb orb-3"></div>
-      </div>
-
       <Header />
 
-      <main>
+      <main id="main">
         <Hero />
         <BrandsSection />
         <NewsSection />

@@ -42,15 +42,10 @@ const SubPageTemplate: React.FC<SubPageTemplateProps> = ({
 
   return (
     <div className={pageClass}>
-      <div className="bg-elements">
-        <div className="floating-orb orb-1"></div>
-        <div className="floating-orb orb-2"></div>
-        <div className="floating-orb orb-3"></div>
-      </div>
       
       <Header />
       
-      <main>
+      <main id="main">
         <section className="hero" style={{ padding: '40px 0 40px' }}>
           <div className="container hero__grid">
             <div className="hero__copy">

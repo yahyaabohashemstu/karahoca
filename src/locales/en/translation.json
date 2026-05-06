@@ -54,7 +54,8 @@
         "experience": "Eco Aware",
         "countries": "Made in TR",
         "satisfaction": "Customer Satisfaction"
-      }
+      },
+      "eyebrow": "Premium Cleaning Manufacturer"
     },
     "customOrder": {
       "badge": "Private Label & Custom Manufacturing",
@@ -67,14 +68,14 @@
       "loading": "Unsubscribing...",
       "loadingDesc": "Please wait a moment.",
       "success": "Unsubscribed Successfully",
-        "successDesc": "You have been removed from our mailing list. You will no longer receive newsletters.",
-        "already": "Already Unsubscribed",
-        "alreadyDesc": "This email is already unsubscribed from our mailing list.",
-        "invalid": "Invalid Unsubscribe Link",
-        "invalidDesc": "This unsubscribe link is invalid or has expired. Please use the latest email link or contact support.",
-        "notFound": "Email Not Found",
-        "notFoundDesc": "We could not find this email in our mailing list.",
-        "error": "Something Went Wrong",
+      "successDesc": "You have been removed from our mailing list. You will no longer receive newsletters.",
+      "already": "Already Unsubscribed",
+      "alreadyDesc": "This email is already unsubscribed from our mailing list.",
+      "invalid": "Invalid Unsubscribe Link",
+      "invalidDesc": "This unsubscribe link is invalid or has expired. Please use the latest email link or contact support.",
+      "notFound": "Email Not Found",
+      "notFoundDesc": "We could not find this email in our mailing list.",
+      "error": "Something Went Wrong",
       "errorDesc": "Could not unsubscribe. Please try again later.",
       "backHome": "Back to Home"
     },
@@ -123,7 +124,8 @@
         "title": "Global Vision and Commitment to Quality",
         "description": "The cleaning products we produce under the AYLUX and DIOX brands are exported to more than 15 countries and are preferred by consumers worldwide. By always prioritizing customer satisfaction, we continue to set new standards in the industry. According to our principles of quality, innovation and sustainability, we firmly pursue our goal of leading the cleaning products sector"
       },
-      "distributorLink": "Find a Distribution Partner"
+      "distributorLink": "Find a Distribution Partner",
+      "eyebrow": "About KARAHOCA"
     },
     "aboutPage": {
       "seo": {
@@ -211,7 +213,8 @@
         "link": "Learn More",
         "aria": "Our Goal",
         "alt": "Our Goal"
-      }
+      },
+      "eyebrow": "Capabilities"
     },
     "footer": {
       "description": "Leading the detergent industry with innovative solutions, reliable performance, and global quality.",
@@ -784,6 +787,9 @@
       "printProducts": "Products",
       "printCategory": "Category",
       "printDate": "Catalog Date"
+    },
+    "a11y": {
+      "skipToContent": "Skip to content"
     }
   },
   "common": {

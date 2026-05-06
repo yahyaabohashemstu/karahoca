@@ -22,15 +22,10 @@ const AboutPage: React.FC = () => {
       ]} />
       
       <div className="about-page">
-        <div className="bg-elements">
-          <div className="floating-orb orb-1"></div>
-          <div className="floating-orb orb-2"></div>
-          <div className="floating-orb orb-3"></div>
-        </div>
         
         <Header />
         
-        <main>
+        <main id="main">
           {/* Hero Section - نفس تصميم باقي الصفحات */}
           <section className="hero" style={{ padding: '40px 0 40px' }}>
             <div className="container hero__grid">

@@ -62,10 +62,8 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
             </ul>
           </div>
           <div className="hero__visual">
-            <div className="hero-orb hero-orb--1"></div>
-            <div className="hero-orb hero-orb--2"></div>
-            <div className="card-3d" data-tilt="true">
-              <div className="card-3d__inner glass-panel">
+            <div className="hero__visual-shell">
+              <div className="hero__visual-core">
                 <ImageWithFallback
                   src={heroImage}
                   fallbackSrc={heroImageFallback}
@@ -75,40 +73,39 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
                   loading="eager"
                   fetchPriority="high"
                   decoding="async"
+                  className="hero__visual-img"
                 />
+                <div className="hero__visual-highlight" aria-hidden="true" />
               </div>
             </div>
           </div>
         </div>
-        <a href={`#${aboutId}`} className="scroll-indicator" aria-label={t('brandPage.scrollDown')}>
-          <span className="scroll-indicator__dot"></span>
-        </a>
       </section>
 
-      <section id={aboutId} className="section glass-section section--alt">
-        <div className="section-divider"></div>
+      <section id={aboutId} className="section glass-section section--alt brand-about">
+        <div className="section-divider" aria-hidden="true" />
         <div className="container section__head fx-reveal">
           <h2 className="section-title">{aboutTitle}</h2>
           <p className="section-subtitle">{aboutSubtitle}</p>
         </div>
-        <div className="container split">
-          <div className="fx-reveal" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start' }}>
-            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '18px', padding: '18px', maxHeight: '320px', overflowY: 'auto', width: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid rgba(255,255,255,0.18)' }}>
-              <div className="main-heading" style={{ marginBottom: '1em' }}>{aboutMainHeading}</div>
+        <div className="container split brand-about__split">
+          <div className="fx-reveal brand-about__copy">
+            <div className="brand-about__panel">
+              <div className="brand-about__panel-heading">{aboutMainHeading}</div>
               {aboutSections.map((section, index) => (
                 <React.Fragment key={index}>
-                  <div className="section-divider" style={{ width: '80%', height: '2.5px', margin: '0.5em auto 1em auto' }}></div>
-                  <div className="gradient-heading" style={{ marginBottom: '1em', fontWeight: 'bold', fontSize: '1.35em', letterSpacing: '0.5px' }}>{section.title}</div>
-                  <p style={{ marginBottom: '1em' }}>{section.content}</p>
+                  <div className="brand-about__panel-divider" aria-hidden="true" />
+                  <div className="brand-about__section-title">{section.title}</div>
+                  <p className="brand-about__section-body">{section.content}</p>
                 </React.Fragment>
               ))}
             </div>
-            <a href="#products" className="link gradient-text" style={{ marginTop: '18px' }}>{t('brandPage.exploreProducts')}</a>
+            <a href="#products" className="brand-about__link">
+              {t('brandPage.exploreProducts')}
+            </a>
           </div>
-          <div className="fx-up">
-            <div className="about-media glass-media">
-              <div className="animated-blob blob"></div>
-              <div className="animated-blob blob--alt"></div>
+          <div className="fx-up brand-about__media-wrap">
+            <div className="about-media glass-media brand-about__media">
               <img
                 src="/KARAHOCA-1-newPhoto.webp"
                 alt={`${t('brandPage.productsAlt')} ${brandNameArabic}`}

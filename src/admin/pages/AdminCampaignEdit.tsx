@@ -648,7 +648,7 @@ export const AdminCampaignEdit: React.FC = () => {
                 <div className="adm-form-group">
                   <label className="adm-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     Subject Line — Group B
-                    <span style={{ fontSize: 10, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>A/B TEST</span>
+                    <span style={{ fontSize: 10, background: 'rgba(21,61,122,0.15)', color: '#153D7A', borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>A/B TEST</span>
                   </label>
                   <input
                     className="adm-input"
@@ -656,10 +656,10 @@ export const AdminCampaignEdit: React.FC = () => {
                     onChange={(e) => set(`subject_b_${l.key}`, e.target.value)}
                     placeholder="Leave empty to send same subject to everyone..."
                     dir={l.dir}
-                    style={{ borderColor: (form as Record<string, string>)[`subject_b_${l.key}`] ? 'rgba(139,92,246,0.5)' : undefined }}
+                    style={{ borderColor: (form as Record<string, string>)[`subject_b_${l.key}`] ? 'rgba(21,61,122,0.5)' : undefined }}
                   />
                   {(form as Record<string, string>)[`subject_b_${l.key}`] && (
-                    <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: '#153D7A', marginTop: 4 }}>
                       ✓ A/B test active — odd-numbered subscribers will receive Subject B
                     </div>
                   )}
@@ -702,7 +702,7 @@ export const AdminCampaignEdit: React.FC = () => {
             <div className="adm-stat-card">
               <div className="adm-stat-icon">📊</div>
               <div className="adm-stat-label">Open Rate</div>
-              <div className="adm-stat-value" style={{ color: '#8b5cf6' }}>
+              <div className="adm-stat-value" style={{ color: '#153D7A' }}>
                 {form.recipient_count ? `${Math.round((form.open_count! / form.recipient_count) * 100)}%` : '—'}
               </div>
             </div>
@@ -728,7 +728,7 @@ export const AdminCampaignEdit: React.FC = () => {
                   🧪 A/B Test Results
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {[{ label: 'Group A', group: groupA, color: '#4f6ef7' }, { label: 'Group B', group: groupB, color: '#8b5cf6' }].map(({ label, group, color }) => (
+                  {[{ label: 'Group A', group: groupA, color: '#4f6ef7' }, { label: 'Group B', group: groupB, color: '#153D7A' }].map(({ label, group, color }) => (
                     <div key={label} style={{ background: 'var(--adm-surface2)', borderRadius: 10, padding: '14px 18px', border: `1px solid ${color}40` }}>
                       <div style={{ fontWeight: 700, color, marginBottom: 10, fontSize: 14 }}>{label}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -786,8 +786,8 @@ export const AdminCampaignEdit: React.FC = () => {
                           <td>
                             <span style={{
                               fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-                              background: s.ab_variant === 'b' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
-                              color: s.ab_variant === 'b' ? '#8b5cf6' : '#4f6ef7',
+                              background: s.ab_variant === 'b' ? 'rgba(21,61,122,0.15)' : 'rgba(79,110,247,0.15)',
+                              color: s.ab_variant === 'b' ? '#153D7A' : '#4f6ef7',
                             }}>
                               {s.ab_variant?.toUpperCase() ?? 'A'}
                             </span>

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Gift, Heart } from '@phosphor-icons/react';
 import ImageWithFallback from '../ImageWithFallback';
 import { useWishlist } from '../../hooks/useWishlist';
 import { toWebp } from '../../utils/image';
@@ -57,7 +58,10 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                   <div className="product-card-mini glass-card">
                     {product.details?.gift && (
                       <div className="product-gift-ribbon" aria-label={t('brandPage.giftIncluded')}>
-                        <span>🎁 {t('brandPage.giftIncluded')}</span>
+                        <span>
+                          <Gift size={11} weight="fill" aria-hidden="true" />
+                          {t('brandPage.giftIncluded')}
+                        </span>
                       </div>
                     )}
                     <div className="product-card-front">
@@ -128,7 +132,11 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                             }
                             aria-label={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
                           >
-                            {inWishlist ? '♥' : '♡'}
+                            <Heart
+                              size={18}
+                              weight={inWishlist ? 'fill' : 'regular'}
+                              aria-hidden="true"
+                            />
                           </button>
                         </div>
                       </div>

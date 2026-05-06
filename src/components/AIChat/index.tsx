@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { Robot } from '@phosphor-icons/react';
 import { useChatState } from '../../hooks/useChatState';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ChatShell from './ChatShell';
@@ -108,7 +109,7 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
           aria-label={uiText.openToggleLabel}
           title={uiText.openToggleLabel}
         >
-          🤖
+          <Robot size={28} weight="duotone" aria-hidden="true" />
         </button>
       )}
 

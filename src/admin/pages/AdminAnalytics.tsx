@@ -26,7 +26,7 @@ const COUNTRY_FLAG: Record<string, string> = {
 const SOURCE_COLOR: Record<string, string> = {
   'Organic Search': '#22c55e', Direct: '#4f6ef7', Referral: '#f59e0b',
   'Organic Social': '#ec4899', Email: '#06b6d4', 'Paid Search': '#f97316',
-  Display: '#8b5cf6', Unassigned: '#6b7280',
+  Display: '#153D7A', Unassigned: '#6b7280',
 };
 
 const SOURCE_ICON: Record<string, string> = {
@@ -351,7 +351,7 @@ export const AdminAnalytics: React.FC = () => {
               <MetricCard icon="🔗" label="Sessions" value={fmt(sm.sessions)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
               <MetricCard icon="🟢" label="Active Users" value={fmt(sm.activeUsers)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
               <MetricCard icon="✨" label="New Users" value={fmt(sm.newUsers)} gradient="linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.28)" />
-              <MetricCard icon="📄" label="Page Views" value={fmt(sm.pageViews)} gradient="linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.28)" />
+              <MetricCard icon="📄" label="Page Views" value={fmt(sm.pageViews)} gradient="linear-gradient(135deg, rgba(21,61,122,0.18), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.28)" />
               <MetricCard icon="↩️" label="Bounce Rate" value={`${sm.bounceRate}%`} gradient="linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05))" border="rgba(239,68,68,0.24)" />
               <MetricCard icon="⏱️" label="Avg Session" value={fmtDuration(sm.avgSessionDuration)} sub="per session" gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
             </div>
@@ -384,7 +384,7 @@ export const AdminAnalytics: React.FC = () => {
                 </div>
               </Panel>
 
-              <Panel title="Devices" icon="📱" accent="#8b5cf6" copy="Traffic split by device family for responsive planning.">
+              <Panel title="Devices" icon="📱" accent="#153D7A" copy="Traffic split by device family for responsive planning.">
                 <DonutChart items={gad.byDevice ?? []} />
               </Panel>
 
@@ -441,7 +441,7 @@ export const AdminAnalytics: React.FC = () => {
           <MetricCard icon="👤" label="Chat Users" value={String(summary.total_users)} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
           <MetricCard icon="✉️" label="Subscribers" value={String(summary.total_subscribers)} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
           <MetricCard icon="📰" label="News Articles" value={String(summary.total_news)} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
-          <MetricCard icon="🧴" label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.24)" />
+          <MetricCard icon="🧴" label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(21,61,122,0.16), rgba(21,61,122,0.05))" border="rgba(21,61,122,0.24)" />
         </div>
       )}
 
@@ -471,12 +471,12 @@ export const AdminAnalytics: React.FC = () => {
           <div className="analytics-print-break" />
 
           <div className="adm-analytics-grid-2">
-            <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="How users are distributed by conversation language.">
+            <Panel title="Chat language distribution" icon="🌐" accent="#153D7A" copy="How users are distributed by conversation language.">
               <div className="adm-ranking-list">
                 {(internal.data.langDistribution ?? []).length ? (
                   (() => {
                     const total = internal.data.langDistribution.reduce((sum, item) => sum + item.count, 0);
-                    const colors = ['#8b5cf6', '#4f6ef7', '#22c55e', '#f59e0b'];
+                    const colors = ['#153D7A', '#4f6ef7', '#22c55e', '#f59e0b'];
                     return internal.data.langDistribution.map((item, index) => (
                       <RankingRow
                         key={item.language}

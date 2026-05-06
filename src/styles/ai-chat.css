@@ -146,7 +146,7 @@ body.light-mode .ai-assistant__header {
   font-size: 0.95rem;
   overflow-wrap: break-word;
   word-break: break-word;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(21, 61, 122, 0.2);
   animation: fadeInUp 0.35s ease;
 }
 
@@ -187,7 +187,7 @@ body.light-mode .ai-assistant__message--assistant {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(21, 61, 122, 0.05);
 }
 
 body.light-mode .ai-assistant__composer {
@@ -350,11 +350,11 @@ body.light-mode .ai-assistant__suggestion-btn:hover {
 }
 
 body.light-mode .ai-assistant__message code {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(21, 61, 122, 0.08);
 }
 
 .ai-assistant__message pre {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(21, 61, 122, 0.3);
   padding: 0.75rem;
   border-radius: 8px;
   overflow-x: auto;
@@ -362,7 +362,7 @@ body.light-mode .ai-assistant__message code {
 }
 
 body.light-mode .ai-assistant__message pre {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(21, 61, 122, 0.05);
 }
 
 .ai-assistant__message pre code {
@@ -398,14 +398,14 @@ body.light-mode .ai-assistant__message strong {
 }
 
 body.light-mode .ai-assistant__message hr {
-  border-top-color: rgba(0, 0, 0, 0.1);
+  border-top-color: rgba(21, 61, 122, 0.1);
 }
 
 /* تنسيق رسالة الترحيب متعددة اللغات */
 /* ملاحظة: تمت إزالة text-align: center لتتبع كل فقرة اتجاهها الطبيعي (RTL/LTR) */
 
 body.light-mode .ai-assistant__message blockquote {
-  border-inline-start-color: rgba(0, 0, 0, 0.2);
+  border-inline-start-color: rgba(21, 61, 122, 0.2);
 }
 
 .ai-assistant__message table {
@@ -423,7 +423,7 @@ body.light-mode .ai-assistant__message blockquote {
 
 body.light-mode .ai-assistant__message th,
 body.light-mode .ai-assistant__message td {
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: rgba(21, 61, 122, 0.1);
 }
 
 .ai-assistant__message th {
@@ -432,7 +432,7 @@ body.light-mode .ai-assistant__message td {
 }
 
 body.light-mode .ai-assistant__message th {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(21, 61, 122, 0.05);
 }
 
 @media (max-width: 640px) {
@@ -482,6 +482,6 @@ body.light-mode .ai-assistant__message th {
 }
 
 body.light-mode .ai-assistant__privacy {
-  color: rgba(0, 0, 0, 0.35);
-  border-color: rgba(0, 0, 0, 0.06);
+  color: rgba(21, 61, 122, 0.35);
+  border-color: rgba(21, 61, 122, 0.06);
 }

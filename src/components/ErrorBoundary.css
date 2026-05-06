@@ -103,7 +103,7 @@
   text-align: right;
   margin: 2rem 0;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(21, 61, 122, 0.3);
   border-radius: 12px;
   border: 1px solid rgba(245, 75, 26, 0.3);
 }
@@ -122,7 +122,7 @@
 
 .error-boundary__error-text,
 .error-boundary__stack {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(21, 61, 122, 0.5);
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
@@ -219,13 +219,13 @@ body.light-mode .error-boundary__icon {
 }
 
 body.light-mode .error-boundary__details {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(21, 61, 122, 0.05);
   border-color: rgba(245, 75, 26, 0.2);
 }
 
 body.light-mode .error-boundary__error-text,
 body.light-mode .error-boundary__stack {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(21, 61, 122, 0.1);
   color: #d32f2f;
 }
 

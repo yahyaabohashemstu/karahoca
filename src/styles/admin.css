@@ -5,8 +5,9 @@
    Direction: LTR (admin is always LTR regardless of site language)
 ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Google Fonts ───────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Geist Variable is loaded globally via main.tsx (@fontsource-variable/geist).
+   No external Google Fonts import — keeps CSP strict and removes the
+   DNS+TLS round-trip to fonts.gstatic.com. */
 
 /* ─── Design Tokens ──────────────────────────────────────────── */
 :root {
@@ -67,8 +68,8 @@
   --adm-radius-xl:     28px;
 
   /* Shadow */
-  --adm-shadow:        0 8px 40px rgba(0,0,0,0.45);
-  --adm-shadow-sm:     0 2px 12px rgba(0,0,0,0.30);
+  --adm-shadow:        0 8px 40px rgba(21,61,122,0.45);
+  --adm-shadow-sm:     0 2px 12px rgba(21,61,122,0.30);
   --adm-shadow-lg:     0 20px 60px rgba(0,0,0,0.55);
 
   /* Motion */
@@ -79,10 +80,12 @@
 /* ─── Reset ──────────────────────────────────────────────────── */
 .adm-root {
   direction: ltr;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   color: var(--adm-text);
   min-height: 100vh;
+
+  min-height: 100dvh;
   background:
     radial-gradient(1200px 600px at 15% 5%,  rgba(255,91,46,0.09)  0%, transparent 55%),
     radial-gradient(1000px 500px at 85% 95%, rgba(10,42,94,0.18)   0%, transparent 55%),
@@ -119,6 +122,8 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+
+  min-height: 100dvh;
   padding: 24px;
   background:
     radial-gradient(800px 600px at 30% 20%, rgba(255,91,46,0.12)  0%, transparent 60%),
@@ -176,6 +181,8 @@
 .adm-layout {
   display: flex;
   min-height: 100vh;
+
+  min-height: 100dvh;
 }
 
 /* ─── Sidebar ────────────────────────────────────────────────── */
@@ -190,10 +197,12 @@
   top: 0;
   left: 0;
   height: 100vh;
+
+  height: 100dvh;
   z-index: 100;
   transition: transform var(--adm-transition-slow);
   /* Subtle orange glow on the left edge */
-  box-shadow: inset -1px 0 0 rgba(255,91,46,0.06), 4px 0 32px rgba(0,0,0,0.35);
+  box-shadow: inset -1px 0 0 rgba(255,91,46,0.06), 4px 0 32px rgba(21,61,122,0.35);
 }
 
 .adm-sidebar-logo {
@@ -297,7 +306,35 @@
   border-radius: 0 3px 3px 0;
 }
 
-.adm-nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.adm-nav-link__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.78;
+  transition: opacity var(--adm-transition), transform var(--adm-transition);
+}
+.adm-nav-link:hover .adm-nav-link__icon {
+  opacity: 1;
+  transform: translateX(2px);
+}
+.adm-nav-link.active .adm-nav-link__icon {
+  opacity: 1;
+}
+
+.adm-nav-group {
+  margin-bottom: 8px;
+}
+
+.adm-nav-link--logout {
+  color: var(--adm-danger);
+  width: 100%;
+  border-radius: var(--adm-radius-sm);
+  text-align: start;
+}
+.adm-nav-link--logout:hover {
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+}
 
 .adm-sidebar-footer {
   padding: 14px 10px;
@@ -311,6 +348,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+
+  min-height: 100dvh;
 }
 
 /* ─── Header ─────────────────────────────────────────────────── */
@@ -327,7 +366,7 @@
   top: 0;
   z-index: 50;
   /* Orange accent line at the bottom of header */
-  box-shadow: 0 1px 0 rgba(255,91,46,0.08), 0 4px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 0 rgba(255,91,46,0.08), 0 4px 20px rgba(21,61,122,0.25);
 }
 
 .adm-header-title {
@@ -770,16 +809,16 @@
   background: var(--adm-glass-hover);
 }
 
-/* Translate — purple gradient */
+/* Translate — brand-only gradient (was banned AI purple gradient) */
 .adm-translate-btn {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, var(--adm-blue), var(--adm-blue-light));
   color: #fff;
   border: none;
-  box-shadow: 0 4px 14px rgba(99,102,241,0.28);
+  box-shadow: 0 4px 14px rgba(21, 61, 122, 0.30);
 }
 .adm-translate-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(99,102,241,0.38);
+  box-shadow: 0 6px 20px rgba(21, 61, 122, 0.42);
 }
 .adm-translate-btn:disabled { opacity: 0.4; transform: none; }
 
@@ -1085,7 +1124,7 @@
   border-radius: 50%;
   top: 3px; left: 3px;
   transition: transform var(--adm-transition);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(21,61,122,0.25);
 }
 
 .adm-toggle input:checked + .adm-toggle-track::after {
@@ -1129,6 +1168,8 @@
   position: fixed;
   top: 0; left: 0;
   height: 100vh;
+
+  height: 100dvh;
   z-index: 200;
   transform: translateX(-100%);
   transition: transform var(--adm-transition-slow);
@@ -2341,6 +2382,8 @@
     left: auto;
     width: var(--adm-sidebar-w);
     height: 100vh;
+
+    height: 100dvh;
   }
 
   .adm-main {
@@ -2369,31 +2412,31 @@
 
   /* ── Force colors (Chrome ignores background by default) ────────────────── */
   * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none;
+    text-shadow: none;
   }
 
   /* ── CSS variable override → light theme ────────────────────────────────── */
   :root {
-    --adm-bg: #ffffff !important;
-    --adm-surface: #f5f7fc !important;
-    --adm-surface2: #edf0f8 !important;
-    --adm-border: #dde1ee !important;
-    --adm-text: #1a1d2e !important;
-    --adm-text-muted: #525c7a !important;
-    --adm-text-dim: #8892aa !important;
-    --adm-accent: #4f6ef7 !important;
-    --adm-shadow-sm: none !important;
-    --adm-sidebar-w: 0px !important;
+    --adm-bg: #ffffff;
+    --adm-surface: #f5f7fc;
+    --adm-surface2: #edf0f8;
+    --adm-border: #dde1ee;
+    --adm-text: #1a1d2e;
+    --adm-text-muted: #525c7a;
+    --adm-text-dim: #8892aa;
+    --adm-accent: #4f6ef7;
+    --adm-shadow-sm: none;
+    --adm-sidebar-w: 0px;
   }
 
   /* ── Global resets ──────────────────────────────────────────────────────── */
   body, html {
-    background: #fff !important;
-    color: #1a1d2e !important;
-    font-size: 9.5pt !important;
+    background: #fff;
+    color: #1a1d2e;
+    font-size: 9.5pt;
   }
 
   /* ── Hide all UI chrome ─────────────────────────────────────────────────── */
@@ -2409,220 +2452,220 @@
   .adm-spinner,
   .adm-alert,
   .adm-analytics-rich-alert {
-    display: none !important;
+    display: none;
   }
 
   /* ── Layout: collapse shell to full width ───────────────────────────────── */
-  .adm-shell   { display: block !important; }
-  .adm-layout  { display: block !important; }
+  .adm-shell   { display: block; }
+  .adm-layout  { display: block; }
 
   /* CRITICAL: adm-main is display:flex in screen CSS — must override to block
      so that break-inside:avoid works on all descendants (Chrome ignores it
      on flex items and their nested children) */
   .adm-main {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 0 !important;
+    display: block;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
   }
 
   /* adm-content had no print rule at all — it's a flex child of adm-main
      which caused break-inside to be ignored for all panels inside it */
   .adm-content {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
+    display: block;
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
+    width: 100%;
   }
 
   .adm-analytics-page {
-    display: block !important;
-    background: #fff !important;
-    padding: 0 !important;
+    display: block;
+    background: #fff;
+    padding: 0;
   }
 
   /* Spacing between direct page-level blocks */
   .adm-analytics-page > * {
-    margin-bottom: 10pt !important;
+    margin-bottom: 10pt;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      PRINT HEADER  (visible only in print)
      ════════════════════════════════════════════════════════════════════════ */
   .analytics-print-header {
-    display: flex !important;
-    align-items: flex-end !important;
-    justify-content: space-between !important;
-    padding-bottom: 10pt !important;
-    margin-bottom: 14pt !important;
-    border-bottom: 2.5pt solid #4f6ef7 !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 10pt;
+    margin-bottom: 14pt;
+    border-bottom: 2.5pt solid #4f6ef7;
+    page-break-after: avoid;
+    break-after: avoid;
   }
 
   .analytics-print-brand {
-    font-size: 24pt !important;
-    font-weight: 900 !important;
-    color: #4f6ef7 !important;
-    letter-spacing: 3pt !important;
-    line-height: 1 !important;
+    font-size: 24pt;
+    font-weight: 900;
+    color: #4f6ef7;
+    letter-spacing: 3pt;
+    line-height: 1;
   }
 
   .analytics-print-tagline {
-    font-size: 9pt !important;
-    color: #525c7a !important;
-    font-weight: 500 !important;
-    letter-spacing: 1.5pt !important;
-    text-transform: uppercase !important;
-    margin-top: 3pt !important;
+    font-size: 9pt;
+    color: #525c7a;
+    font-weight: 500;
+    letter-spacing: 1.5pt;
+    text-transform: uppercase;
+    margin-top: 3pt;
   }
 
   .analytics-print-header-right {
-    text-align: right !important;
+    text-align: right;
   }
 
   .analytics-print-date {
-    font-size: 8.5pt !important;
-    color: #1a1d2e !important;
-    font-weight: 600 !important;
+    font-size: 8.5pt;
+    color: #1a1d2e;
+    font-weight: 600;
   }
 
   .analytics-print-period {
-    font-size: 8pt !important;
-    color: #525c7a !important;
-    margin-top: 2pt !important;
+    font-size: 8pt;
+    color: #525c7a;
+    margin-top: 2pt;
   }
 
   .analytics-print-status {
-    display: inline-block !important;
-    margin-top: 4pt !important;
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    padding: 2pt 7pt !important;
-    border-radius: 3pt !important;
+    display: inline-block;
+    margin-top: 4pt;
+    font-size: 7.5pt;
+    font-weight: 700;
+    padding: 2pt 7pt;
+    border-radius: 3pt;
   }
 
   .analytics-print-status.connected {
-    background: #dcfce7 !important;
-    color: #16a34a !important;
+    background: #dcfce7;
+    color: #16a34a;
   }
 
   .analytics-print-status.disconnected {
-    background: #fef9c3 !important;
-    color: #a16207 !important;
+    background: #fef9c3;
+    color: #a16207;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      PAGE BREAK MARKERS
      ════════════════════════════════════════════════════════════════════════ */
   .analytics-print-break {
-    display: block !important;
-    page-break-before: always !important;
-    break-before: page !important;
-    height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    display: block;
+    page-break-before: always;
+    break-before: page;
+    height: 0;
+    padding: 0;
+    margin: 0;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      KPI METRIC CARDS
      ════════════════════════════════════════════════════════════════════════ */
   .adm-analytics-kpi-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 7pt !important;
-    margin-bottom: 10pt !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7pt;
+    margin-bottom: 10pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .adm-analytics-kpi-grid.compact {
-    grid-template-columns: repeat(5, 1fr) !important;
-    gap: 5pt !important;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5pt;
   }
 
   .adm-analytics-metric-card {
-    background: #f5f7fc !important;
-    border: 1.5pt solid #dde1ee !important;
-    border-radius: 7pt !important;
-    padding: 9pt 10pt !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    display: flex !important;
-    flex-direction: column !important;
+    background: #f5f7fc;
+    border: 1.5pt solid #dde1ee;
+    border-radius: 7pt;
+    padding: 9pt 10pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
   }
 
   .adm-analytics-metric-icon {
-    font-size: 14pt !important;
-    line-height: 1 !important;
-    margin-bottom: 5pt !important;
+    font-size: 14pt;
+    line-height: 1;
+    margin-bottom: 5pt;
   }
 
   .adm-analytics-metric-label {
-    font-size: 6.5pt !important;
-    color: #525c7a !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.6pt !important;
-    font-weight: 600 !important;
-    margin-bottom: 3pt !important;
+    font-size: 6.5pt;
+    color: #525c7a;
+    text-transform: uppercase;
+    letter-spacing: 0.6pt;
+    font-weight: 600;
+    margin-bottom: 3pt;
   }
 
   .adm-analytics-metric-value {
-    font-size: 19pt !important;
-    font-weight: 900 !important;
-    color: #1a1d2e !important;
-    line-height: 1 !important;
+    font-size: 19pt;
+    font-weight: 900;
+    color: #1a1d2e;
+    line-height: 1;
   }
 
   .adm-analytics-metric-sub {
-    font-size: 6.5pt !important;
-    color: #8892aa !important;
-    margin-top: 2pt !important;
+    font-size: 6.5pt;
+    color: #8892aa;
+    margin-top: 2pt;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      ANALYTICS PANELS
      ════════════════════════════════════════════════════════════════════════ */
   .adm-analytics-panel {
-    background: #fff !important;
-    border: 1.5pt solid #dde1ee !important;
-    border-top-width: 3pt !important;
-    border-radius: 7pt !important;
-    padding: 10pt 12pt !important;
-    display: block !important;
-    width: 100% !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    overflow: visible !important;
+    background: #fff;
+    border: 1.5pt solid #dde1ee;
+    border-top-width: 3pt;
+    border-radius: 7pt;
+    padding: 10pt 12pt;
+    display: block;
+    width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: visible;
   }
 
   .adm-card {
-    background: #f5f7fc !important;
-    border: 1pt solid #dde1ee !important;
-    border-radius: 7pt !important;
-    padding: 10pt 12pt !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    background: #f5f7fc;
+    border: 1pt solid #dde1ee;
+    border-radius: 7pt;
+    padding: 10pt 12pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .adm-card-title {
-    color: #1a1d2e !important;
-    font-size: 9pt !important;
-    font-weight: 700 !important;
+    color: #1a1d2e;
+    font-size: 9pt;
+    font-weight: 700;
   }
 
   .adm-analytics-panel-head {
-    margin-bottom: 7pt !important;
+    margin-bottom: 7pt;
   }
 
   .adm-analytics-panel-copy {
-    font-size: 7.5pt !important;
-    color: #525c7a !important;
-    margin: 2pt 0 0 0 !important;
-    line-height: 1.4 !important;
+    font-size: 7.5pt;
+    color: #525c7a;
+    margin: 2pt 0 0 0;
+    line-height: 1.4;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
@@ -2632,44 +2675,44 @@
      CSS Grid children; block layout lets each card stay intact on one page */
   .adm-analytics-grid-3,
   .adm-analytics-grid-2 {
-    display: block !important;
-    margin-bottom: 8pt !important;
+    display: block;
+    margin-bottom: 8pt;
   }
 
   .adm-analytics-grid-3 > *,
   .adm-analytics-grid-2 > * {
-    display: block !important;
-    width: 100% !important;
-    margin-bottom: 8pt !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    display: block;
+    width: 100%;
+    margin-bottom: 8pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .adm-analytics-panel-wide {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   /* KPI row stays together: use flex so cards sit side-by-side on same page */
   .adm-analytics-kpi-grid {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    gap: 6pt !important;
-    margin-bottom: 10pt !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6pt;
+    margin-bottom: 10pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .adm-analytics-kpi-grid.compact {
-    flex-wrap: wrap !important;
-    gap: 5pt !important;
+    flex-wrap: wrap;
+    gap: 5pt;
   }
 
   .adm-analytics-kpi-grid > * {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    flex: 1 1 0;
+    min-width: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   /* Prevent any section wrapper from splitting across pages */
@@ -2677,304 +2720,304 @@
   .adm-analytics-hero,
   .adm-analytics-hero-left,
   .adm-analytics-hero-right {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      TREND CHARTS  (SVG renders natively in print)
      ════════════════════════════════════════════════════════════════════════ */
   .adm-trend-chart {
-    background: #fff !important;
+    background: #fff;
   }
 
   .adm-trend-chart-stage {
-    display: flex !important;
-    align-items: stretch !important;
-    gap: 6pt !important;
+    display: flex;
+    align-items: stretch;
+    gap: 6pt;
   }
 
   .adm-trend-axis {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    font-size: 6.5pt !important;
-    color: #8892aa !important;
-    min-width: 18pt !important;
-    text-align: right !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 6.5pt;
+    color: #8892aa;
+    min-width: 18pt;
+    text-align: right;
   }
 
   .adm-trend-svg {
-    flex: 1 !important;
-    width: 100% !important;
-    height: 130pt !important;
+    flex: 1;
+    width: 100%;
+    height: 130pt;
   }
 
   /* SVG gridlines: override rgba white → light grey */
   .adm-trend-svg line[stroke="rgba(255,255,255,0.08)"] {
-    stroke: #e2e6f0 !important;
+    stroke: #e2e6f0;
   }
 
   .adm-trend-footer {
-    display: flex !important;
-    justify-content: space-between !important;
-    font-size: 7pt !important;
-    color: #8892aa !important;
-    margin-top: 4pt !important;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: #8892aa;
+    margin-top: 4pt;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      RANKING ROWS  (countries, sources, pages)
      ════════════════════════════════════════════════════════════════════════ */
   .adm-ranking-list {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .adm-ranking-row {
-    padding: 4pt 0 !important;
-    border-bottom: 0.5pt solid #edf0f8 !important;
+    padding: 4pt 0;
+    border-bottom: 0.5pt solid #edf0f8;
   }
 
   .adm-ranking-row:last-child {
-    border-bottom: none !important;
+    border-bottom: none;
   }
 
   .adm-ranking-top {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 3pt !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3pt;
   }
 
   .adm-ranking-label-wrap {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4pt !important;
+    display: flex;
+    align-items: center;
+    gap: 4pt;
   }
 
   .adm-ranking-rank {
-    font-size: 7pt !important;
-    font-weight: 700 !important;
-    color: #8892aa !important;
-    min-width: 14pt !important;
+    font-size: 7pt;
+    font-weight: 700;
+    color: #8892aa;
+    min-width: 14pt;
   }
 
   .adm-ranking-icon {
-    font-size: 10pt !important;
+    font-size: 10pt;
   }
 
   .adm-ranking-label {
-    font-size: 8pt !important;
-    color: #1a1d2e !important;
-    font-weight: 500 !important;
+    font-size: 8pt;
+    color: #1a1d2e;
+    font-weight: 500;
   }
 
   .adm-ranking-top > strong {
-    font-size: 8pt !important;
-    font-weight: 700 !important;
+    font-size: 8pt;
+    font-weight: 700;
   }
 
   .adm-ranking-track {
-    height: 3pt !important;
-    background: #edf0f8 !important;
-    border-radius: 2pt !important;
-    overflow: hidden !important;
+    height: 3pt;
+    background: #edf0f8;
+    border-radius: 2pt;
+    overflow: hidden;
   }
 
   .adm-ranking-fill {
-    height: 3pt !important;
-    border-radius: 2pt !important;
+    height: 3pt;
+    border-radius: 2pt;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      DEVICE DONUT CHART
      ════════════════════════════════════════════════════════════════════════ */
   .adm-device-layout {
-    display: flex !important;
-    gap: 10pt !important;
-    align-items: center !important;
+    display: flex;
+    gap: 10pt;
+    align-items: center;
   }
 
   .adm-device-chart {
-    width: 72pt !important;
-    height: 72pt !important;
-    flex-shrink: 0 !important;
+    width: 72pt;
+    height: 72pt;
+    flex-shrink: 0;
   }
 
   /* SVG donut background ring */
   .adm-device-chart circle[stroke="rgba(255,255,255,0.08)"] {
-    stroke: #e2e6f0 !important;
+    stroke: #e2e6f0;
   }
 
   .adm-device-chart text[fill="var(--adm-text)"] {
-    fill: #1a1d2e !important;
+    fill: #1a1d2e;
   }
 
   .adm-device-chart text[fill="var(--adm-text-muted)"] {
-    fill: #525c7a !important;
+    fill: #525c7a;
   }
 
   .adm-device-legend {
-    flex: 1 !important;
+    flex: 1;
   }
 
   .adm-device-legend-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6pt !important;
-    padding: 3pt 0 !important;
-    border-bottom: 0.5pt solid #edf0f8 !important;
+    display: flex;
+    align-items: center;
+    gap: 6pt;
+    padding: 3pt 0;
+    border-bottom: 0.5pt solid #edf0f8;
   }
 
   .adm-device-legend-item:last-child {
-    border-bottom: none !important;
+    border-bottom: none;
   }
 
   .adm-device-legend-icon {
-    font-size: 10pt !important;
-    width: 14pt !important;
-    text-align: center !important;
+    font-size: 10pt;
+    width: 14pt;
+    text-align: center;
   }
 
   .adm-device-legend-item > div {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 1pt !important;
+    display: flex;
+    flex-direction: column;
+    gap: 1pt;
   }
 
   .adm-device-legend-item strong {
-    font-size: 8pt !important;
-    color: #1a1d2e !important;
-    font-weight: 700 !important;
+    font-size: 8pt;
+    color: #1a1d2e;
+    font-weight: 700;
   }
 
   .adm-device-legend-item span {
-    font-size: 7pt !important;
-    font-weight: 500 !important;
+    font-size: 7pt;
+    font-weight: 500;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      SECTION DIVIDER (Internal Stats header)
      ════════════════════════════════════════════════════════════════════════ */
   .adm-analytics-section-divider {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8pt !important;
-    background: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%) !important;
-    color: #fff !important;
-    border-radius: 7pt !important;
-    padding: 8pt 14pt !important;
-    margin-bottom: 10pt !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+    background: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%);
+    color: #fff;
+    border-radius: 7pt;
+    padding: 8pt 14pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+    break-after: avoid;
   }
 
   .adm-analytics-section-divider span {
-    font-size: 12pt !important;
+    font-size: 12pt;
   }
 
   .adm-analytics-section-divider strong {
-    font-size: 10pt !important;
-    font-weight: 700 !important;
-    color: #fff !important;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #fff;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      ACTIVE USERS TABLE
      ════════════════════════════════════════════════════════════════════════ */
   .adm-analytics-user-stack {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .adm-analytics-user-row {
-    display: flex !important;
-    align-items: center !important;
-    gap: 7pt !important;
-    padding: 5pt 0 !important;
-    border-bottom: 0.5pt solid #edf0f8 !important;
-    font-size: 7.5pt !important;
+    display: flex;
+    align-items: center;
+    gap: 7pt;
+    padding: 5pt 0;
+    border-bottom: 0.5pt solid #edf0f8;
+    font-size: 7.5pt;
   }
 
   .adm-analytics-user-row:last-child {
-    border-bottom: none !important;
+    border-bottom: none;
   }
 
   .adm-analytics-user-rank {
-    width: 15pt !important;
-    height: 15pt !important;
-    background: #4f6ef7 !important;
-    color: #fff !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 7pt !important;
-    font-weight: 800 !important;
-    flex-shrink: 0 !important;
+    width: 15pt;
+    height: 15pt;
+    background: #4f6ef7;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7pt;
+    font-weight: 800;
+    flex-shrink: 0;
   }
 
   .adm-analytics-user-copy {
-    flex: 1 !important;
-    min-width: 0 !important;
+    flex: 1;
+    min-width: 0;
   }
 
   .adm-analytics-user-copy strong {
-    display: block !important;
-    font-size: 7.5pt !important;
-    color: #1a1d2e !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    display: block;
+    font-size: 7.5pt;
+    color: #1a1d2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .adm-analytics-user-copy span {
-    font-size: 6.5pt !important;
-    color: #8892aa !important;
+    font-size: 6.5pt;
+    color: #8892aa;
   }
 
   .adm-analytics-user-metric {
-    text-align: right !important;
-    flex-shrink: 0 !important;
+    text-align: right;
+    flex-shrink: 0;
   }
 
   .adm-analytics-user-metric strong {
-    display: block !important;
-    font-size: 10pt !important;
-    font-weight: 800 !important;
-    color: #4f6ef7 !important;
+    display: block;
+    font-size: 10pt;
+    font-weight: 800;
+    color: #4f6ef7;
   }
 
   .adm-analytics-user-metric span {
-    font-size: 6pt !important;
-    color: #8892aa !important;
-    text-transform: uppercase !important;
+    font-size: 6pt;
+    color: #8892aa;
+    text-transform: uppercase;
   }
 
   .adm-badge,
   .adm-badge-blue {
-    display: inline-block !important;
-    font-size: 6.5pt !important;
-    padding: 1.5pt 5pt !important;
-    border-radius: 3pt !important;
-    background: #dde8ff !important;
-    color: #4f6ef7 !important;
-    font-weight: 700 !important;
+    display: inline-block;
+    font-size: 6.5pt;
+    padding: 1.5pt 5pt;
+    border-radius: 3pt;
+    background: #dde8ff;
+    color: #4f6ef7;
+    font-weight: 700;
   }
 
   /* ════════════════════════════════════════════════════════════════════════
      EMPTY STATES
      ════════════════════════════════════════════════════════════════════════ */
   .adm-analytics-empty {
-    font-size: 8pt !important;
-    color: #8892aa !important;
-    text-align: center !important;
-    padding: 10pt !important;
-    min-height: auto !important;
-    border: 1pt dashed #dde1ee !important;
-    border-radius: 5pt !important;
+    font-size: 8pt;
+    color: #8892aa;
+    text-align: center;
+    padding: 10pt;
+    min-height: auto;
+    border: 1pt dashed #dde1ee;
+    border-radius: 5pt;
   }
 }
