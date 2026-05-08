@@ -7,10 +7,11 @@ import { buildApiUrl } from './api';
  *      pattern.
  *   2. Automatically attaches the `X-CSRF-Token` header for mutating
  *      requests (POST / PUT / PATCH / DELETE). The token is read from the
- *      `karahoca_csrf` cookie that the server sets on every HTML response
- *      (see `server/middlewares/publicCsrf.mjs`).
- *   3. Sends cookies on same-origin requests by default so the CSRF cookie
- *      round-trips without callers having to set `credentials` themselves.
+ *      `karahoca_csrf` cookie issued by `GET /api/csrf` on app boot
+ *      (see `server/middlewares/publicCsrf.mjs` and `bootstrapCsrf` below).
+ *   3. Sends cookies with `credentials: 'include'` so the CSRF cookie
+ *      round-trips even when the API lives on a sibling subdomain
+ *      (frontend at karahoca.com → backend at api.karahoca.com).
  *
  * Callers pass a path (e.g. `/api/newsletter/subscribe`) + standard init.
  * Return value is the raw `Response` — same contract as `fetch`.
@@ -67,8 +68,35 @@ export const apiFetch = (path: string, init: RequestInit = {}): Promise<Response
   }
 
   return fetch(url, {
-    credentials: 'same-origin',
+    credentials: 'include',
     ...init,
     headers,
   });
+};
+
+/**
+ * Seed the public CSRF cookie. Call once at app boot so the SPA has a token
+ * to echo back on its first mutation. The backend `/api/csrf` endpoint
+ * issues `karahoca_csrf` (SameSite=Lax) and `credentials: 'include'` on
+ * the request lets the browser store the cookie even cross-subdomain.
+ *
+ * Best-effort: a network failure here just means the first POST will 403,
+ * which the user can recover from with a retry — we don't want to gate
+ * the whole UI on this.
+ */
+let csrfBootstrapPromise: Promise<void> | null = null;
+export const bootstrapCsrf = (): Promise<void> => {
+  if (csrfBootstrapPromise) return csrfBootstrapPromise;
+  csrfBootstrapPromise = (async () => {
+    if (readCsrfToken()) return;
+    try {
+      await fetch(buildApiUrl('/api/csrf'), {
+        method: 'GET',
+        credentials: 'include',
+      });
+    } catch {
+      /* offline / network error — surface lazily on the first POST */
+    }
+  })();
+  return csrfBootstrapPromise;
 };

@@ -47,8 +47,8 @@ import { handleAiChat, handleChatLogRoute } from './routes/api-chat.mjs';
 import { handleNewsletterSubscribe, handleNewsletterUnsubscribe } from './routes/api-newsletter.mjs';
 import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from './routes/api-misc.mjs';
 import { handleAdminRoutes } from './routes/api-admin.mjs';
-import { serveStaticOrSpa } from './routes/static-spa.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
+import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
 import { handleHealth } from './routes/api-health.mjs';
 import { handleAiContext } from './routes/api-ai-context.mjs';
@@ -218,10 +218,16 @@ const handleRequest = async (request, response) => {
       return;
     }
 
-    // ── SPA / static fallback ────────────────────────────────────────────
-    if (request.method === 'GET') {
-      const served = await serveStaticOrSpa(request, response, ctx);
-      if (served) return;
+    // ── CSRF cookie issuer ──────────────────────────────────────────────
+    // Replaces the SPA-HTML cookie seeding now that the frontend is served
+    // by a separate nginx image. The SPA hits this on boot (with
+    // credentials:'include') so that its first POST has a token to echo.
+    if (request.method === 'GET' && url === '/api/csrf') {
+      const baseHeaders = createJsonHeaders(requestOrigin);
+      const { token, headers } = ensurePublicCsrfCookie(request, baseHeaders);
+      response.writeHead(200, headers);
+      response.end(JSON.stringify({ success: true, token }));
+      return;
     }
 
     sendJson(response, 404, { success: false, error: 'Route not found.' }, requestOrigin);

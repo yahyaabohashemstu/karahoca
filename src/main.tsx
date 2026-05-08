@@ -13,6 +13,13 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
+import { bootstrapCsrf } from './utils/apiFetch'
+
+// Seed the public CSRF cookie from the API. Required because the SPA shell
+// is now served by nginx (no inline cookie injection); the backend issues
+// the cookie via GET /api/csrf and the SPA echoes it on mutating requests.
+// Fire-and-forget — failures surface lazily on the first POST.
+void bootstrapCsrf();
 
 // ─── Global unhandled-rejection handler ────────────────────────────────────
 // React's ErrorBoundary only catches render-time errors. Promise rejections

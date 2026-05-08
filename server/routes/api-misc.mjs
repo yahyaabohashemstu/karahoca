@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { readRequestBody } from '../middlewares/bodyParser.mjs';
 import { sendJson } from '../middlewares/cors.mjs';
 import { getClientIp, isLogErrorRateLimited } from '../middlewares/security.mjs';
-import { STATIC_MIME } from './static-spa.mjs';
+import { STATIC_MIME } from '../utils/mime.mjs';
 import { handleEmailOpen, handleEmailClick } from './admin-campaigns.mjs';
 import { logger } from '../utils/logger.mjs';
 
