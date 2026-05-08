@@ -12,10 +12,14 @@ dist
 dist-ssr
 *.local
 
-# Environment variables
+# Environment variables — ONLY *.example files belong in git.
 .env
 .env.local
 .env.production
+.env.api
+.env.api.local
+.env.web
+.env.web.local
 server/data/
 
 # Editor directories and files
