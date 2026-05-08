@@ -238,12 +238,10 @@ body.light-mode {
 
 body {
   font-family: var(--font-sans);
-  min-height: 100vh;
-
+  min-height: 100vh; /* fallback for older browsers */
   min-height: 100dvh;
-  min-height: 100dvh;
-  background: radial-gradient(1400px 800px at 20% 10%, rgba(232, 85, 44, 0.06), transparent 50%),
-    radial-gradient(1200px 600px at 80% 90%, rgba(21, 61, 122, 0.16), transparent 50%),
+  background: radial-gradient(1400px 800px at 20% 10%, rgba(255, 91, 46, 0.08), transparent 50%),
+    radial-gradient(1200px 600px at 80% 90%, rgba(10, 42, 94, 0.12), transparent 50%),
     radial-gradient(800px 400px at 50% 50%, rgba(255, 255, 255, 0.02), transparent 70%),
     linear-gradient(180deg, #0a0e17, #0f1117, #12151c);
   color: var(--text);
@@ -5511,8 +5509,8 @@ body.light-mode .catalog-print-trigger {
   }
 
   .ai-chat-messages {
-    padding: 16px;
-    height: calc(100dvh - 180px);
+    padding: 16px !important;
+    height: calc(100dvh - 180px) !important;
   }
 
   .ai-chat-input-area {
