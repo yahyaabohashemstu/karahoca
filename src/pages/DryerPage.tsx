@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BreadcrumbSchema } from '../components/SchemaOrg';
 import SubPageTemplate from '../components/SubPageTemplate';
 
 const DryerPage: React.FC = () => {
@@ -56,6 +57,10 @@ const DryerPage: React.FC = () => {
         ogImage="/KARAHOCA-2-wb.webp"
         canonicalUrl="https://karahoca.com/dryer"
       />
+      <BreadcrumbSchema items={[
+        { name: 'KARAHOCA', url: '/' },
+        { name: t('dryer.seo.title'), url: '/dryer' },
+      ]} />
       <SubPageTemplate
         pageClass="goal-page"
         heroTitle={t('dryer.heroTitle')}

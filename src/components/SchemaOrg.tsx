@@ -8,39 +8,103 @@ import { Helmet } from 'react-helmet-async';
 const SITE_URL = 'https://karahoca.com';
 const LOGO_URL = `${SITE_URL}/karahoca-logo-1-Photoroom.webp`;
 
-// ── Organization (render on every page) ──────────────────────────────────────
+// ── Organization + LocalBusiness (rendered on every page via App.tsx) ────────
+//
+// Single canonical company record for the whole site. Carries `@id` so any
+// page-level schema (BrandPage, AboutPage, NewsArticle) can cross-reference
+// via `"publisher": { "@id": "https://karahoca.com/#organization" }` — Google
+// then merges the graph on its end without us having to repeat the
+// company block on every page. Uses dual @type so the same node satisfies
+// both the generic Organization rules AND the LocalBusiness rich-result
+// requirements (geo, opening hours, full address) for the Knowledge Panel.
 export const OrganizationSchema: React.FC = () => {
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
+    '@type': ['Organization', 'LocalBusiness'],
+    '@id': `${SITE_URL}/#organization`,
     name: 'KARAHOCA',
+    alternateName: ['KARAHOCA KIMYA', 'كاراهوجا', 'كاراهوكا'],
+    legalName: 'KARAHOCA KIMYA',
     url: SITE_URL,
     logo: {
       '@type': 'ImageObject',
+      '@id': `${SITE_URL}/#logo`,
       url: LOGO_URL,
+      contentUrl: LOGO_URL,
       width: 200,
       height: 60,
+      caption: 'KARAHOCA',
     },
-    description: 'Turkish manufacturer of household and industrial cleaning products. DIOX and AYLUX brands. Exporting to 15+ countries.',
+    image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
+    description:
+      'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DIOX and AYLUX branded products to 15+ countries since 1994.',
+    slogan: 'Quality That Cleans the World',
     foundingDate: '1994',
     numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
+    knowsAbout: [
+      'Household Cleaning Products',
+      'Industrial Cleaning',
+      'Laundry Detergents',
+      'Personal Hygiene',
+      'Private Label Manufacturing',
+      'Chemical Manufacturing',
+    ],
+    naics: '325611', // Soap and Other Detergent Manufacturing
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'TR',
+      addressRegion: 'Kilis',
+      addressLocality: 'Kilis',
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 36.71,
+      longitude: 37.115,
+    },
+    // Opening hours for the sales office. The plant runs longer; this set is
+    // when buyers can actually reach a human. Sunday/Saturday closed —
+    // important so Google doesn't suggest weekend calls.
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        opens: '08:30',
+        closes: '18:00',
+      },
+    ],
     contactPoint: [
       {
         '@type': 'ContactPoint',
-        telephone: '+90-530-591-4990',
+        telephone: '+90-850-228-35-34',
         contactType: 'customer service',
         availableLanguage: ['Arabic', 'English', 'Turkish', 'Russian'],
         areaServed: 'Worldwide',
       },
       {
         '@type': 'ContactPoint',
+        telephone: '+90-530-591-4990',
+        contactType: 'sales',
+        availableLanguage: ['Arabic', 'English', 'Turkish'],
+        areaServed: ['TR', 'SA', 'AE', 'EG', 'DZ', 'MA', 'JO', 'IQ'],
+      },
+      {
+        '@type': 'ContactPoint',
         email: 'info@karahoca.com',
         contactType: 'sales',
+        areaServed: 'Worldwide',
       },
     ],
-    address: {
-      '@type': 'PostalAddress',
-      addressCountry: 'TR',
+    brand: [
+      { '@type': 'Brand', name: 'DIOX', url: `${SITE_URL}/ar/diox` },
+      { '@type': 'Brand', name: 'AYLUX', url: `${SITE_URL}/ar/aylux` },
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'KARAHOCA Product Catalog',
+      itemListElement: [
+        { '@type': 'OfferCatalog', name: 'DIOX — Home & Laundry Cleaning' },
+        { '@type': 'OfferCatalog', name: 'AYLUX — Premium Cleaning Line' },
+      ],
     },
     sameAs: [
       'https://www.linkedin.com/company/karahoca',
@@ -54,14 +118,28 @@ export const OrganizationSchema: React.FC = () => {
   );
 };
 
-// ── Website SearchAction ──────────────────────────────────────────────────────
+// ── WebSite + SearchAction (sitelinks search box in Google) ──────────────────
 export const WebsiteSchema: React.FC = () => {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': `${SITE_URL}/#website`,
     name: 'KARAHOCA',
     url: SITE_URL,
     inLanguage: ['ar', 'en', 'tr', 'ru'],
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    // Tells Google we have on-site search and where to forward the query.
+    // The user lands on the news page with `?q=...`; even if the page
+    // doesn't yet handle that param, Google still renders the search box
+    // under the brand result — the param is harmless to ignore.
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/ar/news?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   };
   return (
     <Helmet>
@@ -267,6 +345,63 @@ export const AboutPageSchema: React.FC = () => {
     <Helmet>
       <script type="application/ld+json">{JSON.stringify(aboutPage)}</script>
       <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+    </Helmet>
+  );
+};
+
+// ── News list (NewsPage index — enables Google News rich results) ───────────
+//
+// Renders an `ItemList` of `NewsArticle` headlines with publication date,
+// excerpt, and image. Each article carries `mainEntityOfPage` pointing at
+// its `/news/<slug>` URL so Google can surface specific articles directly
+// from the SERP. Publisher cross-references the global Organization @id
+// (defined in OrganizationSchema above) so the company info isn't repeated
+// per-article — Google merges the graph by @id.
+interface NewsListItem {
+  slug: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  publishedAt: string;
+  category: string;
+}
+interface NewsListSchemaProps {
+  items: NewsListItem[];
+  lang?: string;
+}
+export const NewsListSchema: React.FC<NewsListSchemaProps> = ({ items, lang = 'ar' }) => {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'KARAHOCA News',
+    numberOfItems: items.length,
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${SITE_URL}/${lang}/news/${item.slug}`,
+      item: {
+        '@type': 'NewsArticle',
+        '@id': `${SITE_URL}/${lang}/news/${item.slug}`,
+        headline: item.title,
+        description: item.excerpt,
+        image: item.image.startsWith('http') ? item.image : `${SITE_URL}${item.image}`,
+        datePublished: item.publishedAt,
+        articleSection: item.category,
+        inLanguage: lang,
+        url: `${SITE_URL}/${lang}/news/${item.slug}`,
+        publisher: { '@id': `${SITE_URL}/#organization` },
+        author: { '@id': `${SITE_URL}/#organization` },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/${lang}/news/${item.slug}`,
+        },
+      },
+    })),
+  };
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
     </Helmet>
   );
 };

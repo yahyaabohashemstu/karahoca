@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
+import { NewsListSchema } from './SchemaOrg';
 import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
 
@@ -26,6 +27,15 @@ const NewsPageContent: React.FC = () => {
 
   return (
     <>
+      {/* JSON-LD ItemList of NewsArticle entries — surfaces the news index
+          as a Google News rich result. Emitted from inside the content
+          component (not the page wrapper) because this is where the items
+          state actually lives. NewsListSchema cross-references the global
+          Organization @id so the publisher block is not duplicated. */}
+      {newsItems.length > 0 && (
+        <NewsListSchema items={newsItems} lang={currentLanguage} />
+      )}
+
       <section className="section glass-section news-page__hero">
         <div className="section-divider"></div>
         <div className="container news-page__heroGrid">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BreadcrumbSchema } from '../components/SchemaOrg';
 import SubPageTemplate from '../components/SubPageTemplate';
 
 const ProductionPage: React.FC = () => {
@@ -56,6 +57,10 @@ const ProductionPage: React.FC = () => {
         ogImage="/KARAHOCA-4-web.webp"
         canonicalUrl="https://karahoca.com/production"
       />
+      <BreadcrumbSchema items={[
+        { name: 'KARAHOCA', url: '/' },
+        { name: t('production.seo.title'), url: '/production' },
+      ]} />
       <SubPageTemplate
         pageClass="production-page"
         heroTitle={t('production.heroTitle')}

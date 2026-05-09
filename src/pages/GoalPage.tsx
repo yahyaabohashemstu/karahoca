@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import { BreadcrumbSchema } from '../components/SchemaOrg';
 import SubPageTemplate from '../components/SubPageTemplate';
 
 const GoalPage: React.FC = () => {
@@ -49,11 +50,17 @@ const GoalPage: React.FC = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title={t('goal.seo.title')}
         description={t('goal.seo.description')}
         keywords={t('goal.seo.keywords')}
+        ogImage="/KARAHOCA-2-wb.webp"
+        canonicalUrl="https://karahoca.com/goal"
       />
+      <BreadcrumbSchema items={[
+        { name: 'KARAHOCA', url: '/' },
+        { name: t('goal.seo.title'), url: '/goal' },
+      ]} />
       <SubPageTemplate
         pageClass="goal-page"
         heroTitle={t('goal.heroTitle')}
