@@ -7873,6 +7873,22 @@ body.light-mode .catalog-print-trigger {
     height: 40px;
   }
 
+  /* Navbar Contact button — shrink to fit alongside the hamburger,
+     wishlist heart, language switcher and logo on a 375px viewport.
+     The default `.btn` in the mobile media block sets `width: 100%`
+     and a chunky padding meant for hero CTAs — here we override both
+     so the pill stays compact (≈ 60×30px instead of 83×48px) and
+     visually balances the 40×40 hamburger / icon buttons next to it. */
+  .header__contact {
+    width: auto;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    flex: 0 0 auto;
+    min-height: 0;
+    min-width: 0;
+  }
+
   /* Mobile menu — vertical padding ONLY when open, otherwise the
      padding renders below the bar even with max-height:0. */
   .mobile-menu.is-open {
