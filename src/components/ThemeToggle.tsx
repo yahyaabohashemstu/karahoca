@@ -64,17 +64,18 @@ const ThemeToggle: React.FC = () => {
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
         </svg>
       ) : (
-        // Dark mode → full moon (بدر) — solid disc with subtle craters
+        // Dark mode → crescent (هلال) — single filled path so the
+        // "bite" out of the disc is part of the shape, not a second
+        // shape composited on top. Crisper at small sizes than a
+        // disc-with-cutout, and the silhouette reads as "moon" at a
+        // glance even at 24×24.
         <svg
           className="theme-toggle__icon theme-toggle__icon--moon"
           viewBox="0 0 24 24"
           fill="currentColor"
           aria-hidden="true"
         >
-          <circle cx="12" cy="12" r="9" />
-          <circle cx="9" cy="9" r="1.4" fill="rgba(0,0,0,0.18)" />
-          <circle cx="14.5" cy="13.5" r="1" fill="rgba(0,0,0,0.20)" />
-          <circle cx="10" cy="14.5" r="0.7" fill="rgba(0,0,0,0.14)" />
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       )}
     </button>
