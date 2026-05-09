@@ -4880,7 +4880,7 @@ body.light-mode .catalog-print-trigger {
     --khc-glass: rgba(255, 255, 255, .04);
     --khc-white: #ffffff;
     --khc-fab-size: 46px;
-    --khc-fab-icon-size: 20px;
+    --khc-fab-icon-size: 24px;
     --khc-ai-fab-icon-size: 1.2rem;
     --radius-xl: 20px;
     --radius-lg: 16px;
@@ -5625,6 +5625,12 @@ body.light-mode .catalog-print-trigger {
     z-index: 999 !important;
     width: var(--khc-fab-size) !important;
     height: var(--khc-fab-size) !important;
+    /* CRITICAL: explicit `padding: 0` neutralises the global
+       `button { padding: 0.6em 1.2em }` reset which otherwise inflates
+       the FAB to 9.6px×19.2px of asymmetric padding inside its 46px
+       border-box, leaving the SVG only ~6px of horizontal content
+       area and squeezing the icon to a sliver. */
+    padding: 0 !important;
     border-radius: 50% !important;
     background: rgba(255, 255, 255, .12) !important;
     backdrop-filter: blur(12px) !important;
@@ -5640,6 +5646,9 @@ body.light-mode .catalog-print-trigger {
   .whatsapp-button__icon {
     width: var(--khc-fab-icon-size) !important;
     height: var(--khc-fab-icon-size) !important;
+    /* Lock the intrinsic aspect ratio against any flex shrink */
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
   }
 
   html[dir="rtl"] .whatsapp-button {
