@@ -39,9 +39,12 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true \
     NODE_ENV=production
 
 COPY package.json package-lock.json ./
+# `--include=dev` forces devDependencies despite NODE_ENV=production above —
+# vite, @vitejs/plugin-react, typescript, sharp all live there and the build
+# step below cannot run without them.
 # `--ignore-scripts=false` lets sharp install its prebuilt binary postinstall;
 # Puppeteer's postinstall is gated by PUPPETEER_SKIP_DOWNLOAD above.
-RUN npm ci --no-audit --no-fund
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 
