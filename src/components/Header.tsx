@@ -31,7 +31,13 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const newsHref = hashLink('#news');
   const numbersHref = hashLink('#numbers');
   const aboutHref = isHomePage ? '#about' : lp('/about');
-  const contactHref = hashLink('#contact');
+  // Footer (`id="contact"`) is rendered on every page, so the contact link
+  // is always a fragment scroll on the CURRENT page — no full reload, no
+  // race with lazy-loaded home content. Previously we sent users to
+  // `${homePath}#contact` from non-home pages, which triggered a full
+  // navigation and the hash scroll missed because the home tree wasn't
+  // mounted yet (user-visible symptom: page just "refreshed").
+  const contactHref = '#contact';
   const wishlistLabel = t('nav.wishlist', { defaultValue: 'Wishlist' });
 
   useEffect(() => {
