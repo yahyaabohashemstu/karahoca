@@ -492,81 +492,90 @@ const WishlistPage: React.FC = () => {
   );
 };
 
-/* ─── Card styles ────────────────────────────────────────────────────────── */
+/* ─── Card styles ────────────────────────────────────────────────────────────
+   ALL inline styles below feed off design tokens (`var(--token-name)`)
+   so they re-evaluate automatically when `body.light-mode` is added.
+   Previously the page was painted with hard-coded dark-only values
+   (`rgba(255,255,255,...)`, `#fff`, and a non-existent `--bg-primary`
+   var with a dark fallback), which left the wishlist illegible in
+   light mode while every other page flipped correctly. The accent
+   colours (red for delete, green for WhatsApp, blue/orange for
+   brand badges) stay literal because they're brand semantics that
+   should not change between modes. */
 const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary, #0f1117)', color: 'var(--text-primary, #fff)' },
+  page: { minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-page-bg)', color: 'var(--color-text)' },
   main: { flex: 1, padding: '7rem 1.5rem 4rem', maxWidth: 1200, margin: '0 auto', width: '100%' },
 
   emptyWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '55vh', gap: '1.25rem', textAlign: 'center' },
   emptyHeart: { animation: 'wishlist-empty-pulse 2.5s ease-in-out infinite', marginBottom: '0.5rem' },
-  emptyTitle: { fontSize: 'clamp(1.4rem, 3vw, 2rem)', fontWeight: 700, margin: 0, color: 'rgba(255,255,255,0.85)' },
-  emptyHint: { fontSize: '1rem', color: 'rgba(255,255,255,0.45)', maxWidth: 400, margin: 0 },
+  emptyTitle: { fontSize: 'clamp(1.4rem, 3vw, 2rem)', fontWeight: 700, margin: 0, color: 'var(--color-heading)' },
+  emptyHint: { fontSize: '1rem', color: 'var(--color-text-muted)', maxWidth: 400, margin: 0 },
   emptyBtnDiox: { padding: '0.75rem 2rem', background: 'linear-gradient(135deg, #4f6ef7, #6b84ff)', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: '0.95rem' },
   emptyBtnAylux: { padding: '0.75rem 2rem', background: 'linear-gradient(135deg, #f97316, #fb923c)', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: '0.95rem' },
 
-  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: '2rem', padding: '1.5rem 2rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, backdropFilter: 'blur(12px)' },
+  hero: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: '2rem', padding: '1.5rem 2rem', background: 'var(--surface-card)', border: '1px solid var(--surface-card-border)', borderRadius: 16, backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-glass)' },
   heroLeft: { display: 'flex', alignItems: 'center', gap: '1rem' },
   heroIcon: { width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   heroTitle: { fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #ef4444, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' },
-  heroSub: { margin: '0.25rem 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.45)' },
-  clearBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1.25rem', borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#f87171', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' },
+  heroSub: { margin: '0.25rem 0 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' },
+  clearBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1.25rem', borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' },
 
   filterBar: { display: 'flex', gap: 8, marginBottom: '2rem', flexWrap: 'wrap' },
-  filterBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.5rem 1.25rem', borderRadius: 999, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' },
-  filterBtnActive: { background: 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.2))', border: '1px solid rgba(239,68,68,0.4)', color: '#fff' },
+  filterBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.5rem 1.25rem', borderRadius: 999, border: '1px solid var(--surface-card-border)', background: 'var(--surface-card)', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s' },
+  filterBtnActive: { background: 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.2))', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--color-text)' },
   filterCount: { borderRadius: 999, padding: '1px 8px', fontSize: '0.75rem', fontWeight: 700, transition: 'background 0.2s' },
 
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem' },
 
-  card: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease, box-shadow 0.3s ease' },
-  cardImgBtn: { background: 'rgba(255,255,255,0.03)', padding: '1.5rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 180, borderBottom: '1px solid rgba(255,255,255,0.05)', border: 'none', width: '100%', cursor: 'zoom-in' },
+  card: { background: 'var(--surface-card)', border: '1px solid var(--surface-card-border)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease, box-shadow 0.3s ease' },
+  cardImgBtn: { background: 'var(--surface-glass-subtle)', padding: '1.5rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 180, borderBottom: '1px solid var(--surface-card-border)', border: 'none', width: '100%', cursor: 'zoom-in' },
   cardBody: { padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' },
   brandBadge: { alignSelf: 'flex-start', padding: '2px 10px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' },
-  cardName: { fontSize: '1rem', fontWeight: 700, margin: 0, lineHeight: 1.4, color: 'rgba(255,255,255,0.92)' },
-  cardDesc: { fontSize: '0.83rem', color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.5 },
+  cardName: { fontSize: '1rem', fontWeight: 700, margin: 0, lineHeight: 1.4, color: 'var(--color-heading)' },
+  cardDesc: { fontSize: '0.83rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 },
   details: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 },
-  detailChip: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' },
-  viewBtn: { flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.55rem', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, transition: 'all 0.2s' },
-  removeBtn: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.55rem', borderRadius: 10, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#f87171', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, transition: 'all 0.2s' },
+  detailChip: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'var(--surface-glass-medium)', border: '1px solid var(--surface-card-border)', fontSize: '0.75rem', color: 'var(--color-text-muted)' },
+  viewBtn: { flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.55rem', borderRadius: 10, border: '1px solid var(--surface-card-border)', background: 'var(--surface-glass-medium)', color: 'var(--color-text)', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, transition: 'all 0.2s' },
+  removeBtn: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.55rem', borderRadius: 10, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, transition: 'all 0.2s' },
 };
 
 /* ─── Popup styles ───────────────────────────────────────────────────────── */
 const ps: Record<string, React.CSSProperties> = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' },
-  dialog: { position: 'relative', background: 'rgba(18,20,28,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, width: '100%', maxWidth: 820, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'row', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' },
+  dialog: { position: 'relative', background: 'var(--color-page-bg)', border: '1px solid var(--surface-card-border)', borderRadius: 20, width: '100%', maxWidth: 820, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'row', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' },
 
-  closeBtn: { position: 'absolute', top: '1rem', insetInlineStart: '1rem', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, transition: 'background 0.2s' } as React.CSSProperties,
+  closeBtn: { position: 'absolute', top: '1rem', insetInlineStart: '1rem', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--surface-glass-medium)', color: 'var(--color-text)', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, transition: 'background 0.2s' } as React.CSSProperties,
 
-  imageWrap: { flex: '0 0 45%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderInlineEnd: '1px solid rgba(255,255,255,0.08)' } as React.CSSProperties,
+  imageWrap: { flex: '0 0 45%', background: 'var(--surface-glass-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderInlineEnd: '1px solid var(--surface-card-border)' } as React.CSSProperties,
   image: { maxWidth: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' },
 
-  info: { flex: 1, overflowY: 'auto', padding: '2rem 1.75rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.12) transparent' } as React.CSSProperties,
+  info: { flex: 1, overflowY: 'auto', padding: '2rem 1.75rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-glass-stronger) transparent' } as React.CSSProperties,
 
   badge: { alignSelf: 'flex-start', padding: '3px 12px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' },
-  name: { fontSize: '1.3rem', fontWeight: 800, margin: 0, lineHeight: 1.35, color: '#fff' },
-  desc: { fontSize: '0.9rem', color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.6 },
+  name: { fontSize: '1.3rem', fontWeight: 800, margin: 0, lineHeight: 1.35, color: 'var(--color-heading)' },
+  desc: { fontSize: '0.9rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.6 },
 
   detailsArea: { display: 'flex', flexDirection: 'column', gap: 8 },
 
-  detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.9rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 },
-  detailLabel: { fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 },
+  detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.9rem', background: 'var(--surface-glass-medium)', border: '1px solid var(--surface-card-border)', borderRadius: 10 },
+  detailLabel: { fontSize: '0.88rem', color: 'var(--color-text-muted)', fontWeight: 500 },
   detailValue: { fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(135deg,#f54b1a,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' },
 
-  tableWrap: { borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' },
+  tableWrap: { borderRadius: 10, overflow: 'hidden', border: '1px solid var(--surface-card-border)', background: 'var(--surface-card)' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' },
-  th: { padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' },
-  td: { padding: '0.55rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.85)', textAlign: 'center' },
+  th: { padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', background: 'var(--surface-glass-medium)', borderBottom: '1px solid var(--surface-card-border)', textAlign: 'center' },
+  td: { padding: '0.55rem 1rem', borderBottom: '1px solid var(--surface-card-border)', color: 'var(--color-text)', textAlign: 'center' },
   tdCount: { fontWeight: 700, background: 'linear-gradient(135deg,#f54b1a,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' },
-  trEven: { background: 'rgba(255,255,255,0.03)' },
+  trEven: { background: 'var(--surface-glass-subtle)' },
 
   giftBox: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg,rgba(255,91,46,0.1),rgba(255,140,0,0.08))', border: '1px solid rgba(255,91,46,0.2)', borderRadius: 12 },
   giftIcon: { fontSize: '1.5rem', lineHeight: 1, flexShrink: 0 },
-  giftLabel: { fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.1rem' },
+  giftLabel: { fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)', marginBottom: '0.1rem' },
   giftValue: { fontSize: '0.95rem', fontWeight: 700, background: 'linear-gradient(90deg,#ff5b2e,#ff8c00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' },
 
   actions: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto', paddingTop: '0.5rem' },
   shareBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '0.7rem 1rem', borderRadius: 12, border: '1px solid rgba(37,211,102,0.3)', background: 'rgba(37,211,102,0.07)', color: '#25D366', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', transition: 'background 0.18s' },
-  removeBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.65rem 1rem', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#f87171', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s' },
+  removeBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.65rem 1rem', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: 'var(--color-danger)', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s' },
 };
 
 export default WishlistPage;
