@@ -1,40 +1,201 @@
 <!doctype html>
+<!--
+  KARAHOCA — index.html
+
+  This is the CRAWLER BASELINE. Social-media scrapers (Facebook, WhatsApp,
+  Twitter, LinkedIn, iMessage), bookmarklet preview tools, and weak SEO
+  bots all read the static HTML BEFORE any JavaScript runs. React Helmet
+  rewrites these tags after hydration (per-page), but the static fallback
+  here ensures any visitor who lands on `/` (which immediately redirects
+  to `/<lang>/`) AND any non-JS scraper still sees a complete OG card,
+  the brand JSON-LD, and the canonical hreflang graph.
+
+  React Helmet on real pages OVERWRITES the matching tags by name during
+  hydration, so duplicating them here is safe — the hydrated values win
+  in the live browser.
+-->
 <html lang="ar" dir="rtl">
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+  <!-- ═══════════════════════ Favicons & PWA ═══════════════════════ -->
   <link rel="icon" type="image/webp" href="/cropped-karahoca-logo-s-.webp" />
   <link rel="shortcut icon" href="/cropped-karahoca-logo-s-.webp" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KARAHOCA — الرئيسية</title>
-  <meta name="description" content="منظفات بجودة عالمية — ابتكار، نقاء، وأداء خارق.">
-  <!-- Inter is self-hosted via @fontsource/inter (see src/main.tsx). No
-       runtime dependency on fonts.gstatic.com / fonts.googleapis.com — the
-       woff2 subsets are bundled into the Vite output so the first paint
-       doesn't pay a DNS + TLS handshake for the font CDN. -->
-  <meta name="robots" content="index, follow">
-  <!-- Intentionally omitted preconnect to Google Fonts; it would create a
-       wasteful round-trip to a domain we no longer use. -->
-  <link rel="dns-prefetch" href="https://wa.me">
+  <link rel="apple-touch-icon" href="/cropped-karahoca-logo-s-.webp" />
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#153d7a" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0e17" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KARAHOCA">
+  <meta name="application-name" content="KARAHOCA">
+  <meta name="msapplication-TileColor" content="#153d7a">
 
-  <!-- Warm the TCP+TLS handshake to the API host BEFORE the first SPA
-       fetch fires (CSRF bootstrap, brand catalog, etc.). Saves the
-       ~100-300ms DNS+TCP+TLS round-trip on first paint for visitors
-       hitting the live origin. The dns-prefetch is a fallback for
-       older browsers that don't honour preconnect. The crossorigin
-       attribute matches the credentialed CORS mode of our fetches. -->
+  <!-- ═══════════════════════ Primary meta ═══════════════════════ -->
+  <title>KARAHOCA — منظفات بجودة عالمية | DIOX & AYLUX</title>
+  <meta name="description" content="KARAHOCA KIMYA — مصنع تركي رائد للمنظفات المنزلية والصناعية منذ 1994. علامتي DIOX و AYLUX. تصدير لأكثر من 15 دولة. ابتكار، نقاء، وأداء خارق.">
+  <meta name="keywords" content="منظفات، مصنع منظفات، تركيا، DIOX، AYLUX، KARAHOCA، منظف غسيل، منظف أرضيات، منتجات تنظيف، detergent, cleaning products, Turkish manufacturer">
+  <meta name="author" content="KARAHOCA KIMYA">
+  <meta name="copyright" content="© KARAHOCA KIMYA">
+  <meta name="generator" content="React + Vite">
+  <meta name="rating" content="general">
+  <meta name="revisit-after" content="7 days">
+  <meta name="distribution" content="global">
+
+  <!-- Crawler hints -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="bingbot" content="index, follow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- Geo tags (helps Google Business / Maps association) -->
+  <meta name="geo.region" content="TR">
+  <meta name="geo.placename" content="Türkiye">
+  <meta name="ICBM" content="38.96389, 37.30056">
+
+  <!-- ═══════════════════════ Canonical & hreflang ═══════════════════════ -->
+  <!-- Static defaults. React Helmet rewrites both the canonical AND the
+       full hreflang cluster per-page after hydration, but this baseline
+       protects the root URL and any non-JS bot. -->
+  <link rel="canonical" href="https://karahoca.com/ar/" />
+  <link rel="alternate" hreflang="ar" href="https://karahoca.com/ar/" />
+  <link rel="alternate" hreflang="en" href="https://karahoca.com/en/" />
+  <link rel="alternate" hreflang="tr" href="https://karahoca.com/tr/" />
+  <link rel="alternate" hreflang="ru" href="https://karahoca.com/ru/" />
+  <link rel="alternate" hreflang="x-default" href="https://karahoca.com/ar/" />
+
+  <!-- ═══════════════════════ Open Graph (Facebook, WhatsApp, LinkedIn, iMessage) ═══════════════════════ -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="KARAHOCA">
+  <meta property="og:url" content="https://karahoca.com/">
+  <meta property="og:title" content="KARAHOCA — منظفات بجودة عالمية | DIOX & AYLUX">
+  <meta property="og:description" content="مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX. تصدير لأكثر من 15 دولة.">
+  <meta property="og:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta property="og:image:secure_url" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="KARAHOCA — Turkish cleaning products manufacturer">
+  <meta property="og:locale" content="ar_TR">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:locale:alternate" content="tr_TR">
+  <meta property="og:locale:alternate" content="ru_RU">
+
+  <!-- ═══════════════════════ Twitter Card ═══════════════════════ -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@karahoca">
+  <meta name="twitter:creator" content="@karahoca">
+  <meta name="twitter:url" content="https://karahoca.com/">
+  <meta name="twitter:title" content="KARAHOCA — منظفات بجودة عالمية">
+  <meta name="twitter:description" content="مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX.">
+  <meta name="twitter:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta name="twitter:image:alt" content="KARAHOCA — Turkish cleaning products manufacturer">
+
+  <!-- ═══════════════════════ JSON-LD: Organization (static baseline) ═══════════════════════ -->
+  <!-- Even before React mounts, search bots can ingest the company's
+       core identity from this static block. React Helmet can layer
+       page-specific schema on top via Helmet, both will be picked up. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://karahoca.com/#organization",
+    "name": "KARAHOCA",
+    "alternateName": ["KARAHOCA KIMYA", "كاراهوجا", "كاراهوكا"],
+    "url": "https://karahoca.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://karahoca.com/karahoca-logo-1-Photoroom.webp",
+      "width": 200,
+      "height": 60
+    },
+    "image": "https://karahoca.com/KARAHOCA-1-newPhoto.webp",
+    "description": "KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DIOX and AYLUX branded products to 15+ countries since 1994.",
+    "foundingDate": "1994",
+    "numberOfEmployees": { "@type": "QuantitativeValue", "value": 200 },
+    "slogan": "Quality That Cleans the World",
+    "knowsAbout": [
+      "Household Cleaning Products",
+      "Industrial Cleaning",
+      "Laundry Detergents",
+      "Personal Hygiene",
+      "Private Label Manufacturing",
+      "Chemical Manufacturing"
+    ],
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "TR",
+      "addressRegion": "Kilis",
+      "addressLocality": "Kilis"
+    },
+    "contactPoint": [
+      {
+        "@type": "ContactPoint",
+        "telephone": "+90-850-228-35-34",
+        "contactType": "customer service",
+        "availableLanguage": ["Arabic", "English", "Turkish", "Russian"],
+        "areaServed": "Worldwide"
+      },
+      {
+        "@type": "ContactPoint",
+        "telephone": "+90-530-591-4990",
+        "contactType": "sales",
+        "contactOption": "TollFree",
+        "availableLanguage": ["Arabic", "English", "Turkish"],
+        "areaServed": ["TR", "SA", "AE", "EG", "DZ", "MA", "JO", "IQ"]
+      },
+      {
+        "@type": "ContactPoint",
+        "email": "info@karahoca.com",
+        "contactType": "sales"
+      }
+    ],
+    "sameAs": [
+      "https://www.linkedin.com/company/karahoca",
+      "https://wa.me/905305914990"
+    ],
+    "brand": [
+      { "@type": "Brand", "name": "DIOX", "url": "https://karahoca.com/ar/diox" },
+      { "@type": "Brand", "name": "AYLUX", "url": "https://karahoca.com/ar/aylux" }
+    ]
+  }
+  </script>
+
+  <!-- ═══════════════════════ JSON-LD: WebSite + SearchAction ═══════════════════════ -->
+  <!-- Lets Google show a sitelinks search box under the brand result. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://karahoca.com/#website",
+    "name": "KARAHOCA",
+    "url": "https://karahoca.com",
+    "publisher": { "@id": "https://karahoca.com/#organization" },
+    "inLanguage": ["ar", "en", "tr", "ru"],
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://karahoca.com/ar/news?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- ═══════════════════════ Preconnect / Preload ═══════════════════════ -->
+  <!-- Inter is self-hosted via @fontsource/inter (see src/main.tsx). No
+       runtime dependency on fonts.gstatic.com / fonts.googleapis.com. -->
+  <link rel="dns-prefetch" href="https://wa.me">
   <link rel="preconnect" href="https://api.karahoca.com" crossorigin>
   <link rel="dns-prefetch" href="https://api.karahoca.com">
-
-  <link rel="manifest" href="/manifest.json">
   <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp" fetchpriority="high">
 
-  <!-- Back-to-top + route-fallback styles live in src/styles/main.css so we
-       can serve a strict CSP (no inline <style> tags). -->
-
   <!-- Hotjar Analytics — set VITE_HOTJAR_ID in your .env to activate -->
-  <!-- To enable: sign up at https://www.hotjar.com (free plan available),
-       get your Site ID, then add VITE_HOTJAR_ID=YOUR_ID to .env -->
 </head>
 
 <body>
