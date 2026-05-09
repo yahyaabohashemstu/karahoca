@@ -46,9 +46,12 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
       <section className="hero">
         <div className="container hero__grid">
           <div className="hero__copy">
+            {/* Fix for Issue #12: <br /> in <h1> replaced with semantic spans
+                that get `display: block` from `.hero-title__brand/__line`.
+                Same visual layout, valid HTML, no forced line break. */}
             <h1 className="fx-reveal hero-title">
-              <span className="gradient-text">{brandName}</span><br />
-              {heroTitle}
+              <span className="gradient-text hero-title__brand">{brandName}</span>
+              <span className="hero-title__line">{heroTitle}</span>
             </h1>
             <p className="lead fx-reveal">{heroDescription}</p>
             <div className="hero__cta fx-reveal">
@@ -80,9 +83,6 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
             </div>
           </div>
         </div>
-        <a href={`#${aboutId}`} className="scroll-indicator" aria-label={t('brandPage.scrollDown')}>
-          <span className="scroll-indicator__dot"></span>
-        </a>
       </section>
 
       <section id={aboutId} className="section glass-section section--alt">
@@ -92,18 +92,22 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
           <p className="section-subtitle">{aboutSubtitle}</p>
         </div>
         <div className="container split">
-          <div className="fx-reveal" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start' }}>
-            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '18px', padding: '18px', maxHeight: '320px', overflowY: 'auto', width: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid rgba(255,255,255,0.18)' }}>
-              <div className="main-heading" style={{ marginBottom: '1em' }}>{aboutMainHeading}</div>
+          {/* Fix for Issue #9: every inline style replaced with token-driven
+              CSS classes (`.about-split__copy`, `.about-content-panel`,
+              `.about-content-panel__*`, `.about-explore-link`). Spacing,
+              radius, glass surface, border, shadow now flow from tokens. */}
+          <div className="fx-reveal about-split__copy">
+            <div className="about-content-panel">
+              <div className="main-heading about-content-panel__heading">{aboutMainHeading}</div>
               {aboutSections.map((section, index) => (
                 <React.Fragment key={index}>
-                  <div className="section-divider" style={{ width: '80%', height: '2.5px', margin: '0.5em auto 1em auto' }}></div>
-                  <div className="gradient-heading" style={{ marginBottom: '1em', fontWeight: 'bold', fontSize: '1.35em', letterSpacing: '0.5px' }}>{section.title}</div>
-                  <p style={{ marginBottom: '1em' }}>{section.content}</p>
+                  <div className="section-divider about-content-panel__divider"></div>
+                  <div className="gradient-heading about-content-panel__subtitle">{section.title}</div>
+                  <p className="about-content-panel__text">{section.content}</p>
                 </React.Fragment>
               ))}
             </div>
-            <a href="#products" className="link gradient-text" style={{ marginTop: '18px' }}>{t('brandPage.exploreProducts')}</a>
+            <a href="#products" className="link gradient-text about-explore-link">{t('brandPage.exploreProducts')}</a>
           </div>
           <div className="fx-up">
             <div className="about-media glass-media">

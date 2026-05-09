@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
 import '../styles/flipbook.css';
 
@@ -305,7 +306,31 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const dlUrl = downloadUrl || pdfUrl || null;
 
   // ── Render ───────────────────────────────────────────────────────────────
-  return (
+  // When `fullscreen` is true we render the viewer through a portal mounted
+  // on `document.body`. This is essential because two ancestors create a
+  // containing block that traps `position: fixed` inside their box:
+  //
+  //   .bfb-frame-wrap → has `will-change: opacity, transform`
+  //                     (inherited from `.fx-reveal` reveal animation)
+  //   .bfb-section    → has `backdrop-filter: blur(10px)`
+  //
+  // Per CSS spec, any of `transform`, `filter`, `backdrop-filter`,
+  // `perspective`, `contain: paint/layout`, or `will-change: transform/
+  // opacity/filter` makes that ancestor the containing block for any
+  // descendant `position: fixed` — so `inset: 0` resolves to the
+  // ancestor's box (which here was 375 × 0px), not the viewport.
+  //
+  // On desktop the native `requestFullscreen()` succeeds and lifts the
+  // element out of the DOM flow, so the bug was invisible. On mobile
+  // (especially iOS Safari, where Element.requestFullscreen is not
+  // supported) the catch-fallback set `fullscreen=true` and added
+  // `.fb--fs`, but the CSS could not escape the containing block —
+  // so tapping fullscreen looked like nothing happened.
+  //
+  // Portal-mounting bypasses ALL ancestor containing blocks because
+  // `<body>` is the new parent in the DOM, regardless of where the
+  // component appears in the React tree.
+  const viewer = (
     <div ref={wrapRef} className={`fb${fullscreen ? ' fb--fs' : ''}`}>
 
       {/* ── Top chrome bar ─────────────────────────────────────────────── */}
@@ -498,6 +523,14 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
 
     </div>
   );
+
+  // In fullscreen, mount through a portal directly on `<body>` so the
+  // viewer escapes any ancestor containing block that would otherwise
+  // trap `position: fixed`. Inline mode keeps the original DOM position
+  // so React's reconciliation, refs and event handlers stay intact.
+  return fullscreen && typeof document !== 'undefined'
+    ? createPortal(viewer, document.body)
+    : viewer;
 };
 
 /**

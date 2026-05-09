@@ -69,51 +69,17 @@ export const useScrollAnimations = () => {
 
     observers.push(() => mutationObserver.disconnect());
 
-    // إضافة CSS للرسوم المتحركة إذا لم تكن موجودة
-    const styleId = 'fx-animations-style';
-    let style = document.getElementById(styleId) as HTMLStyleElement | null;
-
-    if (!style) {
-      style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-      .fx-reveal {
-        opacity: 0;
-        transform: translateY(30px);
-        transition: all 0.8s ease-out;
-      }
-      
-      .fx-reveal-active {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      .fx-up {
-        opacity: 0;
-        transform: translateY(50px);
-        transition: all 0.6s ease-out;
-      }
-      
-      .fx-up-active {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      .fx-up:nth-child(2) { transition-delay: 0.1s; }
-      .fx-up:nth-child(3) { transition-delay: 0.2s; }
-      .fx-up:nth-child(4) { transition-delay: 0.3s; }
-    `;
-      document.head.appendChild(style);
-    }
-
+    // ─── Fix for Issue #5 ────────────────────────────────────────────────
+    // Removed the runtime <style> injection that re-defined `.fx-reveal`,
+    // `.fx-up`, and their `*-active` pairs with `transition: all`. The
+    // canonical definitions live in `src/styles/main.css` now and target
+    // only `opacity` & `transform` (no layout-property thrashing on the
+    // GPU). Source-of-truth is one place; cascading `transition: all`
+    // jank is gone.
     return () => {
       while (observers.length) {
         const dispose = observers.pop();
         dispose?.();
-      }
-
-      if (style && style.parentNode) {
-        style.parentNode.removeChild(style);
       }
     };
   }, []);
