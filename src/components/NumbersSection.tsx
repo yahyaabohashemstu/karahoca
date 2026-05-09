@@ -291,6 +291,7 @@ const NumbersSection: React.FC = () => {
                 src="/world-map.svg"
                 alt={t('numbers.worldMapAlt')}
                 loading="lazy"
+                decoding="async"
                 style={{
                   width: '400px',
                   height: '280px',
@@ -336,6 +337,7 @@ const NumbersSection: React.FC = () => {
                 alt={t('numbers.employeesAlt')}
                 className="employees-svg"
                 loading="lazy"
+                decoding="async"
               />
             </div>
             
@@ -425,10 +427,11 @@ const NumbersSection: React.FC = () => {
                 alignItems: 'center'
               }}
             >
-              <img 
-                src="/rate.svg" 
+              <img
+                src="/rate.svg"
                 alt={t('numbers.satisfactionAlt')}
                 loading="lazy"
+                decoding="async"
                 style={{
                   width: '320px',
                   height: '230px',

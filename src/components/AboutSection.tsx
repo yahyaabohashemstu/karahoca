@@ -47,9 +47,11 @@ const AboutSection: React.FC = () => {
         <div className="fx-up">
           <div className="about-media glass-media">
             <div className="blob animated-blob"></div>
-            <img 
-              src="/KARAHOCA-2-wb.webp" 
+            <img
+              src="/KARAHOCA-2-wb.webp"
               alt={t('about.imageAlt')}
+              loading="lazy"
+              decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>

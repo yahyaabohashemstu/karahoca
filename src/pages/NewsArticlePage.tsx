@@ -107,6 +107,8 @@ const NewsArticlePage: React.FC = () => {
               <img
                 src={article.image}
                 alt={article.alt}
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: 'auto', display: 'block' }}
               />
             </figure>

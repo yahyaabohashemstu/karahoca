@@ -23,10 +23,12 @@ const WorkSection: React.FC = () => {
           style={{ display: 'block', textAlign: 'center' }}
         >
           <div className="card__media" style={{ '--card-accent': 'var(--blue)', margin: 'auto' } as React.CSSProperties}>
-            <img 
-              src="/KARAHOCA-4-web.webp" 
+            <img
+              src="/KARAHOCA-4-web.webp"
               alt={t('work.production.alt')}
-              style={{ 
+              loading="lazy"
+              decoding="async"
+              style={{
                 width: '100%', 
                 height: '180px', 
                 objectFit: 'cover', 
@@ -57,10 +59,12 @@ const WorkSection: React.FC = () => {
           style={{ display: 'block', textAlign: 'center' }}
         >
           <div className="card__media" style={{ '--card-accent': 'var(--orange)', margin: 'auto' } as React.CSSProperties}>
-            <img 
-              src="/KARAHOCA-3-wb.webp" 
+            <img
+              src="/KARAHOCA-3-wb.webp"
               alt={t('work.dryer.alt')}
-              style={{ 
+              loading="lazy"
+              decoding="async"
+              style={{
                 width: '100%', 
                 height: '180px', 
                 objectFit: 'cover', 
@@ -91,10 +95,12 @@ const WorkSection: React.FC = () => {
           style={{ display: 'block', textAlign: 'center' }}
         >
           <div className="card__media" style={{ '--card-accent': 'var(--blue)', margin: 'auto' } as React.CSSProperties}>
-            <img 
-              src="/KARAHOCA-2-wb.webp" 
+            <img
+              src="/KARAHOCA-2-wb.webp"
               alt={t('work.goal.alt')}
-              style={{ 
+              loading="lazy"
+              decoding="async"
+              style={{
                 width: '100%', 
                 height: '180px', 
                 objectFit: 'cover', 

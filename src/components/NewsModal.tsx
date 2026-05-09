@@ -132,7 +132,7 @@ const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
         </button>
 
         <div className="news-modal__media">
-          <img src={news.image} alt={news.alt} />
+          <img src={news.image} alt={news.alt} decoding="async" />
         </div>
 
         <div className="news-modal__body">

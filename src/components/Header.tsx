@@ -60,6 +60,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
             src="/karahoca-logo-1-Photoroom.webp"
             alt="KARAHOCA"
             className="brand__logo"
+            decoding="async"
           />
         </Link>
 

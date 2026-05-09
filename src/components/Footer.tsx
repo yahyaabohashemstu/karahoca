@@ -123,6 +123,8 @@ const Footer: React.FC = () => {
             src="/cropped-karahoca-logo-s-.webp"
             alt="KARAHOCA"
             className="brand__logo"
+            loading="lazy"
+            decoding="async"
             style={{ height: '64px', width: 'auto', objectFit: 'contain' }}
           />
           <p>{t('footer.description')}</p>

@@ -16,6 +16,16 @@
   <!-- Intentionally omitted preconnect to Google Fonts; it would create a
        wasteful round-trip to a domain we no longer use. -->
   <link rel="dns-prefetch" href="https://wa.me">
+
+  <!-- Warm the TCP+TLS handshake to the API host BEFORE the first SPA
+       fetch fires (CSRF bootstrap, brand catalog, etc.). Saves the
+       ~100-300ms DNS+TCP+TLS round-trip on first paint for visitors
+       hitting the live origin. The dns-prefetch is a fallback for
+       older browsers that don't honour preconnect. The crossorigin
+       attribute matches the credentialed CORS mode of our fetches. -->
+  <link rel="preconnect" href="https://api.karahoca.com" crossorigin>
+  <link rel="dns-prefetch" href="https://api.karahoca.com">
+
   <link rel="manifest" href="/manifest.json">
   <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp" fetchpriority="high">
 

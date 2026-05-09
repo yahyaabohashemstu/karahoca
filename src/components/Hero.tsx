@@ -31,6 +31,7 @@ const Hero: React.FC = () => {
                 src="/KARAHOCA-1-newPhoto.webp"
                 alt="KARAHOCA"
                 fetchPriority="high"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>

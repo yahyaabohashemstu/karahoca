@@ -71,7 +71,12 @@ const SubPageTemplate: React.FC<SubPageTemplateProps> = ({
               <div className="orb orb--2"></div>
               <div className="card-3d">
                 <div className="card-3d__inner">
-                  <img src={heroImage} alt={heroImageAlt} />
+                  <img
+                    src={heroImage}
+                    alt={heroImageAlt}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
                 </div>
               </div>
             </div>
@@ -169,7 +174,12 @@ const SubPageTemplate: React.FC<SubPageTemplateProps> = ({
                   <div className="about-media glass-media">
                     <div className="animated-blob blob"></div>
                     <div className="animated-blob blob--alt"></div>
-                    <img src={section.splitContent.image} alt={section.splitContent.imageAlt} />
+                    <img
+                      src={section.splitContent.image}
+                      alt={section.splitContent.imageAlt}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                 </div>
               </div>

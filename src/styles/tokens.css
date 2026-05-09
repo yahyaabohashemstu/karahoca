@@ -199,4 +199,35 @@ body.light-mode {
     --motion-slow:    1ms;
     --motion-slower:  1ms;
   }
+
+  /* ── BACKDROP / FILTER FALLBACK ────────────────────────────────────
+     `prefers-reduced-motion` is increasingly chosen by users for two
+     orthogonal reasons:
+       1. Vestibular sensitivity — motion makes them ill.
+       2. Power / GPU constraints — older phones, low-battery mode.
+     Backdrop-filter `blur()` and `filter: blur()` are among the most
+     expensive paint operations on mobile (each composited layer
+     re-blurs on scroll, redraw, hover). Disabling them when the user
+     opts into reduced motion gives the second cohort a measurable fps
+     and battery win without any visible regression for the first.
+     The element still gets its background colour / border so the
+     glass surface remains readable — only the costly blur drops.
+     Using `none` (not `unset`) so cascade-layered overrides don't
+     reintroduce the blur further down the stylesheet.                */
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* `filter: blur(...)` on standalone elements (hero orbs, animated
+     blobs, drop-shadows on product images). Drop-shadows stay because
+     they're not blur-based — only the explicit blur cost goes. */
+  .hero-orb,
+  .floating-orb,
+  .animated-blob,
+  .blob {
+    filter: none !important;
+  }
 }

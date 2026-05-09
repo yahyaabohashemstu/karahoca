@@ -50,7 +50,12 @@ const AboutPage: React.FC = () => {
                 <div className="orb orb--2"></div>
                 <div className="card-3d">
                   <div className="card-3d__inner">
-                    <img src="/KARAHOCA-2-wb.webp" alt={t('aboutPage.hero.imageAlt')} />
+                    <img
+                      src="/KARAHOCA-2-wb.webp"
+                      alt={t('aboutPage.hero.imageAlt')}
+                      fetchPriority="high"
+                      decoding="async"
+                    />
                   </div>
                 </div>
               </div>
@@ -156,9 +161,11 @@ const AboutPage: React.FC = () => {
             <div className="fx-up">
               <div className="glass-media">
                 <div className="blob animated-blob"></div>
-                <img 
-                  src="/KARAHOCA-1-newPhoto.webp" 
+                <img
+                  src="/KARAHOCA-1-newPhoto.webp"
                   alt={t('aboutPage.vision.imageAlt')}
+                  loading="lazy"
+                  decoding="async"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
