@@ -3446,18 +3446,81 @@ body.light-mode .about-page .timeline-year {
     min-height: auto;
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     Timeline — MUST be stacked on mobile.
+     The desktop rule sets `flex-direction: row` with `flex: 0 0 50%` on
+     the year column, which leaves the content column ~150px wide on
+     375px viewports — short labels like "1995" still fit but every
+     paragraph wraps to 3-4 word lines AND the card overflows the
+     container because the inner gradient bar uses absolute width.
+     The earlier mobile override only retouched padding/margin without
+     flipping `flex-direction`, so the layout stayed broken.
+     Now: stack year ON TOP of content, full-width inside the card,
+     and move the vertical timeline rail (::before) to the inline-end
+     edge so each card aligns to the start of the spine. The
+     `.about-page` prefix here matches the desktop selector specificity
+     so the cascade lets these win cleanly.
+     ═══════════════════════════════════════════════════════════════════════ */
+  .about-page .timeline {
+    gap: 32px;
+    padding-inline-end: 24px; /* room for the spine on the right edge */
+  }
+
   .about-page .timeline::before {
-    right: 24px;
+    inset-inline-end: 12px;
+    inset-inline-start: auto;
+    right: auto;
     transform: none;
+    width: 3px;
   }
 
   .about-page .timeline-item {
-    padding: 24px;
-    margin-right: 48px;
+    flex-direction: column;
+    padding: 0;
+    margin-inline-end: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .about-page .timeline-year {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 18px 16px;
+    font-size: 2rem;
+    border-left: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  }
+
+  body.light-mode .about-page .timeline-year {
+    border-bottom-color: rgba(21, 61, 122, 0.3);
+  }
+
+  .about-page .timeline-content {
+    flex: 1;
+    width: 100%;
+    padding: 20px 18px;
+    /* RTL-aware text alignment so paragraphs flow naturally */
+    text-align: start;
+  }
+
+  /* About-page glass cards — kill the desktop horizontal padding
+     (`32px 64px` and `32px`) on mobile so the body text gets the
+     full container width. Inline styles from JSX would normally
+     win, but specificity here (`.about-page section .glass-card`)
+     beats the inline style only via `!important`. We use it
+     surgically just for the offending properties. */
+  .about-page .glass-card {
+    padding: 18px 16px !important;
+  }
+
+  /* Hero CTA on About: `.btn { width: 100% }` from the global mobile
+     rule made the contact button stretch edge-to-edge. Tighten it. */
+  .about-page .hero__cta .btn {
+    width: auto;
+    min-width: 0;
+    padding: 0.55rem 1.25rem;
   }
 }
-
-/* Mobile styles moved to mobile-fixes.css for better organization */
 
 /* ====================================
    News Section & News Page
