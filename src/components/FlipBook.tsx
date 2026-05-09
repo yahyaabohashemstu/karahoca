@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
 import '../styles/flipbook.css';
 
@@ -253,20 +253,59 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   }, [goNext, goPrev, fullscreen, zoomIn, zoomOut, zoomReset]);
 
   // ── Fullscreen ──────────────────────────────────────────────────────────
+  // Only react to EXIT events from the browser (Escape key, browser UI).
+  // Entering is owned by `toggleFS` below — we set state first so the
+  // portal can move the viewer to <body>, THEN call requestFullscreen on
+  // the now-stable element. Listening for both directions caused a feedback
+  // loop where setting state moved the element, the move broke fullscreen,
+  // and fullscreenchange flipped state back to false.
   useEffect(() => {
-    const onChange = () => setFullscreen(!!document.fullscreenElement);
+    const onChange = () => {
+      if (!document.fullscreenElement) setFullscreen(false);
+    };
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  const toggleFS = () => {
+  const toggleFS = useCallback(() => {
     if (!fullscreen) {
-      wrapRef.current?.requestFullscreen?.().catch(() => setFullscreen(true));
+      // STEP 1: enter CSS-fullscreen FIRST. `flushSync` forces React to
+      // commit synchronously so the portal mounts the viewer onto <body>
+      // BEFORE we hand the (now-stable) element to `requestFullscreen`.
+      // Without this order the previous parent moved the element AFTER
+      // requestFullscreen succeeded — the browser saw the fullscreen
+      // element being detached from its container and immediately
+      // exited fullscreen, which fired fullscreenchange and bounced the
+      // state back to false. (User-visible symptom: tap → flash of FS →
+      // exit). Doing the portal first keeps the element identity stable
+      // for the entire requestFullscreen lifecycle.
+      flushSync(() => setFullscreen(true));
+
+      // STEP 2: ask for true browser fullscreen on the now-portal-mounted
+      // element. Succeeds on desktop / Android Chrome; fails (no API) on
+      // iOS Safari, where the CSS-fullscreen we just enabled is already
+      // covering the viewport. We swallow the rejection silently — the
+      // user still gets a full-viewport viewer either way.
+      const el = wrapRef.current;
+      const req = el?.requestFullscreen?.();
+      if (req && typeof (req as Promise<void>).catch === 'function') {
+        (req as Promise<void>).catch(() => {});
+      }
     } else {
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-      else setFullscreen(false);
+      // EXIT: prefer the browser's native exit so the fullscreenchange
+      // listener above can drive the state cleanly. If we're in
+      // CSS-only fullscreen (iOS / failed requestFullscreen), no native
+      // fullscreenElement exists, so close the portal directly.
+      if (document.fullscreenElement) {
+        const exit = document.exitFullscreen?.();
+        if (exit && typeof (exit as Promise<void>).catch === 'function') {
+          (exit as Promise<void>).catch(() => setFullscreen(false));
+        }
+      } else {
+        setFullscreen(false);
+      }
     }
-  };
+  }, [fullscreen]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const pg = (idx: number | null) =>
