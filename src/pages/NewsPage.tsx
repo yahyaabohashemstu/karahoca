@@ -23,8 +23,14 @@ const NewsPage: React.FC = () => {
         { name: t('newsPage.seo.title'), url: '/news' },
       ]} />
 
+      <div className="bg-elements">
+        <div className="floating-orb orb-1"></div>
+        <div className="floating-orb orb-2"></div>
+        <div className="floating-orb orb-3"></div>
+      </div>
+
       <Header />
-      <main id="main">
+      <main>
         <NewsPageContent />
       </main>
       <Footer />

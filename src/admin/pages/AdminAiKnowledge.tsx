@@ -1,29 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Robot,
-  Translate,
-  Lightbulb,
-  Question,
-  Eye,
-  CheckCircle,
-  Prohibit,
-  PencilSimple,
-  Trash,
-  Drop,
-  FloppyDisk,
-  Warning,
-} from '@phosphor-icons/react';
 import { adminApi, type AiQA } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
 
-/* Locale flag glyphs (regional indicators) — kept as functional symbols
-   per design audit (acceptable use of unicode for country/language). */
-const LANGS: Array<{ key: 'ar' | 'en' | 'tr' | 'ru'; label: string; flag: string; dir: 'rtl' | 'ltr' }> = [
-  { key: 'ar', label: 'AR', flag: '🇸🇦', dir: 'rtl' },
-  { key: 'en', label: 'EN', flag: '🇬🇧', dir: 'ltr' },
-  { key: 'tr', label: 'TR', flag: '🇹🇷', dir: 'ltr' },
-  { key: 'ru', label: 'RU', flag: '🇷🇺', dir: 'ltr' },
+const LANGS: Array<{ key: 'ar' | 'en' | 'tr' | 'ru'; label: string; dir: 'rtl' | 'ltr' }> = [
+  { key: 'ar', label: '🇸🇦 AR', dir: 'rtl' },
+  { key: 'en', label: '🇬🇧 EN', dir: 'ltr' },
+  { key: 'tr', label: '🇹🇷 TR', dir: 'ltr' },
+  { key: 'ru', label: '🇷🇺 RU', dir: 'ltr' },
 ];
 
 type LangKey = 'ar' | 'en' | 'tr' | 'ru';
@@ -103,7 +87,7 @@ const QAForm: React.FC<{
               fontWeight: 600,
             }}
           >
-            <span aria-hidden="true">{l.flag}</span> {l.label}
+            {l.label}
           </button>
         ))}
         <button
@@ -120,14 +104,14 @@ const QAForm: React.FC<{
             fontSize: 12,
           }}
         >
-          <Translate size={14} weight="duotone" aria-hidden="true" /> AI Translate
+          🤖 AI Translate
         </button>
       </div>
 
       {LANGS.filter((l) => l.key === lang).map((l) => (
         <div key={l.key} style={{ direction: l.dir, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label className="adm-label adm-mb-xs">Question ({l.label})</label>
+            <label className="adm-label" style={{ marginBottom: 4 }}>Question ({l.label})</label>
             <textarea
               className="adm-input"
               rows={3}
@@ -139,7 +123,7 @@ const QAForm: React.FC<{
             />
           </div>
           <div>
-            <label className="adm-label adm-mb-xs">Answer ({l.label})</label>
+            <label className="adm-label" style={{ marginBottom: 4 }}>Answer ({l.label})</label>
             <textarea
               className="adm-input"
               rows={3}
@@ -153,7 +137,7 @@ const QAForm: React.FC<{
         </div>
       ))}
 
-      <div className="adm-form-group adm-mt-md">
+      <div className="adm-form-group" style={{ marginTop: 12 }}>
         <label className="adm-label">Tags (comma-separated keywords)</label>
         <input
           className="adm-input"
@@ -163,23 +147,11 @@ const QAForm: React.FC<{
         />
       </div>
 
-      {error && (
-        <div className="adm-alert adm-alert-error adm-mt-sm adm-mb-sm">
-          <Warning size={14} weight="fill" aria-hidden="true" /> {error}
-        </div>
-      )}
+      {error && <div className="adm-alert adm-alert-error" style={{ marginTop: 8, marginBottom: 8 }}>⚠ {error}</div>}
 
-      <div className="adm-flex-row-sm adm-mt-md">
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={submit} className="adm-btn adm-btn-primary" disabled={saving}>
-          {saving ? (
-            <>
-              <span className="adm-spinner adm-spinner--sm" /> Saving…
-            </>
-          ) : (
-            <>
-              <FloppyDisk size={14} weight="duotone" aria-hidden="true" /> Save Entry
-            </>
-          )}
+          {saving ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Saving…</> : '💾 Save Entry'}
         </button>
         <button onClick={onCancel} className="adm-btn">Cancel</button>
       </div>
@@ -251,26 +223,23 @@ export const AdminAiKnowledge: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">
-            <Robot size={22} weight="duotone" aria-hidden="true" /> AI Knowledge Base
-          </h1>
+          <h1 className="adm-page-title">🤖 AI Knowledge Base</h1>
           <p className="adm-page-subtitle">Teach the AI — manage custom Q&A and review what users ask</p>
         </div>
       </div>
 
       <div className="adm-tabs">
-        {([
-          { key: 'qa', label: 'Custom Q&A', Icon: Lightbulb, badge: qaList.data?.entries?.length },
-          { key: 'questions', label: 'User Questions', Icon: Question, badge: getCount('new') || undefined },
-          { key: 'preview', label: 'AI Knowledge Preview', Icon: Eye, badge: undefined },
-        ] as const).map((t) => (
+        {[
+          { key: 'qa', label: '💡 Custom Q&A', badge: qaList.data?.entries?.length },
+          { key: 'questions', label: '❓ User Questions', badge: getCount('new') || undefined },
+          { key: 'preview', label: '👁 AI Knowledge Preview' },
+        ].map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key as typeof tab)}
             className={`adm-tab-btn${tab === t.key ? ' active' : ''}`}
           >
-            <t.Icon size={14} weight="duotone" aria-hidden="true" />
-            <span>{t.label}</span>
+            {t.label}
             {t.badge !== undefined && t.badge > 0 && (
               <span className="adm-tab-badge">{t.badge}</span>
             )}
@@ -280,7 +249,7 @@ export const AdminAiKnowledge: React.FC = () => {
 
       {tab === 'qa' && (
         <div>
-          <div className="adm-flex adm-justify-end adm-mb-lg">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
             <button onClick={() => startNewEntry()} className="adm-btn adm-btn-primary">+ Add Q&A Entry</button>
           </div>
 
@@ -291,9 +260,9 @@ export const AdminAiKnowledge: React.FC = () => {
           {qaList.loading && <div className="adm-loading-center"><span className="adm-spinner" /></div>}
 
           {!qaList.loading && !qaList.data?.entries?.length && editing !== 'new' && (
-            <div className="adm-card adm-empty-state">
-              <Robot size={48} weight="duotone" aria-hidden="true" className="adm-empty-icon" />
-              <p className="adm-text-muted adm-empty-text">No custom Q&A entries yet.</p>
+            <div className="adm-card" style={{ textAlign: 'center', padding: 48 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
+              <p className="adm-text-muted" style={{ marginBottom: 16 }}>No custom Q&A entries yet.</p>
               <p className="adm-text-muted adm-text-sm">
                 Add Q&A pairs to teach the AI specific answers about pricing, shipping, minimum orders, etc.
               </p>
@@ -317,7 +286,7 @@ export const AdminAiKnowledge: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                    <div className="adm-flex-1 adm-min-w-0">
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--adm-text)', marginBottom: 4 }}>
                         Q: {entry.question_en || entry.question_ar || '—'}
                       </div>
@@ -336,20 +305,8 @@ export const AdminAiKnowledge: React.FC = () => {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button
-                        onClick={() => setEditing(entry.id)}
-                        className="adm-btn adm-btn-sm adm-btn-icon"
-                        aria-label="Edit"
-                      >
-                        <PencilSimple size={14} weight="bold" aria-hidden="true" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(entry.id)}
-                        className="adm-btn adm-btn-sm adm-btn-danger adm-btn-icon"
-                        aria-label="Delete"
-                      >
-                        <Trash size={14} weight="bold" aria-hidden="true" />
-                      </button>
+                      <button onClick={() => setEditing(entry.id)} className="adm-btn adm-btn-sm">✏️</button>
+                      <button onClick={() => handleDelete(entry.id)} className="adm-btn adm-btn-sm adm-btn-danger">🗑</button>
                     </div>
                   </div>
                 </div>
@@ -390,10 +347,10 @@ export const AdminAiKnowledge: React.FC = () => {
                   className="adm-btn adm-btn-sm"
                   style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}
                 >
-                  <CheckCircle size={14} weight="duotone" aria-hidden="true" /> Mark Reviewed
+                  ✅ Mark Reviewed
                 </button>
                 <button onClick={() => handleBulkReview('ignored')} disabled={saving} className="adm-btn adm-btn-sm">
-                  <Prohibit size={14} weight="duotone" aria-hidden="true" /> Ignore
+                  🚫 Ignore
                 </button>
               </div>
             )}
@@ -402,13 +359,13 @@ export const AdminAiKnowledge: React.FC = () => {
           {qsData.loading && <div className="adm-loading-center"><span className="adm-spinner" /></div>}
 
           {!qsData.loading && !qsData.data?.questions?.length && (
-            <div className="adm-card adm-empty-state">
-              <CheckCircle size={36} weight="duotone" aria-hidden="true" className="adm-empty-icon" />
+            <div className="adm-card" style={{ textAlign: 'center', padding: 40 }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
               <p className="adm-text-muted">No {qStatus} questions.</p>
             </div>
           )}
 
-          <div className="adm-flex-col-sm">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(qsData.data?.questions ?? []).map((q) => (
               <div
                 key={q.id}
@@ -428,7 +385,7 @@ export const AdminAiKnowledge: React.FC = () => {
                   onChange={(e) => setSelected((sel) => e.target.checked ? [...sel, q.id] : sel.filter((i) => i !== q.id))}
                   style={{ flexShrink: 0, width: 16, height: 16, cursor: 'pointer' }}
                 />
-                <div className="adm-flex-1 adm-min-w-0">
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, color: 'var(--adm-text)', marginBottom: 2 }}>{q.question}</div>
                   <div style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>
                     <span className="adm-badge adm-badge-blue" style={{ fontSize: 10 }}>{q.language}</span>
@@ -480,20 +437,18 @@ export const AdminAiKnowledge: React.FC = () => {
           {!preview ? (
             <div className="adm-loading-center"><span className="adm-spinner" /></div>
           ) : (
-            <div className="adm-flex-col-lg">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="adm-card">
-                <div className="adm-card-title adm-card-title--success">
-                  <Drop size={16} weight="duotone" aria-hidden="true" />
-                  Product Catalog (Auto-Synced from DB)
+                <div className="adm-card-title" style={{ color: '#22c55e', marginBottom: 12 }}>
+                  🧴 Product Catalog (Auto-Synced from DB)
                 </div>
                 <pre style={{ fontSize: 11, color: 'var(--adm-text-muted)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto', background: 'var(--adm-bg)', padding: 12, borderRadius: 8 }}>
                   {preview.productContext || '(no products in database)'}
                 </pre>
               </div>
               <div className="adm-card">
-                <div className="adm-card-title adm-card-title--info">
-                  <Lightbulb size={16} weight="duotone" aria-hidden="true" />
-                  Custom Q&A (Admin-Defined)
+                <div className="adm-card-title" style={{ color: '#4f6ef7', marginBottom: 12 }}>
+                  💡 Custom Q&A (Admin-Defined)
                 </div>
                 <pre style={{ fontSize: 11, color: 'var(--adm-text-muted)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto', background: 'var(--adm-bg)', padding: 12, borderRadius: 8 }}>
                   {preview.customQA || '(no custom Q&A entries yet)'}

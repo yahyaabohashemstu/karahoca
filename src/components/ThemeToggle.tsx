@@ -1,48 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sun, Moon } from '@phosphor-icons/react';
 import { useThemeToggle } from '../hooks/useAnimations';
 
-/**
- * Theme toggle — premium v3.
- *
- * v3 changes vs the original:
- *   - Replaced static sun-only icon (banned cliché per design audit) with
- *     a context-aware Sun/Moon swap that mirrors the *current* theme,
- *     not what it would switch to.
- *   - Crossfade transition between icons (no rotate-180 trick).
- *   - Reads `body.light-mode` class to determine current theme reactively.
- */
 const ThemeToggle: React.FC = () => {
   const { toggleTheme } = useThemeToggle();
   const { t } = useTranslation();
-  const [isLight, setIsLight] = useState<boolean>(() =>
-    typeof document !== 'undefined' && document.body.classList.contains('light-mode'),
-  );
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    // Watch the body class for theme changes triggered elsewhere.
-    const observer = new MutationObserver(() => {
-      setIsLight(document.body.classList.contains('light-mode'));
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
 
   return (
-    <button
+    <button 
       type="button"
-      className="theme-toggle glass-button"
-      onClick={toggleTheme}
+      className="theme-toggle glass-button" 
+      onClick={toggleTheme} 
       aria-label={t('themeToggle.label')}
       title={t('themeToggle.label')}
-      aria-pressed={isLight}
     >
-      <span className={`theme-toggle__icons${isLight ? ' is-light' : ' is-dark'}`}>
-        <Moon size={20} weight="duotone" className="theme-toggle__icon theme-toggle__icon--moon" />
-        <Sun  size={20} weight="duotone" className="theme-toggle__icon theme-toggle__icon--sun" />
-      </span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="5" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      </svg>
     </button>
   );
 };

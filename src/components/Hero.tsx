@@ -1,54 +1,43 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Sparkle } from '@phosphor-icons/react';
-import PageHero from './PageHero';
 
-/**
- * KARAHOCA Home Hero — uses the unified <PageHero> primitive.
- *
- * The premium v3 layout (eyebrow, button-in-button CTA, double-bezel
- * visual, spring motion) lives in `PageHero`. This component only
- * supplies the home-specific copy + actions.
- */
 const Hero: React.FC = () => {
   const { t } = useTranslation();
-
+  
   return (
-    <PageHero
-      sectionId="hero"
-      eyebrow={
-        <>
-          <Sparkle weight="fill" size={12} aria-hidden="true" />
-          <span>
-            {t('hero.eyebrow', { defaultValue: 'Premium Cleaning Manufacturer' })}
-          </span>
-        </>
-      }
-      title={t('hero.title')}
-      description={t('hero.subtitle')}
-      primaryAction={
-        <a href="#brands" className="btn-premium btn-premium--primary">
-          <span className="btn-premium__label">{t('hero.cta.products')}</span>
-          <span className="btn-premium__icon" aria-hidden="true">
-            <ArrowRight size={16} weight="bold" />
-          </span>
-        </a>
-      }
-      tertiaryAction={
-        <a href="#about" className="btn-premium btn-premium--tertiary">
-          {t('hero.cta.about')}
-          <span className="btn-premium__chevron" aria-hidden="true">→</span>
-        </a>
-      }
-      chips={[
-        t('hero.badges.quality'),
-        t('hero.badges.experience'),
-        t('hero.badges.countries'),
-      ]}
-      image="/KARAHOCA-1-newPhoto.webp"
-      imageAlt="KARAHOCA"
-      imageLCP
-    />
+    <section className="hero">
+      <div className="container hero__grid">
+        <div className="hero__copy">
+          <h1 className="fx-reveal hero-title">
+            <span className="accent gradient-text">{t('hero.title')}</span>
+          </h1>
+          <p className="lead fx-reveal">{t('hero.subtitle')}</p>
+          <div className="hero__cta fx-reveal">
+            <a href="#brands" className="btn btn--primary btn-hover-effect">{t('hero.cta.products')}</a>
+            <a href="#contact" className="btn btn--ghost btn-hover-effect">{t('hero.cta.about')}</a>
+          </div>
+          <ul className="hero__badges">
+            <li className="chip glass-chip">{t('hero.badges.quality')}</li>
+            <li className="chip glass-chip">{t('hero.badges.experience')}</li>
+            <li className="chip glass-chip">{t('hero.badges.countries')}</li>
+          </ul>
+        </div>
+        <div className="hero__visual">
+          <div className="hero-orb hero-orb--1"></div>
+          <div className="hero-orb hero-orb--2"></div>
+          <div className="card-3d" data-tilt>
+            <div className="card-3d__inner glass-panel">
+              <img
+                src="/KARAHOCA-1-newPhoto.webp"
+                alt="KARAHOCA"
+                fetchPriority="high"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 

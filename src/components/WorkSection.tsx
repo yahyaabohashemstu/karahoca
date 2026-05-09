@@ -1,106 +1,120 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from '@phosphor-icons/react';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
-/**
- * WorkSection — premium Bento layout v3.
- *
- * v3 redesign: replaced "3 equal cards in a row" (banned per design audit
- * as the most generic AI feature-row pattern) with an asymmetric Bento:
- *   row 1: 1 large feature card (Production) + 1 medium card (Goal)
- *   row 2: 1 wide card (Dryer)
- * No inline styles — every value in CSS.
- */
 const WorkSection: React.FC = () => {
   const { t } = useTranslation();
   const { lp } = useLocalizedPath();
 
   return (
-    <section id="work" className="section section--alt work-section">
-      <div className="section-divider" aria-hidden="true" />
-
-      <div className="container work-section__head">
-        <span className="work-section__eyebrow">{t('work.eyebrow', { defaultValue: 'Capabilities' })}</span>
-        <h2 className="work-section__title">{t('work.title')}</h2>
+    <section id="work" className="section glass-section section--alt">
+      <div className="section-divider"></div>
+      <div className="container work__head fx-reveal">
+        <div className="work__title">
+          <h2 className="section-title">{t('work.title')}</h2>
+        </div>
       </div>
-
-      <div className="container work-bento">
-        {/* Lead — large feature card with bg image */}
-        <Link
+      <div className="container work__grid">
+        <Link 
+          className="card glass-card fx-up"
           to={lp('/production')}
           aria-label={t('work.production.aria')}
-          className="work-bento__card work-bento__card--lead"
+          style={{ display: 'block', textAlign: 'center' }}
         >
-          <div className="work-bento__media">
-            <img
-              src="/KARAHOCA-4-web.webp"
+          <div className="card__media" style={{ '--card-accent': 'var(--blue)', margin: 'auto' } as React.CSSProperties}>
+            <img 
+              src="/KARAHOCA-4-web.webp" 
               alt={t('work.production.alt')}
-              loading="lazy"
-              decoding="async"
+              style={{ 
+                width: '100%', 
+                height: '180px', 
+                objectFit: 'cover', 
+                display: 'block', 
+                borderTopLeftRadius: '24px', 
+                borderTopRightRadius: '24px', 
+                transform: 'scale(1.4)', 
+                transition: 'transform 0.3s' 
+              }}
             />
-            <div className="work-bento__overlay" aria-hidden="true" />
+            <div className="card-glow"></div>
           </div>
-          <div className="work-bento__body">
-            <span className="work-bento__kicker">{t('work.production.subtitle')}</span>
-            <h3 className="work-bento__heading">{t('work.production.title')}</h3>
-            <span className="work-bento__cta">
-              {t('work.production.link')}
-              <ArrowRight size={16} weight="bold" aria-hidden="true" />
-            </span>
+          <div className="card__body">
+            <h4 style={{ marginBottom: '12px', fontSize: '2em', fontWeight: 900, letterSpacing: '1px' }}>
+              {t('work.production.title')}
+            </h4>
+            <div style={{ marginBottom: '12px', fontSize: '1.35em', fontWeight: 500 }}>
+              {t('work.production.subtitle')}
+            </div>
+            <span className="link gradient-text">{t('work.production.link')}</span>
           </div>
         </Link>
-
-        {/* Side — medium card */}
-        <Link
-          to={lp('/goal')}
-          aria-label={t('work.goal.aria')}
-          className="work-bento__card work-bento__card--side"
-        >
-          <div className="work-bento__media">
-            <img
-              src="/KARAHOCA-2-wb.webp"
-              alt={t('work.goal.alt')}
-              loading="lazy"
-              decoding="async"
-            />
-            <div className="work-bento__overlay" aria-hidden="true" />
-          </div>
-          <div className="work-bento__body">
-            <span className="work-bento__kicker">{t('work.goal.subtitle')}</span>
-            <h3 className="work-bento__heading">{t('work.goal.title')}</h3>
-            <span className="work-bento__cta">
-              {t('work.goal.link')}
-              <ArrowRight size={16} weight="bold" aria-hidden="true" />
-            </span>
-          </div>
-        </Link>
-
-        {/* Wide — full-row card */}
-        <Link
+        
+        <Link 
+          className="card glass-card fx-up"
           to={lp('/dryer')}
           aria-label={t('work.dryer.aria')}
-          className="work-bento__card work-bento__card--wide"
+          style={{ display: 'block', textAlign: 'center' }}
         >
-          <div className="work-bento__media">
-            <img
-              src="/KARAHOCA-3-wb.webp"
+          <div className="card__media" style={{ '--card-accent': 'var(--orange)', margin: 'auto' } as React.CSSProperties}>
+            <img 
+              src="/KARAHOCA-3-wb.webp" 
               alt={t('work.dryer.alt')}
-              loading="lazy"
-              decoding="async"
+              style={{ 
+                width: '100%', 
+                height: '180px', 
+                objectFit: 'cover', 
+                display: 'block', 
+                borderTopLeftRadius: '24px', 
+                borderTopRightRadius: '24px', 
+                transform: 'scale(1.4)', 
+                transition: 'transform 0.3s' 
+              }}
             />
-            <div className="work-bento__overlay" aria-hidden="true" />
+            <div className="card-glow"></div>
           </div>
-          <div className="work-bento__body work-bento__body--wide">
-            <div>
-              <span className="work-bento__kicker">{t('work.dryer.subtitle')}</span>
-              <h3 className="work-bento__heading">{t('work.dryer.title')}</h3>
+          <div className="card__body">
+            <h4 style={{ marginBottom: '12px', fontSize: '2em', fontWeight: 900, letterSpacing: '1px' }}>
+              {t('work.dryer.title')}
+            </h4>
+            <div style={{ marginBottom: '12px', fontSize: '1.35em', fontWeight: 500 }}>
+              {t('work.dryer.subtitle')}
             </div>
-            <span className="work-bento__cta">
-              {t('work.dryer.link')}
-              <ArrowRight size={16} weight="bold" aria-hidden="true" />
-            </span>
+            <span className="link gradient-text">{t('work.dryer.link')}</span>
+          </div>
+        </Link>
+
+        <Link 
+          className="card glass-card fx-up"
+          to={lp('/goal')}
+          aria-label={t('work.goal.aria')}
+          style={{ display: 'block', textAlign: 'center' }}
+        >
+          <div className="card__media" style={{ '--card-accent': 'var(--blue)', margin: 'auto' } as React.CSSProperties}>
+            <img 
+              src="/KARAHOCA-2-wb.webp" 
+              alt={t('work.goal.alt')}
+              style={{ 
+                width: '100%', 
+                height: '180px', 
+                objectFit: 'cover', 
+                display: 'block', 
+                borderTopLeftRadius: '24px', 
+                borderTopRightRadius: '24px', 
+                transform: 'scale(1.4)', 
+                transition: 'transform 0.3s' 
+              }}
+            />
+            <div className="card-glow"></div>
+          </div>
+          <div className="card__body">
+            <h4 style={{ marginBottom: '12px', fontSize: '2em', fontWeight: 900, letterSpacing: '1px' }}>
+              {t('work.goal.title')}
+            </h4>
+            <div style={{ marginBottom: '12px', fontSize: '1.35em', fontWeight: 500 }}>
+              {t('work.goal.subtitle')}
+            </div>
+            <span className="link gradient-text">{t('work.goal.link')}</span>
           </div>
         </Link>
       </div>

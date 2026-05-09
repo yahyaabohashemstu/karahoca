@@ -1,35 +1,34 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   KARAHOCA Design Tokens — v3 Premium System
+   KARAHOCA Design Tokens
    ─────────────────────────────────────────────────────────────────────────
    The single source of truth for every color, spacing, radius, shadow,
-   z-index and motion value. Every other stylesheet consumes these via
-   var(--token-name). Raw hex / rgba / px literals are a regression.
+   z-index and motion value in this codebase. Every other stylesheet should
+   consume these via var(--token-name). Raw hex / rgba / px literals are
+   a regression and should be replaced with the appropriate token.
 
-   v3 changes (anti-slop premium upgrade):
-   • Geist Variable font — Inter is BANNED per design audit
-   • Tinted shadows — pull from Navy palette, never flat black
-   • Apple-tier easing curves — replace Material's cubic-bezier(0.4,0,0.2,1)
-   • Typography scale tokens — kill inline font-size declarations
-   • Saturation-tuned brand orange (lowered from 88% → 78%)
+   This file MUST load before any other stylesheet — it is imported first
+   from src/main.tsx.
+
+   Naming: semantic, not presentational. `--color-brand-primary`, not
+   `--color-blue`. Changing the brand blue later means editing ONE line
+   here instead of 11 call-sites.
+
+   Breakpoints: CSS custom properties cannot be used inside @media queries
+   (yet), so px values are still hand-written in media rules. The variables
+   here are the contract consumed by JavaScript (e.g. matchMedia helpers).
    ══════════════════════════════════════════════════════════════════════ */
-
-@layer base, components, layout, themes, utilities, overrides;
 
 :root {
   /* ── BRAND ─────────────────────────────────────────────────────────── */
-  --color-brand-primary:      #153D7A;  /* KARAHOCA navy */
-  --color-brand-primary-deep: #0a2a5e;  /* on-press / shadow tint */
-  --color-brand-primary-tint: #1e4a8c;  /* lighter navy for gradients */
-  /* Saturation-tuned: original #f54b1a was 88% — too "screaming" */
-  --color-brand-accent:       #e8552c;  /* KARAHOCA orange — desaturated */
-  --color-brand-accent-hot:   #ff6238;  /* hover/pressed (slightly hot) */
-  --color-brand-accent-light: #ff8c5e;  /* softer accent variant */
-  --color-brand-accent-deep:  #c24820;  /* depth variant */
+  --color-brand-primary:      #153D7A;  /* KARAHOCA blue */
+  --color-brand-primary-deep: #0a2a5e;  /* darker on-press / shadow */
+  --color-brand-accent:       #f54b1a;  /* KARAHOCA orange */
+  --color-brand-accent-hot:   #ff5b2e;  /* hover/pressed variant */
+  --color-brand-accent-light: #ff8c42;  /* softer accent */
 
-  /* ── NEUTRALS — single warm-leaning slate family (no warm/cool mix) */
+  /* ── NEUTRALS (truncated Tailwind-ish slate scale) ────────────────── */
   --color-white:    #ffffff;
-  --color-ink-950:  #0a0e17;  /* deepest — page bg dark */
-  --color-ink-900:  #15181b;  /* primary ink */
+  --color-ink-900:  #15181b;
   --color-ink-800:  #1e293b;
   --color-ink-700:  #334155;
   --color-ink-600:  #475569;
@@ -43,16 +42,17 @@
 
   /* ── STATE ─────────────────────────────────────────────────────────── */
   --color-success:       #22c55e;
-  --color-success-deep:  #16a34a;
-  --color-success-soft:  rgba(34, 197, 94, 0.12);
+  --color-success-deep:  #27ae60;
+  --color-success-soft:  #2ecc71;
   --color-info:          #4f6ef7;
   --color-info-light:    #6b84ff;
   --color-warning:       #ff8c00;
   --color-warning-light: #ffb89a;
-  --color-warning-soft:  rgba(255, 140, 0, 0.12);
+  --color-warning-soft:  #febc2e;
   --color-danger:        #ef4444;
-  --color-danger-deep:   #dc2626;
-  --color-danger-soft:   rgba(239, 68, 68, 0.12);
+  --color-danger-deep:   #d32f2f;
+  --color-danger-soft:   #ff4757;
+  --color-danger-mute:   #f87171;
 
   /* Stoplight hues for the FlipBook header chrome */
   --color-chrome-red:    #ff5f57;
@@ -62,13 +62,12 @@
   --surface-glass-ghost:   rgba(255, 255, 255, 0.02);
   --surface-glass-subtle:  rgba(255, 255, 255, 0.04);
   --surface-glass-lite:    rgba(255, 255, 255, 0.05);
-  --surface-glass:         rgba(255, 255, 255, 0.06);
-  --surface-glass-medium:  rgba(255, 255, 255, 0.08);
-  --surface-glass-strong:  rgba(255, 255, 255, 0.10);
-  --surface-glass-stronger:rgba(255, 255, 255, 0.12);
-  --surface-glass-solid:   rgba(255, 255, 255, 0.16);
-  --surface-border-glass:  rgba(255, 255, 255, 0.10);
-  --surface-border-glass-strong: rgba(255, 255, 255, 0.14);
+  --surface-glass:         rgba(255, 255, 255, 0.08);
+  --surface-glass-medium:  rgba(255, 255, 255, 0.10);
+  --surface-glass-strong:  rgba(255, 255, 255, 0.12);
+  --surface-glass-stronger:rgba(255, 255, 255, 0.15);
+  --surface-glass-solid:   rgba(255, 255, 255, 0.20);
+  --surface-border-glass:  rgba(255, 255, 255, 0.15);
 
   --surface-brand-tint-05: rgba(21, 61, 122, 0.05);
   --surface-brand-tint-08: rgba(21, 61, 122, 0.08);
@@ -78,61 +77,22 @@
   --surface-brand-tint-20: rgba(21, 61, 122, 0.20);
 
   /* ── SEMANTIC ROLES (default = dark theme; light-mode remaps below) */
-  --color-page-bg:   var(--color-ink-950);
+  --color-page-bg:   #0a0e17;
   --color-text:      var(--color-white);
   --color-text-muted:rgba(255, 255, 255, 0.72);
-  --color-text-subtle: rgba(255, 255, 255, 0.50);
   --color-heading:   var(--color-white);
   --color-link:      var(--color-brand-accent);
   --color-focus-ring:var(--color-info);
   --surface-card:    var(--surface-glass);
   --surface-card-border: var(--surface-border-glass);
+  --shadow-glass:    0 4px 32px rgba(21, 61, 122, 0.08);
 
-  /* ── TYPOGRAPHY — Geist Variable (Inter is BANNED) ───────────────── */
-  /* Geist comes from Vercel; modern grotesk with character.
-     Falls back through other premium options before system. */
-  --font-sans:    'Geist Variable', 'Geist', 'Cabinet Grotesk', 'Satoshi', system-ui, -apple-system, sans-serif;
-  --font-display: 'Geist Variable', 'Geist', 'Cabinet Grotesk', 'Satoshi', system-ui, -apple-system, sans-serif;
-  --font-mono:    'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-arabic:  'Geist Variable', 'Noto Kufi Arabic', 'Tajawal', 'Cairo', system-ui, sans-serif;
+  /* ── TYPOGRAPHY ────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* ── TYPOGRAPHY SCALE — kill inline font-size declarations ──────── */
-  /* Fluid type using clamp() so headings scale smoothly without
-     breakpoint-specific overrides. Targets 2-3 lines at every viewport. */
-  --font-size-display:  clamp(3rem, 5vw + 1rem, 5.5rem);   /* Hero H1 */
-  --font-size-h1:       clamp(2.25rem, 3.5vw + 1rem, 3.75rem);
-  --font-size-h2:       clamp(1.75rem, 2.5vw + 0.75rem, 2.75rem);
-  --font-size-h3:       clamp(1.375rem, 1.5vw + 0.75rem, 1.875rem);
-  --font-size-h4:       clamp(1.125rem, 1vw + 0.625rem, 1.5rem);
-  --font-size-lead:     clamp(1.0625rem, 0.5vw + 0.875rem, 1.25rem);
-  --font-size-body:     1rem;
-  --font-size-small:    0.875rem;
-  --font-size-xs:       0.75rem;
-  --font-size-eyebrow:  0.6875rem;
-  --font-size-mono:     0.8125rem;
-
-  --font-weight-light:    300;
-  --font-weight-regular:  400;
-  --font-weight-medium:   500;
-  --font-weight-semibold: 600;
-  --font-weight-bold:     700;
-  --font-weight-black:    800;
-
-  /* Tracking */
-  --tracking-tight:      -0.025em;
-  --tracking-tighter:    -0.04em;
-  --tracking-normal:     0;
-  --tracking-wide:       0.025em;
-  --tracking-eyebrow:    0.18em;
-
-  /* Leading */
-  --leading-tight:       1.05;
-  --leading-snug:        1.2;
-  --leading-normal:      1.5;
-  --leading-relaxed:     1.65;
-  --leading-loose:       1.8;
-
-  /* ── SPACING (4-pt grid, fluid section pads) ────────────────────── */
+  /* ── SPACING (4-pt grid) ──────────────────────────────────────────── */
   --space-0:  0;
   --space-1:  0.25rem;   /*  4 */
   --space-2:  0.5rem;    /*  8 */
@@ -143,46 +103,21 @@
   --space-7:  3rem;      /* 48 */
   --space-8:  4rem;      /* 64 */
   --space-9:  6rem;      /* 96 */
-  --space-10: 8rem;      /* 128 */
-  --space-11: 10rem;     /* 160 */
-
-  /* Section pads — premium spacing per high-end audit (was 5rem → 6-8rem) */
-  --section-pad-y:        clamp(4rem, 8vw, 7.5rem);  /* 64-120px fluid */
-  --section-pad-y-lg:     clamp(5rem, 10vw, 10rem);  /* 80-160px fluid */
-  --hero-pad-bottom:      clamp(5rem, 10vw, 9rem);
 
   /* ── RADII ─────────────────────────────────────────────────────────── */
   --radius-xs:  4px;
   --radius-sm:  8px;
   --radius-md:  12px;
   --radius-lg:  16px;
-  --radius-xl:  20px;
-  --radius-2xl: 28px;
-  --radius-3xl: 32px;
+  --radius-xl:  24px;
+  --radius-2xl: 32px;
   --radius-pill: 999px;
 
-  /* ── TINTED SHADOWS — Navy-tinted depth (anti-slop) ──────────────── */
-  /* Per design audit: replace flat rgba(0,0,0,X) with brand-tinted
-     shadows. Creates richer, more cohesive depth that matches the brand
-     atmosphere instead of looking generic. */
-  --shadow-sm:    0 2px 8px  rgba(21, 61, 122, 0.08);
-  --shadow-md:    0 4px 16px rgba(21, 61, 122, 0.10);
-  --shadow-lg:    0 8px 24px rgba(21, 61, 122, 0.14);
-  --shadow-xl:    0 16px 40px rgba(21, 61, 122, 0.18);
-  --shadow-2xl:   0 24px 56px rgba(21, 61, 122, 0.24);
-
-  /* Glassmorphism shadows: blend brand tint + slight black for contrast.
-     Inner highlight on top, soft brand-tinted shadow below. */
-  --shadow-glass:        0 8px 32px rgba(21, 61, 122, 0.18), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  --shadow-glass-strong: 0 16px 48px rgba(21, 61, 122, 0.28), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
-
-  /* Card-rest shadow — diffused, agency-tier */
-  --shadow-card:        0 20px 40px -15px rgba(21, 61, 122, 0.20), 0 4px 8px -4px rgba(21, 61, 122, 0.08);
-  --shadow-card-hover:  0 28px 56px -16px rgba(21, 61, 122, 0.30), 0 8px 16px -6px rgba(232, 85, 44, 0.12);
-
-  /* CTA buttons: warm, brand-tinted shadows that pull from accent */
-  --shadow-btn-primary:       0 8px 24px rgba(232, 85, 44, 0.30), 0 2px 4px rgba(232, 85, 44, 0.18);
-  --shadow-btn-primary-hover: 0 12px 32px rgba(232, 85, 44, 0.40), 0 4px 8px rgba(232, 85, 44, 0.22);
+  /* ── SHADOWS ───────────────────────────────────────────────────────── */
+  --shadow-sm: 0 2px 8px rgba(21, 61, 122, 0.08);
+  --shadow-md: 0 4px 16px rgba(21, 61, 122, 0.12);
+  --shadow-lg: 0 8px 32px rgba(21, 61, 122, 0.18);
+  --shadow-btn: 0 4px 16px rgba(79, 110, 247, 0.45);
 
   /* ── Z-INDEX SCALE ─────────────────────────────────────────────────── */
   --z-behind:    -1;
@@ -200,61 +135,44 @@
   --z-boost:   1600;
   --z-max:     9999;
 
-  /* ── MOTION — Apple/Linear-tier easing (anti-slop) ─────────────── */
-  /* Material-style cubic-bezier(0.4, 0, 0.2, 1) is too generic.
-     These are spring-like curves used by premium agencies. */
+  /* ── MOTION ────────────────────────────────────────────────────────── */
   --motion-instant:  75ms;
-  --motion-fast:    180ms;
-  --motion-base:    260ms;
-  --motion-medium:  360ms;
-  --motion-slow:    500ms;
-  --motion-slower:  720ms;
-
-  /* Apple/iOS rubber-band physics — for hover, press, modal */
-  --easing-spring:    cubic-bezier(0.32, 0.72, 0, 1);
-  /* Linear's signature curve — for interface flicks */
-  --easing-elegant:   cubic-bezier(0.16, 1, 0.3, 1);
-  /* Material 3 emphasized — for opening/closing chrome */
-  --easing-emphasized:cubic-bezier(0.2, 0, 0, 1);
-  /* Standard ease — last resort fallback */
-  --easing-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-fast:    150ms;
+  --motion-base:    250ms;
+  --motion-medium:  300ms;
+  --motion-slow:    400ms;
+  --motion-slower:  600ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
 
   /* ── LAYOUT CONTRACTS ──────────────────────────────────────────────── */
-  --container-max:   1280px;
-  --container-prose: 65ch;
-  --header-height:   72px;
+  --container-max: 1280px;
+  --header-height: 64px;
 
-  /* Breakpoint contracts (CSS @media still uses raw px in main.css) */
+  /* Breakpoint contracts (documented for JS consumers — CSS media
+     queries still use the raw px values in main.css / mobile.css). */
   --bp-xs: 380px;
   --bp-sm: 480px;
   --bp-md: 768px;
   --bp-lg: 900px;
   --bp-xl: 1200px;
-  --bp-2xl: 1440px;
 }
 
 /* ── LIGHT MODE REMAPS ───────────────────────────────────────────────── */
 /* Remap the SEMANTIC roles only; BRAND constants stay fixed. Anything
-   that consumes a brand or state token without special-casing keeps
-   working, while page chrome (bg / text / surfaces) inverts correctly. */
+   that consumes a brand or state token without special-casing will keep
+   working, while page chrome (bg / text / surfaces) inverts correctly.  */
 body.light-mode {
   --color-page-bg:      var(--color-ink-25);
   --color-text:         var(--color-ink-900);
   --color-text-muted:   rgba(21, 24, 27, 0.7);
-  --color-text-subtle:  rgba(21, 24, 27, 0.50);
   --color-heading:      var(--color-ink-900);
   --color-link:         var(--color-brand-accent);
-  --surface-card:       rgba(232, 236, 242, 0.65);
-  --surface-card-border:rgba(21, 61, 122, 0.12);
-
-  /* Light-mode shadows: lighter, still navy-tinted */
-  --shadow-sm:           0 2px 8px  rgba(21, 61, 122, 0.06);
-  --shadow-md:           0 4px 16px rgba(21, 61, 122, 0.08);
-  --shadow-lg:           0 8px 24px rgba(21, 61, 122, 0.10);
-  --shadow-xl:           0 16px 40px rgba(21, 61, 122, 0.12);
-  --shadow-glass:        0 4px 32px rgba(21, 61, 122, 0.08);
-  --shadow-card:         0 20px 40px -15px rgba(21, 61, 122, 0.12);
-  --shadow-card-hover:   0 28px 56px -16px rgba(21, 61, 122, 0.18);
+  --surface-card:       rgba(232, 236, 242, 0.7);
+  --surface-card-border:rgba(21, 61, 122, 0.15);
+  --shadow-glass:       0 4px 32px rgba(21, 61, 122, 0.08);
 }
 
 /* ── GLOBAL :focus-visible FALLBACK ──────────────────────────────────── */
@@ -269,6 +187,9 @@ body.light-mode {
 }
 
 /* ── REDUCED-MOTION OVERRIDE ─────────────────────────────────────────── */
+/* Users asking for reduced motion get near-instant transitions without
+   each component having to opt in. Animations are still rendered (to
+   avoid layout shift) but with a trivially short duration.            */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-instant: 1ms;

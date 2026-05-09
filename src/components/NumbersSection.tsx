@@ -276,12 +276,27 @@ const NumbersSection: React.FC = () => {
               <div className="smoke"></div>
               <div className="smoke"></div>
             </div>
-            <div className="numbers-section__visual">
+            <div
+              style={{
+                width: '180px',
+                height: '204px',
+                margin: 'auto',
+                marginTop: '18px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
               <img
                 src="/world-map.svg"
                 alt={t('numbers.worldMapAlt')}
                 loading="lazy"
-                className="numbers-section__svg numbers-section__svg--map"
+                style={{
+                  width: '400px',
+                  height: '280px',
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
               />
             </div>
             
@@ -357,7 +372,15 @@ const NumbersSection: React.FC = () => {
             
             <div
               ref={experienceSvgRef}
-              className="numbers-section__visual numbers-section__visual--experience"
+              style={{
+                width: '180px',
+                height: '204px',
+                margin: 'auto',
+                marginTop: '18px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
             />
             
             <div className="info-panel">
@@ -391,12 +414,27 @@ const NumbersSection: React.FC = () => {
               <div className="smoke"></div>
             </div>
             
-            <div className="numbers-section__visual">
-              <img
-                src="/rate.svg"
+            <div
+              style={{
+                width: '180px',
+                height: '204px',
+                margin: 'auto',
+                marginTop: '18px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <img 
+                src="/rate.svg" 
                 alt={t('numbers.satisfactionAlt')}
                 loading="lazy"
-                className="numbers-section__svg numbers-section__svg--rate"
+                style={{
+                  width: '320px',
+                  height: '230px',
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
               />
             </div>
             

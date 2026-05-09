@@ -51,7 +51,7 @@ export const AdminChats: React.FC = () => {
           </button>
         ))}
         {data && (
-          <span className="adm-text-muted adm-text-sm adm-ml-auto">
+          <span className="adm-text-muted adm-text-sm" style={{ marginLeft: 'auto' }}>
             Total: {data.total} users
           </span>
         )}
@@ -77,12 +77,12 @@ export const AdminChats: React.FC = () => {
                 <thead>
                   <tr>
                     <th style={{ textAlign: 'left'   }}>User ID</th>
-                    <th className="adm-text-center">Language</th>
-                    <th className="adm-text-center">Messages</th>
-                    <th className="adm-text-center">First Seen</th>
-                    <th className="adm-text-center">Last Active</th>
+                    <th style={{ textAlign: 'center' }}>Language</th>
+                    <th style={{ textAlign: 'center' }}>Messages</th>
+                    <th style={{ textAlign: 'center' }}>First Seen</th>
+                    <th style={{ textAlign: 'center' }}>Last Active</th>
                     <th style={{ textAlign: 'left'   }}>Last Message</th>
-                    <th className="adm-text-center">Actions</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -95,16 +95,16 @@ export const AdminChats: React.FC = () => {
                           {u.id.slice(0, 16)}…
                         </span>
                       </td>
-                      <td className="adm-text-center">
+                      <td style={{ textAlign: 'center' }}>
                         <span className="adm-badge adm-badge-blue">{u.language}</span>
                       </td>
-                      <td className="adm-text-center">
+                      <td style={{ textAlign: 'center' }}>
                         <strong>{u.message_count}</strong>
                       </td>
-                      <td className="adm-text-center adm-text-muted adm-text-sm">
+                      <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
                         {fmtDate(u.first_seen)}
                       </td>
-                      <td className="adm-text-center adm-text-muted adm-text-sm">
+                      <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
                         {fmtDate(u.last_seen)}
                       </td>
                       <td style={{ textAlign: 'left', maxWidth: 0 }} className="adm-text-sm">
@@ -112,7 +112,7 @@ export const AdminChats: React.FC = () => {
                           {u.last_user_message || u.last_message || '—'}
                         </div>
                       </td>
-                      <td className="adm-text-center">
+                      <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: 6, justifyContent: 'center' }}>
                           <Link to={`/admin/chats/${encodeURIComponent(u.id)}`} className="adm-btn adm-btn-ghost adm-btn-sm">
                             View →

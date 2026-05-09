@@ -199,7 +199,7 @@ export const AdminProducts: React.FC = () => {
         </div>
 
         {reorderItems.length === 0 && (
-          <div className="adm-alert adm-mt-lg">
+          <div className="adm-alert" style={{ marginTop: 16 }}>
             No products loaded. Close and open a brand filter first.
           </div>
         )}
@@ -248,15 +248,15 @@ export const AdminProducts: React.FC = () => {
                     padding: '9px 16px',
                     borderBottom: '1px solid var(--adm-border)',
                     background: isDragging
-                      ? 'rgba(79, 110, 247, 0.05)'
+                      ? 'rgba(99, 102, 241, 0.05)'
                       : isOver && srcInSameCat
-                        ? 'rgba(79, 110, 247, 0.1)'
+                        ? 'rgba(99, 102, 241, 0.1)'
                         : 'transparent',
                     cursor: isDragging ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     opacity: isDragging ? 0.45 : 1,
                     borderLeft: isOver && srcInSameCat
-                      ? '3px solid var(--adm-primary, #4f6ef7)'
+                      ? '3px solid var(--adm-primary, #6366f1)'
                       : '3px solid transparent',
                     transition: 'background 0.12s, border-color 0.12s, opacity 0.12s',
                   }}
@@ -297,7 +297,7 @@ export const AdminProducts: React.FC = () => {
                   )}
 
                   {/* Names */}
-                  <div className="adm-flex-1 adm-min-w-0">
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {p.name_en}
                     </div>

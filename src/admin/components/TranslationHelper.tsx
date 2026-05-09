@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Translate, Check, X } from '@phosphor-icons/react';
 import { adminApi } from '../utils/adminApi';
 
 interface TranslationHelperProps {
@@ -23,6 +22,7 @@ function friendlyError(raw: string): string {
     return 'مفتاح الترجمة غير مهيأ — تواصل مع المسؤول.';
   if (s.includes('parse') || s.includes('json'))
     return 'خطأ في تحليل استجابة الترجمة — حاول مجدداً.';
+  // Fallback: trim the raw error if it's too long
   return raw.length > 120 ? raw.slice(0, 120) + '…' : raw;
 }
 
@@ -32,11 +32,11 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
   onTranslated,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
-  const hasContent = Object.values(fields).some((v) => v && v.trim());
+  const hasContent = Object.values(fields).some(v => v && v.trim());
 
   const handleTranslate = async () => {
     if (!hasContent || loading) return;
@@ -48,6 +48,8 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
       const result = await adminApi.translate({ fields, sourceLang });
 
       if (result.success && result.translations) {
+        // Backend returns lang-first: { ar: { field: val }, en: { field: val } }
+        // Callbacks expect field-first: { field: { ar: val, en: val } }
         const raw = result.translations as Record<string, Record<string, string>>;
         const fieldFirst: Record<string, Record<string, string>> = {};
         for (const [lang, fieldValues] of Object.entries(raw)) {
@@ -65,14 +67,14 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Translation failed';
       setError(friendlyError(raw));
-      setAttempt((a) => a + 1);
+      setAttempt(a => a + 1);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="adm-translation-helper">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <button
         type="button"
         className="adm-btn adm-translate-btn adm-btn-sm"
@@ -80,29 +82,26 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
         disabled={loading || !hasContent}
         title="Translate to all languages using AI"
       >
-        {loading ? (
-          <span className="adm-spinner adm-spinner--sm" />
-        ) : (
-          <Translate size={14} weight="duotone" aria-hidden="true" />
-        )}
-        <span>
-          {loading
-            ? ' جارٍ الترجمة…'
-            : attempt > 0
-              ? ' حاول مجدداً'
-              : ' Auto-Translate All Languages'}
-        </span>
+        {loading
+          ? <span className="adm-spinner" style={{ width: 14, height: 14 }} />
+          : '🤖'}
+        {loading
+          ? ' جارٍ الترجمة…'
+          : attempt > 0
+            ? ' حاول مجدداً'
+            : ' Auto-Translate All Languages'}
       </button>
 
       {success && (
-        <span className="adm-badge adm-badge-green">
-          <Check size={12} weight="bold" aria-hidden="true" /> تمت الترجمة!
-        </span>
+        <span className="adm-badge adm-badge-green">✓ تمت الترجمة!</span>
       )}
 
       {error && (
-        <span className="adm-badge adm-badge-red adm-badge--multiline">
-          <X size={12} weight="bold" aria-hidden="true" /> {error}
+        <span
+          className="adm-badge adm-badge-red"
+          style={{ maxWidth: 420, whiteSpace: 'normal', lineHeight: 1.4 }}
+        >
+          ✗ {error}
         </span>
       )}
     </div>
