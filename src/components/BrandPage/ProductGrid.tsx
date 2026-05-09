@@ -123,7 +123,7 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
         <div key={category.title} className="container">
           <h3 className="category-title gradient-heading">{category.title}</h3>
           <div className="products-grid-compact">
-            {category.products.map((product, productIndex) => {
+            {category.products.map((product) => {
               const wishlistId = `${brandName}-${product.name}`;
               const inWishlist = isInWishlist(wishlistId);
 
