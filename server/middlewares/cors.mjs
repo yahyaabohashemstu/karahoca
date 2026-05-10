@@ -34,8 +34,19 @@ export const createJsonHeaders = (requestOrigin = '', extraHeaders = {}) => {
   if (requestOrigin) {
     headers['Access-Control-Allow-Origin'] = requestOrigin;
     headers['Access-Control-Allow-Credentials'] = 'true';
-    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    // X-CSRF-Token is sent by the SPA on every mutating request (see
+    // `apiFetch` + `requirePublicCsrfToken`). Without it on this allow-list,
+    // the browser's CORS preflight rejects the actual POST with the cryptic
+    // "Failed to fetch" — so the AI chat (and every other mutating public
+    // endpoint reached cross-origin from localhost:5173 → :5000 in dev,
+    // or karahoca.com → api.karahoca.com in prod) silently 403s before
+    // hitting the server. curl bypasses preflight, which is why server-side
+    // smoke tests passed while the browser failed.
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRF-Token';
     headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    // Tell browsers they can cache the preflight result for 24h so we don't
+    // pay the OPTIONS round-trip on every chat message.
+    headers['Access-Control-Max-Age'] = '86400';
     headers.Vary = 'Origin';
   }
   return headers;
