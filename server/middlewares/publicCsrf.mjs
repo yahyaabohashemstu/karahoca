@@ -34,12 +34,35 @@ export const PUBLIC_CSRF_HEADER_NAME = 'x-csrf-token';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
 
+/**
+ * Cookie domain. When the SPA and the API live on different subdomains
+ * (frontend at karahoca.com → backend at api.karahoca.com) the cookie
+ * MUST carry the registrable domain (`Domain=.karahoca.com`) — otherwise:
+ *   1. The cookie is scoped to the API host only.
+ *   2. The browser still SENDS it on cross-origin requests TO that host
+ *      because the request is technically same-origin to the cookie's
+ *      domain... unless ITP / strict third-party blocking (Safari,
+ *      Brave, Firefox-Enhanced-Tracking-Protection) classifies the
+ *      request as cross-site because the document and the request
+ *      have different effective top-level domains. In that case the
+ *      cookie is blocked, the chat POST is sent without X-CSRF-Token,
+ *      the server returns 403, and the SPA shows the generic "trouble
+ *      connecting" fallback — exactly the symptom seen on production.
+ *   With explicit Domain=.<registrable>, both subdomains see the cookie
+ *   as first-party and no browser blocks it.
+ *
+ * Configured via the `COOKIE_DOMAIN` env var (Coolify Runtime variable).
+ * Empty in dev (localhost) so the cookie defaults to host-only.
+ */
+const COOKIE_DOMAIN = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
+
 const COOKIE_OPTIONS = Object.freeze({
   httpOnly: false,
   sameSite: 'lax',
   secure: IS_PRODUCTION,
   path: '/',
   maxAge: COOKIE_MAX_AGE_SEC,
+  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
 });
 
 /** 32 bytes of entropy, base64url — cookie-safe and header-safe. */
