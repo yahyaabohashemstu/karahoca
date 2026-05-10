@@ -149,12 +149,26 @@ const handleRequest = async (request, response) => {
     }
 
     // ── Public API ───────────────────────────────────────────────────────
-    // All state-changing public routes are gated by double-submit CSRF
-    // (public cookie issued by the SPA fallback handler). GET endpoints
-    // (product catalog, news, sitemap, etc.) skip this check — they are
-    // safe reads.
+    // State-changing public routes are gated by double-submit CSRF (public
+    // cookie issued by the SPA fallback handler). GET endpoints (product
+    // catalog, news, sitemap, etc.) skip this check — they are safe reads.
+    //
+    // EXCEPTION: /api/ai/chat. The CSRF cookie is host-only (api.karahoca.com)
+    // and SOME browsers (Safari ITP, Brave, Firefox-Enhanced-Tracking,
+    // Chrome with third-party cookies disabled) silently block setting it
+    // when the document is on karahoca.com — there is no signal back to
+    // the SPA, the cookie just never appears in document.cookie. Result:
+    // the chat widget would 403 on first message for every such visitor.
+    // Setting `Domain=.karahoca.com` (via COOKIE_DOMAIN env var) fixes it
+    // for most cases, but third-party-cookie-blocking users still lose.
+    //
+    // The endpoint is anonymous, has no privileged session, and is rate-
+    // limited (30 req/min per IP). The Origin allow-list (enforced above
+    // via originAllowed for POST/PUT/DELETE) already blocks cross-site
+    // forgery from foreign sites — CSRF protection here is redundant
+    // defence against an attack vector the Origin check already kills.
+    // So we exempt it: every visitor gets to chat, no cookie dance needed.
     if (request.method === 'POST' && url === '/api/ai/chat') {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleAiChat(request, response, ctx);
       return;
     }
