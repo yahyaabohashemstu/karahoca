@@ -35,9 +35,16 @@
   <meta name="msapplication-TileColor" content="#153d7a">
 
   <!-- ═══════════════════════ Primary meta ═══════════════════════ -->
-  <title>KARAHOCA — منظفات بجودة عالمية | DIOX & AYLUX</title>
-  <meta name="description" content="KARAHOCA KIMYA — مصنع تركي رائد للمنظفات المنزلية والصناعية منذ 1994. علامتي DIOX و AYLUX. تصدير لأكثر من 15 دولة. ابتكار، نقاء، وأداء خارق.">
-  <meta name="keywords" content="منظفات، مصنع منظفات، تركيا، DIOX، AYLUX، KARAHOCA، منظف غسيل، منظف أرضيات، منتجات تنظيف، detergent, cleaning products, Turkish manufacturer">
+  <!-- Title carries BOTH the official Latin name and the most-searched
+       Arabic transliteration ("قره خوجة"). Crawlers weight title text
+       very heavily for relevance — putting both forms here is the
+       single biggest lever for ranking the Arabic search cluster. -->
+  <title>KARAHOCA · قره خوجة — منظفات بجودة عالمية | DIOX & AYLUX</title>
+  <meta name="description" content="قره خوجة (KARAHOCA KIMYA) — كاراهوكا — مصنع تركي رائد للمنظفات المنزلية والصناعية منذ 1994. علامتا DIOX و AYLUX. تصدير لأكثر من 15 دولة. ابتكار، نقاء، وأداء خارق.">
+  <!-- Keywords: every common Arabic transliteration is listed once.
+       Bing / Yandex still consult this; Google ignores it but the
+       text contributes a tiny relevance signal regardless. -->
+  <meta name="keywords" content="قره خوجة، قرة خوجة، قره خوجه، قرا خوجة، قرا هوجا، كرا هوجا، كاراهوكا، كاراهوجا، KARAHOCA، KARAHOCA KIMYA، Karahoca، Kara Hoca، Karahoja، منظفات، مصنع منظفات، تركيا، DIOX، AYLUX، ديوكس، آيلوكس، منظف غسيل، منظف أرضيات، منتجات تنظيف، detergent, cleaning products, Turkish manufacturer">
   <meta name="author" content="KARAHOCA KIMYA">
   <meta name="copyright" content="© KARAHOCA KIMYA">
   <meta name="generator" content="React + Vite">
@@ -72,8 +79,8 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="KARAHOCA">
   <meta property="og:url" content="https://karahoca.com/">
-  <meta property="og:title" content="KARAHOCA — منظفات بجودة عالمية | DIOX & AYLUX">
-  <meta property="og:description" content="مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX. تصدير لأكثر من 15 دولة.">
+  <meta property="og:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية | DIOX & AYLUX">
+  <meta property="og:description" content="قره خوجة (كاراهوكا) — مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX. تصدير لأكثر من 15 دولة.">
   <meta property="og:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
   <meta property="og:image:secure_url" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
   <meta property="og:image:type" content="image/webp">
@@ -90,10 +97,10 @@
   <meta name="twitter:site" content="@karahoca">
   <meta name="twitter:creator" content="@karahoca">
   <meta name="twitter:url" content="https://karahoca.com/">
-  <meta name="twitter:title" content="KARAHOCA — منظفات بجودة عالمية">
-  <meta name="twitter:description" content="مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX.">
+  <meta name="twitter:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية">
+  <meta name="twitter:description" content="قره خوجة (كاراهوكا) — مصنع تركي رائد للمنظفات منذ 1994. علامتا DIOX و AYLUX.">
   <meta name="twitter:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
-  <meta name="twitter:image:alt" content="KARAHOCA — Turkish cleaning products manufacturer">
+  <meta name="twitter:image:alt" content="KARAHOCA · قره خوجة · كاراهوكا — Turkish cleaning products manufacturer">
 
   <!-- ═══════════════════════ JSON-LD: Organization (static baseline) ═══════════════════════ -->
   <!-- Even before React mounts, search bots can ingest the company's
@@ -105,7 +112,20 @@
     "@type": "Organization",
     "@id": "https://karahoca.com/#organization",
     "name": "KARAHOCA",
-    "alternateName": ["KARAHOCA KIMYA", "كاراهوجا", "كاراهوكا"],
+    "alternateName": [
+      "KARAHOCA KIMYA",
+      "Karahoca",
+      "Kara Hoca",
+      "Karahoja",
+      "قره خوجة",
+      "قرة خوجة",
+      "قره خوجه",
+      "قرا خوجة",
+      "قرا هوجا",
+      "كرا هوجا",
+      "كاراهوكا",
+      "كاراهوجا"
+    ],
     "url": "https://karahoca.com",
     "logo": {
       "@type": "ImageObject",

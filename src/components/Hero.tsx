@@ -2,8 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const Hero: React.FC = () => {
-  const { t } = useTranslation();
-  
+  const { t, i18n } = useTranslation();
+  const isArabic = (i18n.resolvedLanguage || i18n.language || '').startsWith('ar');
+
   return (
     <section className="hero">
       <div className="container hero__grid">
@@ -11,6 +12,22 @@ const Hero: React.FC = () => {
           <h1 className="fx-reveal hero-title">
             <span className="accent gradient-text">{t('hero.title')}</span>
           </h1>
+          {/* Brand-name eyebrow visible to Arabic visitors above the lead.
+              Carries BOTH the most-searched Arabic transliteration
+              ("قره خوجة") and the modern phonetic form ("كاراهوكا") so
+              the homepage's primary text content carries the variants
+              search engines need to associate the URL with each query.
+              Rendered as semantic <p> with role="text" so screen readers
+              announce it once, and aria-label maps the dot to a comma
+              for natural reading. */}
+          {isArabic && (
+            <p
+              className="fx-reveal hero-brand-line"
+              aria-label="كاراهوكا، قره خوجة"
+            >
+              <span aria-hidden="true">كاراهوكا · قره خوجة · KARAHOCA</span>
+            </p>
+          )}
           <p className="lead fx-reveal">{t('hero.subtitle')}</p>
           <div className="hero__cta fx-reveal">
             <a href="#brands" className="btn btn--primary btn-hover-effect">{t('hero.cta.products')}</a>

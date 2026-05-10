@@ -138,9 +138,16 @@
         "description": "A leading company in the detergent industry for over 30 years, delivering innovative and high-quality solutions to global markets",
         "imageAlt": "KARAHOCA Production Facilities"
       },
+      "naming": {
+        "title": "Our Name",
+        "lead": "Our official name is KARAHOCA. In Arabic, it is most commonly written as قره خوجة, with several recognised spelling variants:",
+        "variantsLabel": "Other spellings of the same name:",
+        "explainTurkish": "The original Turkish name is KARAHOCA — Hoca is an Ottoman-Turkish word meaning teacher or master, and Kara means black; it was a family title. Legal name on incorporation: KARAHOCA KIMYA.",
+        "explainDistinction": "We are a Turkish manufacturer headquartered in Kilis, southern Türkiye. Our only official website is karahoca.com — please do not confuse us with similarly-named companies in other countries."
+      },
       "history": {
         "title": "Our History and Evolution",
-        "paragraph1": "Our company was founded 30 years ago on the principles of quality and reliability in the chemical sector. From the beginning, we focused on delivering high-quality chemical solutions to our customers, which helped us build a strong reputation in the market. Through commitment to excellence and continuous innovation, we became a trusted partner for many companies and institutions.",
+        "paragraph1": "Our company — KARAHOCA KIMYA (قره خوجة) — was founded 30 years ago on the principles of quality and reliability in the chemical sector. From the beginning, we focused on delivering high-quality chemical solutions to our customers, which helped us build a strong reputation in the market. Through commitment to excellence and continuous innovation, we became a trusted partner for many companies and institutions.",
         "paragraph2": "In 2014, a major turning point occurred in our journey. In response to growing market demand, we decided to expand into the detergent sector. We began a new journey in developing and producing cleaning products under our two brands, AYLUX and DIOX. Today, we are proud to be a trusted brand in more than 15 countries around the world."
       },
       "milestones": {

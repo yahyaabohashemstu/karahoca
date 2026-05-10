@@ -4,6 +4,11 @@
  */
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import {
+  BRAND_ALTERNATE_NAMES,
+  BRAND_ARABIC_PRIMARY,
+  BRAND_ARABIC_VARIANTS,
+} from '../constants/brandNames';
 
 const SITE_URL = 'https://karahoca.com';
 const LOGO_URL = `${SITE_URL}/karahoca-logo-1-Photoroom.webp`;
@@ -23,7 +28,13 @@ export const OrganizationSchema: React.FC = () => {
     '@type': ['Organization', 'LocalBusiness'],
     '@id': `${SITE_URL}/#organization`,
     name: 'KARAHOCA',
-    alternateName: ['KARAHOCA KIMYA', 'كاراهوجا', 'كاراهوكا'],
+    // Imported from constants/brandNames.ts so the variant list stays
+    // in lock-step with every other SEO surface (index.html static
+    // block, hero subtitle, footer, About page disambiguation). Covers
+    // every common Arabic transliteration ("قره خوجة" through
+    // "كاراهوكا") so Arabic-language searches land here instead of
+    // bouncing to the unrelated Syrian Aleppo competitor.
+    alternateName: BRAND_ALTERNATE_NAMES,
     legalName: 'KARAHOCA KIMYA',
     url: SITE_URL,
     logo: {
@@ -250,7 +261,11 @@ export const AboutPageSchema: React.FC = () => {
       '@type': ['Organization', 'LocalBusiness'],
       '@id': `${SITE_URL}/#organization`,
       name: 'KARAHOCA KIMYA',
-      alternateName: ['KARAHOCA', 'كاراهوجا'],
+      // Same comprehensive variant list used in OrganizationSchema —
+      // imported from constants/brandNames so search engines see the
+      // identical alternateName cluster on every page that mentions
+      // the company. Crucial for the "قره خوجة" → karahoca.com mapping.
+      alternateName: BRAND_ALTERNATE_NAMES,
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: LOGO_URL, width: 200, height: 60 },
       image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
@@ -336,6 +351,43 @@ export const AboutPageSchema: React.FC = () => {
         acceptedAnswer: {
           '@type': 'Answer',
           text: 'You can reach KARAHOCA via email at info@karahoca.com, by WhatsApp at +90 530 591 4990, or through the website at karahoca.com.',
+        },
+      },
+      // ── Naming / disambiguation Q&A ─────────────────────────────────
+      // Targets the cluster of Arabic transliteration searches: "قره خوجة"
+      // (most common), "قرة خوجة", "قرا هوجا", "كاراهوكا", "كاراهوجا",
+      // "كرا هوجا", etc. Google's FAQ rich-results renderer surfaces the
+      // question + answer directly under the brand result, which means a
+      // visitor searching ANY of these spellings can click through with
+      // confidence that they have the right company. Also sharply
+      // disambiguates from the unrelated Syrian "قره خوجة" supplier in
+      // Aleppo that currently ranks for the same query.
+      {
+        '@type': 'Question',
+        name: 'ما الاسم العربي لشركة KARAHOCA؟',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:
+            `الاسم العربي لشركة KARAHOCA هو "${BRAND_ARABIC_PRIMARY}". ` +
+            `يُكتب أيضاً بصيغ متعددة شائعة في البحث: ${BRAND_ARABIC_VARIANTS.join('، ')}. ` +
+            'جميعها تشير إلى نفس الشركة التركية المصنّعة لمنتجات التنظيف منذ عام 1994 ' +
+            '(كاراهوكا كيميا — KARAHOCA KIMYA). ' +
+            'الشركة مقرّها مدينة كيليس في تركيا، وتُصدّر منتجاتها تحت علامتي ديوكس (DIOX) ' +
+            'وآيلوكس (AYLUX) إلى أكثر من 15 دولة.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'هل قره خوجة وKARAHOCA نفس الشركة؟',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:
+            `نعم. "قره خوجة" هي التهجئة العربية الأشهر لاسم KARAHOCA التركي. ` +
+            'الشركة سجلّت قانونياً باسم KARAHOCA KIMYA في تركيا، ولها موقع رسمي واحد على ' +
+            'الإنترنت: karahoca.com. أي صياغة عربية أخرى مثل "قرا هوجا" أو "كاراهوكا" ' +
+            'أو "كاراهوجا" أو "كرا هوجا" تشير لنفس الشركة. ' +
+            'ملاحظة: هناك شركة سورية مختلفة في حلب تحمل اسماً مشابهاً — KARAHOCA الحقيقية ' +
+            'هي الشركة التركية ومقرّها كيليس، وموقعها الرسمي https://karahoca.com.',
         },
       },
     ],

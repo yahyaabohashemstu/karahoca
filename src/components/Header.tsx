@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         <Link to={lp('/')} className="brand header__brand">
           <img
             src="/karahoca-logo-1-Photoroom.webp"
-            alt="KARAHOCA"
+            alt="KARAHOCA — قره خوجة — كاراهوكا"
             className="brand__logo"
             decoding="async"
           />
