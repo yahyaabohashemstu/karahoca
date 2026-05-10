@@ -57,13 +57,34 @@ const normaliseHeaders = (input?: HeadersInit): Record<string, string> => {
 const hasHeader = (headers: Record<string, string>, name: string) =>
   Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase());
 
-export const apiFetch = (path: string, init: RequestInit = {}): Promise<Response> => {
+export const apiFetch = async (path: string, init: RequestInit = {}): Promise<Response> => {
   const url = buildApiUrl(path);
   const method = (init.method || 'GET').toUpperCase();
   const headers = normaliseHeaders(init.headers);
 
   if (MUTATION_METHODS.has(method) && !hasHeader(headers, CSRF_HEADER_NAME)) {
-    const token = readCsrfToken();
+    let token = readCsrfToken();
+
+    // Race-condition guard: on production the cross-origin CSRF bootstrap
+    // (`bootstrapCsrf` fired in main.tsx) takes ~200-500ms because of DNS +
+    // TLS to api.karahoca.com. A user who opens the chat widget and submits
+    // a message within that window would otherwise see 403s — the cookie
+    // simply hadn't arrived yet — and the AI chat would render its
+    // generic "trouble connecting" fallback. Awaiting the bootstrap
+    // promise here closes the race without forcing every page mount to
+    // pay the round-trip up front. Locally (cookie already in document.
+    // cookie or bootstrap completed in <5 ms) this is a same-microtask
+    // no-op.
+    if (!token) {
+      try {
+        await bootstrapCsrf();
+        token = readCsrfToken();
+      } catch {
+        /* swallow — still try the POST; server returns a clean 403 we'll
+           surface to the caller. */
+      }
+    }
+
     if (token) headers[CSRF_HEADER_NAME] = token;
   }
 
