@@ -78,14 +78,25 @@ const ADMIN_SESSION_COOKIE_OPTIONS = {
 // header on every mutation request. The server rejects the request if the
 // header is missing, if the cookie is missing, or if they don't match
 // (timing-safe comparison).
+//
+// Cookie domain (COOKIE_DOMAIN env var): when the SPA and the API live on
+// different subdomains (frontend at karahoca.com → backend at
+// api.karahoca.com), the cookie MUST carry the registrable domain
+// (Domain=.karahoca.com) so the SPA can read it back via document.cookie.
+// Without this, the cookie is host-only on api.karahoca.com and the
+// karahoca.com SPA cannot echo it as X-CSRF-Token → every mutation 403s.
+// Mirrors the same env var consumed by middlewares/publicCsrf.mjs so a
+// single setting covers both cookies.
 export const ADMIN_CSRF_COOKIE_NAME = 'karahoca_admin_csrf';
 export const ADMIN_CSRF_HEADER_NAME = 'x-csrf-token';
+const ADMIN_COOKIE_DOMAIN = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
 const ADMIN_CSRF_COOKIE_OPTIONS = {
   httpOnly: false, // MUST be readable by the admin SPA
   sameSite: 'strict',
   secure: isProduction,
   path: '/',
   ...(ADMIN_SESSION_MAX_AGE_SECONDS ? { maxAge: ADMIN_SESSION_MAX_AGE_SECONDS } : {}),
+  ...(ADMIN_COOKIE_DOMAIN ? { domain: ADMIN_COOKIE_DOMAIN } : {}),
 };
 
 /** 32 bytes of entropy, base64url — safe in cookies and HTTP headers. */
