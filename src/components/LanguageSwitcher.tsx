@@ -10,7 +10,15 @@ interface Language {
   code: string;
   name: string;
   nativeName: string;
+  /** Unicode flag emoji — used when no `flagImage` is set. */
   flag: string;
+  /**
+   * Optional image path (under /public). When set, rendered as an <img>
+   * instead of the emoji. Used for languages whose preferred flag is not
+   * a country emoji — e.g. Arabic is represented by the Arab League flag
+   * rather than any single national flag.
+   */
+  flagImage?: string;
 }
 
 interface LanguageSwitcherProps {
@@ -18,11 +26,50 @@ interface LanguageSwitcherProps {
 }
 
 const languages: Language[] = [
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
+  // Arabic uses the Arab League flag (22 member states) instead of any
+  // single country, so visitors from Egypt, the Levant, the Maghreb,
+  // the Gulf, etc. all see a neutral pan-Arab identifier.
+  {
+    code: 'ar',
+    name: 'Arabic',
+    nativeName: 'العربية',
+    flag: '🇸🇦', // emoji fallback if the SVG fails to load
+    flagImage: '/flags/ar-arab-league.svg',
+  },
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' },
   { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
 ];
+
+/**
+ * Render either the SVG image (preferred when `flagImage` is set) or the
+ * Unicode emoji. Falls back to the emoji on `<img>` error so a misconfigured
+ * static asset never leaves the switcher visually empty.
+ */
+const FlagGlyph: React.FC<{ language: Language; size: number }> = ({ language, size }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (language.flagImage && !imgFailed) {
+    return (
+      <img
+        src={language.flagImage}
+        alt=""
+        width={size}
+        height={Math.round((size * 2) / 3)}
+        style={{
+          width: size,
+          height: 'auto',
+          objectFit: 'contain',
+          borderRadius: 2,
+          display: 'inline-block',
+          verticalAlign: 'middle',
+        }}
+        onError={() => setImgFailed(true)}
+        draggable={false}
+      />
+    );
+  }
+  return <>{language.flag}</>;
+};
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) => {
   const { i18n, t } = useTranslation();
@@ -85,7 +132,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
         aria-haspopup="true"
       >
         <span className="language-switcher__flag" aria-hidden="true">
-          {currentLanguage.flag}
+          <FlagGlyph language={currentLanguage} size={20} />
         </span>
         <span className="language-switcher__code">
           {currentLanguage.code.toUpperCase()}
@@ -120,7 +167,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
               aria-label={`${t('nav.changeLanguage')} ${language.nativeName}`}
             >
               <span className="language-switcher__option-flag" aria-hidden="true">
-                {language.flag}
+                <FlagGlyph language={language} size={22} />
               </span>
               <span className="language-switcher__option-name">
                 {language.nativeName}

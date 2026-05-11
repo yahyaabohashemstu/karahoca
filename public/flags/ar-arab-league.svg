@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" aria-label="Arab League flag" role="img">
+  <!--
+    Simplified Arab League (Jamiʿat ad-Duwal al-ʿArabiyya) flag.
+
+    Used by the language switcher to represent Arabic instead of a single
+    country flag (e.g. Saudi Arabia). The Arab League covers 22 member states
+    so this is a neutral, region-wide identifier for the Arabic-speaking
+    audience of the site.
+
+    Geometry is deliberately simplified — the official emblem has a detailed
+    olive wreath + Arabic calligraphy that becomes unreadable below 32px.
+    What stays here is the iconic recognisable silhouette: green field,
+    white emblem disc, green crescent, and the Arabic name beneath it.
+  -->
+
+  <!-- Field: brand green (#007A3D — Pantone 355 C, official ALA spec) -->
+  <rect width="900" height="600" fill="#007A3D"/>
+
+  <!-- Decorative dashed wreath ring (stylised olive branches) -->
+  <circle cx="450" cy="300" r="215" fill="none" stroke="#FFFFFF" stroke-width="14"
+          stroke-dasharray="34 26" stroke-linecap="round"/>
+
+  <!-- Inner white emblem disc -->
+  <circle cx="450" cy="300" r="170" fill="#FFFFFF"/>
+
+  <!--
+    Crescent (hilal) — two overlapping circles where the inner one is the
+    field colour, carving a moon shape out of the disc. The slight horizontal
+    offset gives the classic Islamic crescent profile.
+  -->
+  <path d="M 470 170
+           A 130 130 0 1 0 470 430
+           A 100 100 0 1 1 470 170 Z"
+        fill="#007A3D"/>
+
+  <!-- Arabic inscription: "جامعة الدول العربية" (The League of Arab States) -->
+  <text x="450" y="525" text-anchor="middle" fill="#FFFFFF"
+        font-family="'Noto Naskh Arabic','Amiri','Tahoma',sans-serif"
+        font-size="56" font-weight="700" direction="rtl">
+    جامعة الدول العربية
+  </text>
+</svg>
