@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { useChatState } from '../../hooks/useChatState';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ChatShell from './ChatShell';
+import ExitIntentPopup from './ExitIntentPopup';
 import '../../styles/ai-chat.css';
 
 interface AIChatWidgetProps {
@@ -40,7 +41,8 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
     currentLang,
     isRtl,
     isOpen,
-    showWelcomeHint,
+    currentHintKey,
+    showExitIntent,
     messages,
     inputValue,
     isLoading,
@@ -49,6 +51,8 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
     openChat,
     closeChat,
     dismissWelcomeHint,
+    acceptExitIntent,
+    dismissExitIntent,
     setInputValue,
     handleSend,
     handleSuggestionClick,
@@ -57,10 +61,14 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
   } = state;
 
   const canSubmit = inputValue.trim().length > 0;
+  // Pick the localised hint text for whichever rotation slot is currently
+  // active. `currentHintKey` is null when no hint should be visible
+  // (panel open, all hints exhausted, or user already engaged).
+  const activeHintText = currentHintKey ? uiText.hints[currentHintKey] : null;
 
   return (
     <div className="ai-assistant" aria-live="polite">
-      {showWelcomeHint && (
+      {activeHintText && (
         <button
           type="button"
           className="ai-assistant__welcome-hint"
@@ -90,12 +98,19 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
             textAlign: isRtl ? 'right' : 'left',
             display: 'inline-block',
             lineHeight: 1.35,
+            // Subtle entry animation per hint switch — re-keyed below so
+            // the bubble feels fresh every time the rotation advances.
+            animation: 'ai-assistant__hint-pop 280ms ease-out',
           }}
+          // Re-mount the button when the hint key changes so the CSS
+          // entry animation replays. Without this React would keep the
+          // same DOM node and the animation would only fire once.
+          key={currentHintKey}
           onClick={dismissWelcomeHint}
           aria-label={uiText.closeWelcomeHint}
           title={uiText.closeWelcomeHint}
         >
-          {uiText.welcomeHint}
+          {activeHintText}
         </button>
       )}
 
@@ -108,8 +123,31 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
           aria-label={uiText.openToggleLabel}
           title={uiText.openToggleLabel}
         >
-          🤖
+          {/* "Online" presence indicator — small green dot with its own
+              gentle breathing animation. The aria-label below carries the
+              localised "Online now" text so screen-reader users get the
+              same context. */}
+          <span
+            className="ai-assistant__online-dot"
+            role="img"
+            aria-label={uiText.onlineLabel}
+          />
+          <span className="ai-assistant__toggle-icon" aria-hidden="true">
+            🤖
+          </span>
         </button>
+      )}
+
+      {showExitIntent && (
+        <ExitIntentPopup
+          title={uiText.exitIntent.title}
+          body={uiText.exitIntent.body}
+          acceptLabel={uiText.exitIntent.accept}
+          dismissLabel={uiText.exitIntent.dismiss}
+          isRtl={isRtl}
+          onAccept={acceptExitIntent}
+          onDismiss={dismissExitIntent}
+        />
       )}
 
       {isOpen && (

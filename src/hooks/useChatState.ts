@@ -26,6 +26,14 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+/**
+ * Visible-hint identifier. The chat widget shows up to four contextual
+ * teaser bubbles that rotate over time so a returning visitor doesn't keep
+ * seeing the same nudge. Each value here maps to a row in `hints` and a
+ * trigger condition in the hint-sequence effect.
+ */
+export type ChatHintKey = 'initial' | 'productSearch' | 'contactTeam' | 'stillHere';
+
 export interface ChatUIStrings {
   title: string;
   subtitle: string;
@@ -35,8 +43,24 @@ export interface ChatUIStrings {
   openToggleLabel: string;
   closeToggleLabel: string;
   inputLabel: string;
+  /** Legacy single-string field — kept as an alias for hints.initial so any
+   *  external consumer importing it still compiles. New code should read
+   *  `hints[key]` instead. */
   welcomeHint: string;
   closeWelcomeHint: string;
+  /** Online-presence pill rendered next to the floating toggle button. */
+  onlineLabel: string;
+  /** Localised hint text keyed by trigger condition. */
+  hints: Record<ChatHintKey, string>;
+  /** Exit-intent modal copy. Shown once per session when the visitor is
+   *  about to leave (desktop: mouse to top edge; mobile: rapid scroll up
+   *  from depth). */
+  exitIntent: {
+    title: string;
+    body: string;
+    accept: string;
+    dismiss: string;
+  };
   loadingLabel: string;
   connectionError: string;
   fallbackReply: string;
@@ -222,6 +246,19 @@ const getUIText = (lang: string): ChatUIStrings => {
         inputLabel: 'Asistana soru giris alani',
         welcomeHint: 'Bir sorunuz mu var?',
         closeWelcomeHint: 'Karsilama mesajini kapat',
+        onlineLabel: 'Şu anda çevrimiçi',
+        hints: {
+          initial: 'Bir sorunuz mu var?',
+          productSearch: 'Belirli bir ürün mü arıyorsunuz?',
+          contactTeam: 'Ekibimizle şimdi iletişime geçin',
+          stillHere: 'Aradığınızı buldunuz mu?',
+        },
+        exitIntent: {
+          title: 'Gitmeden önce…',
+          body: 'Aradığınızı buldunuz mu? Yapay zeka asistanımızla sohbet edin — saniyeler içinde yanıt alın.',
+          accept: 'Evet, sohbete başla',
+          dismiss: 'Hayır, teşekkürler',
+        },
         loadingLabel: 'Yukleniyor',
         connectionError: 'Asistana baglanirken bir hata olustu.',
         fallbackReply:
@@ -242,6 +279,19 @@ const getUIText = (lang: string): ChatUIStrings => {
         inputLabel: 'Поле ввода вопроса для помощника',
         welcomeHint: 'Есть вопрос?',
         closeWelcomeHint: 'Закрыть приветственное сообщение',
+        onlineLabel: 'Сейчас онлайн',
+        hints: {
+          initial: 'Есть вопрос?',
+          productSearch: 'Ищете определенный продукт?',
+          contactTeam: 'Свяжитесь с нашей командой',
+          stillHere: 'Нашли то, что искали?',
+        },
+        exitIntent: {
+          title: 'Прежде чем уйти…',
+          body: 'Нашли то, что искали? Поговорите с нашим ИИ-помощником — ответ за секунды.',
+          accept: 'Да, начать чат',
+          dismiss: 'Нет, спасибо',
+        },
         loadingLabel: 'Загрузка',
         connectionError: 'Произошла ошибка при подключении к помощнику.',
         fallbackReply:
@@ -262,6 +312,19 @@ const getUIText = (lang: string): ChatUIStrings => {
         inputLabel: 'Question input field for assistant',
         welcomeHint: 'Have a question?',
         closeWelcomeHint: 'Close welcome message',
+        onlineLabel: 'Online now',
+        hints: {
+          initial: 'Have a question?',
+          productSearch: 'Looking for a specific product?',
+          contactTeam: 'Talk to our team now',
+          stillHere: "Found what you're looking for?",
+        },
+        exitIntent: {
+          title: 'Before you go…',
+          body: "Found what you're looking for? Chat with our AI assistant — replies in seconds.",
+          accept: 'Yes, start chatting',
+          dismiss: 'No, thanks',
+        },
         loadingLabel: 'Loading',
         connectionError: 'There was an error while connecting to the assistant.',
         fallbackReply:
@@ -283,6 +346,19 @@ const getUIText = (lang: string): ChatUIStrings => {
         inputLabel: 'حقل إدخال سؤال للمساعد',
         welcomeHint: 'هل لديك سؤال؟',
         closeWelcomeHint: 'إغلاق الرسالة الترحيبية',
+        onlineLabel: 'متاح الآن',
+        hints: {
+          initial: 'هل لديك سؤال؟',
+          productSearch: 'هل تبحث عن منتج معيّن؟',
+          contactTeam: 'تواصل مع فريقنا الآن',
+          stillHere: 'هل وجدت ما تبحث عنه؟',
+        },
+        exitIntent: {
+          title: 'قبل أن تغادر…',
+          body: 'هل وجدت ما تبحث عنه؟ تحدّث مع مساعدنا الذكي مباشرة، يجاوبك خلال ثوان.',
+          accept: 'نعم، أبدأ المحادثة',
+          dismiss: 'لا، شكراً',
+        },
         loadingLabel: 'جارِالتحميل',
         connectionError: 'حدث خطأ أثناء الاتصال بالمساعد.',
         fallbackReply:
@@ -440,8 +516,16 @@ export interface UseChatStateResult {
   uiText: ChatUIStrings;
   /** Panel open state. */
   isOpen: boolean;
-  /** Welcome-hint bubble visibility. */
+  /**
+   * Which contextual hint should be visible right now, or `null` to hide.
+   * Rotates over time and on scroll-depth events; resets when the user
+   * opens the chat (interactedRef latches forever afterwards).
+   */
+  currentHintKey: ChatHintKey | null;
+  /** True iff `currentHintKey` is non-null. Convenience for legacy markup. */
   showWelcomeHint: boolean;
+  /** Whether the exit-intent modal should be visible. */
+  showExitIntent: boolean;
   /** Displayed message list (includes the synthetic 'welcome' entry). */
   messages: ChatMessage[];
   /** Current textarea draft. */
@@ -456,8 +540,12 @@ export interface UseChatStateResult {
   openChat: () => void;
   /** Imperatively close the panel. */
   closeChat: () => void;
-  /** Dismiss the welcome-hint bubble. */
+  /** Dismiss the currently-visible hint (it won't reappear this session). */
   dismissWelcomeHint: () => void;
+  /** Accept the exit-intent prompt: closes the modal and opens the chat. */
+  acceptExitIntent: () => void;
+  /** Dismiss the exit-intent prompt: closes it permanently for the session. */
+  dismissExitIntent: () => void;
   /** Replace the textarea draft. */
   setInputValue: (value: string) => void;
   /** Submit the current draft (or an override). */
@@ -481,8 +569,17 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const uiText = useMemo(() => getUIText(currentLang), [currentLang]);
   const fixedT = useMemo(() => i18n.getFixedT(currentLang), [i18n, currentLang]);
 
-  const welcomeHintShownRef = useRef(false);
-  const [showWelcomeHint, setShowWelcomeHint] = useState(false);
+  // Hint sequencing — replaces the single-shot "welcome hint" with a four-
+  // stage rotation: initial → productSearch → contactTeam (time-based) plus
+  // a scroll-depth trigger for `stillHere`. Once the user interacts (opens
+  // the panel), `interactedRef` latches and no further hints are shown.
+  const interactedRef = useRef(false);
+  const dismissedHintsRef = useRef<Set<ChatHintKey>>(new Set());
+  const [currentHintKey, setCurrentHintKey] = useState<ChatHintKey | null>(null);
+  // Exit-intent: shown at most once per session when the visitor signals
+  // they're about to leave (desktop mouse to top edge / mobile rapid up-scroll).
+  const exitIntentShownRef = useRef(false);
+  const [showExitIntent, setShowExitIntent] = useState(false);
   const [isOpen, setIsOpen] = useState(initiallyOpen);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const stored = loadStoredMessages();
@@ -518,16 +615,31 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen]);
 
-  // Show the welcome-hint bubble 3 s after mount if the panel is still closed
-  // and we haven't shown it yet this session.
+  // ── Hint sequence ──────────────────────────────────────────────────────
+  //
+  // While the chat panel is closed AND the visitor hasn't interacted yet,
+  // walk through four contextual nudges:
+  //
+  //   t =   3 s →  'initial'        ("Have a question?")
+  //   t =  60 s →  'productSearch'  ("Looking for a specific product?")
+  //   t = 120 s →  'contactTeam'    ("Talk to our team now")
+  //   scroll ≥ 60 % → 'stillHere'   ("Found what you're looking for?")
+  //
+  // Each hint auto-hides after 8 s. The notification chime plays once on
+  // the very first hint of the session (autoplay policy permitting); we
+  // deliberately don't replay it on every rotation — that crossed the line
+  // from "helpful nudge" into "annoying ping".
   useEffect(() => {
-    if (isOpen || welcomeHintShownRef.current) {
-      setShowWelcomeHint(false);
+    if (isOpen || interactedRef.current) {
+      setCurrentHintKey(null);
       return;
     }
-    const timer = window.setTimeout(() => {
-      setShowWelcomeHint(true);
-      welcomeHintShownRef.current = true;
+
+    let autoHideTimer: number | null = null;
+    let firstHintFired = false;
+    const HINT_VISIBLE_MS = 8000;
+
+    const playChime = () => {
       try {
         if (!notifAudioRef.current) {
           notifAudioRef.current = new Audio('/notification-sound.mp3');
@@ -535,11 +647,99 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         }
         notifAudioRef.current.currentTime = 0;
         notifAudioRef.current.play().catch(() => {});
-      } catch {
-        /* autoplay blocked — ignore */
+      } catch { /* autoplay blocked */ }
+    };
+
+    const showHint = (key: ChatHintKey) => {
+      if (interactedRef.current) return;
+      if (dismissedHintsRef.current.has(key)) return;
+      setCurrentHintKey(key);
+      if (!firstHintFired) {
+        playChime();
+        firstHintFired = true;
       }
-    }, 3000);
-    return () => window.clearTimeout(timer);
+      if (autoHideTimer) window.clearTimeout(autoHideTimer);
+      autoHideTimer = window.setTimeout(() => {
+        setCurrentHintKey((prev) => (prev === key ? null : prev));
+      }, HINT_VISIBLE_MS);
+    };
+
+    const timers: number[] = [];
+    timers.push(window.setTimeout(() => showHint('initial'), 3_000));
+    timers.push(window.setTimeout(() => showHint('productSearch'), 60_000));
+    timers.push(window.setTimeout(() => showHint('contactTeam'), 120_000));
+
+    // Scroll trigger — fires once when the page reaches the 60 % depth mark.
+    let scrollFired = false;
+    const onScroll = () => {
+      if (scrollFired) return;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      const pct = window.scrollY / max;
+      if (pct >= 0.6) {
+        scrollFired = true;
+        showHint('stillHere');
+        window.removeEventListener('scroll', onScroll);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      for (const t of timers) window.clearTimeout(t);
+      if (autoHideTimer) window.clearTimeout(autoHideTimer);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [isOpen]);
+
+  // ── Exit-intent detection ──────────────────────────────────────────────
+  //
+  // Fires at most once per session. Desktop: pointer leaves the viewport
+  // through the top edge — a strong "I'm about to close this tab" signal.
+  // Mobile: a rapid upward fling from a deep-scroll position, which is the
+  // closest equivalent (mouseleave doesn't exist for touch).
+  useEffect(() => {
+    if (isOpen || exitIntentShownRef.current || interactedRef.current) return;
+
+    const isTouch =
+      typeof window !== 'undefined' &&
+      (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window);
+
+    const trigger = () => {
+      if (exitIntentShownRef.current || interactedRef.current) return;
+      exitIntentShownRef.current = true;
+      setShowExitIntent(true);
+      // Showing the exit-intent counts as "engaged enough" — stop the
+      // hint rotation so we don't pile two nudges on top of each other.
+      setCurrentHintKey(null);
+    };
+
+    if (!isTouch) {
+      const onMouseLeave = (e: MouseEvent) => {
+        // Only the top edge counts; leaving sideways or downward is
+        // usually just window-switching, not intent to close.
+        if (e.clientY <= 8) trigger();
+      };
+      document.documentElement.addEventListener('mouseleave', onMouseLeave);
+      return () => document.documentElement.removeEventListener('mouseleave', onMouseLeave);
+    }
+
+    // Mobile: track scroll velocity. Trigger when the visitor is past
+    // 40 % page depth and flicks up >= 300 px in <= 700 ms.
+    let lastY = window.scrollY;
+    let lastT = performance.now();
+    const onScroll = () => {
+      const now = performance.now();
+      const currentY = window.scrollY;
+      const dy = lastY - currentY; // > 0 → scrolling up
+      const dt = now - lastT;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? currentY / max : 0;
+      if (pct > 0.4 && dy >= 300 && dt <= 700) trigger();
+      lastY = currentY;
+      lastT = now;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, [isOpen]);
 
   // Persist messages to localStorage (excluding the synthetic welcome entry).
@@ -727,18 +927,42 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
   const openChat = useCallback(() => {
     setIsOpen(true);
-    setShowWelcomeHint(false);
+    // First open of the session is the signal we wanted — kill all the
+    // attention-grabbing affordances so we never nag the same visitor twice.
+    interactedRef.current = true;
+    setCurrentHintKey(null);
+    setShowExitIntent(false);
     trackChatOpen();
   }, []);
 
   const closeChat = useCallback(() => {
     setIsOpen(false);
-    setShowWelcomeHint(false);
+    // Keep `interactedRef` latched — closing the panel ≠ "I want to be
+    // nudged again". A returning visitor on a new tab gets a fresh session.
+    setCurrentHintKey(null);
     trackChatClose();
   }, []);
 
   const dismissWelcomeHint = useCallback(() => {
-    setShowWelcomeHint(false);
+    setCurrentHintKey((prev) => {
+      if (prev) dismissedHintsRef.current.add(prev);
+      return null;
+    });
+  }, []);
+
+  const acceptExitIntent = useCallback(() => {
+    setShowExitIntent(false);
+    // Open the panel and latch — accepting the prompt is the strongest
+    // engagement signal we get; cementing interactedRef stops any rotation
+    // from firing before the panel finishes mounting.
+    setIsOpen(true);
+    interactedRef.current = true;
+    setCurrentHintKey(null);
+    trackChatOpen();
+  }, []);
+
+  const dismissExitIntent = useCallback(() => {
+    setShowExitIntent(false);
   }, []);
 
   // getCachedAiContext() is invoked inside buildKnowledgeBase; keep the
@@ -750,7 +974,9 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     isRtl,
     uiText,
     isOpen,
-    showWelcomeHint,
+    currentHintKey,
+    showWelcomeHint: currentHintKey !== null,
+    showExitIntent,
     messages,
     inputValue,
     isLoading,
@@ -759,6 +985,8 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     openChat,
     closeChat,
     dismissWelcomeHint,
+    acceptExitIntent,
+    dismissExitIntent,
     setInputValue,
     handleSend,
     handleSuggestionClick,
