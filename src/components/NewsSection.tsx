@@ -198,6 +198,12 @@ const NewsSection: React.FC = () => {
     };
   }, [applyOffset, newsItems.length, currentLanguage]);
 
+  // If neither the API nor the static fallback has any news, hide the whole
+  // section from the homepage. Showing an empty marquee with just an eyebrow
+  // and a "View all" button is worse than showing nothing. The /news route
+  // still renders its own empty-state page (NewsPageContent guards similarly).
+  if (newsItems.length === 0) return null;
+
   return (
     <section id="news" className="section glass-section news-section">
       <div className="section-divider"></div>
