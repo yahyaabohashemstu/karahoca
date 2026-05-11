@@ -6,6 +6,8 @@
  * only rewrites the URL the browser requests.
  */
 
+import { buildApiUrl } from './api';
+
 const CONVERTIBLE_RE = /\.(png|jpe?g)$/i;
 
 /**
@@ -22,4 +24,35 @@ export function toWebp(src: string | undefined | null): string {
   // Don't touch external URLs or data URIs
   if (src.startsWith('http') || src.startsWith('data:')) return src;
   return src.replace(CONVERTIBLE_RE, '.webp');
+}
+
+/**
+ * Resolve an image URL for rendering INSIDE the admin SPA.
+ *
+ * Two transformations are needed that the public site's <ImageWithFallback>
+ * handles via `toWebp() + fallbackSrc`. Admin uses bare <img> in many
+ * places, so we centralise the logic here:
+ *
+ *   1. `/api/uploads/<file>` — uploaded via the admin panel and stored on
+ *      the API server's volume. The admin SPA lives on the frontend host
+ *      (karahoca.com) but the file is at api.karahoca.com. Prepend the
+ *      configured `VITE_BACKEND_URL` so the cross-subdomain request lands
+ *      on the right origin.
+ *
+ *   2. `/<static>/file.png` — static assets shipped with the SPA. The
+ *      build pipeline (`scripts/prune-dist.mjs`) drops the PNG copy when a
+ *      WebP sibling exists, so admin requests for `.png` come back 404 on
+ *      production. Rewrite to `.webp` so we hit the surviving file.
+ *
+ *   3. Already-absolute http(s)/data URIs are returned unchanged.
+ *
+ * Uploaded files (`/api/uploads/*`) keep their original extension because
+ * the server stores them as-is (no WebP transcoding pipeline). Don't run
+ * toWebp on them or we'd point at a non-existent `.webp`.
+ */
+export function resolveAdminImage(src: string | undefined | null): string {
+  if (!src) return '';
+  if (src.startsWith('http') || src.startsWith('data:')) return src;
+  if (src.startsWith('/api/uploads/')) return buildApiUrl(src);
+  return toWebp(src);
 }

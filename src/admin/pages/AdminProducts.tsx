@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type Product } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { resolveAdminImage } from '../../utils/image';
 
 export const AdminProducts: React.FC = () => {
   // ── Browse state ──────────────────────────────────────────────────────────
@@ -274,7 +275,7 @@ export const AdminProducts: React.FC = () => {
                   {/* Thumbnail */}
                   {p.image ? (
                     <img
-                      src={p.image}
+                      src={resolveAdminImage(p.image)}
                       alt={p.alt_en || p.name_en}
                       draggable={false}
                       style={{
@@ -447,7 +448,7 @@ export const AdminProducts: React.FC = () => {
                     <td>
                       {p.image ? (
                         <img
-                          src={p.image}
+                          src={resolveAdminImage(p.image)}
                           alt={p.alt_en || p.name_en}
                           style={{ width: 40, height: 40, objectFit: 'contain', background: 'var(--adm-surface2)', borderRadius: 4 }}
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

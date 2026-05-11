@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
+import { resolveAdminImage } from '../../utils/image';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -357,7 +358,7 @@ export const AdminProductEdit: React.FC = () => {
                 boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
               }}>
                 <img
-                  src={form.image}
+                  src={resolveAdminImage(form.image)}
                   alt="preview"
                   style={{
                     width: '85%',
@@ -422,7 +423,7 @@ export const AdminProductEdit: React.FC = () => {
             {getGalleryImages().map((img, idx) => (
               <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
                 {img && (
-                  <img src={img} alt={`gallery-${idx}`}
+                  <img src={resolveAdminImage(img)} alt={`gallery-${idx}`}
                     style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--adm-border, #ddd)' }} />
                 )}
                 <input className="adm-input" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}

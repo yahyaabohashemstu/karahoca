@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate } from '../utils/dateUtils';
+import { resolveAdminImage } from '../../utils/image';
 
 export const AdminNews: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export const AdminNews: React.FC = () => {
                     <td>
                       {item.image ? (
                         <img
-                          src={item.image}
+                          src={resolveAdminImage(item.image)}
                           alt={item.title_en}
                           style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4 }}
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}

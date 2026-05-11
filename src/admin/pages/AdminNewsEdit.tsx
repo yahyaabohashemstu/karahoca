@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
+import { resolveAdminImage } from '../../utils/image';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -218,7 +219,7 @@ export const AdminNewsEdit: React.FC = () => {
           {form.image && (
             <div className="adm-card">
               <div className="adm-card-title">Image Preview</div>
-              <img src={form.image} alt="preview" style={{ maxWidth: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, marginTop: 8 }} />
+              <img src={resolveAdminImage(form.image)} alt="preview" style={{ maxWidth: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, marginTop: 8 }} />
             </div>
           )}
         </div>
