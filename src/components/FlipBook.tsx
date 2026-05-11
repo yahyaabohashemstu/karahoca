@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
+import { useIsMobile } from '../hooks/useIsMobile';
 import '../styles/flipbook.css';
 
 // Reference-safe comparator for the `imageUrls?: string[]` prop. Pages are
@@ -17,15 +18,39 @@ const imageUrlsEqual = (a?: readonly string[], b?: readonly string[]) => {
 };
 
 // ── Spread model ─────────────────────────────────────────────────────────────
-// spread 0 → left = null (empty/brand),  right = pages[0]  (cover)
-// spread k → left = pages[2k-1],         right = pages[2k]
-// maxSpread = Math.floor(totalPages / 2)
+// Desktop (book/landscape) — two pages per spread:
+//   spread 0 → left = null (empty/brand),  right = pages[0]  (cover)
+//   spread k → left = pages[2k-1],         right = pages[2k]
+//   maxSpread = Math.floor(totalPages / 2)
+//
+// Mobile (portrait, screen too narrow for two facing pages) — one page per
+// spread. The CSS hides `.fb-half--l` on `max-width: 768px`, so previously
+// every odd page was invisible (spread N showed only `pages[2N]`, the
+// `pages[2N-1]` slot was rendered but hidden, skipping half the catalog).
+//
+//   spread k → left = null, right = pages[k]
+//   maxSpread = totalPages - 1
+//
+// Picking `mode: 'mobile'` here keeps the function pure (no React import)
+// while still parameterising the layout. The component picks the mode
+// from `useIsMobile(768)` at render time.
+
+type FlipBookMode = 'desktop' | 'mobile';
 
 function getSpreadPages(
   spread: number,
   total: number,
+  mode: FlipBookMode = 'desktop',
 ): [number | null, number | null] {
   if (spread < 0 || total === 0) return [null, null];
+
+  if (mode === 'mobile') {
+    // One page per spread; left slot is always empty since the CSS hides
+    // the left half on small viewports. Right slot is the page we want.
+    return spread < total ? [null, spread] : [null, null];
+  }
+
+  // Desktop / wide-viewport layout — original two-page book spread.
   if (spread === 0) return [null, total > 0 ? 0 : null];
   const l = 2 * spread - 1;
   const r = 2 * spread;
@@ -108,8 +133,19 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   zoomRef.current     = zoom;
 
   // ── Derived ─────────────────────────────────────────────────────────────────
+  // useIsMobile re-renders on viewport crossing 768 px so the layout
+  // switches live if a tablet user rotates between portrait and landscape.
+  // `mode` then drives both the page-tuple math and the page-label
+  // formatting below — single source of truth for "are we one-page or
+  // two-page right now".
+  const isMobile = useIsMobile(768);
+  const mode: FlipBookMode = isMobile ? 'mobile' : 'desktop';
+
   const total   = pages.length;
-  const maxSpr  = Math.floor(total / 2);
+  // maxSpr depends on the mode: on mobile each spread is one page
+  // (so the last reachable spread is total-1); on desktop the cover is
+  // spread 0 then pairs from spread 1 (so the last is floor(total/2)).
+  const maxSpr  = total === 0 ? 0 : (mode === 'mobile' ? total - 1 : Math.floor(total / 2));
   const canNext = spread < maxSpr;
   const canPrev = spread > 0;
 
@@ -212,13 +248,18 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   }, []);
 
   // ── Jump to page ──────────────────────────────────────────────────────────
+  // Mobile: page N (1-indexed) lives on spread N-1 (one page per spread).
+  // Desktop: page 1 = cover on spread 0; pages 2/3 on spread 1; 4/5 on
+  //          spread 2; i.e. spread = floor(N/2) when N >= 2.
   const doJump = useCallback(() => {
     const n = parseInt(jumpInput, 10);
     if (isNaN(n) || n < 1 || n > total) return;
-    const target = n <= 1 ? 0 : Math.floor(n / 2);
+    const target = mode === 'mobile'
+      ? n - 1
+      : (n <= 1 ? 0 : Math.floor(n / 2));
     setSpread(Math.min(Math.max(0, target), maxSpr));
     setJumpInput('');
-  }, [jumpInput, total, maxSpr]);
+  }, [jumpInput, total, maxSpr, mode]);
 
   // ── Auto-play slideshow ───────────────────────────────────────────────────
   useEffect(() => {
@@ -311,9 +352,9 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const pg = (idx: number | null) =>
     idx !== null && idx < pages.length ? pages[idx] : null;
 
-  const [cL, cR] = getSpreadPages(spread,     total);
-  const [nL, nR] = getSpreadPages(spread + 1, total);
-  const [pL, pR] = getSpreadPages(spread - 1, total);
+  const [cL, cR] = getSpreadPages(spread,     total, mode);
+  const [nL, nR] = getSpreadPages(spread + 1, total, mode);
+  const [pL, pR] = getSpreadPages(spread - 1, total, mode);
 
   const isFlippingNext = flipping && flipDir === 'next';
   const isFlippingPrev = flipping && flipDir === 'prev';
@@ -337,6 +378,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
 
   const pageLabel = (() => {
     if (!total) return '';
+    if (mode === 'mobile') {
+      // One-page-per-spread: spread N → page N+1 (1-indexed for display).
+      if (spread === 0) return `غلاف — ${total} صفحة`;
+      return `${spread + 1} / ${total}`;
+    }
+    // Two-page desktop spread.
     if (spread === 0) return `غلاف — ${total} صفحة`;
     const lo = 2 * spread;
     const hi = Math.min(lo + 1, total - 1);
