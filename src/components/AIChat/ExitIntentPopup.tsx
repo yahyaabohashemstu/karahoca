@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Modal that appears once per session when the visitor signals they're
@@ -7,6 +8,16 @@ import React, { useEffect, useRef } from 'react';
  * of those triggers is `useChatState`; this component is purely
  * presentational and is mounted/unmounted by the parent based on the
  * `showExitIntent` flag from the hook.
+ *
+ * Why React Portal:
+ *   The host `<AIChatWidget>` is wrapped in a `.ai-assistant` container
+ *   that's `position: fixed` in the page corner — that corner is where
+ *   the floating toggle button lives. Rendering the modal inside that
+ *   container meant the <dialog>, despite using `showModal()` for the
+ *   top-layer, picked up the corner's coordinate context and showed
+ *   off-center on the screen. Portal-ing the dialog into <body> sidesteps
+ *   the inheritance, leaving the user-agent style `margin: auto` to
+ *   centre the modal as designed.
  *
  * Accessibility:
  *   • Renders inside a `<dialog>` so screen readers and assistive tech
@@ -72,7 +83,11 @@ const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({
     if (e.target === e.currentTarget) onDismiss();
   };
 
-  return (
+  // Bail out cleanly in SSR or pre-hydration environments where document
+  // doesn't yet exist. createPortal requires a real DOM target.
+  if (typeof document === 'undefined') return null;
+
+  const dialogNode = (
     <dialog
       ref={dialogRef}
       onClick={onDialogClick}
@@ -123,6 +138,10 @@ const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({
       </div>
     </dialog>
   );
+
+  // Portal to <body> so the dialog escapes the `.ai-assistant` corner-
+  // anchored stacking context and centres cleanly on the screen.
+  return createPortal(dialogNode, document.body);
 };
 
 export default ExitIntentPopup;

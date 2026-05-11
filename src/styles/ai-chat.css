@@ -161,13 +161,30 @@ html[dir="ltr"] .ai-assistant__online-dot { right: 6px; }
    card centered on screen, with the brand orange driving the primary
    CTA so it visually echoes the chat toggle the user is about to engage
    with. */
+/* Explicit centering of the <dialog> regardless of any ambient rules.
+   The user-agent stylesheet sets `margin: auto` on `dialog:modal` which
+   normally suffices, but our SPA cascade and the dialog's portal target
+   can interact unpredictably — e.g. the previous mounting site under
+   `.ai-assistant` (position:fixed corner) pulled the modal off-centre.
+   Pinning the dialog explicitly with `position: fixed; inset: 0;
+   margin: auto` plus `display:block` guarantees it lands in the visual
+   centre of the viewport on every browser, regardless of where it was
+   mounted in the React tree. */
 .ai-exit-intent {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  display: block;
+  width: min(420px, 92vw);
+  max-width: min(420px, 92vw);
+  max-height: 90vh;
+  height: -moz-fit-content;
+  height: fit-content;
   border: none;
   background: transparent;
   padding: 0;
-  max-width: min(420px, 92vw);
-  width: 100%;
   color: inherit;
+  z-index: 10000;
 }
 
 .ai-exit-intent::backdrop {
