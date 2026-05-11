@@ -58,7 +58,14 @@ export const isChatRateLimited = makeLimiter('rl:chat', 30, 60);
 export const isUnsubRateLimited = makeLimiter('rl:unsub', 10, 5 * 60);
 export const isNewsletterSubRateLimited = makeLimiter('rl:news-sub', 3, 60 * 60);
 export const isLogErrorRateLimited = makeLimiter('rl:log-err', 10, 60);
-export const isChatLogRateLimited = makeLimiter('rl:chat-log', 20, 60);
+// /api/chat/log fires once per assistant reply — a single visitor can
+// legitimately accumulate ~20-40 entries during an active 5-minute Q&A
+// burst. The previous 20/min ceiling silently dropped a third of those
+// because each batch hit at the tail of a rapid back-and-forth (visitor
+// fires Q, gets A, fires Q again, sometimes 3 in 10 seconds). 60 req/min
+// gives us a 3x safety margin while still rate-shielding against a
+// scripted log-flood attempting to bloat the DB.
+export const isChatLogRateLimited = makeLimiter('rl:chat-log', 60, 60);
 
 // /api/health itself is a mutation-free probe but unlimited probes are a
 // cheap amplification vector (/health currently returns DB + Redis state).

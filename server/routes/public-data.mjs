@@ -1,6 +1,7 @@
 import { getDb, incrementStat, normalizeWeight } from '../db.mjs';
 import { getPublicCached, setPublicCached } from '../services/publicCache.mjs';
 import { createJsonHeaders } from '../middlewares/cors.mjs';
+import { logger } from '../utils/logger.mjs';
 
 const normalizeLegacyAssetPath = (assetPath) => {
   if (typeof assetPath !== 'string') {
@@ -205,36 +206,68 @@ export const handleChatLog = (req, res, { body, sendJson, origin }) => {
   }
 
   const now = new Date().toISOString();
+  const safeLang = language || 'ar';
 
-  // Upsert user
-  db.prepare(`
-    INSERT INTO chat_users(id, first_seen, last_seen, language, message_count)
-    VALUES(@id, @now, @now, @lang, @count)
-    ON CONFLICT(id) DO UPDATE SET
-      last_seen = @now,
-      language = @lang,
-      message_count = message_count + @count
-  `).run({ id: userId, now, lang: language || 'ar', count: messages.length });
+  // Upsert user (Hot path — wrapped in try/catch so a single weird value
+  // can't drop the request and lose the messages we're about to insert).
+  try {
+    db.prepare(`
+      INSERT INTO chat_users(id, first_seen, last_seen, language, message_count)
+      VALUES(@id, @now, @now, @lang, @count)
+      ON CONFLICT(id) DO UPDATE SET
+        last_seen = @now,
+        language = @lang,
+        message_count = message_count + @count
+    `).run({ id: userId, now, lang: safeLang, count: messages.length });
+  } catch (err) {
+    logger.warn({ err, userId }, '[chat-log] chat_users upsert failed');
+    // Continue anyway — the messages still want a home, and the upsert
+    // failure is usually a transient lock that resolves immediately.
+  }
 
-  // Insert messages (check for duplicates via unique constraint workaround)
+  // Roles allowed by the DB CHECK constraint. Anything else would throw
+  // and historically aborted the *entire batch* (every message after the
+  // bad one was silently dropped). We now sanitise upfront, INSERT each
+  // message in its own try/catch, and log per-row failures so the admin
+  // panel never shows a half-saved conversation.
+  const ALLOWED_ROLES = new Set(['user', 'assistant']);
+
   const insertMsg = db.prepare(`
     INSERT OR IGNORE INTO chat_messages(user_id, session_id, role, content, language, created_at)
     VALUES(@user_id, @session_id, @role, @content, @language, @created_at)
   `);
 
+  let inserted = 0;
+  let skipped = 0;
   for (const msg of messages) {
-    if (!msg.role || !msg.content) continue;
-    insertMsg.run({
-      user_id: userId,
-      session_id: sessionId || null,
-      role: msg.role,
-      content: msg.content,
-      language: language || msg.language || 'ar',
-      created_at: msg.timestamp || now,
-    });
+    if (!msg.role || !msg.content) { skipped++; continue; }
+    // Normalise role — some clients have shipped 'bot'/'system'/'AI'.
+    // Map known variants; reject everything else explicitly so the
+    // CHECK constraint never blows up at INSERT time.
+    let role = String(msg.role).toLowerCase();
+    if (role === 'bot' || role === 'ai' || role === 'system') role = 'assistant';
+    if (!ALLOWED_ROLES.has(role)) { skipped++; continue; }
+    try {
+      insertMsg.run({
+        user_id: userId,
+        session_id: sessionId || null,
+        role,
+        content: String(msg.content).slice(0, 8000), // hard ceiling — guards against pathological 2 MB pastes
+        language: safeLang,
+        created_at: msg.timestamp || now,
+      });
+      inserted++;
+    } catch (err) {
+      skipped++;
+      logger.warn({ err, userId, role, contentLen: msg.content?.length }, '[chat-log] message insert failed');
+    }
+  }
+
+  if (skipped > 0) {
+    logger.info({ userId, inserted, skipped }, '[chat-log] saved with skipped rows');
   }
 
   incrementStat('chat_messages');
 
-  sendJson(res, 200, { success: true }, origin);
+  sendJson(res, 200, { success: true, saved: inserted, skipped }, origin);
 };

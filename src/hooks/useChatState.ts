@@ -64,22 +64,58 @@ const getOrCreateUserId = (): string => {
   return id;
 };
 
-const logChatToServer = (
+/**
+ * Persist a fresh user/assistant message pair to the backend so the
+ * admin Chat History page can display the conversation. Fire-and-forget
+ * by design — failure must NEVER block the user from getting their reply
+ * rendered — but we do everything we can to make sure those failures
+ * don't go unnoticed in the wild:
+ *
+ *   • 15 s timeout (was 5 s — too tight; an over-loaded Coolify replica
+ *     under DB lock contention can take 7-10 s to ack an INSERT).
+ *   • Check response.ok explicitly. A bare `.catch` only fires on
+ *     network/CORS errors; an HTTP 403/429/500 resolves "successfully"
+ *     from fetch's perspective and would otherwise pass for a save.
+ *   • Dev-mode warn so failures surface during local testing and any
+ *     Sentry-replay session (when DSN is configured) captures the body.
+ */
+const logChatToServer = async (
   userId: string,
   sessionId: string,
   messages: ChatMessage[],
   language: string,
-): void => {
+): Promise<void> => {
   if (!messages.length) return;
   const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 5000);
-  const payload = { userId, sessionId, messages, language };
-  apiFetch('/api/chat/log', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: controller.signal,
-  }).catch(() => {}).finally(() => clearTimeout(tid));
+  const tid = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await apiFetch('/api/chat/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, sessionId, messages, language }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      // Surface HTTP failures (403 = CSRF, 429 = rate-limit, 5xx = server).
+      // The user already sees their reply in the chat panel; what we're
+      // logging here is "the admin Chat History won't have this exchange".
+      if (import.meta.env.DEV) {
+        const errorText = await response.text().catch(() => '');
+        console.warn(
+          `[chat-log] server rejected save (status ${response.status})`,
+          errorText.slice(0, 200),
+        );
+      }
+    }
+  } catch (err) {
+    // AbortError on timeout or a true network failure. Same outcome: not
+    // logged. Surface in dev so the developer notices.
+    if (import.meta.env.DEV && (err as Error)?.name !== 'AbortError') {
+      console.warn('[chat-log] save failed', err);
+    }
+  } finally {
+    clearTimeout(tid);
+  }
 };
 
 const getLocaleForLanguage = (lang: string) => {
@@ -645,7 +681,9 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
         const updatedConversation = [...messages, userMessage, assistantMessage];
         setMessages(updatedConversation);
-        logChatToServer(
+        // Fire-and-forget — the helper has its own timeout + error handling.
+        // `void` flags this as intentionally floating so eslint stays happy.
+        void logChatToServer(
           userIdRef.current,
           sessionIdRef.current,
           [userMessage, assistantMessage],
