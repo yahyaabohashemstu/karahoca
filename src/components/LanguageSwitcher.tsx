@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackEvent } from '../utils/analytics';
 import { normalizeLanguageCode, supportedLanguageCodes } from '../utils/language';
-import { splitLocalePath } from '../utils/localizedPath';
+import { splitLocalePath, rememberUserLangChoice } from '../utils/localizedPath';
 import './LanguageSwitcher.css';
 
 interface Language {
@@ -96,12 +96,11 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
     navigate(`${targetPath}${location.search}${location.hash}`);
 
     // Persist preference so the root redirect honours it on next visit.
-    try {
-      window.localStorage.setItem('i18nextLng', nextCode);
-    } catch {
-      // localStorage may be unavailable (Safari private / strict storage);
-      // the next visit will fall back to navigator.language detection.
-    }
+    // Writes to our own dedicated key (not i18next's auto-managed
+    // `i18nextLng`) so a deliberate switch is distinguishable from
+    // i18next's silent htmlTag-driven default. Handles localStorage
+    // failure (Safari private mode / strict storage) internally.
+    rememberUserLangChoice(nextCode);
 
     trackEvent('Language', 'Change', nextCode);
   };

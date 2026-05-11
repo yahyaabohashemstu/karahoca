@@ -66,8 +66,23 @@ void i18n
     },
 
     detection: {
+      // Order: htmlTag FIRST so the very first render matches the value
+      // baked into the prerendered HTML shell (required for hydration
+      // safety — a mismatch logs a hydration warning AND swaps dir/RTL
+      // mid-frame, which is visible flicker). After mount, `useLocaleSync`
+      // takes over and reconciles to the URL prefix, which is the actual
+      // source of truth for which locale the visitor is browsing.
+      //
+      // `caches: []` (empty) is INTENTIONAL — was previously
+      // `['localStorage']`, which silently wrote 'ar' to `i18nextLng` on
+      // every page load (because htmlTag detection returned 'ar' from the
+      // default prerender shell). The redirect logic at `/` then read that
+      // stale localStorage entry and routed every visitor to /ar/,
+      // regardless of their browser language. With caching off, only the
+      // LanguageSwitcher's explicit user-choice write (to a separate key,
+      // see localizedPath.detectPreferredLang) is persistent.
       order: ['htmlTag', 'localStorage', 'navigator'],
-      caches: ['localStorage'],
+      caches: [],
       lookupLocalStorage: 'i18nextLng'
     },
 

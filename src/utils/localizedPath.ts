@@ -93,19 +93,41 @@ export const languageRootPath = (lang: string | null | undefined): string =>
   `/${normalizeLanguageCode(lang)}/`;
 
 /**
+ * localStorage key reserved for *explicit* user-language choices made via
+ * the LanguageSwitcher dropdown. Deliberately distinct from `i18nextLng`
+ * (which i18next writes to automatically on htmlTag/navigator detection
+ * and would shadow the visitor's true preference). With caching disabled
+ * in `i18n.ts`, nothing else writes this key — so a value here is, by
+ * construction, a deliberate user action.
+ */
+const USER_LANG_CHOICE_KEY = 'karahoca_lang_choice';
+
+/**
  * Detect preferred language from the environment. Used by the root redirect
  * when the URL has no language prefix.
  *
  * Order (most authoritative first):
- *   1. A lang code persisted in localStorage under the i18next key
- *   2. navigator.language / navigator.languages[]
- *   3. DEFAULT_LANG fallback
+ *   1. Explicit user-choice key (`karahoca_lang_choice`) — set ONLY by the
+ *      LanguageSwitcher when the visitor manually picks a language.
+ *   2. `navigator.languages[]` — the operating-system / browser language
+ *      preference list, ordered by user priority.
+ *   3. DEFAULT_LANG fallback.
+ *
+ * Note on `i18nextLng`:
+ *   We intentionally don't read i18next's own localStorage key here. With
+ *   the historical `caches: ['localStorage']` config, i18next eagerly wrote
+ *   'ar' on every page-load (because the prerendered HTML shell uses
+ *   `<html lang="ar">` by default and htmlTag detection ran first). That
+ *   stale write would otherwise pin every fresh visitor to Arabic
+ *   regardless of their browser language. Reading from our own key
+ *   sidesteps the pollution permanently.
  */
 export const detectPreferredLang = (): SupportedLanguageCode => {
   if (typeof window === 'undefined') return DEFAULT_LANG;
 
+  // 1. Explicit user choice via the switcher.
   try {
-    const stored = window.localStorage.getItem('i18nextLng');
+    const stored = window.localStorage.getItem(USER_LANG_CHOICE_KEY);
     if (stored) {
       const n = normalizeLanguageCode(stored);
       if ((supportedLanguageCodes as readonly string[]).includes(n)) return n;
@@ -114,6 +136,7 @@ export const detectPreferredLang = (): SupportedLanguageCode => {
     // localStorage may throw in private-mode Safari / strict cookie policies.
   }
 
+  // 2. Browser / OS language preferences in priority order.
   if (typeof navigator !== 'undefined') {
     const candidates = Array.isArray(navigator.languages) && navigator.languages.length > 0
       ? navigator.languages
@@ -124,5 +147,25 @@ export const detectPreferredLang = (): SupportedLanguageCode => {
     }
   }
 
+  // 3. Hard fallback when navigator gives only unsupported languages
+  // (German, French, Japanese, etc.) — Arabic is the brand home locale
+  // so it's the most reasonable last-resort default.
   return DEFAULT_LANG;
+};
+
+/**
+ * Persist an explicit user-language choice. Called by the LanguageSwitcher
+ * when the visitor picks a locale from the dropdown. Tolerates localStorage
+ * being unavailable (private mode, third-party cookie blocks) — the next
+ * visit just falls back to navigator detection in that case.
+ */
+export const rememberUserLangChoice = (lang: string): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const n = normalizeLanguageCode(lang);
+    if (!(supportedLanguageCodes as readonly string[]).includes(n)) return;
+    window.localStorage.setItem(USER_LANG_CHOICE_KEY, n);
+  } catch {
+    /* private-mode storage rejection — ignore */
+  }
 };
