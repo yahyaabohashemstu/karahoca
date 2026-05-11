@@ -421,6 +421,7 @@ const migrateInitialData = () => {
   migrateHardDeleteOrphans();
   migrateDeleteAyluxAutoPowder2();
   migrateNormalizeWeights();
+  migrateDropTestimonials();
   migrateAiKnowledgeSeed();
 };
 
@@ -1150,6 +1151,29 @@ const migrateDeleteAyluxAutoPowder2 = () => {
   if (info.changes > 0) logger.info('[db] Deleted aylux-auto-powder2');
 
   markMigration('delete_aylux_auto_powder2_v1');
+};
+
+// ─── Drop the `testimonials` table (never wired to the UI) ─────────────────
+//
+// The table arrived from the staging-server export with three hand-seeded
+// placeholder testimonials, but it was never wired to any frontend section
+// or admin route — orphan storage. The owner decided not to display
+// testimonials on the site, so we permanently drop both the rows and the
+// schema. Re-introducing testimonials later means re-adding the CREATE TABLE
+// statement explicitly, which is the right way: an unused table shouldn't
+// hide silently in the schema waiting to confuse future readers.
+//
+// DROP TABLE IF EXISTS keeps the migration idempotent — already-dropped on
+// some instances (the table never existed in the original seed) won't error.
+const migrateDropTestimonials = () => {
+  if (hasMigration('drop_testimonials_table_v1')) return;
+  const rowCount = (() => {
+    try { return db.prepare('SELECT COUNT(*) AS c FROM testimonials').get()?.c ?? 0; }
+    catch { return 0; }
+  })();
+  db.exec('DROP TABLE IF EXISTS testimonials');
+  markMigration('drop_testimonials_table_v1');
+  if (rowCount > 0) logger.info(`[db] Dropped testimonials table (${rowCount} rows removed)`);
 };
 
 // ─── Normalize all existing weight values in DB ─────────────────────────────
