@@ -112,12 +112,15 @@ const THAI_SCRIPT_PATTERN = /[\u0E00-\u0E7F]/u;
 const HANGUL_SCRIPT_PATTERN = /[\uAC00-\uD7AF]/u;
 const HIRAGANA_KATAKANA_PATTERN = /[\u3040-\u30FF]/u;
 const HAN_SCRIPT_PATTERN = /[\u4E00-\u9FFF]/u;
+// Turkish dictionary — covers common short words AND product-related vocab.
+// Matches happen on word boundaries; the special-character class catches any
+// truly-Turkish text (Latin letters with diacritics absent from English).
 const TURKISH_LANGUAGE_PATTERN =
-  /[çğıöşüÇĞİÖŞÜ]|\b(merhaba|urun|ürün|fiyat|haber|iletisim|iletişim|kargo|uretim|üretim|hedef|temizlik|sirket|şirket|nedir|nasil|nasıl|teslimat|fabrika)\b/iu;
+  /[çğıöşüÇĞİÖŞÜ]|\b(merhaba|selam|ben|sen|biz|siz|bu|şu|kim|kimsin|kimsiniz|kimsiniz|nasıl|nasil|niçin|nicin|nedir|ne|ne\s+demek|var|yok|evet|hayır|hayir|tamam|teşekkür|teşekkurler|tesekkur|tesekkurler|lütfen|lutfen|hoş\s*geldin|hoş\s*geldiniz|günaydın|gunaydin|merhabalar|iyi|kötü|kotu|güzel|guzel|ürün|ürünler|urun|urunler|fiyat|fiyatlar|fiyatlandırma|fiyatlandirma|haber|haberler|iletişim|iletisim|kargo|kargoya|üretim|uretim|hedef|hedefimiz|temizlik|şirket|sirket|nasıl|nasil|teslimat|fabrika|kalite|sertifika|sertifikalar|sipariş|siparis|ödeme|odeme|satın\s+al|satin\s+al|stoklu|stoksuz)\b/iu;
 const GERMAN_LANGUAGE_PATTERN =
   /[äöüßÄÖÜ]|\b(hallo|danke|bitte|preis|preise|produkt|produkte|nachricht|neuigkeit|lieferung|unternehmen|kontakt|wie|was|und|über)\b/iu;
 const ENGLISH_LANGUAGE_PATTERN =
-  /\b(hello|hi|what|how|price|prices|product|products|news|contact|company|about|shipping|delivery|factory|quality|quote|thanks)\b/iu;
+  /\b(hello|hi|hey|what|how|why|when|where|who|price|prices|product|products|news|contact|company|about|shipping|delivery|factory|quality|quote|thanks|please|the|and|with|for|from|are|you|your|our|order|sample|samples)\b/iu;
 
 const getLanguageLabel = (lang: SupportedLanguageCode) => {
   switch (lang) {
@@ -129,12 +132,25 @@ const getLanguageLabel = (lang: SupportedLanguageCode) => {
   }
 };
 
+/**
+ * Pick the most likely supported language for the customer's message. The
+ * order is critical: we check Arabic and Cyrillic FIRST (script-based, near
+ * 100% precision), then Turkish (mixed script + keyword), then English
+ * (keyword only). German is detected just to *exclude* it from the English
+ * fallback so a German question doesn't get misclassified.
+ *
+ * Returns `null` when we genuinely can't tell — callers fall back to the UI
+ * language. We deliberately do NOT treat "any Latin character = English",
+ * because Turkish words like "kimsin", "selam", or "evet" share the Latin
+ * alphabet and previously got routed to English suggestions / English-hint
+ * prompts, which biased the AI away from Turkish replies.
+ */
 const detectSupportedQuestionLanguage = (question: string): SupportedLanguageCode | null => {
   if (ARABIC_SCRIPT_PATTERN.test(question)) return 'ar';
   if (CYRILLIC_SCRIPT_PATTERN.test(question)) return 'ru';
   if (TURKISH_LANGUAGE_PATTERN.test(question)) return 'tr';
   if (GERMAN_LANGUAGE_PATTERN.test(question)) return null;
-  if (ENGLISH_LANGUAGE_PATTERN.test(question) || /[A-Za-z]/u.test(question)) return 'en';
+  if (ENGLISH_LANGUAGE_PATTERN.test(question)) return 'en';
   return null;
 };
 
@@ -549,6 +565,10 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
       const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleaned);
       const questionLanguageHint = inferQuestionLanguageHint(cleaned);
+      // The effective reply language: question language if we detected one,
+      // otherwise fall back to the UI language. Used for the AI prompt, the
+      // cache key, and the suggestion chips so all three stay in lock-step.
+      const replyLang: SupportedLanguageCode = detectedQuestionLanguage ?? currentLang;
 
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -568,9 +588,14 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         // defaults if the network is down.
         const aiContext = await loadAiContext();
         const knowledgeSections = buildKnowledgeBase(fixedT, cleaned, currentLang);
+        // History sent to the AI excludes the synthetic 'welcome' bubble —
+        // it's a multi-lingual UI greeting, NOT a real exchange, and would
+        // bias the model towards the UI language even when the customer
+        // typed in a different one.
+        const historyForAi = [...messages, userMessage].filter((m) => m.id !== 'welcome');
         const prompt = mapKnowledgeToPrompt(
           cleaned,
-          [...messages, userMessage],
+          historyForAi,
           knowledgeSections,
           currentLang,
           questionLanguageHint,
@@ -584,7 +609,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           response = await apiFetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, lang: currentLang }),
+            body: JSON.stringify({ prompt, lang: replyLang }),
             signal: controller.signal,
           });
         } finally {
@@ -615,7 +640,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: replyContent,
-          timestamp: formatTimestamp(currentLang),
+          timestamp: formatTimestamp(replyLang),
         };
 
         const updatedConversation = [...messages, userMessage, assistantMessage];
@@ -624,13 +649,13 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           userIdRef.current,
           sessionIdRef.current,
           [userMessage, assistantMessage],
-          detectedQuestionLanguage ?? currentLang,
+          replyLang,
         );
         updateSuggestions(
           cleaned,
           replyContent,
           updatedConversation,
-          detectedQuestionLanguage ?? currentLang,
+          replyLang,
         );
       } catch (error) {
         if (import.meta.env.DEV) {
