@@ -1,7 +1,7 @@
-import { normalizeLanguageCode, type SupportedLanguageCode } from '../../utils/language';
+import { normalizeLanguageCode, supportedLanguageCodes, type SupportedLanguageCode } from '../../utils/language';
 
 /**
- * Bilingual welcome messages (current UI language + English) for the chat.
+ * Multi-lingual welcome messages for the chat widget.
  *
  * Pure UI strings, NOT knowledge — they stay in the client instead of moving
  * to the DB. Small, rarely change, and must render synchronously on first
@@ -34,11 +34,20 @@ Urunlerimiz, sirketimiz, uretim, haberler, sevkiyat ve iletisim hakkinda soru so
   }
 };
 
-/** Bilingual greeting: current UI language first, English appended for non-EN
- *  locales so the visitor sees both right away. */
+/**
+ * Multi-lingual greeting: current UI language first, then every other
+ * supported language. The visitor sees the welcome in all four languages
+ * at once so a Turkish or Russian visitor who landed on the Arabic page
+ * (or vice-versa) still gets a greeting they can read.
+ *
+ * The current locale leads so users in their own language always read
+ * naturally from the top — no scroll needed for the primary translation.
+ */
 export const getAssistantWelcomeMessage = (lang: string): string => {
-  const normalised = normalizeLanguageCode(lang);
-  const localised = getSingleAssistantWelcomeMessage(normalised);
-  if (normalised === 'en') return localised;
-  return `${localised}\n\n${getSingleAssistantWelcomeMessage('en')}`;
+  const primary = normalizeLanguageCode(lang);
+  const others = supportedLanguageCodes.filter((code) => code !== primary);
+  const blocks = [primary, ...others].map((code) =>
+    getSingleAssistantWelcomeMessage(code),
+  );
+  return blocks.join('\n\n');
 };
