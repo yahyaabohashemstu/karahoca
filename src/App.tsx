@@ -16,6 +16,7 @@ import CookieConsent from './components/CookieConsent';
 import ThemeToggle from './components/ThemeToggle';
 import LazyAIChatWidget from './components/LazyAIChatWidget';
 import BackendStatusBanner from './components/BackendStatusBanner';
+import ScrollToTop from './components/ScrollToTop';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { useLocaleSync } from './hooks/useLocaleSync';
@@ -192,6 +193,13 @@ function App() {
       <HelmetProvider>
         <WishlistProvider>
           <Router>
+            {/* Reset scroll position on every PUSH/REPLACE navigation
+                so visitors don't land mid-page after clicking a Link.
+                Smart: respects back/forward (browser-restored scroll),
+                respects `#hash` targets (scrolls to anchor), no-ops
+                when only the hash changes on the same path. See the
+                component for the full decision matrix. */}
+            <ScrollToTop />
             <Routes>
               {/* Admin stays outside the localised tree — it's an internal
                   tool and does not need SEO language routing. */}
