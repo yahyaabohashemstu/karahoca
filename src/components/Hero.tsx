@@ -44,19 +44,16 @@ const Hero: React.FC = () => {
           <div className="hero-orb hero-orb--2"></div>
           <div className="card-3d" data-tilt>
             <div className="card-3d__inner glass-panel">
+              {/* No inline `object-fit` — main.css handles BOTH breakpoints:
+                  • Desktop  → `.card-3d__inner img { object-fit: cover }`   (image fills the card, no whitespace)
+                  • Mobile   → `@media (max-width: 768px) { ... object-fit: contain }`   (so the brand wordmark stays visible inside the 180-px-tall mobile crop)
+                  An inline `style={{ objectFit: ... }}` would override BOTH rules
+                  with the same value, killing one of the two desired behaviours. */}
               <img
                 src="/KARAHOCA-1-newPhoto.webp"
                 alt="KARAHOCA"
                 fetchPriority="high"
                 decoding="async"
-                /* `object-fit: contain` shows the hero composition whole.
-                   The earlier value (`cover`) cropped the top/bottom of
-                   the image on mobile (where .card-3d is aspect-ratio
-                   16/9 and capped at 180 px) and partially hid the brand
-                   wordmark. `contain` keeps the intrinsic ratio and lets
-                   the empty space resolve via the .glass-panel
-                   background — the intended look on desktop too. */
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
             </div>
           </div>

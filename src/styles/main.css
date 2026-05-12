@@ -4441,17 +4441,45 @@ body.light-mode .news-modal__close {
   backdrop-filter: blur(6px);
 }
 
-/* Title — site gradient: white → orange */
+/* Title — site gradient: white → orange
+   ─────────────────────────────────────
+   Three subtleties below, each fixes a real bug we hit in dark mode:
+
+   1. `color: transparent` Firefox fallback.
+      `-webkit-text-fill-color: transparent` is a WebKit/Blink-only
+      property. Firefox ignored it and fell back to the inherited text
+      colour, which painted a SOLID block on top of the gradient —
+      hiding it. The duplicate `color: transparent` covers Firefox.
+
+   2. `isolation: isolate` — forces this element to be its own
+      stacking context. The parent `.brands-inner-card` declares
+      `backdrop-filter: blur(...)`, which in Chromium can interact
+      badly with descendants that use `background-clip: text`: the
+      blur layer sometimes consumes the clipped gradient, leaving
+      only the drop-shadow visible (exactly the "orange glow with
+      no letters" symptom the screenshots showed). Isolating the
+      title carves out a separate compositor layer so the two
+      effects never share a paint pass.
+
+   3. `position: relative` is required for `isolation` to be honoured
+      by every layout mode; without a positioning context Chromium
+      occasionally ignores `isolation` on flex children. Safe to add —
+      we already use it on most title elements. */
 .brands-partner-title {
+  position: relative;
+  isolation: isolate;
   font-size: clamp(28px, 3.5vw, 42px);
   font-weight: 900;
   line-height: 1.15;
   margin: 0;
   background: linear-gradient(135deg, #ffffff 0%, #ffd0b8 50%, var(--color-brand-accent-hot) 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 2px 16px rgba(255,91,46,0.28));
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* Soft accent glow. Lower blur radius than before (12 vs 16 px) so
+     the shadow doesn't dominate the (now visible) text. */
+  filter: drop-shadow(0 2px 12px rgba(255,91,46,0.22));
 }
 
 /* Description */
@@ -4642,8 +4670,13 @@ body.light-mode .brands-partner-badge {
 body.light-mode .brands-partner-title {
   background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 55%, #0e7490 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* Same dual-property + Firefox fallback as the base rule. The base
+     rule already declares `color: transparent` so this could rely on
+     cascade, but redeclaring keeps each mode's spec self-contained
+     and immune to upstream reordering. */
+  -webkit-text-fill-color: transparent;
+  color: transparent;
   filter: drop-shadow(0 1px 8px rgba(79,110,247,0.18));
 }
 
