@@ -65,36 +65,59 @@ RUN npx tsc -b \
 # ─── Stage 2: nginx serves dist/ ────────────────────────────────────────────
 FROM nginx:${NGINX_VERSION} AS runtime
 
-# Brotli module for `brotli_static on` in nginx.conf. Alpine packages the
-# module separately as `nginx-mod-http-brotli`. We install it via apk and
-# load it explicitly with `load_module` (added below).
-#
-# `|| true` keeps the build green if a future Alpine release renames or
-# drops the package — nginx falls back to gzip-only and the SPA still
-# serves correctly, just with slightly larger responses for Brotli-capable
-# clients.
-RUN apk add --no-cache nginx-mod-http-brotli || true
-
-# `load_module` must appear OUTSIDE the http {} block (nginx requires it
-# at the top level). We can't put it in conf.d/, so we create a snippet
-# in /etc/nginx/conf.d/01-load-modules.conf which is loaded by the main
-# nginx.conf BEFORE the http block opens — actually that won't work.
-#
-# Cleanest path: append a load_module line to /etc/nginx/nginx.conf BEFORE
-# the events {} / http {} blocks. The standard nginx.conf has a top-level
-# `pid /var/run/nginx.pid;` line we can target.
-RUN if [ -f /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so ]; then \
-      sed -i '1i load_module modules/ngx_http_brotli_filter_module.so;' /etc/nginx/nginx.conf && \
-      sed -i '2i load_module modules/ngx_http_brotli_static_module.so;' /etc/nginx/nginx.conf ; \
-    else \
-      echo "[brotli] module not found; nginx will run gzip-only" ; \
-    fi
-
-# Replace nginx's default site config with our SPA-aware one.
+# Replace nginx's default site config with our SPA-aware one. We do this
+# BEFORE the brotli attempt so the validation step below can test the
+# real, final configuration.
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Drop the built SPA into nginx's web root.
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# ─── Brotli module: best-effort install with auto-fallback ─────────────────
+# Alpine ships `nginx-mod-http-brotli` precompiled against the nginx version
+# that ALPINE'S nginx package was built with — which is often DIFFERENT
+# from the version baked into the upstream nginx Docker image (the upstream
+# tags lead Alpine's repo by a point release or two). When that happens
+# the module fails to load with:
+#
+#     [emerg] module ".../ngx_http_brotli_filter_module.so" version 1026003
+#     instead of 1027005 in /etc/nginx/nginx.conf:1
+#
+# and nginx never starts. The fallback below detects that scenario at
+# build time and degrades to gzip-only by:
+#   1. Installing the brotli module (best effort).
+#   2. Adding `load_module` lines to /etc/nginx/nginx.conf.
+#   3. Running `nginx -t` to validate the full config.
+#   4. If validation fails, ripping out the `load_module` lines AND
+#      commenting out every `brotli*` directive in our site config so
+#      nginx starts cleanly with gzip alone.
+#   5. Running `nginx -t` again — this time we EXPECT success. If it
+#      still fails, the build fails loudly (we'd rather see the error
+#      during `docker build` than at production startup).
+#
+# Net behaviour:
+#   • Module compatible    → Brotli + gzip both active (best case).
+#   • Module incompatible  → gzip_static + on-the-fly gzip only.
+#   • Module unavailable   → gzip_static + on-the-fly gzip only.
+RUN set -eu; \
+    apk add --no-cache nginx-mod-http-brotli 2>/dev/null || \
+      echo "[brotli] package not available in apk; skipping install"; \
+    if [ -f /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so ]; then \
+      echo "[brotli] module file found, attempting to load"; \
+      sed -i '1i load_module modules/ngx_http_brotli_filter_module.so;' /etc/nginx/nginx.conf; \
+      sed -i '2i load_module modules/ngx_http_brotli_static_module.so;' /etc/nginx/nginx.conf; \
+      if nginx -t 2>/dev/null; then \
+        echo "[brotli] ✓ module loaded successfully"; \
+      else \
+        echo "[brotli] ✗ module incompatible with nginx version — falling back to gzip-only"; \
+        sed -i '/load_module.*ngx_http_brotli/d' /etc/nginx/nginx.conf; \
+        sed -i 's/^\(\s*\)brotli/\1#brotli/g' /etc/nginx/conf.d/default.conf; \
+      fi; \
+    else \
+      echo "[brotli] module file absent — running gzip-only"; \
+      sed -i 's/^\(\s*\)brotli/\1#brotli/g' /etc/nginx/conf.d/default.conf; \
+    fi; \
+    nginx -t
 
 EXPOSE 80
 
