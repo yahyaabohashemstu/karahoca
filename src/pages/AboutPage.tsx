@@ -4,11 +4,6 @@ import SEO from '../components/SEO';
 import { AboutPageSchema, BreadcrumbSchema } from '../components/SchemaOrg';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import {
-  BRAND_ARABIC_PRIMARY,
-  BRAND_ARABIC_VARIANTS,
-  BRAND_LATIN_OFFICIAL,
-} from '../constants/brandNames';
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation();
@@ -66,98 +61,6 @@ const AboutPage: React.FC = () => {
               </div>
             </div>
           </section>
-
-        {/* ── Naming / disambiguation Section ─────────────────────────────
-            Renders the company's name in Latin + Arabic + every common
-            transliteration as a visible block. This is the single most
-            important on-page SEO surface for the "قره خوجة" search
-            cluster: search engines weight HEADINGS and BODY TEXT far
-            more than meta tags or alt attributes. By making the
-            variants part of the actual page content (not hidden, not
-            stuffed — presented as legitimate disambiguation copy a
-            visitor can read) we tell Google "this URL is the canonical
-            answer for any of these spellings."
-
-            Also serves a real product purpose: visitors who searched
-            for the Aleppo company by mistake immediately see the
-            "we are the Türkiye-based KARAHOCA" disambiguation. */}
-        <section className="section glass-section">
-          <div className="section-divider"></div>
-          <div className="container">
-            <div className="content-wrapper fx-reveal">
-              <h2 className="section-title gradient-text">
-                {t('aboutPage.naming.title')}
-              </h2>
-              <div className="glass-card" style={{ padding: '32px 64px', marginTop: '24px' }}>
-                <p style={{ fontSize: '1.2em', lineHeight: '1.8', marginBottom: '16px' }}>
-                  {t('aboutPage.naming.lead')}
-                </p>
-                {/* The full variants chip-list. Marked with itemprop
-                    `alternateName` so search engines that parse
-                    microdata (Bing in particular) pick up each chip
-                    as an additional name node tied to the page's
-                    Organization schema via the @id reference above. */}
-                <div
-                  itemScope
-                  itemType="https://schema.org/Organization"
-                  itemID="https://karahoca.com/#organization"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.8rem',
-                    margin: '1.25rem 0',
-                  }}
-                >
-                  <strong
-                    itemProp="name"
-                    style={{ fontSize: '1.6em', letterSpacing: '0.02em' }}
-                  >
-                    {BRAND_ARABIC_PRIMARY} ({BRAND_LATIN_OFFICIAL})
-                  </strong>
-                  <span style={{ fontSize: '1em', opacity: 0.75 }}>
-                    {t('aboutPage.naming.variantsLabel')}
-                  </span>
-                  <ul
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '8px 12px',
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {BRAND_ARABIC_VARIANTS.map((variant) => (
-                      <li
-                        key={variant}
-                        itemProp="alternateName"
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: 999,
-                          background: 'var(--surface-glass-medium)',
-                          border: '1px solid var(--surface-card-border)',
-                          fontSize: '0.95em',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {variant}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="section-divider" style={{ margin: '20px auto', width: '60%' }}></div>
-                <p style={{ fontSize: '1.1em', lineHeight: '1.8', marginBottom: '12px' }}>
-                  {t('aboutPage.naming.explainTurkish')}
-                </p>
-                <p style={{ fontSize: '1.1em', lineHeight: '1.8' }}>
-                  {t('aboutPage.naming.explainDistinction')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Company History Section */}
         <section className="section glass-section section--alt">
