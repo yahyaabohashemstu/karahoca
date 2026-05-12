@@ -4721,17 +4721,26 @@ body.light-mode .brands-logo-card--featured {
 
 .cookie-banner {
   position: fixed;
-  bottom: 24px;
+  /* `calc(24px + safe-bottom)` keeps the banner clear of the iPhone home
+     indicator gesture zone (~34 px). Without this, the bottom edge of
+     the banner sits ON the gesture area and the secondary CTA becomes
+     virtually un-tappable. */
+  bottom: calc(24px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
-  width: min(760px, calc(100vw - 32px));
+  /* `--z-toast` (1500) sits ABOVE the chat widget and floating buttons
+     (--z-sticky-hi: 20) but BELOW native HTML5 <dialog> elements (which
+     auto-promote to the browser top-layer). Switched from the raw 9999
+     (the `--z-max` reserve) so opening a product/news modal correctly
+     overlays the cookie banner. */
+  z-index: var(--z-toast);
+  width: min(760px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
   background: rgba(10, 16, 30, 0.94);
   backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 91, 46, 0.08);
-  animation: cookie-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: cookie-slide-up var(--motion-slow) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes cookie-slide-up {
@@ -4819,6 +4828,45 @@ body.light-mode .cookie-banner__btn--secondary {
   background: rgba(21, 61, 122, 0.07);
   color: var(--blue);
   border-color: rgba(21, 61, 122, 0.2);
+}
+
+/* Cookie banner — mobile layout (≤ 480 px).
+   On a 320–360 px viewport the desktop horizontal flex layout pushes the
+   "Essential only" button off the visible area: the 200-px-minimum text
+   column + two ~120-px buttons + gaps total ~480 px, more than the
+   viewport. Stack the columns and full-width the buttons so both CTAs
+   are always reachable and the primary visually dominates as intended. */
+@media (max-width: 480px) {
+  .cookie-banner {
+    bottom: calc(12px + var(--safe-bottom));
+    border-radius: 16px;
+  }
+
+  .cookie-banner__inner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .cookie-banner__text {
+    min-width: 0; /* override the desktop 200 px floor that prevents wrapping */
+    text-align: start;
+  }
+
+  .cookie-banner__actions {
+    flex-direction: column-reverse; /* primary (accept-all) ends up on top, secondary below */
+    width: 100%;
+    gap: 8px;
+  }
+
+  .cookie-banner__btn {
+    width: 100%;
+    /* Bump padding to satisfy the WCAG 2.5.5 44 px touch-target floor
+       even when the font shrinks slightly at this breakpoint. */
+    padding: 12px 18px;
+    min-height: 44px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -4957,18 +5005,15 @@ body.light-mode .catalog-print-trigger {
    Design language: Glass-morphism, Deep Blue var(--color-brand-primary), Vibrant Orange var(--color-brand-accent), Pure White.
 */
 @media (max-width: 768px) {
+  /* Mobile-only CSS-variable overrides.
+     Historical note: a large set of `--khc-*` aliases lived here in the
+     legacy mobile.css. They were consumed only by the `.m-*` classes
+     that Phase 1 of this audit deleted; the only ones still in active
+     use are the FAB sizing constants below, which are now bumped from
+     46 → 48 to satisfy WCAG 2.5.5 with a one-pixel margin (44 minimum). */
   :root {
-    --khc-deep: var(--color-brand-primary);
-    --khc-orange: var(--color-brand-accent);
-    --khc-glass: rgba(255, 255, 255, .04);
-    --khc-white: #ffffff;
-    --khc-fab-size: 46px;
-    --khc-fab-icon-size: 24px;
-    --khc-ai-fab-icon-size: 1.2rem;
-    --radius-xl: 20px;
-    --radius-lg: 16px;
-    --radius-md: 12px;
-    --shadow-soft: 0 8px 24px rgba(0, 0, 0, .20);
+    --fab-size: 48px;
+    --fab-icon-size: 24px;
   }
 
   html,
@@ -4976,15 +5021,17 @@ body.light-mode .catalog-print-trigger {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    background: radial-gradient(120% 120% at 50% -10%, rgba(21, 61, 122, .15), rgba(21, 61, 122, .03)) no-repeat #0f1117;
-    color: var(--khc-white);
+    background: radial-gradient(120% 120% at 50% -10%, rgba(21, 61, 122, .15), rgba(21, 61, 122, .03)) no-repeat var(--color-page-bg);
+    color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Theme Transition */
+    /* Theme transitions consume the motion token, so reduced-motion
+       users get a 1 ms (effectively instant) swap instead of a 400 ms
+       animation. */
     transition:
-      background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-      background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-      color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      background-color var(--motion-slow) var(--easing-standard),
+      background       var(--motion-slow) var(--easing-standard),
+      color            var(--motion-slow) var(--easing-standard);
   }
 
   .m-container,
@@ -4999,143 +5046,162 @@ body.light-mode .catalog-print-trigger {
     }
   }
 
-  /* Floating Action Buttons - تصميم مخصص للهاتف */
-  /* مجموعة اليمين: WhatsApp + Theme Toggle */
+  /* ─────────────────────────────────────────────────────────────────────
+     Floating Action Buttons (mobile)
+     - Theme toggle + WhatsApp share + AI chat trigger.
+     - Touch targets are `--fab-size` (48 px) per WCAG 2.5.5 / Material.
+     - `bottom` adds the safe-area inset so the FAB never sits under the
+       iPhone home indicator (notched models report ~34 px of inset).
+     - `!important` was removed in Phase 5 of this audit; the
+       html[dir="…"] prefix + direct-class selector already wins over
+       any base `.theme-toggle` declaration further up the cascade.
+     ───────────────────────────────────────────────────────────────────── */
   .theme-toggle,
   .whatsapp-button {
-    position: fixed !important;
-    z-index: 999 !important;
-    width: var(--khc-fab-size) !important;
-    height: var(--khc-fab-size) !important;
+    position: fixed;
+    z-index: var(--z-sticky-hi);
+    width: var(--fab-size);
+    height: var(--fab-size);
     /* CRITICAL: explicit `padding: 0` neutralises the global
        `button { padding: 0.6em 1.2em }` reset which otherwise inflates
-       the FAB to 9.6px×19.2px of asymmetric padding inside its 46px
-       border-box, leaving the SVG only ~6px of horizontal content
-       area and squeezing the icon to a sliver. */
-    padding: 0 !important;
-    border-radius: 50% !important;
-    background: rgba(255, 255, 255, .12) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255, 255, 255, .2) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .25) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+       the FAB asymmetric inside its 48 px border-box and squeezes the
+       icon to a sliver. */
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, .2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background-color var(--motion-medium) var(--easing-standard),
+      transform        var(--motion-medium) var(--easing-standard),
+      box-shadow       var(--motion-medium) var(--easing-standard),
+      border-color     var(--motion-medium) var(--easing-standard);
   }
 
   .theme-toggle svg,
   .whatsapp-button__icon {
-    width: var(--khc-fab-icon-size) !important;
-    height: var(--khc-fab-icon-size) !important;
+    width: var(--fab-icon-size);
+    height: var(--fab-icon-size);
     /* Lock the intrinsic aspect ratio against any flex shrink */
     flex-shrink: 0;
     aspect-ratio: 1 / 1;
   }
 
   html[dir="rtl"] .whatsapp-button {
-    bottom: 5.5rem !important;
-    right: 1.5rem !important;
-    left: auto !important;
+    bottom: calc(5.5rem + var(--safe-bottom));
+    right: calc(1.5rem + var(--safe-right));
+    left: auto;
   }
 
   html[dir="ltr"] .whatsapp-button {
-    bottom: 5.5rem !important;
-    left: 1.5rem !important;
-    right: auto !important;
+    bottom: calc(5.5rem + var(--safe-bottom));
+    left: calc(1.5rem + var(--safe-left));
+    right: auto;
   }
 
   html[dir="rtl"] .theme-toggle {
-    bottom: 1.5rem !important;
-    right: 1.5rem !important;
-    left: auto !important;
+    bottom: calc(1.5rem + var(--safe-bottom));
+    right: calc(1.5rem + var(--safe-right));
+    left: auto;
   }
 
   html[dir="ltr"] .theme-toggle {
-    bottom: 1.5rem !important;
-    left: 1.5rem !important;
-    right: auto !important;
+    bottom: calc(1.5rem + var(--safe-bottom));
+    left: calc(1.5rem + var(--safe-left));
+    right: auto;
   }
 
   .theme-toggle:active,
   .whatsapp-button:active {
-    transform: scale(0.95) !important;
-    background: rgba(255, 255, 255, .18) !important;
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, .18);
   }
 
-  /* AI Chat Widget - على اليسار بمفرده */
+  /* AI Chat Widget — pinned to the opposite corner of the WhatsApp/theme
+     stack so the three FABs never overlap on a 320 px viewport. */
   html[dir="rtl"] .ai-assistant {
-    position: fixed !important;
-    bottom: 1.5rem !important;
-    left: 1.5rem !important;
-    right: auto !important;
-    z-index: 999 !important;
-    display: flex !important;
-    align-items: flex-start !important;
+    position: fixed;
+    bottom: calc(1.5rem + var(--safe-bottom));
+    left: calc(1.5rem + var(--safe-left));
+    right: auto;
+    z-index: var(--z-sticky-hi);
+    display: flex;
+    align-items: flex-start;
   }
 
   html[dir="ltr"] .ai-assistant {
-    position: fixed !important;
-    bottom: 1.5rem !important;
-    right: 1.5rem !important;
-    left: auto !important;
-    z-index: 999 !important;
-    display: flex !important;
-    align-items: flex-end !important;
+    position: fixed;
+    bottom: calc(1.5rem + var(--safe-bottom));
+    right: calc(1.5rem + var(--safe-right));
+    left: auto;
+    z-index: var(--z-sticky-hi);
+    display: flex;
+    align-items: flex-end;
   }
 
   .ai-assistant__toggle {
-    width: var(--khc-fab-size) !important;
-    height: var(--khc-fab-size) !important;
-    font-size: var(--khc-ai-fab-icon-size) !important;
-    line-height: 1 !important;
+    width: var(--fab-size);
+    height: var(--fab-size);
+    font-size: 1.2rem;
+    line-height: 1;
   }
 
   .ai-assistant__toggle:active {
-    transform: scale(0.95) !important;
-    box-shadow: 0 4px 16px rgba(245, 75, 26, .5) !important;
+    transform: scale(0.95);
+    box-shadow: 0 4px 16px rgba(245, 75, 26, .5);
   }
 
-  /* AI Chat Container - ملء الشاشة على الهاتف */
+  /* AI Chat Container — fullscreen on mobile.
+     Pad bottom by the safe-area so the composer/send button doesn't sit
+     under the iPhone home indicator gesture zone.
+     NOTE: this `.ai-chat-container` selector is a holdover; the active
+     React component uses `.ai-assistant__window` (see ai-chat.css).
+     Kept here defensively in case the chat trigger or any A/B variant
+     re-uses the legacy class name. */
   .ai-chat-container {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
-    border-radius: 0 !important;
-    background: rgba(13, 30, 63, .98) !important;
-    backdrop-filter: blur(16px) !important;
-    border: none !important;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    background: rgba(13, 30, 63, .98);
+    backdrop-filter: blur(16px);
+    border: none;
+    padding-bottom: var(--safe-bottom);
   }
 
   .ai-chat-header {
-    background: linear-gradient(180deg, rgba(21, 61, 122, .9), rgba(21, 61, 122, .7)) !important;
-    backdrop-filter: blur(12px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, .1) !important;
-    padding: 16px !important;
+    background: linear-gradient(180deg, rgba(21, 61, 122, .9), rgba(21, 61, 122, .7));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    padding: calc(16px + var(--safe-top)) 16px 16px;
   }
 
   .ai-chat-messages {
-    padding: 16px !important;
-    height: calc(100dvh - 180px) !important;
+    padding: 16px;
+    height: calc(100dvh - 180px - var(--safe-top) - var(--safe-bottom));
   }
 
   .ai-chat-input-area {
-    padding: 16px !important;
-    background: rgba(13, 30, 63, .95) !important;
-    border-top: 1px solid rgba(255, 255, 255, .1) !important;
+    padding: 16px;
+    background: rgba(13, 30, 63, .95);
+    border-top: 1px solid rgba(255, 255, 255, .1);
   }
 
-  /* WhatsApp Welcome Hint - تعديل الموقع */
+  /* WhatsApp Welcome Hint — anchored to the opposite-corner FAB stack.
+     Logical properties replace the legacy `right:` so the hint flips
+     automatically in LTR locales (English, Turkish, Russian) without a
+     dedicated dir override. */
   .welcome-hint {
-    right: 5rem !important;
-    bottom: 5.5rem !important;
-    left: auto !important;
+    inset-inline-end: calc(5rem + var(--safe-right));
+    bottom: calc(5.5rem + var(--safe-bottom));
+    inset-inline-start: auto;
   }
 
   /* ============================================= */
@@ -5730,34 +5796,39 @@ body.light-mode .catalog-print-trigger {
     font-size: 1.05rem;
   }
 
-  /* Fixed buttons */
+  /* Fixed buttons — small phones (≤ 480 px).
+     Same 48 px touch target as the larger-mobile rule above (WCAG 2.5.5
+     compliant) but slightly tighter inset (1 rem instead of 1.5) since
+     the viewport is narrower. Safe-area passes through both axes so
+     iPhone 14/15 with the home indicator + curved corners don't crop
+     the buttons. */
   .theme-toggle,
   .whatsapp-button {
-    width: 46px;
-    height: 46px;
-    bottom: 1rem;
+    width: var(--fab-size);
+    height: var(--fab-size);
+    bottom: calc(1rem + var(--safe-bottom));
   }
 
   html[dir="rtl"] .theme-toggle {
-    right: 1rem;
+    right: calc(1rem + var(--safe-right));
     left: auto;
   }
 
   html[dir="rtl"] .whatsapp-button {
     left: auto;
-    right: 1rem;
-    bottom: 4.5rem;
+    right: calc(1rem + var(--safe-right));
+    bottom: calc(4.5rem + var(--safe-bottom));
   }
 
   html[dir="ltr"] .theme-toggle {
-    left: 1rem;
+    left: calc(1rem + var(--safe-left));
     right: auto;
   }
 
   html[dir="ltr"] .whatsapp-button {
-    left: 1rem;
+    left: calc(1rem + var(--safe-left));
     right: auto;
-    bottom: 4.5rem;
+    bottom: calc(4.5rem + var(--safe-bottom));
   }
 
   /* Timeline fixes */

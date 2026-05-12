@@ -151,6 +151,25 @@
   --container-max: 1280px;
   --header-height: 64px;
 
+  /* Mobile floating-action-button size. WCAG 2.5.5 requires ≥ 44×44 for
+     interactive targets; we use 48 (Material Design's recommended minimum
+     for one-thumb operation) to leave a comfortable margin and account
+     for SVG icons that don't always render to the very edges. Consumed
+     by every fixed-bottom FAB (.theme-toggle, .whatsapp-button,
+     .ai-assistant__toggle) inside @media (max-width: 768px). */
+  --fab-size: 48px;
+  --fab-icon-size: 24px;
+
+  /* iPhone safe-area pass-through. `env()` returns 0 on non-notched
+     browsers, so `calc(<base> + var(--safe-bottom))` is always safe.
+     Declared as a variable so every fixed-bottom element shares the
+     same expression and a future fallback-tuning (e.g. for foldables)
+     happens in one place. */
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+
   /* Breakpoint contracts (documented for JS consumers — CSS media
      queries still use the raw px values in main.css / mobile.css). */
   --bp-xs: 380px;
@@ -198,6 +217,22 @@ body.light-mode {
     --motion-medium:  1ms;
     --motion-slow:    1ms;
     --motion-slower:  1ms;
+  }
+
+  /* Global short-circuit for hard-coded transition / animation durations
+     that don't yet consume the motion tokens above. Many legacy rules in
+     main.css use literal `0.4s` / `0.3s ease` values (theme transitions,
+     glass-panel hovers, etc.); without this safety-net override they'd
+     keep animating even when the user has opted into reduced motion.
+     `:where()` keeps specificity at 0 so component-level rules with real
+     intent (e.g. essential UX feedback) can still win by re-declaring
+     their own transition. The intent is to silence DECORATIVE motion,
+     not to break functional state changes. */
+  :where(*, *::before, *::after) {
+    transition-duration: 1ms !important;
+    animation-duration:  1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 
   /* ── BACKDROP / FILTER FALLBACK ────────────────────────────────────
