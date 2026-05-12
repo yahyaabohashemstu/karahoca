@@ -264,12 +264,6 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container" id="animationContainer">
             <div className="spotlight"></div>
-<div className="smoke-effect">
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-            </div>
             <div
               style={{
                 width: '180px',
@@ -312,13 +306,6 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container">
             <div className="spotlight"></div>
-<div className="smoke-effect">
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-            </div>
-            
             <div className="camera-sequence">
               <img
                 src="/employees.svg"
@@ -347,13 +334,6 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container">
             <div className="spotlight"></div>
-<div className="smoke-effect">
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-            </div>
-            
             <div
               ref={experienceSvgRef}
               style={{
@@ -385,13 +365,6 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container">
             <div className="spotlight"></div>
-<div className="smoke-effect">
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-              <div className="smoke"></div>
-            </div>
-            
             <div
               style={{
                 width: '180px',
