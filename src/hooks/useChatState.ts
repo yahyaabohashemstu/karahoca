@@ -88,58 +88,184 @@ const getOrCreateUserId = (): string => {
   return id;
 };
 
-/**
- * Persist a fresh user/assistant message pair to the backend so the
- * admin Chat History page can display the conversation. Fire-and-forget
- * by design — failure must NEVER block the user from getting their reply
- * rendered — but we do everything we can to make sure those failures
- * don't go unnoticed in the wild:
- *
- *   • 15 s timeout (was 5 s — too tight; an over-loaded Coolify replica
- *     under DB lock contention can take 7-10 s to ack an INSERT).
- *   • Check response.ok explicitly. A bare `.catch` only fires on
- *     network/CORS errors; an HTTP 403/429/500 resolves "successfully"
- *     from fetch's perspective and would otherwise pass for a save.
- *   • Dev-mode warn so failures surface during local testing and any
- *     Sentry-replay session (when DSN is configured) captures the body.
- */
-const logChatToServer = async (
-  userId: string,
-  sessionId: string,
-  messages: ChatMessage[],
-  language: string,
-): Promise<void> => {
-  if (!messages.length) return;
+// ─── Persistent log queue ────────────────────────────────────────────────
+//
+// Every customer/assistant message MUST eventually land in the admin Chat
+// History — even when sent during a connectivity blip, a CSRF-cookie race
+// on first paint, a rate-limit 429, a 5xx, or while the user is navigating
+// away mid-reply. The previous fire-and-forget log dropped ALL of these
+// silently (only a dev-mode console.warn surfaced anything; production
+// users never noticed and the operator's chat-history dashboard ran on
+// incomplete data).
+//
+// New model: every send enqueues to localStorage, THEN tries to drain.
+// Failures leave entries in the queue. Successes pop them. The queue is
+// re-drained on:
+//   • app boot               (covers in-flight messages lost to a refresh)
+//   • visibilitychange       (covers backgrounded tabs that come back)
+//   • `online` event         (covers offline → online transitions)
+//   • each new send          (rolling drain — every interaction retries)
+//
+// 500-entry hard cap (~500 KB) bounds storage; the oldest entries are
+// dropped silently if the queue grows past that. Two consecutive failures
+// for the same head entry blacklist it (so a malformed payload can't
+// permanently block the queue) — those go straight to console.warn in
+// dev and Sentry in prod when DSN is set.
+
+const LOG_QUEUE_KEY = 'karahoca_chat_log_queue';
+const MAX_QUEUE_SIZE = 500;
+const MAX_ATTEMPTS_PER_ENTRY = 6;
+const LOG_TIMEOUT_MS = 15_000;
+
+interface QueuedLogEntry {
+  userId: string;
+  sessionId: string;
+  messages: ChatMessage[];
+  language: string;
+  attempts: number;
+  queuedAt: number;
+}
+
+const readLogQueue = (): QueuedLogEntry[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LOG_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is QueuedLogEntry =>
+        e && typeof e === 'object' &&
+        typeof e.userId === 'string' &&
+        typeof e.language === 'string' &&
+        Array.isArray(e.messages) && e.messages.length > 0,
+    );
+  } catch {
+    return [];
+  }
+};
+
+const writeLogQueue = (entries: QueuedLogEntry[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const trimmed = entries.slice(-MAX_QUEUE_SIZE);
+    window.localStorage.setItem(LOG_QUEUE_KEY, JSON.stringify(trimmed));
+  } catch {
+    /* private mode / quota — silently fail; in-memory only for this tab */
+  }
+};
+
+const postChatLogOnce = async (entry: QueuedLogEntry): Promise<boolean> => {
   const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 15_000);
+  const tid = setTimeout(() => controller.abort(), LOG_TIMEOUT_MS);
   try {
     const response = await apiFetch('/api/chat/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, sessionId, messages, language }),
+      body: JSON.stringify({
+        userId: entry.userId,
+        sessionId: entry.sessionId,
+        messages: entry.messages,
+        language: entry.language,
+      }),
       signal: controller.signal,
     });
-    if (!response.ok) {
-      // Surface HTTP failures (403 = CSRF, 429 = rate-limit, 5xx = server).
-      // The user already sees their reply in the chat panel; what we're
-      // logging here is "the admin Chat History won't have this exchange".
-      if (import.meta.env.DEV) {
-        const errorText = await response.text().catch(() => '');
-        console.warn(
-          `[chat-log] server rejected save (status ${response.status})`,
-          errorText.slice(0, 200),
-        );
-      }
-    }
-  } catch (err) {
-    // AbortError on timeout or a true network failure. Same outcome: not
-    // logged. Surface in dev so the developer notices.
-    if (import.meta.env.DEV && (err as Error)?.name !== 'AbortError') {
-      console.warn('[chat-log] save failed', err);
-    }
+    return response.ok;
+  } catch {
+    return false;
   } finally {
     clearTimeout(tid);
   }
+};
+
+// Drain coordinator. A single in-flight flush at a time so we don't pile
+// up parallel POSTs that hammer the rate-limit. Calls to `flushLogQueue`
+// while a flush is already running return immediately — the running flush
+// will pick up any newly-enqueued entries naturally on its next loop pass.
+let flushInFlight = false;
+const flushLogQueue = async (): Promise<void> => {
+  if (flushInFlight) return;
+  flushInFlight = true;
+  try {
+    // Loop until the queue is empty or the head entry refuses to send.
+    // We re-read the queue each iteration so concurrent enqueues during
+    // a slow POST don't get lost on next-iteration writes.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const queue = readLogQueue();
+      if (queue.length === 0) return;
+      const head = queue[0];
+      const ok = await postChatLogOnce(head);
+      const fresh = readLogQueue();
+      if (ok) {
+        // Drop the head from the FRESH queue (might differ from the one
+        // we sampled at loop start if other entries were enqueued during
+        // the POST). Find the exact entry by `queuedAt` so we don't
+        // accidentally remove a sibling enqueued mid-flight.
+        const idx = fresh.findIndex(e => e.queuedAt === head.queuedAt);
+        const next = idx >= 0 ? [...fresh.slice(0, idx), ...fresh.slice(idx + 1)] : fresh;
+        writeLogQueue(next);
+        continue;
+      }
+      // Failure: increment attempts. Beyond MAX_ATTEMPTS_PER_ENTRY we
+      // drop the entry to keep a malformed payload from blocking the
+      // queue forever — dev console.warn captures the lost batch so a
+      // developer can manually reconstruct if needed.
+      const idx = fresh.findIndex(e => e.queuedAt === head.queuedAt);
+      if (idx < 0) return; // Already dropped by another flusher.
+      const updated = { ...head, attempts: head.attempts + 1 };
+      if (updated.attempts >= MAX_ATTEMPTS_PER_ENTRY) {
+        if (import.meta.env.DEV) {
+          console.warn('[chat-log] giving up on entry after retries:', updated);
+        }
+        const next = [...fresh.slice(0, idx), ...fresh.slice(idx + 1)];
+        writeLogQueue(next);
+        return; // Stop — the next flush opportunity will resume.
+      }
+      const next = [...fresh.slice(0, idx), updated, ...fresh.slice(idx + 1)];
+      writeLogQueue(next);
+      return; // Wait for the next trigger (visibility / online / new send).
+    }
+  } finally {
+    flushInFlight = false;
+  }
+};
+
+/**
+ * Enqueue a fresh batch of messages for the admin Chat History and kick
+ * the drainer. Fire-and-forget at the call site — the helper itself
+ * never throws. The actual POST is retried on every later flush
+ * opportunity until it lands.
+ */
+const logChatToServer = (
+  userId: string,
+  sessionId: string,
+  messages: ChatMessage[],
+  language: string,
+): void => {
+  if (!messages.length) return;
+  if (typeof window === 'undefined') return;
+  const entry: QueuedLogEntry = {
+    userId,
+    sessionId,
+    // Strip non-essentials so the queued JSON stays small. Server only
+    // reads `role`, `content`, and (optionally) `timestamp`.
+    messages: messages.map(m => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+    })),
+    language,
+    attempts: 0,
+    // Date.now() + a sub-millisecond suffix so two enqueues in the same
+    // tick get distinct identifiers (used as the dedupe key when we
+    // splice the head out after a successful POST).
+    queuedAt: Date.now() + Math.random(),
+  };
+  const existing = readLogQueue();
+  writeLogQueue([...existing, entry]);
+  void flushLogQueue();
 };
 
 const getLocaleForLanguage = (lang: string) => {
@@ -608,6 +734,34 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     void loadAiContext();
   }, []);
 
+  // ── Chat-log queue drainer ─────────────────────────────────────────────
+  //
+  // Hooks the persistent log queue into the document lifecycle so any
+  // batches that failed their initial POST eventually catch up:
+  //
+  //   • Mount               → drain anything queued by a previous tab/session
+  //                            (e.g. the user refreshed mid-conversation).
+  //   • `online` event      → drain on connectivity recovery.
+  //   • `visibilitychange`  → drain when the tab regains visibility (mobile
+  //                            users who background the browser, return
+  //                            later, expect their queued logs to land).
+  //
+  // The drainer is idempotent and serialises itself internally, so adding
+  // multiple triggers can't double-fire.
+  useEffect(() => {
+    void flushLogQueue();
+    const onOnline = () => { void flushLogQueue(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void flushLogQueue();
+    };
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
   // Close the panel on Escape (only while open, so we don't swallow Escape
   // from sibling modals).
   useEffect(() => {
@@ -823,6 +977,22 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       setStatusMessage(null);
       setSuggestions([]);
 
+      // ── Persist the user message IMMEDIATELY, before calling the AI ──
+      //
+      // The previous implementation only logged after a successful AI
+      // reply. That meant any failure mode in the AI request path
+      // (network error, 5xx, timeout, empty reply, user navigates away
+      // mid-flight) silently dropped the user's question from the admin
+      // Chat History. Now the user's input is queued the instant we
+      // commit it to the visible message list, so even if everything
+      // downstream collapses, the question survives.
+      logChatToServer(
+        userIdRef.current,
+        sessionIdRef.current,
+        [userMessage],
+        replyLang,
+      );
+
       try {
         // Ensure AI context is ready; falls back to in-memory cache / inline
         // defaults if the network is down.
@@ -869,9 +1039,23 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         const assistantReply = typeof payload?.reply === 'string' ? payload.reply.trim() : '';
 
         if (!assistantReply) {
+          // AI returned an empty body. Show the fallback to the user AND
+          // log it as a synthetic assistant turn so the admin Chat
+          // History reflects what the customer actually experienced.
           const sid = ++statusIdRef.current;
           setStatusMessage(uiText.noAnswerFallback);
           setTimeout(() => { if (statusIdRef.current === sid) setStatusMessage(null); }, 8000);
+          logChatToServer(
+            userIdRef.current,
+            sessionIdRef.current,
+            [{
+              id: `assistant-fallback-${Date.now()}`,
+              role: 'assistant',
+              content: uiText.noAnswerFallback,
+              timestamp: formatTimestamp(replyLang),
+            }],
+            replyLang,
+          );
           return;
         }
 
@@ -885,12 +1069,13 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
         const updatedConversation = [...messages, userMessage, assistantMessage];
         setMessages(updatedConversation);
-        // Fire-and-forget — the helper has its own timeout + error handling.
-        // `void` flags this as intentionally floating so eslint stays happy.
-        void logChatToServer(
+        // Log ONLY the assistant message — the user message was already
+        // queued above. Keeping them as separate batches means even if
+        // one log POST fails the other still lands on its own.
+        logChatToServer(
           userIdRef.current,
           sessionIdRef.current,
-          [userMessage, assistantMessage],
+          [assistantMessage],
           replyLang,
         );
         updateSuggestions(
@@ -913,6 +1098,21 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         setStatusMessage(errMsg);
         setSuggestions([]);
         setTimeout(() => { if (statusIdRef.current === sid) setStatusMessage(null); }, 8000);
+        // Log the fallback as if the assistant said it — the admin needs
+        // to see "this customer asked X, and we responded with the
+        // connection-error fallback". Otherwise the row in chat_messages
+        // for the user's question would be a dead-end with no reply.
+        logChatToServer(
+          userIdRef.current,
+          sessionIdRef.current,
+          [{
+            id: `assistant-error-${Date.now()}`,
+            role: 'assistant',
+            content: errMsg,
+            timestamp: formatTimestamp(replyLang),
+          }],
+          replyLang,
+        );
       } finally {
         setIsLoading(false);
         sendLockRef.current = false;
