@@ -423,6 +423,7 @@ const migrateInitialData = () => {
   migrateNormalizeWeights();
   migrateDropTestimonials();
   migrateAiKnowledgeSeed();
+  migrateToneGuidelinesMaleGender();
 };
 
 /**
@@ -520,6 +521,13 @@ const migrateAiKnowledgeSeed = () => {
 - DO NOT respond in Turkish if the question is in Russian
 - Translate the knowledge base content to match the customer's language
 
+👤 IDENTITY & GENDER (ABSOLUTE):
+- You are Karo, a MALE assistant (مذكّر).
+- Whenever a language marks gender on verbs, adjectives, pronouns, or participles, ALWAYS use the masculine form for any word that refers to yourself.
+- Arabic: "أنا المساعد الذكي" (NOT "المساعدة")، "أنا مستعد" (NOT "مستعدة")، "جاهز" (NOT "جاهزة")، "سعيد بمساعدتك" (NOT "سعيدة")، "يسعدني أن أساعدك"، "أنا هنا لمساعدتك".
+- Russian: "я готов", "я рад", "я уверен" (NOT "готова/рада/уверена").
+- English / Turkish: not gendered — no change needed.
+
 TONE & STYLE:
 - Sound like a natural human sales/support assistant, not a keyword bot
 - Answer the customer's actual question directly before offering extra context
@@ -543,6 +551,51 @@ TONE & STYLE:
   ).run('tone_guidelines', toneGuidelines);
 
   markMigration('ai_knowledge_initial_seed');
+};
+
+/**
+ * Force-update existing tone_guidelines on production deployments so the
+ * "Karo is male" identity rule is applied immediately, not only on fresh
+ * installs. Safe because tone_guidelines is not user-editable through the
+ * admin panel today — the row is exactly the seeded version.
+ *
+ * Idempotent via the migrations table; runs at most once per database.
+ */
+const migrateToneGuidelinesMaleGender = () => {
+  if (hasMigration('tone_guidelines_male_gender_v1')) return;
+
+  const current = db
+    .prepare('SELECT value FROM ai_assistant_config WHERE key = ?')
+    .get('tone_guidelines');
+
+  // Skip if the row is missing entirely (the initial seed will create it
+  // on next boot) or if it already contains the gender rule (e.g. an op
+  // hand-edited it ahead of this migration).
+  if (current?.value && !current.value.includes('IDENTITY & GENDER')) {
+    const genderBlock = `
+👤 IDENTITY & GENDER (ABSOLUTE):
+- You are Karo, a MALE assistant (مذكّر).
+- Whenever a language marks gender on verbs, adjectives, pronouns, or participles, ALWAYS use the masculine form for any word that refers to yourself.
+- Arabic: "أنا المساعد الذكي" (NOT "المساعدة")، "أنا مستعد" (NOT "مستعدة")، "جاهز" (NOT "جاهزة")، "سعيد بمساعدتك" (NOT "سعيدة")، "يسعدني أن أساعدك"، "أنا هنا لمساعدتك".
+- Russian: "я готов", "я рад", "я уверен" (NOT "готова/рада/уверена").
+- English / Turkish: not gendered — no change needed.
+`;
+
+    // Insert the gender block right before the existing "TONE & STYLE:"
+    // anchor so the order matches the canonical seed text. If the anchor
+    // isn't present (extremely unlikely — same row was written by the
+    // initial seed), append instead so nothing is lost.
+    const anchor = 'TONE & STYLE:';
+    const next = current.value.includes(anchor)
+      ? current.value.replace(anchor, `${genderBlock.trim()}\n\n${anchor}`)
+      : `${current.value.trimEnd()}\n${genderBlock}`;
+
+    db.prepare(
+      'INSERT OR REPLACE INTO ai_assistant_config (key, value) VALUES (?, ?)',
+    ).run('tone_guidelines', next);
+  }
+
+  markMigration('tone_guidelines_male_gender_v1');
 };
 
 // ─── Newsletter opaque-key migration ────────────────────────────────────────
