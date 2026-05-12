@@ -236,17 +236,17 @@ const getUIText = (lang: string): ChatUIStrings => {
   switch (normalizeLanguageCode(lang)) {
     case 'tr':
       return {
-        title: 'KARAHOCA Asistani',
-        subtitle: 'Sorularinizi yanitlamaya hazir',
-        placeholder: 'Sorunuzu buraya yazin...',
-        sendButton: 'Gonder',
+        title: 'Karo — KARAHOCA Asistanı',
+        subtitle: 'Sorularınızı yanıtlamaya hazır',
+        placeholder: "Karo'ya sorunuzu yazın…",
+        sendButton: 'Gönder',
         closeLabel: 'Sohbet penceresini kapat',
-        openToggleLabel: 'Yapay zeka asistanini ac',
-        closeToggleLabel: 'Yapay zeka asistanini kapat',
-        inputLabel: 'Asistana soru giris alani',
+        openToggleLabel: "Yapay zeka asistanı Karo'yu aç",
+        closeToggleLabel: "Karo'yu kapat",
+        inputLabel: "Karo'ya mesaj giriş alanı",
         welcomeHint: 'Bir sorunuz mu var?',
-        closeWelcomeHint: 'Karsilama mesajini kapat',
-        onlineLabel: 'Şu anda çevrimiçi',
+        closeWelcomeHint: 'Karşılama mesajını kapat',
+        onlineLabel: 'Karo şu anda çevrimiçi',
         hints: {
           initial: 'Bir sorunuz mu var?',
           productSearch: 'Belirli bir ürün mü arıyorsunuz?',
@@ -255,64 +255,64 @@ const getUIText = (lang: string): ChatUIStrings => {
         },
         exitIntent: {
           title: 'Gitmeden önce…',
-          body: 'Aradığınızı buldunuz mu? Yapay zeka asistanımızla sohbet edin — saniyeler içinde yanıt alın.',
+          body: "Aradığınızı buldunuz mu? Karo ile sohbet edin — saniyeler içinde yanıt alın.",
           accept: 'Evet, sohbete başla',
           dismiss: 'Hayır, teşekkürler',
         },
-        loadingLabel: 'Yukleniyor',
-        connectionError: 'Asistana baglanirken bir hata olustu.',
+        loadingLabel: 'Yükleniyor',
+        connectionError: "Karo'ya bağlanırken bir hata oluştu.",
         fallbackReply:
-          'Su anda asistana baglanmakta zorlaniyoruz. Lutfen bize info@karahoca.com adresinden veya +905305914990 WhatsApp hattindan ulasin.',
+          "Karo şu anda bağlanmakta zorlanıyor. Lütfen bize info@karahoca.com adresinden veya +905305914990 WhatsApp hattından ulaşın.",
         noAnswerFallback:
-          'Mevcut bilgi tabaninda net bir yanit bulamadim. Bize info@karahoca.com e-posta adresinden veya +905305914990 WhatsApp hattindan ulasabilirsiniz.',
-        privacyNotice: 'Sohbetler hizmet kalitesini artırmak amacıyla kaydedilmektedir. Silme talebi: info@karahoca.com',
+          'Mevcut bilgi tabanında net bir yanıt bulamadım. Bize info@karahoca.com e-posta adresinden veya +905305914990 WhatsApp hattından ulaşabilirsiniz.',
+        privacyNotice: "Karo ile sohbetler hizmet kalitesini artırmak amacıyla kaydedilmektedir. Silme talebi: info@karahoca.com",
       };
     case 'ru':
       return {
-        title: 'Помощник KARAHOCA',
+        title: 'Каро — помощник KARAHOCA',
         subtitle: 'Готов ответить на ваши вопросы',
-        placeholder: 'Введите ваш вопрос здесь...',
+        placeholder: 'Задайте Каро вопрос…',
         sendButton: 'Отправить',
         closeLabel: 'Закрыть окно чата',
-        openToggleLabel: 'Открыть помощника',
-        closeToggleLabel: 'Закрыть помощника',
-        inputLabel: 'Поле ввода вопроса для помощника',
+        openToggleLabel: 'Открыть помощника Каро',
+        closeToggleLabel: 'Закрыть Каро',
+        inputLabel: 'Поле ввода вопроса для Каро',
         welcomeHint: 'Есть вопрос?',
         closeWelcomeHint: 'Закрыть приветственное сообщение',
-        onlineLabel: 'Сейчас онлайн',
+        onlineLabel: 'Каро сейчас онлайн',
         hints: {
           initial: 'Есть вопрос?',
-          productSearch: 'Ищете определенный продукт?',
+          productSearch: 'Ищете определённый продукт?',
           contactTeam: 'Свяжитесь с нашей командой',
           stillHere: 'Нашли то, что искали?',
         },
         exitIntent: {
           title: 'Прежде чем уйти…',
-          body: 'Нашли то, что искали? Поговорите с нашим ИИ-помощником — ответ за секунды.',
+          body: 'Нашли то, что искали? Поговорите с Каро — ответ за секунды.',
           accept: 'Да, начать чат',
           dismiss: 'Нет, спасибо',
         },
         loadingLabel: 'Загрузка',
-        connectionError: 'Произошла ошибка при подключении к помощнику.',
+        connectionError: 'Произошла ошибка при подключении к Каро.',
         fallbackReply:
-          'Сейчас мы не можем подключиться к помощнику. Пожалуйста, свяжитесь с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
+          'Каро не может подключиться прямо сейчас. Пожалуйста, свяжитесь с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
         noAnswerFallback:
-          'Я не смог найти точный ответ в текущей базе знаний. Вы можете связаться с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
-        privacyNotice: 'Сообщения записываются для улучшения сервиса. Запрос на удаление: info@karahoca.com',
+          'Я не нашёл точный ответ в текущей базе знаний. Вы можете связаться с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
+        privacyNotice: 'Беседы с Каро записываются для улучшения сервиса. Запрос на удаление: info@karahoca.com',
       };
     case 'en':
       return {
-        title: 'KARAHOCA Assistant',
+        title: 'Karo — KARAHOCA Assistant',
         subtitle: 'Ready to answer your inquiries',
-        placeholder: 'Type your question here...',
+        placeholder: 'Ask Karo anything…',
         sendButton: 'Send',
         closeLabel: 'Close chat window',
-        openToggleLabel: 'Open the AI assistant',
-        closeToggleLabel: 'Close the AI assistant',
-        inputLabel: 'Question input field for assistant',
+        openToggleLabel: 'Open Karo, the AI assistant',
+        closeToggleLabel: 'Close Karo',
+        inputLabel: 'Message input for Karo',
         welcomeHint: 'Have a question?',
         closeWelcomeHint: 'Close welcome message',
-        onlineLabel: 'Online now',
+        onlineLabel: 'Karo is online',
         hints: {
           initial: 'Have a question?',
           productSearch: 'Looking for a specific product?',
@@ -321,32 +321,32 @@ const getUIText = (lang: string): ChatUIStrings => {
         },
         exitIntent: {
           title: 'Before you go…',
-          body: "Found what you're looking for? Chat with our AI assistant — replies in seconds.",
+          body: "Found what you're looking for? Chat with Karo — replies in seconds.",
           accept: 'Yes, start chatting',
           dismiss: 'No, thanks',
         },
         loadingLabel: 'Loading',
-        connectionError: 'There was an error while connecting to the assistant.',
+        connectionError: 'There was an error while connecting to Karo.',
         fallbackReply:
-          'We are having trouble connecting to the assistant right now. Please contact us at info@karahoca.com or via WhatsApp at +905305914990.',
+          "Karo is having trouble connecting right now. Please contact us at info@karahoca.com or via WhatsApp at +905305914990.",
         noAnswerFallback:
-          'I could not find a precise answer in the current knowledge base. You can contact us at info@karahoca.com or via WhatsApp at +905305914990.',
-        privacyNotice: 'Conversations are recorded to improve our service. Deletion requests: info@karahoca.com',
+          "I couldn't find a precise answer in my current knowledge base. You can contact us at info@karahoca.com or via WhatsApp at +905305914990.",
+        privacyNotice: 'Conversations with Karo are recorded to improve our service. Deletion requests: info@karahoca.com',
       };
     case 'ar':
     default:
       return {
-        title: 'مساعد KARAHOCA',
+        title: 'كارو — مساعد KARAHOCA',
         subtitle: 'جاهز للإجابة على استفساراتكم',
-        placeholder: 'اكتب سؤالك هنا...',
+        placeholder: 'اكتب سؤالك لكارو هنا...',
         sendButton: 'إرسال',
         closeLabel: 'إغلاق نافذة المحادثة',
-        openToggleLabel: 'فتح المساعد الذكي',
-        closeToggleLabel: 'إغلاق المساعد الذكي',
-        inputLabel: 'حقل إدخال سؤال للمساعد',
+        openToggleLabel: 'فتح المساعد كارو',
+        closeToggleLabel: 'إغلاق المساعد كارو',
+        inputLabel: 'حقل إدخال سؤال لكارو',
         welcomeHint: 'هل لديك سؤال؟',
         closeWelcomeHint: 'إغلاق الرسالة الترحيبية',
-        onlineLabel: 'متاح الآن',
+        onlineLabel: 'كارو متاح الآن',
         hints: {
           initial: 'هل لديك سؤال؟',
           productSearch: 'هل تبحث عن منتج معيّن؟',
@@ -355,14 +355,14 @@ const getUIText = (lang: string): ChatUIStrings => {
         },
         exitIntent: {
           title: 'قبل أن تغادر…',
-          body: 'هل وجدت ما تبحث عنه؟ تحدّث مع مساعدنا الذكي مباشرة، يجاوبك خلال ثوان.',
+          body: 'هل وجدت ما تبحث عنه؟ تحدّث مع كارو مباشرة، يجاوبك خلال ثوان.',
           accept: 'نعم، أبدأ المحادثة',
           dismiss: 'لا، شكراً',
         },
         loadingLabel: 'جارِالتحميل',
-        connectionError: 'حدث خطأ أثناء الاتصال بالمساعد.',
+        connectionError: 'حدث خطأ أثناء الاتصال بكارو.',
         fallbackReply:
-          'نواجه صعوبة في الاتصال بالمساعد الآن. يرجى مراسلتنا على البريد info@karahoca.com أو الواتساب +905305914990، وسنعمل على خدمتك فوراً.',
+          'كارو يواجه صعوبة في الاتصال الآن. يرجى مراسلتنا على البريد info@karahoca.com أو الواتساب +905305914990، وسنعمل على خدمتك فوراً.',
         noAnswerFallback:
           'لم أتمكن من العثور على إجابة دقيقة في قاعدة المعرفة الحالية. يسعدنا التواصل معكم عبر البريد info@karahoca.com أو الواتساب +905305914990.',
         privacyNotice: '🔒 محادثاتك مسجّلة لتحسين الخدمة. لطلب الحذف: info@karahoca.com',
@@ -464,7 +464,11 @@ const mapKnowledgeToPrompt = (
     .join('\n');
 
   return `SYSTEM INSTRUCTIONS (HIGHEST PRIORITY):
-You are a helpful customer service assistant for KARAHOCA company.
+You are Karo (Arabic: كارو, Russian: Каро) — the AI customer-service
+assistant for KARAHOCA, the Turkish cleaning-products manufacturer
+behind the DIOX and AYLUX brands. Always introduce yourself as Karo
+when the customer asks who you are. Speak warmly and professionally,
+like a knowledgeable sales-and-support representative.
 
 CRITICAL LANGUAGE RULE:
 1. Detect the language of the customer's question first

@@ -11,26 +11,26 @@ import { normalizeLanguageCode, supportedLanguageCodes, type SupportedLanguageCo
 const getSingleAssistantWelcomeMessage = (lang: SupportedLanguageCode): string => {
   switch (lang) {
     case 'en':
-      return `**Welcome!** 👋
+      return `**Hi, I'm Karo!** 👋
 
-I'm the AI assistant for **KARAHOCA**.
-You can ask me about our products, company, production, news, shipping, and contact details.`;
+I'm the AI assistant at **KARAHOCA**.
+Ask me about our products, company, production, news, shipping, or contact details — I'm here to help.`;
     case 'tr':
-      return `**Hoş geldiniz!** 👋
+      return `**Merhaba, ben Karo!** 👋
 
-Ben **KARAHOCA** için hazırlanan yapay zeka asistanıyım.
-Urunlerimiz, sirketimiz, uretim, haberler, sevkiyat ve iletisim hakkinda soru sorabilirsiniz.`;
+**KARAHOCA**'nın yapay zeka asistanıyım.
+Ürünlerimiz, şirketimiz, üretim, haberler, sevkiyat veya iletişim hakkında sorularınızı yanıtlamaya hazırım.`;
     case 'ru':
-      return `**Добро пожаловать!** 👋
+      return `**Привет, я Каро!** 👋
 
 Я виртуальный помощник компании **KARAHOCA**.
-Вы можете спросить меня о продукции, компании, производстве, новостях, доставке и способах связи.`;
+Спросите меня о продукции, компании, производстве, новостях, доставке или способах связи — я всегда рад помочь.`;
     case 'ar':
     default:
-      return `**مرحباً بك!** 👋
+      return `**مرحباً، أنا كارو!** 👋
 
 أنا المساعد الذكي لشركة **KARAHOCA**.
-يمكنك سؤالي عن المنتجات، الشركة، الإنتاج، الأخبار، الشحن، ووسائل التواصل.`;
+اسألني عن المنتجات، الشركة، الإنتاج، الأخبار، الشحن، أو وسائل التواصل — أنا هنا لمساعدتك.`;
   }
 };
 
