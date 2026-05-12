@@ -5812,24 +5812,15 @@ body.light-mode .catalog-print-trigger {
     bottom: calc(4.5rem + var(--safe-bottom));
   }
 
-  /* Timeline fixes */
-  .timeline-item {
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .timeline-year {
-    width: 100%;
-    padding: 1.5rem;
-    font-size: 2rem;
-    text-align: center;
-  }
-
-  .timeline-content {
-    width: 100%;
-    padding: 1.5rem 1rem;
-    text-align: center;
-  }
+  /* (Timeline overrides were removed here in Phase 5 of the mobile
+     audit. They duplicated — and *defeated* — the more accurate rules
+     at `.about-page .timeline-*` ~line 3500: those use logical
+     properties (`inset-inline-end` for the spine, `padding-inline`
+     for the year column) and preserve RTL behaviour, while these
+     overrides force `width: 100%` and `text-align: center` which
+     break the year-on-edge layout for AR and add an asymmetric look
+     for LTR. Removing the duplicates lets the better selector win
+     naturally via source order.) */
 
   /* Form fixes */
   .newsletter__form {

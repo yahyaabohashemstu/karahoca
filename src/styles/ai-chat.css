@@ -287,8 +287,11 @@ html[dir="ltr"] .ai-exit-intent__close { right: 10px; }
   background: rgba(10, 26, 46, 0.12);
 }
 
-/* Stack horizontally on wider screens — looks tighter when there's room. */
-@media (min-width: 460px) {
+/* Stack horizontally on wider screens — looks tighter when there's room.
+   Snapped to the documented `--bp-sm` breakpoint (480 px) instead of an
+   ad-hoc 460 to keep the site on the standard 380 / 480 / 768 / 900 /
+   1200 scale (see tokens.css for the documented contracts). */
+@media (min-width: 480px) {
   .ai-exit-intent__actions {
     flex-direction: row;
     justify-content: stretch;
@@ -677,7 +680,12 @@ body.light-mode .ai-assistant__message th {
   background: rgba(0, 0, 0, 0.05);
 }
 
-@media (max-width: 640px) {
+/* Mobile responsive tweaks for the chat widget.
+   Breakpoints were normalised in Phase 5 of the mobile audit: 640 → 768
+   (the canonical `--bp-md`) and 360 → 380 (`--bp-xs`). The 640/360 values
+   were one-offs that drifted from the rest of the codebase; aligning them
+   makes the breakpoint set predictable across files. */
+@media (max-width: 768px) {
   .ai-assistant {
     bottom: 1rem;
   }
@@ -687,8 +695,11 @@ body.light-mode .ai-assistant__message th {
   .ai-assistant { inset-inline-end: 1rem; }
 
   .ai-assistant__toggle {
-    width: 46px;
-    height: 46px;
+    /* Sized via the global FAB token so this widget stays in lockstep
+       with .theme-toggle / .whatsapp-button (also 48 × 48 after the
+       Phase-2 WCAG bump). */
+    width: var(--fab-size);
+    height: var(--fab-size);
     font-size: 1.2rem;
   }
 
@@ -697,7 +708,7 @@ body.light-mode .ai-assistant__message th {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 380px) {
   .ai-assistant__window {
     width: min(280px, 95vw);
   }
