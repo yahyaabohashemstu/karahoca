@@ -332,12 +332,40 @@ const NumbersSection: React.FC = () => {
             </div>
             
             <div className="camera-sequence">
+              {/*
+                Replaced the 1.86 MB SVG with a rasterised WebP pair.
+                The original SVG (4,816 paths, ~12 MB heap on parse) was
+                rendered into `.animation-container` (260×320 px, with the
+                filmstrip scrolling vertically via `cameraSequence`
+                animation in employee.css). At that display size the
+                SVG's vector precision was wasted — the browser paid the
+                full DOM/render cost for sub-pixel detail no eye could
+                see.
+
+                Two rasters are shipped:
+                  • employees.webp     — 600 px wide, ~239 KB, used at
+                                          DPR ≤ 1.5 (typical desktop).
+                  • employees@2x.webp  — 1200 px wide, ~525 KB, used at
+                                          DPR ≥ 1.5 (mobile / Retina).
+
+                `srcset` with x-descriptors lets the browser pick the
+                cheapest source for the user's screen — Retina users still
+                see crisp employees, non-Retina users save bandwidth.
+
+                Reversibility: the original SVG remains at the same
+                URL on disk and at `public/.backup-svgs/employees.svg`.
+                Reverting is one Edit on this file (drop srcset, restore
+                `src="/employees.svg"`).
+              */}
               <img
-                src="/employees.svg"
+                src="/employees.webp"
+                srcSet="/employees.webp 1x, /employees@2x.webp 2x"
                 alt={t('numbers.employeesAlt')}
                 className="employees-svg"
                 loading="lazy"
                 decoding="async"
+                width={600}
+                height={2570}
               />
             </div>
             

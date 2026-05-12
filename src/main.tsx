@@ -119,3 +119,25 @@ if (rootNode.hasChildNodes()) {
 } else {
   createRoot(rootNode).render(tree);
 }
+
+// ─── Real-User Monitoring (Core Web Vitals) ─────────────────────────────────
+// Loaded AFTER React mounts so it doesn't compete for the main thread
+// during first paint. The metrics we care about (LCP, FCP, CLS) are
+// measured by the browser's PerformanceObserver from page load — our
+// library just subscribes to the observations after they happen.
+//
+// `requestIdleCallback` defers further: it waits for the main thread to
+// be free of higher-priority work. Falls back to setTimeout(0) on Safari
+// (no rIC support).
+//
+// Safety: every code path is wrapped in try/catch and respects the
+// existing cookie-consent gate. Rolls back via `VITE_WEB_VITALS=0`.
+if (typeof window !== 'undefined') {
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void })
+    .requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 0));
+  idle(() => {
+    void import('./utils/webVitals')
+      .then(({ initWebVitals }) => initWebVitals())
+      .catch(() => { /* RUM failure must not surface to users */ });
+  });
+}

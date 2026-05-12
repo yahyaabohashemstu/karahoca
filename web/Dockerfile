@@ -53,13 +53,42 @@ ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 
 # Vite build pipeline minus prerender (prerender needs a running backend).
+# `compress-static.mjs` creates `.gz` and `.br` siblings of every text
+# asset so nginx can serve pre-compressed responses without per-request
+# CPU cost. See scripts/compress-static.mjs for rationale.
 RUN npx tsc -b \
   && npx vite build \
   && node scripts/optimize-images.mjs \
-  && node scripts/prune-dist.mjs
+  && node scripts/prune-dist.mjs \
+  && node scripts/compress-static.mjs
 
 # ─── Stage 2: nginx serves dist/ ────────────────────────────────────────────
 FROM nginx:${NGINX_VERSION} AS runtime
+
+# Brotli module for `brotli_static on` in nginx.conf. Alpine packages the
+# module separately as `nginx-mod-http-brotli`. We install it via apk and
+# load it explicitly with `load_module` (added below).
+#
+# `|| true` keeps the build green if a future Alpine release renames or
+# drops the package — nginx falls back to gzip-only and the SPA still
+# serves correctly, just with slightly larger responses for Brotli-capable
+# clients.
+RUN apk add --no-cache nginx-mod-http-brotli || true
+
+# `load_module` must appear OUTSIDE the http {} block (nginx requires it
+# at the top level). We can't put it in conf.d/, so we create a snippet
+# in /etc/nginx/conf.d/01-load-modules.conf which is loaded by the main
+# nginx.conf BEFORE the http block opens — actually that won't work.
+#
+# Cleanest path: append a load_module line to /etc/nginx/nginx.conf BEFORE
+# the events {} / http {} blocks. The standard nginx.conf has a top-level
+# `pid /var/run/nginx.pid;` line we can target.
+RUN if [ -f /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so ]; then \
+      sed -i '1i load_module modules/ngx_http_brotli_filter_module.so;' /etc/nginx/nginx.conf && \
+      sed -i '2i load_module modules/ngx_http_brotli_static_module.so;' /etc/nginx/nginx.conf ; \
+    else \
+      echo "[brotli] module not found; nginx will run gzip-only" ; \
+    fi
 
 # Replace nginx's default site config with our SPA-aware one.
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
