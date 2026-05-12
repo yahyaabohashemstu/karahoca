@@ -73,6 +73,11 @@ export interface ChatUIStrings {
 const CHAT_STORAGE_KEY = 'karahoca_ai_chat_messages';
 const USER_ID_KEY = 'karahoca_user_id';
 const MAX_STORED_MESSAGES = 100;
+// Sticky flag: set to '1' the moment the visitor clicks the exit-intent
+// popup's primary CTA. Survives reloads, tab close, and future visits — so
+// once accepted, the popup never reappears in this browser. Cleared only
+// by a manual localStorage purge.
+const EXIT_INTENT_ACCEPTED_KEY = 'karahoca_ai_exit_intent_accepted';
 
 // ─── Helpers (module-level — no React involvement) ────────────────────────
 
@@ -543,6 +548,42 @@ const persistMessagesLocally = (messages: ChatMessage[]) => {
   }
 };
 
+/**
+ * Returns true when this browser has previously engaged with the chat in a
+ * way that should permanently suppress the exit-intent popup:
+ *
+ *   1. The visitor has at least one persisted chat message (i.e. they have
+ *      already talked to Karo — now or in a past session). We deliberately
+ *      use `loadStoredMessages()` (which already filters/validates) rather
+ *      than a raw key check so a malformed payload from an older version
+ *      doesn't accidentally count as "engaged".
+ *   2. The visitor has previously clicked the popup's "Yes, start chatting"
+ *      CTA, which writes EXIT_INTENT_ACCEPTED_KEY to localStorage.
+ *
+ * EITHER path qualifies — only one needs to be true. Wrapped in try/catch
+ * so a browser with localStorage disabled (private mode, strict cookie
+ * policy, quota exhaustion) falls through to "treat as a fresh visitor"
+ * instead of crashing the hook on import.
+ *
+ * SSR-safe: returns `false` when `window` is undefined so Puppeteer-driven
+ * prerender never tries to read storage and never silently disables the
+ * popup in the static HTML.
+ */
+const hasUserPreviouslyEngagedWithChat = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.localStorage.getItem(EXIT_INTENT_ACCEPTED_KEY) === '1') {
+      return true;
+    }
+    if (loadStoredMessages().length > 0) {
+      return true;
+    }
+  } catch {
+    /* localStorage unavailable — behave as a fresh visitor. */
+  }
+  return false;
+};
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
@@ -708,7 +749,16 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const [currentHintKey, setCurrentHintKey] = useState<ChatHintKey | null>(null);
   // Exit-intent: shown at most once per session when the visitor signals
   // they're about to leave (desktop mouse to top edge / mobile rapid up-scroll).
-  const exitIntentShownRef = useRef(false);
+  //
+  // Pre-latch the "already shown" guard to TRUE for any visitor who has
+  // chatted in a prior session or accepted the popup before — they have
+  // already engaged with Karo and don't need a second invitation. Brand-new
+  // visitors keep the initial `false`, leaving the detection effect below
+  // free to flip the ref on real intent. The detection useEffect short-
+  // circuits on `exitIntentShownRef.current` BEFORE attaching listeners,
+  // so a `true` initial value means no mouseleave/scroll handlers ever
+  // register for that visitor — zero overhead for the engaged-cohort path.
+  const exitIntentShownRef = useRef(hasUserPreviouslyEngagedWithChat());
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [isOpen, setIsOpen] = useState(initiallyOpen);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -1156,6 +1206,20 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
   const acceptExitIntent = useCallback(() => {
     setShowExitIntent(false);
+    // Sticky cross-session suppression: once the visitor has explicitly
+    // chosen to start chatting from the exit-intent prompt, the popup must
+    // never reappear for this browser — even after a full page reload,
+    // tab close, or weeks-later return visit. The in-memory
+    // `exitIntentShownRef` below blocks the rest of this session; the
+    // localStorage flag blocks every future one. If localStorage is
+    // unavailable (private mode, quota, disabled), we still get session-
+    // level suppression via the ref, which is the strict minimum required
+    // to avoid double-prompting in the same page-view.
+    try {
+      window.localStorage.setItem(EXIT_INTENT_ACCEPTED_KEY, '1');
+    } catch {
+      /* private mode / quota / disabled — session ref still suppresses reshow this tab. */
+    }
     // Open the panel and latch — accepting the prompt is the strongest
     // engagement signal we get; cementing interactedRef stops any rotation
     // from firing before the panel finishes mounting.
