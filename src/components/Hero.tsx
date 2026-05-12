@@ -49,7 +49,14 @@ const Hero: React.FC = () => {
                 alt="KARAHOCA"
                 fetchPriority="high"
                 decoding="async"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                /* `object-fit: contain` shows the hero composition whole.
+                   The earlier value (`cover`) cropped the top/bottom of
+                   the image on mobile (where .card-3d is aspect-ratio
+                   16/9 and capped at 180 px) and partially hid the brand
+                   wordmark. `contain` keeps the intrinsic ratio and lets
+                   the empty space resolve via the .glass-panel
+                   background — the intended look on desktop too. */
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
             </div>
           </div>

@@ -5155,45 +5155,6 @@ body.light-mode .catalog-print-trigger {
     box-shadow: 0 4px 16px rgba(245, 75, 26, .5);
   }
 
-  /* AI Chat Container — fullscreen on mobile.
-     Pad bottom by the safe-area so the composer/send button doesn't sit
-     under the iPhone home indicator gesture zone.
-     NOTE: this `.ai-chat-container` selector is a holdover; the active
-     React component uses `.ai-assistant__window` (see ai-chat.css).
-     Kept here defensively in case the chat trigger or any A/B variant
-     re-uses the legacy class name. */
-  .ai-chat-container {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100dvh;
-    max-width: 100%;
-    max-height: 100dvh;
-    border-radius: 0;
-    background: rgba(13, 30, 63, .98);
-    backdrop-filter: blur(16px);
-    border: none;
-    padding-bottom: var(--safe-bottom);
-  }
-
-  .ai-chat-header {
-    background: linear-gradient(180deg, rgba(21, 61, 122, .9), rgba(21, 61, 122, .7));
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, .1);
-    padding: calc(16px + var(--safe-top)) 16px 16px;
-  }
-
-  .ai-chat-messages {
-    padding: 16px;
-    height: calc(100dvh - 180px - var(--safe-top) - var(--safe-bottom));
-  }
-
-  .ai-chat-input-area {
-    padding: 16px;
-    background: rgba(13, 30, 63, .95);
-    border-top: 1px solid rgba(255, 255, 255, .1);
-  }
-
   /* WhatsApp Welcome Hint — anchored to the opposite-corner FAB stack.
      Logical properties replace the legacy `right:` so the hint flips
      automatically in LTR locales (English, Turkish, Russian) without a
@@ -5437,6 +5398,26 @@ body.light-mode .catalog-print-trigger {
 
 /* Base mobile styles - applies to ALL mobile devices */
 @media (max-width: 768px) {
+  /* ─────────────────────────────────────────────────────────────────────
+     Defensive guard: every focusable text input must render at ≥ 16 px
+     on mobile or iOS Safari will auto-zoom the page when the field
+     receives focus — leaving the user trapped at a non-1 zoom level for
+     the rest of the session, with the viewport scrolled to the right
+     edge of the keyboard. 16 px is iOS Safari's documented threshold;
+     anything strictly less triggers the zoom.
+     Selector reach covers our actual inputs (newsletter email, AI chat
+     textarea, flipbook page-number, admin search) AND any future field
+     a contributor might add without remembering this constraint.
+     `font-size: 16px` is an absolute pixel value on purpose — a
+     `rem`-based value would inherit the html root size and could fall
+     below 16 if the root is ever scaled.
+     ──────────────────────────────────────────────────────────────────── */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
   /* Prevent horizontal scroll */
   html,
   body {

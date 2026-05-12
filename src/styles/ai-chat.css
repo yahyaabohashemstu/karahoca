@@ -438,7 +438,13 @@ body.light-mode .ai-assistant__composer {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(5, 15, 30, 0.45);
   color: inherit;
-  font-size: 0.95rem;
+  /* Pinned at 16 px (not 0.95 rem). Anything below 16 triggers iOS
+     Safari's auto-zoom-on-focus, which on a fullscreen mobile chat
+     panel scales the whole textarea up and traps the user zoomed-in
+     for the rest of the session. The textarea is the only mobile
+     input the visitor regularly types into — getting this wrong made
+     the chat unusable on iPhone. */
+  font-size: 16px;
   resize: none;
   min-height: 52px;
   max-height: 120px;
