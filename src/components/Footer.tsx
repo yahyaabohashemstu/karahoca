@@ -238,6 +238,26 @@ const Footer: React.FC = () => {
           <Link to={lp('/terms')} style={{ color: 'inherit', textDecoration: 'none' }}>{t('footer.terms', 'Terms of Service')}</Link>
         </nav>
       </div>
+      {/* Discreet developer credit — smaller font, lower opacity than the
+          copyright line above so it reads as a tasteful signature rather
+          than competing with the brand. Localised via `footer.developer`
+          so the four supported languages each get their natural form
+          (Arabic transliterates the name, Latin scripts use Yahya Abo
+          Hashem, Cyrillic uses Яхья Або Хашем). */}
+      <div
+        className="container"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          paddingTop: '0.4rem',
+          paddingBottom: '0.6rem',
+          fontSize: '0.72rem',
+          opacity: 0.45,
+          letterSpacing: '0.02em',
+        }}
+      >
+        <p style={{ margin: 0 }}>{t('footer.developer')}</p>
+      </div>
     </footer>
   );
 };

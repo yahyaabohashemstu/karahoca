@@ -1,0 +1,35 @@
+/* TEAM */
+
+  Developer  : Yahya Abo Hashem
+  Site       : https://karahoca.com
+  GitHub     : https://github.com/yahyaabohashemstu
+  From       : Türkiye
+
+/* THANKS */
+
+  Brand            : KARAHOCA KIMYA
+  Brands shipped   : DIOX, AYLUX
+  AI assistant     : Karo (كارو / Каро)
+  Languages served : Arabic · English · Turkish · Russian
+
+/* SITE */
+
+  Last update     : 2026/05/11
+  Doctype         : HTML5
+  Languages       : ar, en, tr, ru
+  Standards       : URL-prefixed i18n routing, hreflang SEO, image sitemap
+  Components      : React 18, TypeScript 5, Vite 7, Node.js 22
+  Backend         : Pure HTTP (no Express), SQLite (better-sqlite3), Redis with in-memory fallback
+  Frontend        : SPA with per-language SSG prerender (Puppeteer)
+  AI              : OpenRouter (Gemma 3 27B)
+  Email           : Resend
+  Telemetry       : Sentry (optional, DSN-gated) + pino
+  Hosting         : Coolify (karahoca-web + karahoca-api)
+  Storage         : Cloudflare R2 / S3-compatible
+  Editor          : VS Code
+                    /\
+                   /  \
+                  / /\ \
+                 / ____ \
+                /_/    \_\
+        Crafted with care — every byte intentional.
