@@ -469,7 +469,61 @@ interface ProductListSchemaProps {
   brand: 'DIOX' | 'AYLUX';
   products: ProductItem[];
 }
+
+/**
+ * ⚠️ ROLLBACK SWITCH — per-product Offer block in ProductListSchema.
+ *
+ * `true`  → every Product entry on DIOX/AYLUX brand pages gets a minimal
+ *           `offers` object (availability + currency + WhatsApp contact
+ *           URL). Clears the Google Search Console warning:
+ *             "يجب تحديد 'offers' أو 'review' أو 'aggregateRating'"
+ *           (affects ~149 product entries). Google's re-crawl typically
+ *           lifts the warning within 1–2 weeks.
+ *
+ * `false` → reverts to the pre-2026-05-12 behaviour: Products are emitted
+ *           without `offers`, and the GSC warning will return on the next
+ *           re-crawl. Use this if a Google validator regression appears
+ *           or if a future redesign brings real prices / reviews into the
+ *           catalog (in which case we should emit *real* offers data
+ *           rather than this contact-for-quote placeholder).
+ *
+ * The Offer is intentionally PRICE-LESS — KARAHOCA is B2B, quotes are
+ * given via WhatsApp / email. Inventing a fake `price: 0` would mislead
+ * Google's price-comparison surfaces. Omitting `price` clears the
+ * required-property warning while staying truthful: Google may still
+ * recommend adding a price for full rich-result eligibility, but that
+ * is a *recommended* field, not a *required* one.
+ *
+ * To roll back: flip this constant to `false` and redeploy. No other
+ * edits needed — the spread below short-circuits cleanly.
+ */
+const PRODUCT_OFFERS_ENABLED = true;
+
 export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, products }) => {
+  // Built once per render rather than per-item so all 100+ items share the
+  // exact same Offer object literal — keeps the emitted JSON-LD compact
+  // and lets Google's parser de-dupe by structural identity.
+  const sharedOffer = PRODUCT_OFFERS_ENABLED
+    ? {
+        '@type': 'Offer',
+        availability: 'https://schema.org/InStock',
+        priceCurrency: 'USD',
+        // Quote-on-request channel. WhatsApp is the primary B2B inbound
+        // funnel and is documented as the contact number in every other
+        // schema block on the site, so Google sees a consistent picture.
+        url: 'https://wa.me/905305914990',
+        seller: {
+          '@type': 'Organization',
+          name: 'KARAHOCA',
+          // Cross-reference the canonical Organization node so Google
+          // merges this Offer's seller with the global company graph
+          // instead of treating it as a fresh entity per product.
+          '@id': `${SITE_URL}/#organization`,
+        },
+        areaServed: 'Worldwide',
+      }
+    : null;
+
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -486,6 +540,7 @@ export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, pro
         brand: { '@type': 'Brand', name: brand },
         manufacturer: { '@type': 'Organization', name: 'KARAHOCA', url: SITE_URL },
         category: p.category,
+        ...(sharedOffer ? { offers: sharedOffer } : {}),
       },
     })),
   };
