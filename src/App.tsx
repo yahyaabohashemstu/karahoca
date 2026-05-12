@@ -16,7 +16,6 @@ import CookieConsent from './components/CookieConsent';
 import ThemeToggle from './components/ThemeToggle';
 import LazyAIChatWidget from './components/LazyAIChatWidget';
 import BackendStatusBanner from './components/BackendStatusBanner';
-import ServiceWorkerUpdate from './components/ServiceWorkerUpdate';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { useLocaleSync } from './hooks/useLocaleSync';
@@ -160,9 +159,6 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
       <LazyAIChatWidget />
       <ThemeToggle />
       <WhatsAppButton phoneNumber="905305914990" />
-      {/* SW update prompt — silently no-ops if vite-plugin-pwa isn't loaded.
-          Lives inside the localised shell so any new translations apply. */}
-      <ServiceWorkerUpdate />
     </>
   );
 };

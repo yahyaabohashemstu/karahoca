@@ -53,71 +53,19 @@ ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 
 # Vite build pipeline minus prerender (prerender needs a running backend).
-# `compress-static.mjs` creates `.gz` and `.br` siblings of every text
-# asset so nginx can serve pre-compressed responses without per-request
-# CPU cost. See scripts/compress-static.mjs for rationale.
 RUN npx tsc -b \
   && npx vite build \
   && node scripts/optimize-images.mjs \
-  && node scripts/prune-dist.mjs \
-  && node scripts/compress-static.mjs
+  && node scripts/prune-dist.mjs
 
 # ─── Stage 2: nginx serves dist/ ────────────────────────────────────────────
 FROM nginx:${NGINX_VERSION} AS runtime
 
-# Replace nginx's default site config with our SPA-aware one. We do this
-# BEFORE the brotli attempt so the validation step below can test the
-# real, final configuration.
+# Replace nginx's default site config with our SPA-aware one.
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Drop the built SPA into nginx's web root.
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# ─── Brotli module: best-effort install with auto-fallback ─────────────────
-# Alpine ships `nginx-mod-http-brotli` precompiled against the nginx version
-# that ALPINE'S nginx package was built with — which is often DIFFERENT
-# from the version baked into the upstream nginx Docker image (the upstream
-# tags lead Alpine's repo by a point release or two). When that happens
-# the module fails to load with:
-#
-#     [emerg] module ".../ngx_http_brotli_filter_module.so" version 1026003
-#     instead of 1027005 in /etc/nginx/nginx.conf:1
-#
-# and nginx never starts. The fallback below detects that scenario at
-# build time and degrades to gzip-only by:
-#   1. Installing the brotli module (best effort).
-#   2. Adding `load_module` lines to /etc/nginx/nginx.conf.
-#   3. Running `nginx -t` to validate the full config.
-#   4. If validation fails, ripping out the `load_module` lines AND
-#      commenting out every `brotli*` directive in our site config so
-#      nginx starts cleanly with gzip alone.
-#   5. Running `nginx -t` again — this time we EXPECT success. If it
-#      still fails, the build fails loudly (we'd rather see the error
-#      during `docker build` than at production startup).
-#
-# Net behaviour:
-#   • Module compatible    → Brotli + gzip both active (best case).
-#   • Module incompatible  → gzip_static + on-the-fly gzip only.
-#   • Module unavailable   → gzip_static + on-the-fly gzip only.
-RUN set -eu; \
-    apk add --no-cache nginx-mod-http-brotli 2>/dev/null || \
-      echo "[brotli] package not available in apk; skipping install"; \
-    if [ -f /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so ]; then \
-      echo "[brotli] module file found, attempting to load"; \
-      sed -i '1i load_module modules/ngx_http_brotli_filter_module.so;' /etc/nginx/nginx.conf; \
-      sed -i '2i load_module modules/ngx_http_brotli_static_module.so;' /etc/nginx/nginx.conf; \
-      if nginx -t 2>/dev/null; then \
-        echo "[brotli] ✓ module loaded successfully"; \
-      else \
-        echo "[brotli] ✗ module incompatible with nginx version — falling back to gzip-only"; \
-        sed -i '/load_module.*ngx_http_brotli/d' /etc/nginx/nginx.conf; \
-        sed -i 's/^\(\s*\)brotli/\1#brotli/g' /etc/nginx/conf.d/default.conf; \
-      fi; \
-    else \
-      echo "[brotli] module file absent — running gzip-only"; \
-      sed -i 's/^\(\s*\)brotli/\1#brotli/g' /etc/nginx/conf.d/default.conf; \
-    fi; \
-    nginx -t
 
 EXPOSE 80
 
