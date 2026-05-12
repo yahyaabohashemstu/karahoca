@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -16,6 +16,10 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { items } = useWishlist();
   const wishCount = items.length;
+  // Refs used to (a) close the menu on outside-click and (b) focus-trap
+  // the Tab cycle inside the open menu — see effects below.
+  const mobileMenuRef = useRef<HTMLElement | null>(null);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
 
   // Home for the current language is `/<lang>/`. Compare normalised forms
   // so `/ar` and `/ar/` both count as "home" for anchor-link targeting.
@@ -44,13 +48,113 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
     setIsMobileMenuOpen(false);
   }, [location.pathname, location.hash]);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen((currentValue) => !currentValue);
-  };
-
-  const closeMobileMenu = () => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-  };
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((currentValue) => !currentValue);
+  }, []);
+
+  // ── Mobile menu accessibility (only active while the menu is open) ───
+  //
+  // We add THREE behaviours here that the old hamburger lacked:
+  //
+  //   1. Escape key  → close the menu and return focus to the hamburger
+  //                    button. Matches the WAI-ARIA disclosure pattern
+  //                    and is what a keyboard-only user expects.
+  //   2. Outside click → close the menu. Without this, the user has to
+  //                    track down the hamburger again on a phone where
+  //                    the menu obscures most of the page.
+  //   3. Tab cycling → Tab from the last menu item wraps back to the
+  //                    first; Shift+Tab from the first wraps to the
+  //                    last. This is a LIGHTWEIGHT focus trap — we
+  //                    intentionally don't pull in a third-party focus
+  //                    library because the menu has a fixed tabstop set
+  //                    (4 nav links + Wishlist + Contact CTA) and the
+  //                    DOM order is stable. Tabbing OUT of the menu via
+  //                    the hamburger is also allowed; the hamburger
+  //                    isn't part of the menu's tabstop list.
+  //   4. Body scroll lock — prevents the page underneath from scrolling
+  //                    while the menu is open (otherwise a stray finger
+  //                    drag scrolls the page behind the panel).
+  //
+  // Everything is scoped behind `if (!isMobileMenuOpen) return` so the
+  // listeners cost zero when the menu is closed.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const menuEl = mobileMenuRef.current;
+
+    // Auto-focus the first focusable element so screen readers and
+    // keyboard users land directly inside the menu, not on the body.
+    const focusables = menuEl
+      ? Array.from(
+          menuEl.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => el.offsetParent !== null) // skip display:none entries
+      : [];
+    focusables[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMobileMenu();
+        // Return focus to the trigger so screen readers / keyboard
+        // users continue from the affordance they actuated.
+        hamburgerRef.current?.focus();
+        return;
+      }
+      if (event.key === 'Tab' && focusables.length > 0) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    // Typed as the union so the same handler can wire up to both
+    // `mousedown` (desktop / pointer events) and `touchstart` (early
+    // mobile-tap signal — fires before the synthetic click so the menu
+    // dismisses on the very first touch instead of after a click delay).
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      // Click on the menu itself → keep open.
+      if (menuEl?.contains(target)) return;
+      // Click on the hamburger → let its onClick toggle handle the state.
+      if (hamburgerRef.current?.contains(target)) return;
+      // Anything else (page background, header brand area, etc.) → close.
+      closeMobileMenu();
+    };
+
+    // Body scroll lock. Restoring the original value (rather than just
+    // setting it to `''`) plays nice with other components (modal, cookie
+    // banner) that might set their own value.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // EventListener accepts the broader `Event` type; cast our union-
+    // typed handler to satisfy both overloads. Runtime behaviour is
+    // identical — TypeScript just can't narrow across the two listeners.
+    const outsideListener = handleOutsideClick as EventListener;
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', outsideListener);
+    document.addEventListener('touchstart', outsideListener, { passive: true });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', outsideListener);
+      document.removeEventListener('touchstart', outsideListener);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isMobileMenuOpen, closeMobileMenu]);
 
   return (
     <header className={`site-header glass-panel ${className}`}>
@@ -107,6 +211,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
           </a>
 
           <button
+            ref={hamburgerRef}
             className={`hamburger glass-button ${isMobileMenuOpen ? 'is-open' : ''}`}
             aria-label={t('nav.menu')}
             aria-expanded={isMobileMenuOpen}
@@ -122,9 +227,19 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
       </div>
 
       <nav
+        ref={mobileMenuRef}
         id="mobile-menu"
         className={`mobile-menu glass-panel ${isMobileMenuOpen ? 'is-open' : ''}`}
         aria-hidden={!isMobileMenuOpen}
+        aria-label={t('nav.menu')}
+        /* `inert` removes the menu from the tab order AND from screen-
+           reader exposure while closed — stronger than `aria-hidden`
+           alone, and Safari respects it natively now. The menu's CSS
+           still shows it via max-height transition; `inert` short-
+           circuits the keyboard path so a Tab from outside doesn't
+           accidentally land inside a visually-collapsed menu. */
+        // @ts-expect-error — React types may lag the standard `inert` boolean attr.
+        inert={!isMobileMenuOpen ? '' : undefined}
       >
         <a href={brandsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.brands')}</a>
         <a href={newsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.news')}</a>
