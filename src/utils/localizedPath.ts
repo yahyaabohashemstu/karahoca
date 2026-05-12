@@ -103,6 +103,32 @@ export const languageRootPath = (lang: string | null | undefined): string =>
 const USER_LANG_CHOICE_KEY = 'karahoca_lang_choice';
 
 /**
+ * Extract the base language tag from a BCP-47-ish locale string WITHOUT
+ * `normalizeLanguageCode`'s "fallback to 'ar' on anything unrecognised"
+ * bias. Returns the lowercased base code (e.g. `'fr-FR'` → `'fr'`) when
+ * the input parses, or `null` otherwise.
+ *
+ * Why a private helper instead of reusing `normalizeLanguageCode`:
+ *   `normalizeLanguageCode` is used everywhere in the app as a *defensive*
+ *   normaliser — it accepts any input and always returns a valid supported
+ *   code, defaulting to 'ar' when nothing matches. That's the right shape
+ *   for "I trust nothing, give me a guaranteed-supported code", but it
+ *   sabotages language *detection*. In a detection loop the previous
+ *   implementation would coerce 'fr-FR' → 'ar' and short-circuit the
+ *   loop because 'ar' is in the supported set. The fix is to first
+ *   extract the raw code with no bias, then check membership ourselves.
+ */
+const SUPPORTED: readonly string[] = supportedLanguageCodes;
+
+const extractBaseLanguageTag = (raw: unknown): string | null => {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const base = trimmed.toLowerCase().replace(/_/g, '-').split('-')[0];
+  return base || null;
+};
+
+/**
  * Detect preferred language from the environment. Used by the root redirect
  * when the URL has no language prefix.
  *
@@ -110,8 +136,12 @@ const USER_LANG_CHOICE_KEY = 'karahoca_lang_choice';
  *   1. Explicit user-choice key (`karahoca_lang_choice`) — set ONLY by the
  *      LanguageSwitcher when the visitor manually picks a language.
  *   2. `navigator.languages[]` — the operating-system / browser language
- *      preference list, ordered by user priority.
- *   3. DEFAULT_LANG fallback.
+ *      preference list, ordered by user priority. We walk every entry,
+ *      not just the first, so an `['fr-FR', 'en-US']` user lands on
+ *      English instead of being forced to Arabic just because French
+ *      isn't supported.
+ *   3. DEFAULT_LANG fallback (Arabic) — reached only when NONE of the
+ *      browser-preferred languages map to a supported locale.
  *
  * Note on `i18nextLng`:
  *   We intentionally don't read i18next's own localStorage key here. With
@@ -128,22 +158,34 @@ export const detectPreferredLang = (): SupportedLanguageCode => {
   // 1. Explicit user choice via the switcher.
   try {
     const stored = window.localStorage.getItem(USER_LANG_CHOICE_KEY);
-    if (stored) {
-      const n = normalizeLanguageCode(stored);
-      if ((supportedLanguageCodes as readonly string[]).includes(n)) return n;
+    const base = extractBaseLanguageTag(stored);
+    if (base && SUPPORTED.includes(base)) {
+      return base as SupportedLanguageCode;
     }
   } catch {
     // localStorage may throw in private-mode Safari / strict cookie policies.
   }
 
-  // 2. Browser / OS language preferences in priority order.
+  // 2. Browser / OS language preferences in priority order. The previous
+  // implementation funneled each entry through `normalizeLanguageCode`,
+  // which silently coerced unsupported locales to 'ar' — that 'ar' then
+  // satisfied the supportedLanguageCodes.includes() check and returned
+  // immediately, never giving the visitor's SECOND or THIRD preferred
+  // language a chance. Now we extract the base tag with no bias and
+  // explicitly check support; only a real match returns early.
   if (typeof navigator !== 'undefined') {
-    const candidates = Array.isArray(navigator.languages) && navigator.languages.length > 0
-      ? navigator.languages
-      : [navigator.language];
-    for (const c of candidates) {
-      const n = normalizeLanguageCode(c);
-      if ((supportedLanguageCodes as readonly string[]).includes(n)) return n;
+    const candidates: readonly string[] =
+      Array.isArray(navigator.languages) && navigator.languages.length > 0
+        ? navigator.languages
+        : navigator.language
+          ? [navigator.language]
+          : [];
+
+    for (const candidate of candidates) {
+      const base = extractBaseLanguageTag(candidate);
+      if (base && SUPPORTED.includes(base)) {
+        return base as SupportedLanguageCode;
+      }
     }
   }
 
@@ -162,9 +204,13 @@ export const detectPreferredLang = (): SupportedLanguageCode => {
 export const rememberUserLangChoice = (lang: string): void => {
   if (typeof window === 'undefined') return;
   try {
-    const n = normalizeLanguageCode(lang);
-    if (!(supportedLanguageCodes as readonly string[]).includes(n)) return;
-    window.localStorage.setItem(USER_LANG_CHOICE_KEY, n);
+    // Same explicit base-tag extraction as `detectPreferredLang` so we
+    // never accidentally persist a coerced-to-'ar' value for an unsupported
+    // input. If the caller passes something we don't support we silently
+    // drop the write — better than corrupting the user-choice slot.
+    const base = extractBaseLanguageTag(lang);
+    if (!base || !SUPPORTED.includes(base)) return;
+    window.localStorage.setItem(USER_LANG_CHOICE_KEY, base);
   } catch {
     /* private-mode storage rejection — ignore */
   }
