@@ -473,31 +473,51 @@ interface ProductListSchemaProps {
 /**
  * ⚠️ ROLLBACK SWITCH — per-product Offer block in ProductListSchema.
  *
- * `true`  → every Product entry on DIOX/AYLUX brand pages gets a minimal
+ * `true`  → every Product entry on DIOX/AYLUX brand pages gets an
  *           `offers` object (availability + currency + WhatsApp contact
- *           URL). Clears the Google Search Console warning:
- *             "يجب تحديد 'offers' أو 'review' أو 'aggregateRating'"
- *           (affects ~149 product entries). Google's re-crawl typically
- *           lifts the warning within 1–2 weeks.
+ *           URL). Originally added (commit fe2aedc, 2026-05-12) to clear
+ *           the "must specify offers / review / aggregateRating" warning
+ *           in Google Search Console.
  *
- * `false` → reverts to the pre-2026-05-12 behaviour: Products are emitted
- *           without `offers`, and the GSC warning will return on the next
- *           re-crawl. Use this if a Google validator regression appears
- *           or if a future redesign brings real prices / reviews into the
- *           catalog (in which case we should emit *real* offers data
- *           rather than this contact-for-quote placeholder).
+ * `false` → drops the `offers` block entirely. Pre-2026-05-12 behaviour.
+ *           GSC will re-raise the "must specify offers" warning on the
+ *           next crawl (~149 yellow items).
  *
- * The Offer is intentionally PRICE-LESS — KARAHOCA is B2B, quotes are
- * given via WhatsApp / email. Inventing a fake `price: 0` would mislead
- * Google's price-comparison surfaces. Omitting `price` clears the
- * required-property warning while staying truthful: Google may still
- * recommend adding a price for full rich-result eligibility, but that
- * is a *recommended* field, not a *required* one.
+ * ── Why the flag is currently FALSE ─────────────────────────────────────
  *
- * To roll back: flip this constant to `false` and redeploy. No other
- * edits needed — the spread below short-circuits cleanly.
+ * Two days after going live, Google Search Console escalated `price`
+ * from a *recommended* property to a *required* one. The price-less
+ * `Offer` we shipped started flagging 42 items as INVALID (red), with
+ * the exact error:
+ *
+ *     الحقل "price" غير مضمَّن (في "offers")
+ *
+ * The two truthful fixes available to us are:
+ *
+ *   (A) Add a real `price` to every product.
+ *       Not possible — KARAHOCA is B2B; prices are quote-on-request and
+ *       vary per buyer, currency, MOQ, and shipping terms. There is no
+ *       single number we can put in here without misleading visitors.
+ *
+ *   (B) Invent a fake `price: 0` to silence Google.
+ *       Rejected — Google's price-comparison surfaces interpret 0 as
+ *       "Free", which is a direct lie to anyone landing on the SERP
+ *       from a price-aggregator query. The cost in trust > the cost
+ *       in a SEO warning.
+ *
+ * So we accept the trade-off of going BACK to the original "missing
+ * offers" warning (yellow, doesn't block indexing) instead of staying
+ * in the "missing price" error state (red, blocks rich-result eligibility
+ * AND looks worse on the GSC dashboard). The site still indexes
+ * normally, the rank is unaffected; only the product-card rich snippet
+ * remains off — which it was anyway, because Google won't render those
+ * without a real price.
+ *
+ * If a future redesign introduces real per-product pricing (e.g. an
+ * e-commerce module), flip this back to `true` AND add a `price` field
+ * to the `sharedOffer` literal below.
  */
-const PRODUCT_OFFERS_ENABLED = true;
+const PRODUCT_OFFERS_ENABLED = false;
 
 export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, products }) => {
   // Built once per render rather than per-item so all 100+ items share the
