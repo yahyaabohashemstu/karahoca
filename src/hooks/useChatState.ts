@@ -195,7 +195,6 @@ const flushLogQueue = async (): Promise<void> => {
     // Loop until the queue is empty or the head entry refuses to send.
     // We re-read the queue each iteration so concurrent enqueues during
     // a slow POST don't get lost on next-iteration writes.
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const queue = readLogQueue();
       if (queue.length === 0) return;

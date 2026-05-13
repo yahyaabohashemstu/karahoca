@@ -97,9 +97,7 @@ export function useIsMobile(breakpoint: number = 768): boolean {
       return () => mql.removeEventListener("change", handler);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     mql.addListener(handler);
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     return () => mql.removeListener(handler);
   }, [breakpoint]);
 
