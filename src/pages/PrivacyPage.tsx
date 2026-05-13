@@ -31,15 +31,15 @@ const L: Record<string, { title: string; updated: string; sections: { heading: s
     ],
   },
   tr: {
-    title: 'Gizlilik Politikasi',
-    updated: 'Son guncelleme: Ocak 2025',
+    title: 'Gizlilik Politikası',
+    updated: 'Son güncelleme: Ocak 2025',
     sections: [
-      { heading: 'Bilgi Toplama', body: 'Iletisim formunu kullandiginizda veya bultenimize abone oldugunuzda dogrudan bize sagladiginiz bilgileri topluyoruz. Bu bilgiler: ad, e-posta adresi ve telefon numarasini icerir.' },
-      { heading: 'Bilgi Kullanimi', body: 'Topladigimiz bilgileri sorulariniza yanit vermek, urun guncellemeleri ve teklifler gondermek, hizmetlerimizi ve web sitemizi iyilestirmek ve yasal yukumluluklere uymak icin kullaniyoruz.' },
-      { heading: 'Cerezler', body: 'Web sitemiz tarama deneyimini iyilestirmek ve trafigi analiz etmek icin cerezler kullanir. Cerez ayarlarini tarayiciniz uzerinden kontrol edebilirsiniz.' },
-      { heading: 'Bilgi Paylasimi', body: 'Hizmetlerimizi sunmak veya yasalara uymak icin gerekli olmadikca kisisel bilgilerinizi ucuncu taraflarla satmaz veya paylasmayiz.' },
-      { heading: 'Veri Guvenligi', body: 'Kisisel bilgilerinizi yetkisiz erisim, degistirme, ifsa veya imhadan korumak icin makul guvenlik onlemleri aliyoruz.' },
-      { heading: 'Haklariniz', body: 'Kisisel verilerinize erisim, duzeltme veya silme talebinde bulunma hakkiniz vardir. Sorulariniz icin info@karahoca.com adresinden bize ulasin.' },
+      { heading: 'Bilgi Toplama', body: 'İletişim formunu kullandığınızda veya bültenimize abone olduğunuzda doğrudan bize sağladığınız bilgileri topluyoruz. Bu bilgiler: ad, e-posta adresi ve telefon numarasını içerir.' },
+      { heading: 'Bilgi Kullanımı', body: 'Topladığımız bilgileri sorularınıza yanıt vermek, ürün güncellemeleri ve teklifler göndermek, hizmetlerimizi ve web sitemizi iyileştirmek ve yasal yükümlülüklere uymak için kullanıyoruz.' },
+      { heading: 'Çerezler', body: 'Web sitemiz tarama deneyimini iyileştirmek ve trafiği analiz etmek için çerezler kullanır. Çerez ayarlarını tarayıcınız üzerinden kontrol edebilirsiniz.' },
+      { heading: 'Bilgi Paylaşımı', body: 'Hizmetlerimizi sunmak veya yasalara uymak için gerekli olmadıkça kişisel bilgilerinizi üçüncü taraflarla satmaz veya paylaşmayız.' },
+      { heading: 'Veri Güvenliği', body: 'Kişisel bilgilerinizi yetkisiz erişim, değiştirme, ifşa veya imhadan korumak için makul güvenlik önlemleri alıyoruz.' },
+      { heading: 'Haklarınız', body: 'Kişisel verilerinize erişim, düzeltme veya silme talebinde bulunma hakkınız vardır. Sorularınız için info@karahoca.com adresinden bize ulaşın.' },
     ],
   },
   ru: {
