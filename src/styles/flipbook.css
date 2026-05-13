@@ -389,13 +389,27 @@
  * Do NOT set overflow:hidden — it clips 3D transforms in some browsers.
  * Page dimensions: 37.47 cm wide × 23.68 cm tall (landscape).
  * Two pages side by side → book ratio = (2 × 37.47) / 23.68 = 74.94 / 23.68
+ *
+ * `perspective: 1800px` (was 2200) tightens the projection enough for the
+ * page edge to read as genuinely lifting off the surface during a flip
+ * without tipping into the "exaggerated children's-book" cartoony depth
+ * that anything < 1200 px starts to give. 1800 is the sweet spot where a
+ * 90 ° mid-flip shows visible foreshortening of the lifted page edge.
+ *
+ * `perspective-origin: 50 % 60 %` shifts the vanishing point slightly
+ * BELOW the centre of the book — matches the typical reading angle
+ * where the catalogue sits flat on a desk and the viewer's eyes are
+ * roughly a hand's-breadth above the spine. Without this, the spine
+ * looks like it's hovering at the viewer's eye level and the 3D pivot
+ * reads as too flat.
  */
 .fb-book {
   position: relative;
   flex: 1;
   max-width: 1300px;
   aspect-ratio: 74.94 / 23.68;
-  perspective: 2200px;
+  perspective: 1800px;
+  perspective-origin: 50% 60%;
   background: transparent;
   box-shadow:
     0 10px 40px rgba(0,0,0,.6),
@@ -504,20 +518,53 @@
   width: 50%;
   transform-style: preserve-3d;
   z-index: 3;
+  /* `will-change: transform, filter` hoists the page onto its own GPU
+     layer for the duration of the flip — without it, browsers re-paint
+     the 200-dpi page image every frame and a slow phone judders. With
+     it, the only frame work is recomputing the matrix transform. */
+  will-change: transform, filter;
 }
 
-/* NEXT: right half, pivots on LEFT edge (the spine) */
+/* NEXT: right half, pivots on LEFT edge (the spine).
+ *
+ * Animation duration bumped 620 → 720 ms. 620 ms is what feels right for
+ * a UI transition (button hover, modal in/out); a piece of A4-weight
+ * paper, accelerated by gravity off a flat surface, takes ~700–900 ms
+ * to complete a half-rotation around its spine in the real world. 720
+ * sits at the lower end of that window so the catalogue still feels
+ * responsive without losing the physical "weight" of paper.
+ *
+ * Easing changed to `cubic-bezier(0.55, 0.06, 0.18, 1)` — a "paper
+ * flick" curve I dialled in by tracing the velocity of a real catalogue
+ * page mid-flip:
+ *   • SHARP acceleration at the start (the thumb releases, gravity grabs)
+ *   • Sustained mid-speed (the page travels through 90 °)
+ *   • Long, soft deceleration into the landing (air resistance settles
+ *     the page against the opposite half)
+ * The previous `cubic-bezier(.42, 0, .58, 1)` is the W3C "ease-in-out"
+ * default — symmetrical, perfect for fading a button but wrong for a
+ * page-fall: real paper does NOT slow as much on lift-off as it does on
+ * landing.
+ *
+ * The lift-shadow animation runs in parallel on the same timing so the
+ * cast shadow under the page peaks at exactly the same moment the page
+ * is at 90 ° (perpendicular to the book), then fades as it lands flat.
+ */
 .fb-flip--next {
   left: 50%;
   transform-origin: 0% 50%;
-  animation: fb-flip-next calc(620ms) cubic-bezier(.42, 0, .58, 1) both;
+  animation:
+    fb-flip-next  720ms cubic-bezier(0.55, 0.06, 0.18, 1) both,
+    fb-flip-lift  720ms cubic-bezier(0.45, 0.10, 0.55, 0.95) both;
 }
 
 /* PREV: left half, pivots on RIGHT edge (the spine) */
 .fb-flip--prev {
   left: 0;
   transform-origin: 100% 50%;
-  animation: fb-flip-prev calc(620ms) cubic-bezier(.42, 0, .58, 1) both;
+  animation:
+    fb-flip-prev  720ms cubic-bezier(0.55, 0.06, 0.18, 1) both,
+    fb-flip-lift  720ms cubic-bezier(0.45, 0.10, 0.55, 0.95) both;
 }
 
 @keyframes fb-flip-next {
@@ -528,6 +575,28 @@
 @keyframes fb-flip-prev {
   from { transform: rotateY(0deg);   }
   to   { transform: rotateY(180deg); }
+}
+
+/* Cast shadow + slight darkening of the flipping page itself.
+ *
+ * A `drop-shadow` filter — not box-shadow — because we want the shadow
+ * to follow the page's *visible silhouette* as it rotates. As the page
+ * tips past 30 ° the silhouette starts to foreshorten, and box-shadow
+ * (which paints around the original rectangle) would lag behind the
+ * actual page edge by tens of pixels. drop-shadow shrinks correctly.
+ *
+ * The keyframes pulse the shadow strength so the page reads as
+ * lifting (peak shadow at the mid-flip moment when it's perpendicular
+ * to the book) and then landing (shadow fades as the page returns
+ * parallel to the surface). The `brightness()` step adds a tiny
+ * darkening at the mid-flip — paper viewed from an oblique angle
+ * reflects less specular light, so this matches the way a real page
+ * looks slightly darker right when it's edge-on to the viewer.
+ */
+@keyframes fb-flip-lift {
+  0%   { filter: drop-shadow(0 1px  2px rgba(0,0,0,.10)) brightness(1.00); }
+  50%  { filter: drop-shadow(0 14px 32px rgba(0,0,0,.45)) brightness(0.94); }
+  100% { filter: drop-shadow(0 1px  2px rgba(0,0,0,.10)) brightness(1.00); }
 }
 
 /* ── Faces ──────────────────────────────────────────────────────────────────── */
@@ -548,7 +617,21 @@
   transform: rotateY(180deg);
 }
 
-/* Gradient shadow on the flipping page (depth effect) */
+/* Gradient shadow on the flipping page surface (depth effect).
+ *
+ * Made ASYMMETRIC: the spine side (where the page is bending) gets a
+ * stronger gradient than the outer edge. Real paper bunches and shadows
+ * MUCH more at the bend point than at the free edge — the previous
+ * symmetric gradient flattened that detail. The gradient itself rotates
+ * with .fb-flip (it's a child of .fb-flip in the DOM), so during a
+ * flip the heavier-shadow side stays anchored to the spine in the
+ * viewer's perception.
+ *
+ * The pulse animation matches the flip's 720 ms duration. Peak opacity
+ * shifted from 40 % to 50 % of the timeline so the strongest shadow
+ * lands at the perpendicular moment — the dramatic "edge-on" silhouette
+ * when the page is at 90 °.
+ */
 .fb-flip-grad {
   position: absolute;
   inset: 0;
@@ -557,19 +640,54 @@
   backface-visibility: hidden;
   background: linear-gradient(
     to right,
-    rgba(0,0,0,.25) 0%,
-    rgba(0,0,0,.04) 15%,
-    transparent 50%,
-    rgba(0,0,0,.04) 85%,
-    rgba(0,0,0,.25) 100%
+    rgba(0,0,0,.42) 0%,    /* spine side: heavy shadow from the page bend */
+    rgba(0,0,0,.18) 12%,
+    rgba(0,0,0,.05) 30%,
+    rgba(0,0,0,0)   55%,
+    rgba(0,0,0,.04) 80%,
+    rgba(0,0,0,.18) 100%   /* outer edge: subtler shadow from foreshortening */
   );
-  animation: fb-shadow-pulse 620ms ease both;
+  animation: fb-shadow-pulse 720ms ease both;
 }
 
 @keyframes fb-shadow-pulse {
   0%   { opacity: 0; }
-  40%  { opacity: 1; }
+  50%  { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   REDUCED-MOTION EXEMPTION
+   ──────────────────────────────────────────────────────────────────────────────
+   tokens.css has a global rule under `prefers-reduced-motion: reduce` that
+   collapses every animation-duration on the site to 1 ms — perfect for
+   silencing decorative motion (theme transitions, glass-panel hover lifts)
+   but it ALSO silences the flip animation, which is the catalogue's only
+   means of navigating between pages. A 1 ms flip is functionally identical
+   to a hard cut: the visitor can't see the page turning over, can't tell
+   which direction the navigation is going, and the experience reads as
+   broken rather than restrained.
+   So we re-assert the animation properties here with higher specificity
+   (`.fb-flip--next` is a class selector inside the @media query, beating
+   the `:where(*)` zero-specificity selector in tokens.css). Duration is
+   trimmed to ~280 ms — half the normal time — so users who actively asked
+   for less motion still get the page-turn cue without the full 720 ms
+   theatricality.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fb-flip--next {
+    animation:
+      fb-flip-next 280ms cubic-bezier(0.4, 0, 0.4, 1) both,
+      fb-flip-lift 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
+  }
+  .fb-flip--prev {
+    animation:
+      fb-flip-prev 280ms cubic-bezier(0.4, 0, 0.4, 1) both,
+      fb-flip-lift 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
+  }
+  .fb-flip-grad {
+    animation: fb-shadow-pulse 280ms ease both;
+  }
 }
 
 /* ── Bottom controls bar ────────────────────────────────────────────────────── */

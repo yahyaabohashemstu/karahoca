@@ -74,7 +74,13 @@ function clampPan(
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const FLIP_MS      = 620;
+// FLIP_MS MUST equal the `animation-duration` on `.fb-flip--next` /
+// `.fb-flip--prev` in flipbook.css. The component sets isFlipping=true,
+// waits FLIP_MS, then commits the new spread and unmounts the .fb-flip
+// overlay. If the CSS duration is longer than FLIP_MS the overlay
+// disappears mid-flip and the page snaps; if shorter, the overlay
+// lingers as a freeze-frame after the animation completes.
+const FLIP_MS      = 720;
 const MIN_ZOOM     = 0.5;
 const MAX_ZOOM     = 3.0;
 const ZOOM_STEP    = 0.15;
