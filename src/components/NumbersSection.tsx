@@ -248,6 +248,41 @@ const NumbersSection: React.FC = () => {
     };
   }, [isMobile]);
 
+  // Shared layout for the SVG illustrations sitting on top of every KPI card.
+  // Each card used to wrap its image in a 180 × 204 px box with a hard-coded
+  // oversize image (world-map.svg 400 × 280, rate.svg 320 × 230). On desktop
+  // `.animation-container` is only 260 px wide, so the image overflowed by
+  // 60–140 px each side and `overflow: hidden` clipped the result at the
+  // rounded card edge — the user-visible symptom was the smiley + stars
+  // illustration's horizontal blue rules running flush to / past the card's
+  // rounded corners on the desktop home page (and the same effect on the
+  // world map's outer continents).
+  //
+  // The new pattern lets each illustration scale RESPONSIVELY to the
+  // `.animation-container` content width:
+  //   • Wrapper: `calc(100 % − 24 px)` → 12 px of breathing room on each
+  //              side so the artwork has a visible margin against the
+  //              card frame instead of bleeding into it.
+  //   • Image:   `width: 100 %`, `height: auto`. SVGs keep their viewBox
+  //              aspect ratio, so the illustration renders at roughly
+  //              236 × (236 / ratio) px on desktop instead of a static
+  //              320 / 400 px.
+  // `objectFit: contain` stays as a no-op safeguard if a future asset is
+  // swapped for a raster image.
+  const illustrationWrapperStyle: React.CSSProperties = {
+    width: 'calc(100% - 24px)',
+    margin: '24px auto 0',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  };
+  const illustrationImageStyle: React.CSSProperties = {
+    width: '100%',
+    height: 'auto',
+    objectFit: 'contain',
+    display: 'block',
+  };
+
   return (
     <section
       ref={sectionRef}
@@ -264,28 +299,13 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container" id="animationContainer">
             <div className="spotlight"></div>
-            <div
-              style={{
-                width: '180px',
-                height: '204px',
-                margin: 'auto',
-                marginTop: '18px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
+            <div style={illustrationWrapperStyle}>
               <img
                 src="/world-map.svg"
                 alt={t('numbers.worldMapAlt')}
                 loading="lazy"
                 decoding="async"
-                style={{
-                  width: '400px',
-                  height: '280px',
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
+                style={illustrationImageStyle}
               />
             </div>
             
@@ -365,28 +385,13 @@ const NumbersSection: React.FC = () => {
         <div className="main-container">
           <div className="animation-container">
             <div className="spotlight"></div>
-            <div
-              style={{
-                width: '180px',
-                height: '204px',
-                margin: 'auto',
-                marginTop: '18px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
+            <div style={illustrationWrapperStyle}>
               <img
                 src="/rate.svg"
                 alt={t('numbers.satisfactionAlt')}
                 loading="lazy"
                 decoding="async"
-                style={{
-                  width: '320px',
-                  height: '230px',
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
+                style={illustrationImageStyle}
               />
             </div>
             
