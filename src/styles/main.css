@@ -5615,10 +5615,19 @@ body.light-mode .catalog-print-trigger {
     aspect-ratio: 16 / 9;
   }
 
+  /* Hero photo on mobile.
+     Switched from `contain` to `cover` so the image fills the rounded
+     `.card-3d__inner` frame edge-to-edge (no letterbox bands of glass-
+     panel background showing above and below the photo). The historical
+     reasoning for `contain` was preserving a brand wordmark inside the
+     image; the current asset (`/KARAHOCA-1-newPhoto.webp`) is a
+     wordmark-free factory exterior, so cover's mild top/bottom crop
+     of sky / foreground is harmless and gives the card a far more
+     polished, edge-to-edge composition. */
   .card-3d__inner img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
   }
 
   .hero-orb {
