@@ -321,11 +321,23 @@
 
      /* استجابة للشاشات الصغيرة */
      @media (max-width: 768px) {
+         /* CRITICAL: `width: 90vw` was reaching OUTSIDE the parent.
+            The card chain is .container (16 px each side) → .kpis →
+            .main-container (16 px each side), eating 64 px of viewport
+            before this element gets to grow. On a 390 px iPhone, 90vw
+            is 351 px but the available content width is only 326 px —
+            a 25 px overflow that made the card visibly clip past the
+            viewport's right edge (see mobile audit Phase 7).
+            Fix: fill the parent (`100 %`) and cap at 360 px on tablets;
+            `aspect-ratio: 1 / 1` keeps the square shape without needing
+            an explicit `height: 90vw` that would mirror the overflow. */
          .animation-container {
-             width: 90vw;
-             height: 90vw;
-             max-width: 500px;
-             max-height: 500px;
+             width: 100%;
+             max-width: 360px;
+             aspect-ratio: 1 / 1;
+             height: auto;
+             max-height: none;
+             margin-inline: auto;
          }
 
 
@@ -418,9 +430,18 @@
          backdrop-filter: blur(8px);
      }
 
+     /* Mirror of the generic `.animation-container` fix above — the
+        Numbers-section override used the same broken `90vw` recipe and
+        had to be patched in lockstep. `width: 100 %` (of the padded
+        parent) eliminates the right-edge clipping that visitors reported
+        in the "قره خوجة بالأرقام" section; the visual treatment
+        (backdrop-filter, shadow, layer isolation) is preserved. */
      .numbers-section--mobile .animation-container {
-         width: min(90vw, 360px);
-         height: min(90vw, 360px);
+         width: 100%;
+         max-width: 360px;
+         aspect-ratio: 1 / 1;
+         height: auto;
+         margin-inline: auto;
          backdrop-filter: blur(7px);
          box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
          contain: layout paint style;
