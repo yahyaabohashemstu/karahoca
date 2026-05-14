@@ -11,13 +11,27 @@
 #   2. `runtime`  — nginx:alpine serving /usr/share/nginx/html (= dist/).
 #                   See ./nginx.conf for SPA fallback + cache headers.
 #
-# Build-time env:
-#   VITE_BACKEND_URL  — REQUIRED. The frontend is statically compiled
-#                       against this URL, so changing it requires rebuilding.
-#                       Example: https://api.karahoca.com
+# Build-time env (every VITE_* must be declared as ARG + ENV below so
+# Vite can inline its value into the bundle at compile time):
+#
+#   VITE_BACKEND_URL                — REQUIRED. Public API origin. The SPA
+#                                     prefixes every fetch with this. Example:
+#                                     https://api.karahoca.com
+#   VITE_GA_MEASUREMENT_ID          — Optional. GA4 measurement ID
+#                                     (format: G-XXXXXXXXXX). Empty disables
+#                                     all client-side analytics initialisation.
+#   VITE_GA_PROPERTY_ID             — Optional. Numeric GA4 property ID used
+#                                     by the admin /admin/analytics dashboard
+#                                     (format: 123456789 — digits only).
+#   VITE_SENTRY_DSN                 — Optional. Sentry browser SDK DSN. Empty
+#                                     disables Sentry client init.
+#   VITE_SENTRY_TRACES_SAMPLE_RATE  — Optional. Float 0.0–1.0; default 0.1.
+#   VITE_APP_VERSION                — Optional. Stamped onto Sentry events.
+#   VITE_CATALOG_BASE_URL           — Optional. CDN origin for /Catalog/*.
 #
 # Build:  docker build -f web/Dockerfile \
 #                      --build-arg VITE_BACKEND_URL=https://api.karahoca.com \
+#                      --build-arg VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX \
 #                      -t karahoca-web:latest .
 # Run:    docker run -p 8080:80 karahoca-web:latest
 # ═══════════════════════════════════════════════════════════════════════════
@@ -48,9 +62,36 @@ RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 
-# VITE_* must be ARGs so they reach `vite build` as compile-time constants.
+# Every VITE_* must be declared as `ARG` AND re-exported as `ENV` so it
+# reaches `vite build` further down. The ARG line ALONE lets `docker build
+# --build-arg` accept the value, but Vite reads `process.env`; without the
+# matching `ENV` line the variable is silently dropped between the build-arg
+# stage and the `RUN npx vite build` stage.
+#
+# Adding a new VITE_* in source code? You MUST add the matching ARG + ENV
+# pair below before re-deploying — otherwise `import.meta.env.VITE_*` will
+# resolve to `undefined` in the production bundle. (Coolify won't warn you;
+# the build-arg gets passed in, the Dockerfile silently rejects it.)
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
+
+ARG VITE_GA_MEASUREMENT_ID
+ENV VITE_GA_MEASUREMENT_ID=${VITE_GA_MEASUREMENT_ID}
+
+ARG VITE_GA_PROPERTY_ID
+ENV VITE_GA_PROPERTY_ID=${VITE_GA_PROPERTY_ID}
+
+ARG VITE_SENTRY_DSN
+ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+
+ARG VITE_SENTRY_TRACES_SAMPLE_RATE
+ENV VITE_SENTRY_TRACES_SAMPLE_RATE=${VITE_SENTRY_TRACES_SAMPLE_RATE}
+
+ARG VITE_APP_VERSION
+ENV VITE_APP_VERSION=${VITE_APP_VERSION}
+
+ARG VITE_CATALOG_BASE_URL
+ENV VITE_CATALOG_BASE_URL=${VITE_CATALOG_BASE_URL}
 
 # Vite build pipeline minus prerender (prerender needs a running backend).
 RUN npx tsc -b \
