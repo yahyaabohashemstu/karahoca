@@ -24,6 +24,15 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   timestamp: string;
+  /**
+   * True while an assistant message is still receiving streamed tokens
+   * from the backend. The MessageList component renders a blinking cursor
+   * at the end of streaming messages and suppresses the "loading dots"
+   * indicator (which is only shown when no assistant slot has been
+   * committed yet). The field is omitted on completed messages and on
+   * every user message — both equivalent to `false`.
+   */
+  streaming?: boolean;
 }
 
 /**
@@ -1082,7 +1091,14 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         try {
           response = await apiFetch('/api/ai/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              // Opt into the streaming response path on the backend.
+              // The server falls back to JSON if this header is missing,
+              // so older callers (curl smoke tests, server-to-server
+              // probes) still get the legacy shape.
+              Accept: 'text/event-stream',
+            },
             body: JSON.stringify({
               prompt,
               lang: replyLang,
@@ -1103,13 +1119,138 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           );
         }
 
-        const payload = await response.json();
-        const assistantReply = typeof payload?.reply === 'string' ? payload.reply.trim() : '';
+        // ── Streaming pipeline ─────────────────────────────────────────
+        //
+        // The server emits a sequence of named Server-Sent Events:
+        //
+        //   event: start  data: {}                       (connection opens)
+        //   event: chunk  data: { "text": "<delta>" }    (0..N times)
+        //   event: done   data: { "reply": "<full>",     (terminal success)
+        //                          "cached"?: true }
+        //   event: error  data: { "error": "..." }       (terminal failure)
+        //
+        // We commit the assistant slot to local state IMMEDIATELY on the
+        // 'start' event (or on the first 'chunk' if 'start' is missed) so
+        // the visitor sees a live-updating bubble rather than a "loading
+        // dots" indicator. Each 'chunk' appends to that slot's content;
+        // 'done' finalises it (apply WhatsApp-link rewriter, drop the
+        // streaming flag); 'error' throws to fall into the catch block,
+        // which renders the connection-error fallback.
+        //
+        // SSE wire format: events are separated by a blank line (`\n\n`),
+        // each event has `event: <name>` and `data: <json>` lines. We
+        // accumulate the raw stream into a `buffer`, split on `\n\n`,
+        // keep the last (possibly incomplete) frame for the next read.
+        const assistantMessageId = `assistant-${Date.now()}`;
+        let assistantCommitted = false;
+        let streamedText = '';
+
+        const commitAssistantSlot = () => {
+          if (assistantCommitted) return;
+          assistantCommitted = true;
+          setIsLoading(false); // hand off from "dots" → streaming bubble
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: '',
+              timestamp: formatTimestamp(replyLang),
+              streaming: true,
+            },
+          ]);
+        };
+
+        const appendDelta = (delta: string) => {
+          streamedText += delta;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? { ...m, content: streamedText }
+                : m,
+            ),
+          );
+        };
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Streaming response body is unavailable');
+        }
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalReply = '';
+        let receivedError: string | null = null;
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const frames = buffer.split('\n\n');
+            buffer = frames.pop() || '';
+
+            for (const frame of frames) {
+              let eventName = 'message';
+              const dataLines: string[] = [];
+              for (const line of frame.split('\n')) {
+                if (line.startsWith('event: ')) eventName = line.slice(7).trim();
+                else if (line.startsWith('data: ')) dataLines.push(line.slice(6));
+              }
+              if (dataLines.length === 0) continue;
+              const payload = dataLines.join('\n');
+
+              let parsed: { text?: string; reply?: string; error?: string };
+              try {
+                parsed = JSON.parse(payload);
+              } catch {
+                continue; // keepalive or malformed line — skip
+              }
+
+              switch (eventName) {
+                case 'start':
+                  commitAssistantSlot();
+                  break;
+                case 'chunk':
+                  commitAssistantSlot();
+                  if (typeof parsed.text === 'string') appendDelta(parsed.text);
+                  break;
+                case 'done':
+                  if (typeof parsed.reply === 'string' && parsed.reply.length > streamedText.length) {
+                    // The server always sends 'done' with the full reply
+                    // text; if we somehow missed deltas (race / dropped
+                    // packets), reconcile from the canonical version.
+                    streamedText = parsed.reply;
+                  }
+                  finalReply = streamedText;
+                  break;
+                case 'error':
+                  receivedError = typeof parsed.error === 'string' ? parsed.error : 'AI stream error';
+                  break;
+                default:
+                  // Unknown event — forward-compatible silent ignore.
+                  break;
+              }
+            }
+          }
+        } finally {
+          try { reader.releaseLock(); } catch { /* already released */ }
+        }
+
+        if (receivedError) {
+          throw new Error(receivedError);
+        }
+
+        const assistantReply = finalReply.trim();
 
         if (!assistantReply) {
-          // AI returned an empty body. Show the fallback to the user AND
-          // log it as a synthetic assistant turn so the admin Chat
-          // History reflects what the customer actually experienced.
+          // Stream completed with no content (cache miss + empty model
+          // response, or a 0-token quota). Roll back the empty bubble
+          // and surface the fallback so the customer isn't staring at
+          // an empty cell.
+          if (assistantCommitted) {
+            setMessages((prev) => prev.filter((m) => m.id !== assistantMessageId));
+          }
           const sid = ++statusIdRef.current;
           setStatusMessage(uiText.noAnswerFallback);
           setTimeout(() => { if (statusIdRef.current === sid) setStatusMessage(null); }, 8000);
@@ -1127,16 +1268,28 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           return;
         }
 
+        // Post-process (phone numbers → WhatsApp links). Done ONCE at the
+        // end, not on every delta — partial-text regex matches would
+        // be wasted work and could create torn link tags mid-stream.
         const replyContent = withWhatsAppLinks(assistantReply);
         const assistantMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
+          id: assistantMessageId,
           role: 'assistant',
           content: replyContent,
           timestamp: formatTimestamp(replyLang),
         };
 
+        // Finalise: drop streaming flag, commit cleaned content.
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantMessageId ? assistantMessage : m)),
+        );
+
+        // Build the "current conversation" snapshot the rest of the code
+        // already expected. The existing local state at this point is
+        // [...oldMessages, userMessage, assistantMessage] — same shape
+        // the JSON-path code used to commit via setMessages(...).
         const updatedConversation = [...messages, userMessage, assistantMessage];
-        setMessages(updatedConversation);
+
         // Log ONLY the assistant message — the user message was already
         // queued above. Keeping them as separate batches means even if
         // one log POST fails the other still lands on its own.

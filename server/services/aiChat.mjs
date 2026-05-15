@@ -164,7 +164,36 @@ const buildHistoryMessages = (history, currentPrompt) => {
   return cleaned;
 };
 
-export const generateAiReply = async ({ prompt, lang, history }) => {
+/**
+ * Stream a reply token-by-token from OpenRouter.
+ *
+ * Why a separate streaming function (vs. the legacy collect-and-return
+ * `generateAiReply`):
+ *   • UX — visitor sees text appearing live (200-400 ms to first byte)
+ *     instead of staring at a "…" indicator for 3-5 seconds.
+ *   • Cost — server can abort mid-stream if the client disconnects,
+ *     saving OpenRouter tokens that would otherwise be paid for.
+ *   • Foundation — Phase 3 (function calling) needs streaming because
+ *     tool-call deltas arrive interleaved with text deltas; you can't
+ *     bolt that onto a non-streaming response.
+ *
+ * Protocol: OpenRouter speaks the standard OpenAI SSE-over-HTTP form —
+ * `data: {…json…}\n\n` chunks terminated by `data: [DONE]`. Each JSON
+ * carries `choices[0].delta.content` for plain text deltas. We surface
+ * each non-empty delta via the `onChunk` callback (a synchronous
+ * callback by design — async would buffer the whole stream defeating
+ * the purpose) and accumulate the full reply for caching downstream.
+ *
+ * If `onChunk` is omitted, the function still works — it just collects
+ * the text without notifying anyone. That's the "non-streaming" path,
+ * preserved here so `generateAiReply` below can stay a one-liner
+ * delegate.
+ *
+ * Aborts: pass an AbortSignal in `signal`; the fetch + reader honour
+ * it and propagate as an AbortError, which the caller should swallow
+ * silently (the client closed the chat).
+ */
+export const streamAiReply = async ({ prompt, lang, history, onChunk, signal }) => {
   if (!openrouterApiKey) {
     const error = new Error('OPENROUTER_API_KEY is not configured on the server.');
     error.statusCode = 500;
@@ -176,11 +205,6 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
     throw error;
   }
 
-  // Build the messages array sent to OpenRouter. The SYSTEM_PROMPT
-  // establishes identity, language, and behaviour rules ONCE; the
-  // history (if any) supplies multi-turn context as proper role-tagged
-  // turns instead of a flat text dump in the user prompt; the current
-  // user message carries the knowledge-enriched payload.
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...buildHistoryMessages(history, prompt),
@@ -198,13 +222,16 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
     body: JSON.stringify({
       model: AI_MODEL,
       messages,
+      stream: true,
       temperature: 0.7,
       top_p: 0.95,
       max_tokens: 1024,
     }),
+    signal,
   });
 
   if (!aiResponse.ok) {
+    // Errors come back as a regular non-stream body even with stream:true.
     const rawError = await aiResponse.text();
     logger.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
     const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
@@ -212,14 +239,69 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
     throw error;
   }
 
-  const payload = await aiResponse.json();
-  const reply = extractModelText(payload);
-  if (!reply) {
+  const reader = aiResponse.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE frames are separated by blank lines (\n\n). Split, keep the
+      // last (possibly incomplete) frame in the buffer for the next read.
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+
+      for (const frame of frames) {
+        // Each frame may contain multiple `data:` lines + comment lines.
+        // We concatenate them per OpenAI spec (multi-line data).
+        const dataLines = frame
+          .split('\n')
+          .filter((line) => line.startsWith('data: '))
+          .map((line) => line.slice(6));
+        if (dataLines.length === 0) continue;
+
+        const payload = dataLines.join('\n');
+        if (payload === '[DONE]') {
+          return { success: true, reply: fullText };
+        }
+
+        try {
+          const parsed = JSON.parse(payload);
+          const delta = parsed?.choices?.[0]?.delta?.content;
+          if (typeof delta === 'string' && delta.length > 0) {
+            fullText += delta;
+            if (onChunk) onChunk(delta);
+          }
+        } catch {
+          // ignore — keepalive comments / malformed line are best-effort
+        }
+      }
+    }
+  } finally {
+    try { reader.releaseLock?.(); } catch { /* node fetch reader has no-op */ }
+  }
+
+  if (!fullText) {
     const error = new Error('AI model returned an empty response.');
     error.statusCode = 502;
     throw error;
   }
-  return { success: true, reply };
+  return { success: true, reply: fullText };
+};
+
+/**
+ * Non-streaming wrapper around `streamAiReply` — kept as a thin delegate so
+ * existing callers (e.g. server-side cache pre-warm scripts, future test
+ * harnesses) don't need to set up an `onChunk` handler. The body is exactly
+ * the same network call; we just don't relay deltas to anyone.
+ */
+export const generateAiReply = async ({ prompt, lang, history }) => {
+  return streamAiReply({ prompt, lang, history });
 };
 
 // ─── AI response cache (Redis-backed, 24-hour TTL) ──────────────────────────

@@ -22,48 +22,70 @@ interface MessageListProps {
  */
 const MessageListComponent: React.FC<MessageListProps> = ({ messages, isLoading, loadingLabel, endRef }) => (
   <div className="ai-assistant__messages" role="log">
-    {messages.map((message) => (
-      <div
-        key={message.id}
-        className={`ai-assistant__message ai-assistant__message--${message.role}`}
-        data-message-id={message.id}
-      >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p: ({ children, ...props }) => {
-              const text = String(children);
-              const hasArabic = /[\u0600-\u06FF]/.test(text);
-              return (
-                <p
-                  {...props}
-                  dir={hasArabic ? 'rtl' : 'ltr'}
-                  style={{ textAlign: hasArabic ? 'right' : 'left' }}
-                >
-                  {children}
-                </p>
-              );
-            },
-            a: ({ ...props }) => (
-              <a
-                {...props}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: '#25D366',
-                  textDecoration: 'underline',
-                  direction: 'ltr',
-                  unicodeBidi: 'plaintext',
-                }}
-              />
-            ),
-          }}
+    {messages.map((message) => {
+      const isStreaming = message.streaming === true;
+      // While the assistant message is still receiving stream chunks, the
+      // content may be empty for a few frames between `start` and the first
+      // `chunk`. Showing the pulsing cursor on its own keeps the bubble
+      // from looking like an empty placeholder; once tokens arrive the
+      // cursor sits at the tail of the text. The cursor is rendered as a
+      // sibling of the markdown so it never disrupts the prose flow or
+      // the per-paragraph dir detection.
+      return (
+        <div
+          key={message.id}
+          className={`ai-assistant__message ai-assistant__message--${message.role}${isStreaming ? ' ai-assistant__message--streaming' : ''}`}
+          data-message-id={message.id}
+          aria-busy={isStreaming || undefined}
         >
-          {message.content}
-        </ReactMarkdown>
-        <span className="ai-assistant__timestamp">{message.timestamp}</span>
-      </div>
-    ))}
+          {message.content.length > 0 && (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children, ...props }) => {
+                  const text = String(children);
+                  const hasArabic = /[\u0600-\u06FF]/.test(text);
+                  return (
+                    <p
+                      {...props}
+                      dir={hasArabic ? 'rtl' : 'ltr'}
+                      style={{ textAlign: hasArabic ? 'right' : 'left' }}
+                    >
+                      {children}
+                    </p>
+                  );
+                },
+                a: ({ ...props }) => (
+                  <a
+                    {...props}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#25D366',
+                      textDecoration: 'underline',
+                      direction: 'ltr',
+                      unicodeBidi: 'plaintext',
+                    }}
+                  />
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          )}
+          {isStreaming && (
+            <span
+              className="ai-assistant__stream-cursor"
+              aria-hidden="true"
+              aria-label={loadingLabel}
+            />
+          )}
+          {!isStreaming && (
+            <span className="ai-assistant__timestamp">{message.timestamp}</span>
+          )}
+        </div>
+      );
+    })}
 
     {isLoading && (
       <div className="ai-assistant__message ai-assistant__message--assistant">
