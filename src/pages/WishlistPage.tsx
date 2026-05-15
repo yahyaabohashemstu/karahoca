@@ -8,6 +8,7 @@ import SEO from '../components/SEO';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { toWebp } from '../utils/image';
+import { whatsAppShareProductUrl } from '../utils/whatsapp';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
 const L = {
@@ -106,11 +107,11 @@ function buildWaUrl(item: WishlistItem): string {
   const brandPath = item.brand === 'DIOX' ? 'diox' : 'aylux';
   const base = `${window.location.origin}/${brandPath}`;
   const productUrl = item.productDbId ? `${base}#${item.productDbId}` : base;
-  const desc = item.description
-    ? item.description.slice(0, 130) + (item.description.length > 130 ? '…' : '')
-    : '';
-  const text = `🧹 *${item.name}*${desc ? '\n' + desc : ''}\n\n🔗 ${productUrl}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return whatsAppShareProductUrl({
+    name: item.name,
+    description: item.description,
+    url: productUrl,
+  });
 }
 
 /* ─── Popup component ────────────────────────────────────────────────────── */

@@ -159,7 +159,10 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
 
       <LazyAIChatWidget />
       <ThemeToggle />
-      <WhatsAppButton phoneNumber="905305914990" />
+      {/* No props — the button uses the shared `whatsAppGeneralInquiryUrl`
+          helper internally, which picks the right phone number and a
+          localised opener message based on the active UI language. */}
+      <WhatsAppButton />
     </>
   );
 };

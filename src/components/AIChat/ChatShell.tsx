@@ -65,6 +65,7 @@ const ChatShellComponent: React.FC<ChatShellProps> = ({
       isLoading={isLoading}
       loadingLabel={uiText.loadingLabel}
       productCardLabels={uiText.productCard}
+      lang={currentLang}
       endRef={messagesEndRef}
     />
 

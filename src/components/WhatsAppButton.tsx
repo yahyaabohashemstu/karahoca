@@ -1,28 +1,47 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { trackWhatsAppClick } from '../utils/analytics';
+import { whatsAppGeneralInquiryUrl } from '../utils/whatsapp';
 import './WhatsAppButton.css';
 
 interface WhatsAppButtonProps {
+  /**
+   * Optional override for the destination phone number. Defaults to the
+   * KARAHOCA number baked into the shared `whatsapp` util — pass this
+   * only when the parent has a deliberate reason to send the chat
+   * elsewhere (none in the current codebase).
+   */
   phoneNumber?: string;
+  /**
+   * Optional override for the pre-filled message. Leave undefined and
+   * the shared util builds a friendly opener in the active UI language
+   * — the right default for the floating button on every page.
+   */
   message?: string;
 }
 
-const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ 
-  phoneNumber = '905305914990',
-  message
+const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
+  phoneNumber,
+  message,
 }) => {
-  const { t } = useTranslation();
-  const defaultMessage = message || t('whatsapp.message');
-  
-  // زر الواتساب دائماً ظاهر من بداية الصفحة
+  const { t, i18n } = useTranslation();
 
   const handleClick = () => {
-    // تتبع النقر على زر WhatsApp
     trackWhatsAppClick();
-    
-    const encodedMessage = encodeURIComponent(defaultMessage);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    // Default path: the shared util encodes a friendly opener in the
+    // active UI language. Override path: caller-supplied phone /
+    // message are encoded inline for backwards-compatibility with any
+    // external embed that still passes them.
+    let whatsappUrl: string;
+    if (phoneNumber || message) {
+      const fallbackPhone = phoneNumber || '905305914990';
+      const fallbackMsg = message || '';
+      whatsappUrl = `https://wa.me/${fallbackPhone}?text=${encodeURIComponent(fallbackMsg)}`;
+    } else {
+      whatsappUrl = whatsAppGeneralInquiryUrl(i18n.language);
+    }
+
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 

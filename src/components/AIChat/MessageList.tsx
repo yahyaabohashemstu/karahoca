@@ -17,6 +17,12 @@ interface MessageListProps {
    *     grid and the label is unused.
    */
   productCardLabels: { view: string; whatsapp: string; similarLabel: string };
+  /**
+   * Active chat language (`ar` / `en` / `tr` / `ru`). Forwarded to each
+   * ProductCardInline so its WhatsApp pre-fill matches the language of
+   * the conversation.
+   */
+  lang: string;
   /** Ref for the sentinel div at the bottom of the list (auto-scroll anchor). */
   endRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -35,6 +41,7 @@ const MessageListComponent: React.FC<MessageListProps> = ({
   isLoading,
   loadingLabel,
   productCardLabels,
+  lang,
   endRef,
 }) => (
   <div className="ai-assistant__messages" role="log">
@@ -135,6 +142,7 @@ const MessageListComponent: React.FC<MessageListProps> = ({
                       product={primary}
                       viewLabel={productCardLabels.view}
                       whatsappLabel={productCardLabels.whatsapp}
+                      lang={lang}
                     />
                   </div>
                 )}
@@ -160,6 +168,7 @@ const MessageListComponent: React.FC<MessageListProps> = ({
                             product={p}
                             viewLabel={productCardLabels.view}
                             whatsappLabel={productCardLabels.whatsapp}
+                            lang={lang}
                           />
                         </div>
                       ))}

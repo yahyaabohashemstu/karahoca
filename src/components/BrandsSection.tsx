@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from './ImageWithFallback';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
+import { whatsAppCustomOrderUrl } from '../utils/whatsapp';
 
 /* ─── Real partner logos ──────────────────────────────────────────────────── */
 const PARTNERS: { name: string; logo: string; fallbackLogo: string; featured?: boolean }[] = [
@@ -16,7 +17,7 @@ const PARTNERS: { name: string; logo: string; fallbackLogo: string; featured?: b
 ];
 
 const BrandsSection: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { lp } = useLocalizedPath();
 
   return (
@@ -78,7 +79,7 @@ const BrandsSection: React.FC = () => {
             <h3 className="brands-partner-title">{t('customOrder.title')}</h3>
             <p className="brands-partner-desc">{t('customOrder.description')}</p>
             <a
-              href="https://wa.me/905305914990"
+              href={whatsAppCustomOrderUrl(i18n.language)}
               target="_blank"
               rel="noopener noreferrer"
               className="brands-partner-cta brands-partner-cta--whatsapp"

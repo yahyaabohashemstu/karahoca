@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
+import { whatsAppShareProductUrl } from '../../utils/whatsapp';
 import type { ProductInfo } from './types';
 
 interface ProductModalProps {
@@ -10,9 +11,12 @@ interface ProductModalProps {
 }
 
 /**
- * Build a WhatsApp share URL for a product. Appends the product id as a URL
- * fragment so the recipient opening the link lands directly on the correct
- * modal via the BrandPage deep-link handler.
+ * Build a WhatsApp share URL for a product. Appends the product id as a
+ * URL fragment so the recipient opening the link lands directly on the
+ * correct modal via the BrandPage deep-link handler. Delegates the
+ * actual encoding to the shared `whatsAppShareProductUrl` so every
+ * product-share URL across the app uses the same format AND the same
+ * paren-safe encoder.
  */
 const buildWhatsAppUrl = (
   productName: string,
@@ -20,13 +24,13 @@ const buildWhatsAppUrl = (
   pageUrl: string,
   productId?: string,
 ): string => {
-  const desc = productDesc
-    ? productDesc.slice(0, 130) + (productDesc.length > 130 ? '…' : '')
-    : '';
   const base = pageUrl.split('#')[0];
   const productUrl = productId ? `${base}#${productId}` : base;
-  const text = `🧹 *${productName}*${desc ? '\n' + desc : ''}\n\n🔗 ${productUrl}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return whatsAppShareProductUrl({
+    name: productName,
+    description: productDesc,
+    url: productUrl,
+  });
 };
 
 /**

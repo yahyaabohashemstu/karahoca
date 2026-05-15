@@ -680,9 +680,30 @@ const getErrorMessage = (error: unknown) => {
 
 // ─── Post-processing: phone numbers → WhatsApp links ──────────────────────
 
-const withWhatsAppLinks = (content: string) => {
-  const whatsappUrl = 'https://wa.me/905305914990';
-  const phonePattern = /(\+?90\s?5\d{2}\s?\d{3}\s?\d{4}|\+?905\d{9}|\+?90 530 591 4990|\+905305914990)/g;
+import { whatsAppGeneralInquiryUrl } from '../utils/whatsapp';
+
+/**
+ * Convert raw KARAHOCA phone numbers inside an assistant reply into
+ * tappable WhatsApp markdown links. Two-step rewrite so existing
+ * markdown links and URLs in the text are NOT clobbered:
+ *
+ *   1. Walk the text against `protectedPattern` and keep markdown links
+ *      / bare URLs verbatim — those already point somewhere intentional.
+ *   2. In the gaps between protected regions, replace any matched
+ *      KARAHOCA phone-number formatting with a markdown link to
+ *      `whatsAppGeneralInquiryUrl(lang)` — the URL carries a localised
+ *      pre-filled message, so tapping a raw phone number in an Arabic
+ *      reply lands on a friendly Arabic opener, a Turkish reply lands
+ *      on Turkish, etc.
+ *
+ * The function still exists because cached replies from before the
+ * server-side contact footer (Phase 11) may contain raw phone numbers
+ * in prose; we want even those legacy bubbles to render with rich
+ * click-to-chat links.
+ */
+const withWhatsAppLinks = (content: string, lang: string) => {
+  const whatsappUrl = whatsAppGeneralInquiryUrl(lang);
+  const phonePattern = /(\+?90\s?5\d{2}\s?\d{3}\s?\d{4}|\+?905\d{9}|\+?90 530 591 4990|\+?90 530 591 49 90|\+905305914990)/g;
   const protectedPattern = /!\[[^\]]*?\]\([^)]+\)|\[[^\]]+?\]\([^)]+\)|https?:\/\/[^\s)]+/g;
 
   const replacePhones = (text: string) =>
@@ -1400,7 +1421,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         // Post-process (phone numbers → WhatsApp links). Done ONCE at the
         // end, not on every delta — partial-text regex matches would
         // be wasted work and could create torn link tags mid-stream.
-        const replyContent = withWhatsAppLinks(assistantReply);
+        const replyContent = withWhatsAppLinks(assistantReply, replyLang);
         const collectedAttachments: ChatAttachments | undefined =
           collectedProducts.size > 0
             ? { products: Array.from(collectedProducts.values()) }

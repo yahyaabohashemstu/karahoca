@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
+import { whatsAppProductInquiryUrl } from '../../utils/whatsapp';
 import type { ChatProduct } from '../../hooks/useChatState';
 
 interface ProductCardInlineProps {
@@ -10,6 +11,13 @@ interface ProductCardInlineProps {
   viewLabel: string;
   /** Localised label for the "Ask via WhatsApp" CTA. */
   whatsappLabel: string;
+  /**
+   * Active chat language. Threaded through so the WhatsApp pre-fill
+   * matches the language of the conversation (AR for an Arabic chat,
+   * TR for a Turkish chat, etc.) rather than landing on a hardcoded
+   * Arabic message regardless of UI.
+   */
+  lang: string;
 }
 
 /**
@@ -37,13 +45,18 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
   product,
   viewLabel,
   whatsappLabel,
+  lang,
 }) => {
-  // WhatsApp share URL: pre-fills a message with the product name + URL.
-  // We deliberately use the bare hostname rather than the API origin so
-  // the visitor lands on the actual brand page when they tap through
-  // from WhatsApp (the API host serves no HTML).
-  const whatsappMessage = `أهلاً! أودّ الاستفسار عن ${product.name} (${product.brand})\n\nhttps://karahoca.com${product.url}`;
-  const whatsappUrl = `https://wa.me/905305914990?text=${encodeURIComponent(whatsappMessage)}`;
+  // WhatsApp inquiry URL — opener phrase + product name + canonical URL.
+  // Delegated to the shared `whatsAppProductInquiryUrl` helper so the
+  // pre-filled message matches the active chat language (AR / EN / TR /
+  // RU), uses the canonical phone number constant, and is encoded with
+  // the paren-safe encoder that all wa.me builders in the app share.
+  const whatsappUrl = whatsAppProductInquiryUrl(lang, {
+    name: product.name,
+    brand: product.brand,
+    url: `https://karahoca.com${product.url}`,
+  });
 
   const brandColor = product.brand === 'DIOX' ? '#153D7A' : '#F54B1A';
 
