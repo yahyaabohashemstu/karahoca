@@ -1,5 +1,7 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
+import ImageWithFallback from '../ImageWithFallback';
+import { toWebp } from '../../utils/image';
 import type { ChatProduct } from '../../hooks/useChatState';
 
 interface ProductCardInlineProps {
@@ -53,8 +55,16 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
         aria-label={`${product.name} — ${viewLabel}`}
       >
         {product.image ? (
-          <img
-            src={product.image}
+          // Production builds prune the original .png after generating its
+          // optimised .webp sibling (see `scripts/prune-dist.mjs`), so a
+          // bare `<img src=".../foo.png">` returns 404 in production. We
+          // mirror the brand page's strategy here: request the .webp form
+          // first via `toWebp()`, fall back to the raw .png if the webp
+          // is genuinely missing (e.g. dev environment that hasn't run
+          // the optimise step yet).
+          <ImageWithFallback
+            src={toWebp(product.image)}
+            fallbackSrc={product.image}
             alt={product.name}
             loading="lazy"
             decoding="async"

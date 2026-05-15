@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import Header from '../Header';
 import Footer from '../Footer';
@@ -96,12 +97,29 @@ const BrandPage: React.FC<BrandPageProps> = ({
   catalogImages,
 }) => {
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Deep-link: open the matching product modal on first mount when the URL
-  // carries a product-id hash (WhatsApp share receivers land here).
+  // Deep-link: open the matching product modal whenever the URL hash points
+  // at a product id. Two entry paths exercise this:
+  //
+  //   1. First-mount arrival from an external share (WhatsApp / SMS / etc.)
+  //      — the page mounts WITH the hash set and we need to open the right
+  //      modal on first render.
+  //
+  //   2. In-page hash navigation from the AI chat — the visitor is already
+  //      on the brand page (chat overlays it) and taps "View product" on
+  //      a card. React Router updates `location.hash` WITHOUT remounting
+  //      the BrandPage component. So the effect MUST depend on
+  //      `location.hash`, not just `categories`, otherwise the second
+  //      (and any subsequent) "View product" tap silently does nothing.
+  //
+  // Tied to (2): the modal close handler clears the hash. If we left it
+  // sticky, clicking the SAME "View product" link a second time wouldn't
+  // change `location.hash`, the effect wouldn't re-run, and the modal
+  // would stay closed.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = window.location.hash.slice(1);
+    const hash = location.hash.slice(1);
     if (!hash) return;
     for (const cat of categories) {
       const found = cat.products.find((p) => p.id === hash);
@@ -110,7 +128,7 @@ const BrandPage: React.FC<BrandPageProps> = ({
         break;
       }
     }
-  }, [categories]);
+  }, [categories, location.hash]);
 
   const handleProductOpen = useCallback((product: ProductInfo) => {
     setSelectedProduct(product);
@@ -118,7 +136,14 @@ const BrandPage: React.FC<BrandPageProps> = ({
 
   const handleModalClose = useCallback(() => {
     setSelectedProduct(null);
-  }, []);
+    // Strip the deep-link hash so a subsequent click on ANY product link
+    // (including the same one) re-fires the open effect. Guarded so we
+    // don't push an extra history entry when there was no hash to begin
+    // with (e.g. modal opened via the grid card click, not a deep link).
+    if (location.hash) {
+      navigate(`${location.pathname}${location.search}`, { replace: true });
+    }
+  }, [navigate, location.hash, location.pathname, location.search]);
 
   return (
     <div className={pageClass}>
