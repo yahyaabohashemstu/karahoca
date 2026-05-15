@@ -1,7 +1,7 @@
 import { cacheGet, cacheSet } from '../redisClient.mjs';
 import { buildProductContext, buildCustomQAContext } from '../routes/admin-ai-knowledge.mjs';
 import { logger } from '../utils/logger.mjs';
-import { TOOLS, executeTool } from './aiTools.mjs';
+import { TOOLS, executeTool, hasProductNameMatch } from './aiTools.mjs';
 
 const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
@@ -542,38 +542,53 @@ const detectProductIntent = (rawText) => {
     if (kws.some((kw) => lower.includes(kw))) { brand = b; break; }
   }
 
-  // Two-pass keyword scan so that a sentence containing BOTH a generic
-  // word and a specific category (e.g. "أحتاج منتجاً للحمام") is
-  // classified as SPECIFIC. First-match-wins on a single mixed list
-  // would have stopped at "منتج" (generic) before ever reaching "حمام"
-  // (specific), demoting the visitor's real intent.
-  let categoryHit = null;
+  // Specific intent has two evidence sources, EITHER of which is
+  // sufficient:
+  //
+  //   1. Manual SPECIFIC_CATEGORY_KEYWORDS — high-level category words
+  //      that aren't literally inside any product name (e.g. "تنظيف" /
+  //      "cleaning" — products say "cleaner" not "cleaning"). We need
+  //      a curated list for these because the dynamic vocabulary
+  //      wouldn't include them.
+  //
+  //   2. hasProductNameMatch() — checks the visitor's tokens against
+  //      a self-updating, Arabic-normalised blob of every active
+  //      product name (any language). This covers product types the
+  //      manual list might miss: gel, freshener, oven, stain remover,
+  //      etc. — plus any product added to the catalogue tomorrow.
+  //
+  // First-match-wins inside the manual list, so a sentence containing
+  // both a generic word AND a specific category (e.g. "أحتاج منتجاً
+  // للحمام") still picks the specific one because the manual list
+  // doesn't include generics ("منتج" lives in GENERIC_BROWSE_KEYWORDS).
+  let manualCategoryHit = null;
   for (const kw of SPECIFIC_CATEGORY_KEYWORDS) {
-    if (lower.includes(kw.toLowerCase())) { categoryHit = kw.trim(); break; }
+    if (lower.includes(kw.toLowerCase())) { manualCategoryHit = kw.trim(); break; }
   }
+  const dynamicHit = !manualCategoryHit && hasProductNameMatch(text);
+  const specificHit = Boolean(manualCategoryHit) || dynamicHit;
 
   const genericHit =
-    !categoryHit &&
+    !specificHit &&
     GENERIC_BROWSE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
   const browseHit =
-    !categoryHit && (genericHit || BROWSE_PATTERNS.some((p) => p.test(text)));
+    !specificHit && (genericHit || BROWSE_PATTERNS.some((p) => p.test(text)));
 
-  if (!brand && !categoryHit && !browseHit) return null;
+  if (!brand && !specificHit && !browseHit) return null;
 
   // Query strategy:
-  //   - SPECIFIC question ("مسحوق غسيل عادي"): pass the FULL utterance
-  //     so the multi-token overlap scorer in search_products can
-  //     reward products matching multiple words and pick a clear
-  //     "primary" winner.
+  //   - SPECIFIC question ("مسحوق غسيل عادي", "معطّر هواء", "مزيل بقع"):
+  //     pass the FULL utterance so the multi-token overlap scorer in
+  //     search_products can reward products matching multiple words
+  //     and pick a clear "primary" winner. The scorer ALSO normalises
+  //     Arabic on its side, so diacritic differences between the
+  //     visitor's spelling and the catalogue's spelling don't matter.
   //   - Browse-only ("ما هي منتجاتكم؟") OR brand-only ("ماذا لدى DIOX؟"):
   //     pass an empty query. The empty-query branch in search_products
   //     returns a curated brand slice (top-N by display_order), which
-  //     is the right "here's what we have" response. Sending the full
-  //     utterance for these cases would give 0 word-overlap hits and
-  //     fall through to a LIKE %full utterance% that matches nothing.
-  const isSpecific = Boolean(categoryHit);
+  //     is the right "here's what we have" response.
   return {
-    query: isSpecific ? text : '',
+    query: specificHit ? text : '',
     brand,
     limit: 4,
   };

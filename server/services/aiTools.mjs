@@ -119,6 +119,35 @@ const formatProduct = (row, lang, extras = {}) => {
   return out;
 };
 
+// ── Arabic-tolerant normalisation ───────────────────────────────────────
+//
+// Arabic visitors don't all spell consistently:
+//   - "معطّر" (with shadda) vs "معطر"  — same word morphologically
+//   - "إيلوكس" vs "ايلوكس" vs "أيلوكس" — three valid spellings of AYLUX
+//   - "ضدّ" vs "ضد"                     — tashdid optional
+//   - "عربيّة" vs "عربيه"               — taa marbouta vs haa
+//   - "موسى" vs "موسي"                  — alif maqsura vs yaa
+// String.includes() with UTF-8 code points treats these as different.
+// We normalise both sides of every comparison so equivalent forms
+// collapse to the same canonical bytes:
+//   1. Strip all combining diacritics (fatha, kasra, damma, sukun,
+//      shadda, tanwins) AND the tatweel U+0640.
+//   2. Unify alif variants أ إ آ → ا.
+//   3. Alif maqsura ى → yaa ي.
+//   4. Taa marbouta ة → haa ه (controversial but improves recall on
+//      typo-prone Arabic chat input — false-positive risk is minimal
+//      with our short product catalogue).
+// Non-Arabic strings are unaffected because the regexes are scoped to
+// Arabic code points.
+const normalizeArabic = (s) => {
+  if (typeof s !== 'string') return '';
+  return s
+    .replace(/[ً-ْٰـ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه');
+};
+
 // ── Multi-word relevance scoring ──────────────────────────────────────────
 //
 // The 3-tier LIKE query below works for SINGLE-keyword searches but
@@ -137,10 +166,54 @@ const formatProduct = (row, lang, extras = {}) => {
 //
 // Tokenisation rules:
 //   - Lowercased + stripped of punctuation
+//   - Arabic normalisation (diacritics + alif/yaa/taa marbouta)
 //   - Minimum length 2 (drops Arabic prepositions like "في", "من" and
 //     similar 1-2 char stopwords in EN/TR/RU)
 //   - Words longer than 30 chars are dropped (defensive against
 //     accidentally pasting a URL into the chat)
+
+// Multilingual stopword set. Filtering these out of the query token
+// stream prevents three classes of bug:
+//
+//   1. False-positive intent firing — short Arabic words like "ما"
+//      (2 chars) accidentally match inside longer product names like
+//      "أوتوماتيك" (which contains the substring "ما" between م and ت).
+//      Without filtering, "ما هي منتجاتكم؟" would be misclassified as
+//      a specific product question and run the word-overlap scorer
+//      against tokens that match every auto-powder spuriously.
+//
+//   2. Skewed relevance ranking — stopwords landing in product names
+//      via substring would award unjustified score points and could
+//      promote the wrong product to primary.
+//
+//   3. Wasted scoring cycles — running .includes() for every product
+//      against tokens that have zero semantic value is pure overhead.
+//
+// Entries are written in their NORMALISED form (post-`normalizeArabic`
+// + lowercase) so the filter applies after that transformation.
+const STOPWORDS = new Set([
+  // Arabic — pronouns / interrogatives / prepositions / particles
+  'ما', 'هي', 'هو', 'هم', 'هن', 'هل', 'لا', 'نعم',
+  'انا', 'انت', 'نحن', 'انتم',
+  'في', 'من', 'الي', 'علي', 'عن', 'مع',
+  'كم', 'متي', 'اين', 'كيف', 'لما', 'لماذا', 'ماذا', 'اي',
+  'قد', 'لو', 'ان', 'لم', 'ليس', 'كان',
+  'هذا', 'هذه', 'ذلك', 'تلك',
+  'كل', 'بعض', 'ايضا',
+  // English
+  'the', 'and', 'or', 'but', 'is', 'am', 'are', 'was', 'were',
+  'do', 'does', 'did', 'have', 'has', 'had',
+  'to', 'of', 'in', 'on', 'at', 'for', 'with', 'by', 'as',
+  'it', 'its',
+  'what', 'who', 'when', 'where', 'why', 'how',
+  // Turkish
+  've', 'ya', 'ile', 'için', 'icin', 'ne', 'nasıl', 'nasil', 'bir',
+  'bu', 'şu', 'su', 'var', 'mı', 'mi',
+  // Russian
+  'или', 'но', 'не', 'на', 'по',
+  'что', 'где', 'когда', 'как', 'почему', 'какой', 'какая', 'какие',
+  'это', 'тот', 'та',
+]);
 
 const tokeniseQuery = (raw) => {
   if (typeof raw !== 'string') return [];
@@ -148,15 +221,20 @@ const tokeniseQuery = (raw) => {
     .toLowerCase()
     .split(/\s+/)
     .map((t) => t.replace(/[^\p{L}\p{N}]+/gu, ''))
-    .filter((t) => t.length >= 2 && t.length <= 30);
+    .map((t) => normalizeArabic(t))
+    .filter((t) => t.length >= 2 && t.length <= 30)
+    .filter((t) => !STOPWORDS.has(t));
 };
 
 const scoreProductByOverlap = (row, tokens, lang) => {
   if (tokens.length === 0) return 0;
   const l = normaliseLang(lang);
-  const nameBlob = `${row[`name_${l}`] || ''} ${row.name_en || ''}`.toLowerCase();
-  const descBlob = `${row[`description_${l}`] || ''} ${row.description_en || ''}`.toLowerCase();
-  const catBlob = `${row.cat_title_l || ''} ${row.cat_title_en || ''}`.toLowerCase();
+  // Normalise the product fields the same way we normalise the query so
+  // an Arabic name written with shadda ("معطّر") still matches a query
+  // typed without it ("معطر"), and vice versa.
+  const nameBlob = normalizeArabic(`${row[`name_${l}`] || ''} ${row.name_en || ''}`.toLowerCase());
+  const descBlob = normalizeArabic(`${row[`description_${l}`] || ''} ${row.description_en || ''}`.toLowerCase());
+  const catBlob = normalizeArabic(`${row.cat_title_l || ''} ${row.cat_title_en || ''}`.toLowerCase());
   let score = 0;
   for (const t of tokens) {
     if (nameBlob.includes(t)) score += 3;
@@ -164,6 +242,89 @@ const scoreProductByOverlap = (row, tokens, lang) => {
     else if (catBlob.includes(t)) score += 1;
   }
   return score;
+};
+
+// ── Dynamic product-name vocabulary ─────────────────────────────────────
+//
+// The manual `SPECIFIC_CATEGORY_KEYWORDS` list in aiChat.mjs covers
+// high-level category words ("cleaning", "laundry", …) but inevitably
+// misses some specific product types — gel, freshener, oven cleaner,
+// stain remover, etc. Keeping that list in sync with every catalogue
+// addition is brittle.
+//
+// `hasProductNameMatch` solves this with zero maintenance: it loads
+// every active product's name (in all 4 languages), concatenates them
+// into a normalised blob, and checks whether ANY token of the
+// visitor's question is a substring of that blob. If yes, the visitor
+// is asking about something Karahoca actually sells — fire specific
+// intent.
+//
+// The blob is cached for 5 minutes so a typical conversation hits it
+// in O(1) after the first build. Long enough to avoid a DB hit per
+// message, short enough that admin-panel product changes propagate
+// without restart.
+let cachedProductNameBlob = '';
+let productNameBlobBuiltAt = 0;
+const PRODUCT_NAME_BLOB_TTL_MS = 5 * 60 * 1000;
+
+const buildProductNameBlob = () => {
+  try {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        'SELECT name_ar, name_en, name_tr, name_ru FROM products WHERE active = 1',
+      )
+      .all();
+    return normalizeArabic(
+      rows
+        .map((r) => `${r.name_ar || ''} ${r.name_en || ''} ${r.name_tr || ''} ${r.name_ru || ''}`)
+        .join(' ')
+        .toLowerCase(),
+    );
+  } catch {
+    // DB not initialised yet or query failed — fall back to empty blob
+    // so callers degrade gracefully (intent detection just relies on
+    // the manual keyword list).
+    return '';
+  }
+};
+
+const getProductNameBlob = () => {
+  const now = Date.now();
+  if (cachedProductNameBlob && now - productNameBlobBuiltAt < PRODUCT_NAME_BLOB_TTL_MS) {
+    return cachedProductNameBlob;
+  }
+  cachedProductNameBlob = buildProductNameBlob();
+  productNameBlobBuiltAt = now;
+  return cachedProductNameBlob;
+};
+
+// Words we deliberately EXCLUDE from intent triggering even though
+// they appear in many product names — they're brand markers, not
+// category indicators, and would over-fire intent on questions like
+// "Hi DIOX" / "tell me about KARAHOCA history".
+const BRAND_LIKE_WORDS = new Set([
+  'diox', 'aylux', 'karahoca', 'eyluks',
+  'ديوكس', 'ايلوكس', 'الوكس', 'كاراهوكا', 'كاراخوكا',
+]);
+
+/**
+ * Self-updating intent gate. Returns `true` when the visitor's
+ * question contains at least one non-brand token that appears in any
+ * active product name (any language).
+ *
+ * Use as a complement to the manual `SPECIFIC_CATEGORY_KEYWORDS` list
+ * in aiChat.mjs — that list catches abstract category WORDS that
+ * aren't literally in product names (e.g. "تنظيف" / "cleaning"),
+ * while this function catches everything else (gel, freshener, oven,
+ * stain, etc.).
+ */
+export const hasProductNameMatch = (text) => {
+  const tokens = tokeniseQuery(text);
+  if (tokens.length === 0) return false;
+  const blob = getProductNameBlob();
+  if (!blob) return false;
+  return tokens.some((t) => !BRAND_LIKE_WORDS.has(t) && blob.includes(t));
 };
 
 /**
