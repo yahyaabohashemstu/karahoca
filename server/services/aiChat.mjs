@@ -5,7 +5,38 @@ import { TOOLS, executeTool } from './aiTools.mjs';
 
 const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL = 'google/gemma-3-27b-it';
+
+/**
+ * Which OpenRouter model Karo talks to.
+ *
+ * Configurable via the `OPENROUTER_MODEL` env var so ops can swap models
+ * without a code change. The default — `google/gemma-3-27b-it` — is the
+ * free tier that's been running since the original Karo launch; it
+ * produces excellent Arabic and serves the catalogue well via the
+ * baked-in product context.
+ *
+ * ── Why you might switch ─────────────────────────────────────────────
+ * Gemma 3 on OpenRouter does NOT reliably emit `tool_calls` (the
+ * function-calling API). The chat still works fine — the model
+ * answers from the product catalogue text the server injects into
+ * each user message — but the inline product cards introduced in
+ * Phase 4 of the AI overhaul will NOT render because no tool is
+ * actually invoked. The agent loop in `streamAiReply` detects this
+ * (toolCalls.length === 0) and returns the streamed text as-is.
+ *
+ * For visitors to see the rich product cards, set
+ * OPENROUTER_MODEL to a tool-capable model. Verified options as of
+ * 2026-05:
+ *
+ *   google/gemini-2.0-flash-001   ~$10/mo @ 100 chats/day  (recommended)
+ *   anthropic/claude-3-haiku       ~$90/mo
+ *   openai/gpt-4o-mini             ~$16/mo
+ *   meta-llama/llama-3.3-70b-instruct  free tier (check availability)
+ *
+ * The env var is read once at module load, so flipping it requires a
+ * server restart (karahoca-api → Redeploy on Coolify).
+ */
+const AI_MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it';
 
 const SYSTEM_PROMPT = [
   'You are Karo — the AI customer-service assistant for KARAHOCA, a',
@@ -320,6 +351,26 @@ const callOpenRouterStream = async ({ messages, withTools, onTextChunk, signal }
 };
 
 /**
+ * One-line fallback narration in the visitor's language, used ONLY in
+ * the rare case where the model emits a `search_products` tool call
+ * but no accompanying prose AND the follow-up OpenRouter call fails
+ * (network blip, rate-limit, timeout). Lets us still ship the rich
+ * product cards with a graceful intro instead of leaving an empty
+ * bubble next to the grid. Keys mirror the four UI locales — anything
+ * else gets the Arabic copy because Arabic is the primary visitor
+ * language at KARAHOCA.
+ */
+const synthesizeProductIntro = (lang) => {
+  switch ((lang || 'ar').toLowerCase()) {
+    case 'en': return 'Here are some products that may interest you:';
+    case 'tr': return 'İlginizi çekebilecek bazı ürünler:';
+    case 'ru': return 'Вот некоторые товары, которые могут вас заинтересовать:';
+    case 'ar':
+    default:   return 'إليك بعض المنتجات التي قد تهمّك:';
+  }
+};
+
+/**
  * Stream a reply token-by-token from OpenRouter, with an agent loop on top
  * of the raw streaming helper so Karo can call tools (search_products,
  * etc.) and integrate the results back into a natural-language reply.
@@ -433,17 +484,49 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
   // Second pass: no tools (we want a summary, not another tool round).
   // We KEEP onChunk so the natural-language follow-up still streams to
   // the visitor.
-  const second = await callOpenRouterStream({
-    messages,
-    withTools: false,
-    onTextChunk: onChunk,
-    signal,
-  });
+  //
+  // Resilience: if this second call fails (network blip, OpenRouter
+  // rate-limit, model timeout, etc.) we DON'T want to nuke the whole
+  // reply — the tool already executed successfully and the visitor is
+  // about to see real product cards. Catch the error, log it, and fall
+  // back to whatever text we gathered in the first pass. Genuine
+  // cancellations (AbortError) still propagate because the visitor
+  // closed the chat — pretending to succeed would be misleading.
+  let second;
+  try {
+    second = await callOpenRouterStream({
+      messages,
+      withTools: false,
+      onTextChunk: onChunk,
+      signal,
+    });
+  } catch (followupErr) {
+    if (followupErr?.name === 'AbortError') throw followupErr;
+    logger.error(
+      '[ai-chat] follow-up call after tool execution failed; falling back to first-pass text:',
+      followupErr.message || followupErr,
+    );
+    second = { text: '', toolCalls: [] };
+  }
 
   // Some models emit ALL text in the first pass before the tool call;
   // others wait until after. Concatenate both so the cached reply +
   // the final returned text reflect the visitor's full experience.
-  const combinedText = (first.text ? first.text + '\n\n' : '') + second.text;
+  let combinedText = (first.text ? first.text + '\n\n' : '') + second.text;
+
+  // Empty-prose recovery: if NEITHER pass produced text but the tool
+  // DID return products, synthesize a one-line narration so the visitor
+  // doesn't see an empty bubble next to the cards. We stream it through
+  // onChunk so the live UI updates the same way it does for normal
+  // output — without this, the bubble would stay blank during the
+  // stream and only populate when the 'done' event arrives.
+  if (!combinedText.trim() && aggregatedAttachments.products.length > 0) {
+    const fallback = synthesizeProductIntro(lang);
+    if (onChunk) {
+      try { onChunk(fallback); } catch { /* relay best-effort */ }
+    }
+    combinedText = fallback;
+  }
 
   if (!combinedText.trim()) {
     const error = new Error('AI model returned an empty response after tool execution.');
