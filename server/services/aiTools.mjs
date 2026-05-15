@@ -205,25 +205,35 @@ const toLikePattern = (raw) => {
  */
 
 /**
- * Decide if a sorted list of scored candidates has a clear primary
- * winner. Thresholds chosen for the KARAHOCA catalogue size (~50
- * products) and the typical visitor query (2-4 content words):
+ * Decide whether to flag the top-scored candidate as the visual
+ * `primary` (featured card). The visitor's explicit ask is: "show me
+ * THE card for what I requested, and put the rest as similar options".
+ * That means the right default is to ALWAYS feature the top match
+ * when the visitor's question is specific enough — even when several
+ * products tie at the top, because:
  *
- *   - The top score must beat the runner-up by an absolute margin of
- *     at least 2 points. Two same-tier hits (e.g. both "غسيل" + "مسحوق"
- *     in name) tie cleanly; one extra distinguishing token tips it.
- *   - The top score itself must be >= 5, which guarantees AT LEAST one
- *     name hit (3) plus any second-tier hit (2). A lonely name match
- *     (score 3) isn't enough — it could be a coincidental category
- *     overlap rather than the visitor's actual intent.
+ *   - The visitor doesn't want a flat grid where everything is equal
+ *     weight — that's the regression they reported.
+ *   - The catalogue admin's `display_order` already encodes which
+ *     variant should lead within a tied tier (it's used as the
+ *     stable tiebreaker in the sort comparator above). So picking
+ *     `scoredSorted[0]` on a tie still respects curated intent.
+ *   - The "similar products" strip below the featured card still
+ *     exposes every alternative — nothing is hidden, the visitor
+ *     just gets a starting focal point.
  *
- * Returns `true` ⇒ caller should flag scored[0] with `primary: true`.
+ * The single guard left: require at least one full-name hit (score >=
+ * 3). A pure description-only or category-only match (score 1-2)
+ * isn't a confident enough signal to elevate one card above the
+ * others; in that case we keep the flat grid so the visitor sees
+ * every tangentially related product equally.
+ *
+ * Returns `true` ⇒ caller should flag `scoredSorted[0]` with
+ * `primary: true`.
  */
 const hasClearPrimaryWinner = (scoredSorted) => {
-  if (scoredSorted.length < 2) return scoredSorted.length === 1 && scoredSorted[0].score >= 5;
-  const top = scoredSorted[0].score;
-  const second = scoredSorted[1].score;
-  return top >= 5 && top - second >= 2;
+  if (scoredSorted.length === 0) return false;
+  return scoredSorted[0].score >= 3;
 };
 
 const searchProducts = ({ query, brand, limit }, lang) => {
@@ -348,15 +358,14 @@ const searchProducts = ({ query, brand, limit }, lang) => {
         .all(...params);
     }
 
-    // Single-keyword path: promote the FIRST result to primary IFF the
-    // sole tier-1 hit is unique. With one keyword we can't compare
-    // scores numerically, so the heuristic is: if rows[0] has rank 1
-    // (name match) and rows[1] either doesn't exist or has rank >= 2,
-    // it's the clear winner.
-    let promote = false;
-    if (like && rows.length > 0 && rows[0].rank === 1) {
-      if (rows.length === 1 || rows[1].rank >= 2) promote = true;
-    }
+    // Single-keyword path: promote the first result whenever it is a
+    // tier-1 (name) match. Even when several products share the tier
+    // (e.g. searching "powder" — multiple products have it in their
+    // name), the visitor still gets ONE focal card sorted by
+    // display_order (the catalogue admin's curated default for the
+    // category) plus the rest as similar options. Mirrors the
+    // multi-token policy above.
+    const promote = Boolean(like && rows.length > 0 && rows[0].rank === 1);
     const products = rows.map((row, idx) =>
       formatProduct(row, l, { primary: promote && idx === 0 }),
     );

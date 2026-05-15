@@ -432,12 +432,29 @@ const BRAND_KEYWORDS = {
   AYLUX: ['aylux', 'eylüks', 'eyluks', 'أيلوكس', 'إيلوكس', 'илюкс', 'айлюкс'],
 };
 
-const CATEGORY_KEYWORDS = [
-  // Generic product / browse words
+// Generic browse words — vague "products / catalogue / items" mentions
+// that signal the visitor wants to BROWSE rather than ask about any
+// specific category. We treat these separately because using them as
+// the search query would just dump every product (no name match for
+// "منتج" / "products" inside concrete product names) AND the
+// word-overlap scorer would return zero hits since these words don't
+// appear in product names — net effect: empty result page. The
+// correct response for a browse intent is to pass an empty query so
+// `search_products` falls into its curated-brand-slice branch.
+const GENERIC_BROWSE_KEYWORDS = [
   'product', 'products', 'catalog', 'catalogue', 'item', 'items',
   'منتج', 'منتجات', 'بضاعة', 'كتالوج', 'مواد',
   'ürün', 'urun', 'ürünler', 'urunler', 'katalog',
   'товар', 'продукт', 'продукц', 'каталог',
+];
+
+// Specific category words — descriptive product types (laundry,
+// dishwashing, soap, …) the visitor uses when they actually know what
+// they want. Hitting any of these flips intent into "specific" mode
+// where we pass the FULL utterance to the word-overlap scorer and
+// promote a primary card. The list is grouped by the cleaning
+// categories KARAHOCA actually sells; expand it as the catalogue grows.
+const SPECIFIC_CATEGORY_KEYWORDS = [
   // Laundry
   'laundry', 'detergent', 'washing powder', 'washing liquid',
   'غسيل', 'مسحوق', 'منظف الملابس',
@@ -525,12 +542,21 @@ const detectProductIntent = (rawText) => {
     if (kws.some((kw) => lower.includes(kw))) { brand = b; break; }
   }
 
+  // Two-pass keyword scan so that a sentence containing BOTH a generic
+  // word and a specific category (e.g. "أحتاج منتجاً للحمام") is
+  // classified as SPECIFIC. First-match-wins on a single mixed list
+  // would have stopped at "منتج" (generic) before ever reaching "حمام"
+  // (specific), demoting the visitor's real intent.
   let categoryHit = null;
-  for (const kw of CATEGORY_KEYWORDS) {
+  for (const kw of SPECIFIC_CATEGORY_KEYWORDS) {
     if (lower.includes(kw.toLowerCase())) { categoryHit = kw.trim(); break; }
   }
 
-  const browseHit = !categoryHit && BROWSE_PATTERNS.some((p) => p.test(text));
+  const genericHit =
+    !categoryHit &&
+    GENERIC_BROWSE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  const browseHit =
+    !categoryHit && (genericHit || BROWSE_PATTERNS.some((p) => p.test(text)));
 
   if (!brand && !categoryHit && !browseHit) return null;
 
@@ -539,11 +565,12 @@ const detectProductIntent = (rawText) => {
   //     so the multi-token overlap scorer in search_products can
   //     reward products matching multiple words and pick a clear
   //     "primary" winner.
-  //   - Browse-only ("ما هي منتجاتكم؟"): pass an empty query — the
-  //     scorer would just be noise on browse intent, and the empty-
-  //     query branch in search_products returns a curated brand slice.
-  //   - Brand-only ("ماذا لدى DIOX؟"): same as browse — empty query
-  //     plus the brand filter.
+  //   - Browse-only ("ما هي منتجاتكم؟") OR brand-only ("ماذا لدى DIOX؟"):
+  //     pass an empty query. The empty-query branch in search_products
+  //     returns a curated brand slice (top-N by display_order), which
+  //     is the right "here's what we have" response. Sending the full
+  //     utterance for these cases would give 0 word-overlap hits and
+  //     fall through to a LIKE %full utterance% that matches nothing.
   const isSpecific = Boolean(categoryHit);
   return {
     query: isSpecific ? text : '',
