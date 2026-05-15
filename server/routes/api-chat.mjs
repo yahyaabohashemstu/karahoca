@@ -69,6 +69,50 @@ const wantsStream = (request) => {
   return false;
 };
 
+// ── Contact footer auto-append ──────────────────────────────────────────
+//
+// Every assistant reply gets a localised "email + WhatsApp" footer
+// appended on the server, so the visitor always has one tap to reach
+// the team — even on greeting turns, product browses, or any cached
+// reply the model produced before the rule was added. We do this in
+// the route layer (not the LLM prompt) for two reasons:
+//
+//   1. Determinism. The model used to be instructed to "always
+//      include contact info" but the instruction was treated as
+//      conditional ("only when the topic justifies it"). Putting the
+//      contact in the SSE stream makes it impossible for a model
+//      decision to suppress it.
+//
+//   2. Clean cache. The cache stores the model's pure reply; the
+//      footer is appended on the way OUT, so updating the contact
+//      format (e.g. a new WhatsApp number) doesn't require a cache
+//      invalidation — every served reply rebuilds the footer.
+//
+// Format mirrors what the visitor asked for: two short lines,
+// localised label, fully-qualified markdown links so the client's
+// existing `<a>` renderer makes them tappable regardless of how the
+// client-side phone-number rewriter handles spaced E.164 forms.
+const CONTACT_EMAIL = 'info@karahoca.com';
+const CONTACT_WHATSAPP_DISPLAY = '+90 530 591 49 90';
+const CONTACT_WHATSAPP_URL = 'https://wa.me/905305914990';
+
+const buildContactBlock = (lang) => {
+  const code = (lang || 'ar').toLowerCase();
+  const email = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
+  const wa = `[${CONTACT_WHATSAPP_DISPLAY}](${CONTACT_WHATSAPP_URL})`;
+  switch (code) {
+    case 'en':
+      return `\n\nEmail: ${email}\nWhatsApp: ${wa}`;
+    case 'tr':
+      return `\n\nE-posta: ${email}\nWhatsApp: ${wa}`;
+    case 'ru':
+      return `\n\nЭлектронная почта: ${email}\nWhatsApp: ${wa}`;
+    case 'ar':
+    default:
+      return `\n\nالبريد: ${email}\nواتساب: ${wa}`;
+  }
+};
+
 /**
  * POST /api/ai/chat
  * Rate limit: 30 req/min per IP.
@@ -117,12 +161,15 @@ export const handleAiChat = async (request, response, { origin }) => {
 
 /**
  * JSON response path. Identical to the pre-streaming behaviour: cache
- * check → on miss, full OpenRouter call → cache → return.
+ * check → on miss, full OpenRouter call → cache → return. The contact
+ * footer is appended OUTSIDE the cache so format updates take effect
+ * immediately without invalidating warm entries.
  */
 const handleAiChatJson = async (response, body, origin) => {
-  const cachedReply = await getCachedReply(body.prompt, body.lang || 'ar');
+  const lang = body.lang || 'ar';
+  const cachedReply = await getCachedReply(body.prompt, lang);
   if (cachedReply) {
-    sendJson(response, 200, { success: true, reply: cachedReply }, origin);
+    sendJson(response, 200, { success: true, reply: cachedReply + buildContactBlock(lang) }, origin);
     return;
   }
 
@@ -132,11 +179,14 @@ const handleAiChatJson = async (response, body, origin) => {
     logger.info(`[ai-chat] prompt length: ${promptLen} chars, history turns: ${historyLen} (json)`);
     const result = await generateAiReply({
       prompt: body.prompt,
-      lang: body.lang || 'ar',
+      lang,
       history: body.history,
     });
-    if (result?.reply) await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
-    sendJson(response, 200, result, origin);
+    if (result?.reply) await setCachedReply(body.prompt, lang, result.reply);
+    const payload = result?.reply
+      ? { ...result, reply: result.reply + buildContactBlock(lang) }
+      : result;
+    sendJson(response, 200, payload, origin);
   } catch (aiErr) {
     logger.error('[ai-chat] generateAiReply failed:', aiErr.message || aiErr);
     sendJson(
@@ -208,7 +258,17 @@ const handleAiChatStream = async (response, body, origin) => {
         logger.error('[ai-chat] cache-hit preflight failed:', preflightErr.message || preflightErr);
       }
       sendEvent('chunk', { text: cachedReply });
-      sendEvent('done', { reply: cachedReply, cached: true, attachments: cachedAttachments });
+      // Auto-append contact footer AFTER the cached body. Streamed as a
+      // separate chunk so the visitor sees it slide in like the rest of
+      // the response, and included in the final `done.reply` so the
+      // client's terminal reconciliation matches what was streamed.
+      const contactBlock = buildContactBlock(cachedLang);
+      sendEvent('chunk', { text: contactBlock });
+      sendEvent('done', {
+        reply: cachedReply + contactBlock,
+        cached: true,
+        attachments: cachedAttachments,
+      });
       response.end();
       return;
     }
@@ -241,16 +301,28 @@ const handleAiChatStream = async (response, body, origin) => {
     });
 
     if (!aborted && result?.reply) {
-      // Cache the full reply once the stream completes. We deliberately
-      // do this AFTER the model finishes — caching a partial reply (from
-      // a client that disconnected mid-stream) would poison the cache.
+      // Cache the model's PURE reply (no contact footer) once the
+      // stream completes. We deliberately do this AFTER the model
+      // finishes — caching a partial reply (from a client that
+      // disconnected mid-stream) would poison the cache. The cache
+      // stores the model output only; the contact footer is appended
+      // on the way OUT every request so format changes propagate
+      // without invalidating warm entries.
       await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
+
+      // Auto-append the contact footer. Streamed as a final chunk so
+      // the visitor sees it slide in at the end of the bubble, and
+      // included in `done.reply` so the client's terminal
+      // reconciliation matches what was streamed.
+      const contactBlock = buildContactBlock(body.lang || 'ar');
+      sendEvent('chunk', { text: contactBlock });
+
       // The terminal 'done' event includes both the final text and any
       // aggregated attachments so the client can reconcile state if it
       // missed a transient 'products' event (e.g. fast-tab-switch
       // throttling on Chrome / Safari).
       sendEvent('done', {
-        reply: result.reply,
+        reply: result.reply + contactBlock,
         attachments: result.attachments || {},
       });
     }

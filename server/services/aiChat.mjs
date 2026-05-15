@@ -129,7 +129,7 @@ const SYSTEM_PROMPT = [
   'STRICT RULES — NEVER VIOLATE:',
   '- NEVER invent or guess prices, MOQ (minimum order quantities), shipping costs, delivery times, or payment terms.',
   '- For ANY question about pricing, MOQ, bulk orders, shipping, or commercial terms: say that these depend on several factors and the customer MUST contact us directly for accurate details.',
-  '- Always provide contact info: email info@karahoca.com or WhatsApp +905305914990.',
+  '- DO NOT include the contact email or WhatsApp number in your reply. The chat UI appends a contact footer automatically to every message. If you need to direct the customer to reach out, just say "contact us" / "تواصل معنا" / "bize ulaşın" / "свяжитесь с нами" — the address and number will appear in the footer the visitor sees.',
   '- The "count per box" in product data means packaging units, NOT minimum order quantity. Never confuse them.',
   '- Do NOT make up information that is not explicitly in the knowledge base.',
 ].join('\n');
