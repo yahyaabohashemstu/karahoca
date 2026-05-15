@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../redisClient.mjs';
 import { buildProductContext, buildCustomQAContext } from '../routes/admin-ai-knowledge.mjs';
 import { logger } from '../utils/logger.mjs';
+import { TOOLS, executeTool } from './aiTools.mjs';
 
 const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
@@ -39,6 +40,21 @@ const SYSTEM_PROMPT = [
   '- Turkish question -> Turkish response.',
   '- Russian question -> Russian response.',
   '- Any other language -> the same language response.',
+  '',
+  'TOOLS YOU CAN USE:',
+  '- `search_products(query, brand?, limit?)` — search the LIVE catalogue.',
+  '  CALL THIS whenever the customer asks about specific products,',
+  '  mentions a category (laundry, dishwashing, cleaner, etc.), or asks',
+  '  "what do you have?" / "ما هي منتجاتكم؟" / similar. The tool returns',
+  '  real product data from the SQLite catalogue — vastly more reliable',
+  '  than recalling from your prompt context. After the tool returns,',
+  '  weave the product names into a natural-language summary in the',
+  '  customer\'s language. Do NOT enumerate raw URLs or IDs from the',
+  '  tool result — the frontend renders rich cards from the data; you',
+  '  just narrate.',
+  '- If the customer asks a general question that does NOT need product',
+  '  data (greeting, shipping, contact, company history), respond',
+  '  directly without calling the tool.',
   '',
   'PRODUCT BROWSE LINK (CRITICAL — ALWAYS INCLUDE WHEN RELEVANT):',
   'When the customer\'s question touches on the products / catalogue of one',
@@ -164,36 +180,173 @@ const buildHistoryMessages = (history, currentPrompt) => {
   return cleaned;
 };
 
+// ── OpenRouter streaming helper ─────────────────────────────────────────────
+//
+// One round-trip to OpenRouter, parsed as Server-Sent Events. Returns:
+//   { text: string, toolCalls: [{ id, name, arguments }] }
+//
+// Why this is split out from the public streamAiReply: agent loops need
+// to run this MULTIPLE times — once to find out the model wants a tool,
+// once more (after executing the tool) to get the natural-language
+// follow-up. Sharing the parser keeps both passes consistent.
+//
+// `onTextChunk` is called for each non-empty content delta. It is NOT
+// called for tool-call deltas — those are accumulated silently and
+// surfaced via the return value only after the stream completes. That
+// matches what visitors want: "Karo is searching products…" preamble
+// text streams live; the JSON arguments of the search itself stay
+// invisible.
+//
+// Tool-call deltas arrive partial across many SSE frames — each delta
+// for a given tool index appends to that index's accumulated function
+// name + arguments string. We index by `tool_calls[i].index` so out-of-
+// order arrival (rare but legal per spec) doesn't corrupt the buffer.
+const callOpenRouterStream = async ({ messages, withTools, onTextChunk, signal }) => {
+  const body = {
+    model: AI_MODEL,
+    messages,
+    stream: true,
+    temperature: 0.7,
+    top_p: 0.95,
+    max_tokens: 1024,
+  };
+  if (withTools) {
+    body.tools = TOOLS;
+    body.tool_choice = 'auto';
+  }
+
+  const aiResponse = await fetch(OPENROUTER_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openrouterApiKey}`,
+      'HTTP-Referer': 'https://karahoca.com',
+      'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!aiResponse.ok) {
+    const rawError = await aiResponse.text();
+    logger.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
+    const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
+    error.statusCode = aiResponse.status;
+    throw error;
+  }
+
+  const reader = aiResponse.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  /** @type {Map<number, { id: string|null, name: string, arguments: string }>} */
+  const toolCallAcc = new Map();
+
+  const flushFrame = (frame) => {
+    const dataLines = frame
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => line.slice(6));
+    if (dataLines.length === 0) return false;
+
+    const payload = dataLines.join('\n');
+    if (payload === '[DONE]') return true;
+
+    try {
+      const parsed = JSON.parse(payload);
+      const delta = parsed?.choices?.[0]?.delta;
+      if (!delta) return false;
+
+      // 1. Plain text delta → emit to caller + accumulate full text.
+      if (typeof delta.content === 'string' && delta.content.length > 0) {
+        fullText += delta.content;
+        if (onTextChunk) onTextChunk(delta.content);
+      }
+
+      // 2. Tool-call delta → accumulate by index.
+      if (Array.isArray(delta.tool_calls)) {
+        for (const tc of delta.tool_calls) {
+          if (typeof tc?.index !== 'number') continue;
+          const existing = toolCallAcc.get(tc.index) || { id: null, name: '', arguments: '' };
+          if (tc.id) existing.id = tc.id;
+          if (tc.function?.name) existing.name += tc.function.name;
+          if (typeof tc.function?.arguments === 'string') {
+            existing.arguments += tc.function.arguments;
+          }
+          toolCallAcc.set(tc.index, existing);
+        }
+      }
+    } catch {
+      // ignore — keepalive / malformed JSON
+    }
+    return false;
+  };
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+
+      let terminated = false;
+      for (const frame of frames) {
+        if (flushFrame(frame)) {
+          terminated = true;
+          break;
+        }
+      }
+      if (terminated) break;
+    }
+  } finally {
+    try { reader.releaseLock?.(); } catch { /* node fetch reader is a no-op */ }
+  }
+
+  const toolCalls = [];
+  // Iterate in index order so multi-tool calls (rare) stay deterministic.
+  for (const key of [...toolCallAcc.keys()].sort((a, b) => a - b)) {
+    const tc = toolCallAcc.get(key);
+    if (!tc || !tc.name) continue;
+    toolCalls.push({
+      id: tc.id || `call_${Date.now()}_${key}`,
+      name: tc.name,
+      arguments: tc.arguments,
+    });
+  }
+
+  return { text: fullText, toolCalls };
+};
+
 /**
- * Stream a reply token-by-token from OpenRouter.
+ * Stream a reply token-by-token from OpenRouter, with an agent loop on top
+ * of the raw streaming helper so Karo can call tools (search_products,
+ * etc.) and integrate the results back into a natural-language reply.
  *
- * Why a separate streaming function (vs. the legacy collect-and-return
- * `generateAiReply`):
- *   • UX — visitor sees text appearing live (200-400 ms to first byte)
- *     instead of staring at a "…" indicator for 3-5 seconds.
- *   • Cost — server can abort mid-stream if the client disconnects,
- *     saving OpenRouter tokens that would otherwise be paid for.
- *   • Foundation — Phase 3 (function calling) needs streaming because
- *     tool-call deltas arrive interleaved with text deltas; you can't
- *     bolt that onto a non-streaming response.
+ * Flow:
+ *   1. First pass: send messages + tools → OpenRouter.
+ *      - If the model just generates text → relay via onChunk, return.
+ *      - If the model emits tool_calls → execute each, send results
+ *        back as `role: tool` messages, then do a SECOND streaming pass
+ *        (no tools this time — we want a natural-language summary, not
+ *        another tool call) and relay that.
+ *   2. Each executed tool also fires the `onToolCall` callback so the
+ *      route handler can emit an SSE 'products' event carrying the
+ *      attachment payload for the frontend to render as cards. The
+ *      callback is best-effort — exceptions in user code don't break
+ *      the stream.
  *
- * Protocol: OpenRouter speaks the standard OpenAI SSE-over-HTTP form —
- * `data: {…json…}\n\n` chunks terminated by `data: [DONE]`. Each JSON
- * carries `choices[0].delta.content` for plain text deltas. We surface
- * each non-empty delta via the `onChunk` callback (a synchronous
- * callback by design — async would buffer the whole stream defeating
- * the purpose) and accumulate the full reply for caching downstream.
+ * Limit: at most ONE round of tool calls per turn. A second round
+ * would imply the model is treating the tool as a multi-step interpreter,
+ * which our tools (a single search_products) don't justify; we'd rather
+ * the model summarise what it has than spin in a tool-call loop.
  *
- * If `onChunk` is omitted, the function still works — it just collects
- * the text without notifying anyone. That's the "non-streaming" path,
- * preserved here so `generateAiReply` below can stay a one-liner
- * delegate.
- *
- * Aborts: pass an AbortSignal in `signal`; the fetch + reader honour
+ * Aborts: pass an AbortSignal in `signal`; both fetch + reader honour
  * it and propagate as an AbortError, which the caller should swallow
  * silently (the client closed the chat).
  */
-export const streamAiReply = async ({ prompt, lang, history, onChunk, signal }) => {
+export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall, signal }) => {
   if (!openrouterApiKey) {
     const error = new Error('OPENROUTER_API_KEY is not configured on the server.');
     error.statusCode = 500;
@@ -211,87 +364,98 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, signal }) 
     { role: 'user', content: buildDynamicContext(prompt, lang) },
   ];
 
-  const aiResponse = await fetch(OPENROUTER_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openrouterApiKey}`,
-      'HTTP-Referer': 'https://karahoca.com',
-      'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      messages,
-      stream: true,
-      temperature: 0.7,
-      top_p: 0.95,
-      max_tokens: 1024,
-    }),
+  // ── First pass: with tools ────────────────────────────────────────────
+  const first = await callOpenRouterStream({
+    messages,
+    withTools: true,
+    onTextChunk: onChunk,
     signal,
   });
 
-  if (!aiResponse.ok) {
-    // Errors come back as a regular non-stream body even with stream:true.
-    const rawError = await aiResponse.text();
-    logger.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
-    const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
-    error.statusCode = aiResponse.status;
-    throw error;
+  // No tool calls? We're done — the first pass IS the final answer.
+  if (first.toolCalls.length === 0) {
+    if (!first.text) {
+      const error = new Error('AI model returned an empty response.');
+      error.statusCode = 502;
+      throw error;
+    }
+    return { success: true, reply: first.text, attachments: {} };
   }
 
-  const reader = aiResponse.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let fullText = '';
+  // ── Tool execution + second pass ──────────────────────────────────────
+  //
+  // The model emitted tool calls. Execute each, capture attachments
+  // (rich product objects for frontend cards), and build the message
+  // payload the model needs to see for its follow-up.
+  //
+  // OpenAI spec: the assistant turn that emitted tool_calls must be
+  // included in the message history of the follow-up call, paired with
+  // matching `role: tool` messages keyed by `tool_call_id`. We mirror
+  // the spec exactly so OpenRouter (and any OpenAI-compatible backend)
+  // is happy.
+  const aggregatedAttachments = { products: [] };
 
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+  const toolCallMessageEntries = first.toolCalls.map((tc) => ({
+    id: tc.id,
+    type: 'function',
+    function: { name: tc.name, arguments: tc.arguments || '{}' },
+  }));
 
-      buffer += decoder.decode(value, { stream: true });
+  messages.push({
+    role: 'assistant',
+    content: first.text || null,
+    tool_calls: toolCallMessageEntries,
+  });
 
-      // SSE frames are separated by blank lines (\n\n). Split, keep the
-      // last (possibly incomplete) frame in the buffer for the next read.
-      const frames = buffer.split('\n\n');
-      buffer = frames.pop() || '';
+  for (const tc of first.toolCalls) {
+    const { result, attachments } = executeTool(tc.name, tc.arguments, lang) || {};
+    const resultStr = JSON.stringify(result ?? { error: 'No result' });
 
-      for (const frame of frames) {
-        // Each frame may contain multiple `data:` lines + comment lines.
-        // We concatenate them per OpenAI spec (multi-line data).
-        const dataLines = frame
-          .split('\n')
-          .filter((line) => line.startsWith('data: '))
-          .map((line) => line.slice(6));
-        if (dataLines.length === 0) continue;
+    messages.push({
+      role: 'tool',
+      tool_call_id: tc.id,
+      content: resultStr,
+    });
 
-        const payload = dataLines.join('\n');
-        if (payload === '[DONE]') {
-          return { success: true, reply: fullText };
-        }
-
-        try {
-          const parsed = JSON.parse(payload);
-          const delta = parsed?.choices?.[0]?.delta?.content;
-          if (typeof delta === 'string' && delta.length > 0) {
-            fullText += delta;
-            if (onChunk) onChunk(delta);
-          }
-        } catch {
-          // ignore — keepalive comments / malformed line are best-effort
-        }
+    // Surface to the route handler so it can emit a 'products' SSE event.
+    if (attachments?.products?.length) {
+      aggregatedAttachments.products.push(...attachments.products);
+    }
+    if (onToolCall) {
+      try {
+        onToolCall({ name: tc.name, args: tc.arguments, attachments: attachments || {} });
+      } catch (cbErr) {
+        logger.error('[ai-chat] onToolCall callback error:', cbErr.message || cbErr);
       }
     }
-  } finally {
-    try { reader.releaseLock?.(); } catch { /* node fetch reader has no-op */ }
   }
 
-  if (!fullText) {
-    const error = new Error('AI model returned an empty response.');
+  // Second pass: no tools (we want a summary, not another tool round).
+  // We KEEP onChunk so the natural-language follow-up still streams to
+  // the visitor.
+  const second = await callOpenRouterStream({
+    messages,
+    withTools: false,
+    onTextChunk: onChunk,
+    signal,
+  });
+
+  // Some models emit ALL text in the first pass before the tool call;
+  // others wait until after. Concatenate both so the cached reply +
+  // the final returned text reflect the visitor's full experience.
+  const combinedText = (first.text ? first.text + '\n\n' : '') + second.text;
+
+  if (!combinedText.trim()) {
+    const error = new Error('AI model returned an empty response after tool execution.');
     error.statusCode = 502;
     throw error;
   }
-  return { success: true, reply: fullText };
+
+  return {
+    success: true,
+    reply: combinedText,
+    attachments: aggregatedAttachments,
+  };
 };
 
 /**

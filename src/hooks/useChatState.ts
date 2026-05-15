@@ -19,6 +19,39 @@ import {
 
 export type MessageRole = 'user' | 'assistant';
 
+/**
+ * A product carried as an attachment on an assistant message — the result
+ * of Karo invoking the server-side `search_products` tool. Mirrors the
+ * shape produced by `server/services/aiTools.mjs::formatProduct`. The
+ * fields are kept compact and pre-localised so the chat renderer can
+ * display them as a card without further server round-trips.
+ *
+ * `url` is a relative path within the SPA (e.g. `/ar/diox#diox-soap-1`)
+ * — when the user clicks it, react-router takes over and the brand page
+ * deep-links to the matching ProductModal via the hash anchor.
+ */
+export interface ChatProduct {
+  id: string;
+  brand: 'DIOX' | 'AYLUX';
+  name: string;
+  description: string;
+  image: string;
+  weight: string;
+  material?: string;
+  count?: string;
+  url: string;
+}
+
+/**
+ * Attachments piggyback on an assistant message. Each tool the backend
+ * runs can populate a typed slot here — currently only `products` from
+ * search_products. New tools (image generation, document lookup, …) get
+ * their own optional slot rather than crowding into one union.
+ */
+export interface ChatAttachments {
+  products?: ChatProduct[];
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
@@ -33,6 +66,12 @@ export interface ChatMessage {
    * every user message — both equivalent to `false`.
    */
   streaming?: boolean;
+  /**
+   * Structured tool outputs the assistant message wants the client to
+   * render alongside the prose (currently product cards). See
+   * `ChatAttachments`. Omitted when the message is plain text only.
+   */
+  attachments?: ChatAttachments;
 }
 
 /**
@@ -75,6 +114,11 @@ export interface ChatUIStrings {
   fallbackReply: string;
   noAnswerFallback: string;
   privacyNotice: string;
+  /** CTAs rendered on product cards Karo can attach to a reply. */
+  productCard: {
+    view: string;
+    whatsapp: string;
+  };
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -405,6 +449,10 @@ const getUIText = (lang: string): ChatUIStrings => {
         noAnswerFallback:
           'Mevcut bilgi tabanında net bir yanıt bulamadım. Bize info@karahoca.com e-posta adresinden veya +905305914990 WhatsApp hattından ulaşabilirsiniz.',
         privacyNotice: "Karo ile sohbetler hizmet kalitesini artırmak amacıyla kaydedilmektedir. Silme talebi: info@karahoca.com",
+        productCard: {
+          view: 'Ürünü görüntüle',
+          whatsapp: 'WhatsApp ile sor',
+        },
       };
     case 'ru':
       return {
@@ -438,6 +486,10 @@ const getUIText = (lang: string): ChatUIStrings => {
         noAnswerFallback:
           'Я не нашёл точный ответ в текущей базе знаний. Вы можете связаться с нами по адресу info@karahoca.com или через WhatsApp +905305914990.',
         privacyNotice: 'Беседы с Каро записываются для улучшения сервиса. Запрос на удаление: info@karahoca.com',
+        productCard: {
+          view: 'Открыть товар',
+          whatsapp: 'Спросить в WhatsApp',
+        },
       };
     case 'en':
       return {
@@ -471,6 +523,10 @@ const getUIText = (lang: string): ChatUIStrings => {
         noAnswerFallback:
           "I couldn't find a precise answer in my current knowledge base. You can contact us at info@karahoca.com or via WhatsApp at +905305914990.",
         privacyNotice: 'Conversations with Karo are recorded to improve our service. Deletion requests: info@karahoca.com',
+        productCard: {
+          view: 'View product',
+          whatsapp: 'Ask on WhatsApp',
+        },
       };
     case 'ar':
     default:
@@ -505,6 +561,10 @@ const getUIText = (lang: string): ChatUIStrings => {
         noAnswerFallback:
           'لم أتمكن من العثور على إجابة دقيقة في قاعدة المعرفة الحالية. يسعدنا التواصل معكم عبر البريد info@karahoca.com أو الواتساب +905305914990.',
         privacyNotice: '🔒 محادثاتك مسجّلة لتحسين الخدمة. لطلب الحذف: info@karahoca.com',
+        productCard: {
+          view: 'عرض المنتج',
+          whatsapp: 'اسأل عبر واتساب',
+        },
       };
   }
 };
@@ -1180,6 +1240,26 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         let buffer = '';
         let finalReply = '';
         let receivedError: string | null = null;
+        // Products may arrive mid-stream via a 'products' event (when
+        // Karo invokes the search_products tool) OR in the terminal
+        // 'done' event payload. We accumulate them here so the same
+        // message slot can carry them either way. De-duplicated by id
+        // so a 'products' event followed by a 'done' event echoing the
+        // same set doesn't double-render the cards.
+        const collectedProducts = new Map<string, ChatProduct>();
+
+        const setAttachmentsOnSlot = () => {
+          if (!assistantCommitted) return;
+          if (collectedProducts.size === 0) return;
+          const products = Array.from(collectedProducts.values());
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? { ...m, attachments: { ...(m.attachments || {}), products } }
+                : m,
+            ),
+          );
+        };
 
         try {
           while (true) {
@@ -1200,7 +1280,13 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
               if (dataLines.length === 0) continue;
               const payload = dataLines.join('\n');
 
-              let parsed: { text?: string; reply?: string; error?: string };
+              let parsed: {
+                text?: string;
+                reply?: string;
+                error?: string;
+                products?: ChatProduct[];
+                attachments?: ChatAttachments;
+              };
               try {
                 parsed = JSON.parse(payload);
               } catch {
@@ -1215,12 +1301,35 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
                   commitAssistantSlot();
                   if (typeof parsed.text === 'string') appendDelta(parsed.text);
                   break;
+                case 'products':
+                  // Karo invoked search_products and the backend forwarded
+                  // the rich product data. Commit the assistant slot
+                  // first (in case the model went straight to tool use
+                  // without preamble text — we still want a bubble for
+                  // the cards to anchor to) and merge the products into
+                  // our id-keyed accumulator.
+                  commitAssistantSlot();
+                  if (Array.isArray(parsed.products)) {
+                    for (const p of parsed.products) {
+                      if (p && typeof p.id === 'string') collectedProducts.set(p.id, p);
+                    }
+                    setAttachmentsOnSlot();
+                  }
+                  break;
                 case 'done':
                   if (typeof parsed.reply === 'string' && parsed.reply.length > streamedText.length) {
                     // The server always sends 'done' with the full reply
                     // text; if we somehow missed deltas (race / dropped
                     // packets), reconcile from the canonical version.
                     streamedText = parsed.reply;
+                  }
+                  // Done may also include the full attachments payload —
+                  // reconcile in case a transient 'products' event was
+                  // dropped (bg tab throttling).
+                  if (parsed.attachments?.products?.length) {
+                    for (const p of parsed.attachments.products) {
+                      if (p && typeof p.id === 'string') collectedProducts.set(p.id, p);
+                    }
                   }
                   finalReply = streamedText;
                   break;
@@ -1272,14 +1381,23 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         // end, not on every delta — partial-text regex matches would
         // be wasted work and could create torn link tags mid-stream.
         const replyContent = withWhatsAppLinks(assistantReply);
+        const collectedAttachments: ChatAttachments | undefined =
+          collectedProducts.size > 0
+            ? { products: Array.from(collectedProducts.values()) }
+            : undefined;
         const assistantMessage: ChatMessage = {
           id: assistantMessageId,
           role: 'assistant',
           content: replyContent,
           timestamp: formatTimestamp(replyLang),
+          ...(collectedAttachments ? { attachments: collectedAttachments } : {}),
         };
 
-        // Finalise: drop streaming flag, commit cleaned content.
+        // Finalise: drop streaming flag, commit cleaned content +
+        // attachments. Replacing the message wholesale (instead of
+        // patching the `streaming` field) drops any in-flight cursor
+        // animations and gives React a clean reference identity for
+        // the memoised MessageList to re-render exactly once.
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantMessageId ? assistantMessage : m)),
         );

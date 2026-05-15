@@ -198,6 +198,19 @@ const handleAiChatStream = async (response, body, origin) => {
         if (aborted) return;
         sendEvent('chunk', { text: chunk });
       },
+      onToolCall: ({ name, attachments }) => {
+        if (aborted) return;
+        // Emit ONE 'products' event per tool invocation with the rich
+        // attachment payload (each product carries id, name, brand,
+        // image, weight, url, …). The frontend renders them as inline
+        // cards beneath the assistant's text reply.
+        // Other tool kinds in the future can emit their own custom
+        // events here without breaking the contract — the client's
+        // SSE parser already ignores unknown event names.
+        if (name === 'search_products' && attachments?.products?.length) {
+          sendEvent('products', { products: attachments.products });
+        }
+      },
     });
 
     if (!aborted && result?.reply) {
@@ -205,7 +218,14 @@ const handleAiChatStream = async (response, body, origin) => {
       // do this AFTER the model finishes — caching a partial reply (from
       // a client that disconnected mid-stream) would poison the cache.
       await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
-      sendEvent('done', { reply: result.reply });
+      // The terminal 'done' event includes both the final text and any
+      // aggregated attachments so the client can reconcile state if it
+      // missed a transient 'products' event (e.g. fast-tab-switch
+      // throttling on Chrome / Safari).
+      sendEvent('done', {
+        reply: result.reply,
+        attachments: result.attachments || {},
+      });
     }
 
     response.end();

@@ -1,12 +1,15 @@
 import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ProductCardInline from './ProductCardInline';
 import type { ChatMessage } from '../../hooks/useChatState';
 
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
   loadingLabel: string;
+  /** Localised CTAs for the product cards Karo attaches to a reply. */
+  productCardLabels: { view: string; whatsapp: string };
   /** Ref for the sentinel div at the bottom of the list (auto-scroll anchor). */
   endRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -20,7 +23,13 @@ interface MessageListProps {
  * are forced to LTR because phone numbers and URLs always read L-to-R even
  * inside an RTL paragraph.
  */
-const MessageListComponent: React.FC<MessageListProps> = ({ messages, isLoading, loadingLabel, endRef }) => (
+const MessageListComponent: React.FC<MessageListProps> = ({
+  messages,
+  isLoading,
+  loadingLabel,
+  productCardLabels,
+  endRef,
+}) => (
   <div className="ai-assistant__messages" role="log">
     {messages.map((message) => {
       const isStreaming = message.streaming === true;
@@ -80,6 +89,31 @@ const MessageListComponent: React.FC<MessageListProps> = ({ messages, isLoading,
               aria-label={loadingLabel}
             />
           )}
+
+          {/* Product cards from a search_products tool call. Rendered
+              BETWEEN the prose and the timestamp so the visitor sees
+              the narrative answer first, then the actionable cards as
+              a "where to go next" pointer. The grid is horizontal-scroll
+              on narrow widths to avoid each card squeezing below readable
+              width — see ai-chat.css. */}
+          {message.attachments?.products && message.attachments.products.length > 0 && (
+            <div
+              className="ai-chat-product-card-grid"
+              role="list"
+              aria-label={`${message.attachments.products.length} products`}
+            >
+              {message.attachments.products.map((p) => (
+                <div role="listitem" key={p.id}>
+                  <ProductCardInline
+                    product={p}
+                    viewLabel={productCardLabels.view}
+                    whatsappLabel={productCardLabels.whatsapp}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {!isStreaming && (
             <span className="ai-assistant__timestamp">{message.timestamp}</span>
           )}
