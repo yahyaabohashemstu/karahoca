@@ -109,7 +109,62 @@ const buildDynamicContext = (prompt, lang = 'ar') => {
   }
 };
 
-export const generateAiReply = async ({ prompt, lang }) => {
+/**
+ * Normalise the optional `history` array sent by the client into the
+ * shape OpenRouter's chat-completions endpoint expects.
+ *
+ * The client stores chat messages with synthetic IDs and timestamps; the
+ * model only cares about `role` ('user' | 'assistant') and `content`
+ * (string). We:
+ *   1. Filter out anything that isn't a real user/assistant turn (no
+ *      sentinel "welcome" entries — the multi-lingual UI greeting would
+ *      otherwise pollute the conversation thread with content the model
+ *      didn't actually generate).
+ *   2. Cap to the last 6 turns. A typical KARAHOCA dialogue runs ~3-5
+ *      exchanges; 6 covers that with one extra turn of safety margin
+ *      and keeps the token cost predictable.
+ *   3. Drop the LAST user message if it duplicates the current `prompt`
+ *      payload — the client always appends the user turn it just sent
+ *      to its local state BEFORE the network call, so without this
+ *      filter the same question would appear twice (once as the final
+ *      history entry, once as the current `user` message). Dropping by
+ *      role + content match keeps both directions of the workflow
+ *      working: if a future caller doesn't pre-append, no harm done.
+ *
+ * Defensive: silently returns [] for any malformed input rather than
+ * throwing — the chat must keep working even if a bug upstream sends
+ * bad data.
+ */
+const buildHistoryMessages = (history, currentPrompt) => {
+  if (!Array.isArray(history)) return [];
+
+  const cleaned = history
+    .filter(
+      (item) =>
+        item &&
+        typeof item === 'object' &&
+        (item.role === 'user' || item.role === 'assistant') &&
+        typeof item.content === 'string' &&
+        item.content.trim().length > 0,
+    )
+    .map((item) => ({ role: item.role, content: item.content }))
+    .slice(-6);
+
+  // De-duplicate: if the last history entry is a user turn whose content
+  // is contained inside the current prompt, drop it. (The current prompt
+  // is knowledge-enriched — much longer — so we check via includes()
+  // rather than strict equality.)
+  if (cleaned.length > 0) {
+    const last = cleaned[cleaned.length - 1];
+    if (last.role === 'user' && typeof currentPrompt === 'string' && currentPrompt.includes(last.content)) {
+      cleaned.pop();
+    }
+  }
+
+  return cleaned;
+};
+
+export const generateAiReply = async ({ prompt, lang, history }) => {
   if (!openrouterApiKey) {
     const error = new Error('OPENROUTER_API_KEY is not configured on the server.');
     error.statusCode = 500;
@@ -121,6 +176,17 @@ export const generateAiReply = async ({ prompt, lang }) => {
     throw error;
   }
 
+  // Build the messages array sent to OpenRouter. The SYSTEM_PROMPT
+  // establishes identity, language, and behaviour rules ONCE; the
+  // history (if any) supplies multi-turn context as proper role-tagged
+  // turns instead of a flat text dump in the user prompt; the current
+  // user message carries the knowledge-enriched payload.
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...buildHistoryMessages(history, prompt),
+    { role: 'user', content: buildDynamicContext(prompt, lang) },
+  ];
+
   const aiResponse = await fetch(OPENROUTER_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -131,10 +197,7 @@ export const generateAiReply = async ({ prompt, lang }) => {
     },
     body: JSON.stringify({
       model: AI_MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildDynamicContext(prompt, lang) },
-      ],
+      messages,
       temperature: 0.7,
       top_p: 0.95,
       max_tokens: 1024,

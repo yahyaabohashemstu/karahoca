@@ -1061,6 +1061,21 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           aiContext.toneGuidelines,
         );
 
+        // Send the previous turns as a real role-tagged history so the
+        // model treats them as a multi-turn conversation rather than a
+        // flat text dump inside the user prompt. We exclude:
+        //   - the synthetic 'welcome' bubble (UI greeting, not a real turn)
+        //   - the user message we're currently sending (`userMessage`) —
+        //     the backend de-duplicates this on its side anyway, but
+        //     skipping it here keeps the network payload tighter.
+        // Capped to 6 turns at the source AND again on the backend; this
+        // covers typical KARAHOCA exchanges (~3-5 turns) with a safety
+        // margin and keeps the OpenRouter token cost predictable.
+        const historyForApi = messages
+          .filter((m) => m.id !== 'welcome' && m.id !== userMessage.id)
+          .slice(-6)
+          .map((m) => ({ role: m.role, content: m.content }));
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120_000);
         let response: Response;
@@ -1068,7 +1083,11 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           response = await apiFetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, lang: replyLang }),
+            body: JSON.stringify({
+              prompt,
+              lang: replyLang,
+              history: historyForApi,
+            }),
             signal: controller.signal,
           });
         } finally {

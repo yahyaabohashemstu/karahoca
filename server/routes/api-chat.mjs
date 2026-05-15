@@ -37,8 +37,13 @@ export const handleAiChat = async (request, response, { origin }) => {
 
   try {
     const promptLen = (body.prompt || '').length;
-    logger.info(`[ai-chat] prompt length: ${promptLen} chars`);
-    const result = await generateAiReply(body);
+    const historyLen = Array.isArray(body.history) ? body.history.length : 0;
+    logger.info(`[ai-chat] prompt length: ${promptLen} chars, history turns: ${historyLen}`);
+    const result = await generateAiReply({
+      prompt: body.prompt,
+      lang: body.lang || 'ar',
+      history: body.history,
+    });
     if (result?.reply) await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
     sendJson(response, 200, result, origin);
   } catch (aiErr) {
