@@ -424,6 +424,7 @@ const migrateInitialData = () => {
   migrateDropTestimonials();
   migrateAiKnowledgeSeed();
   migrateToneGuidelinesMaleGender();
+  migrateToneGuidelinesProductLinks();
 };
 
 /**
@@ -528,6 +529,26 @@ const migrateAiKnowledgeSeed = () => {
 - Russian: "я готов", "я рад", "я уверен" (NOT "готова/рада/уверена").
 - English / Turkish: not gendered — no change needed.
 
+🔗 PRODUCT BROWSE LINK (CRITICAL — ALWAYS INCLUDE WHEN RELEVANT):
+- When the question touches on the products / catalogue of DIOX or AYLUX, append a markdown link to the brand catalogue page at the END of the reply.
+- Use the SAME LANGUAGE as the response, and the correct locale URL prefix:
+  • Arabic: https://karahoca.com/ar/diox   |   https://karahoca.com/ar/aylux
+  • English: https://karahoca.com/en/diox   |   https://karahoca.com/en/aylux
+  • Turkish: https://karahoca.com/tr/diox   |   https://karahoca.com/tr/aylux
+  • Russian: https://karahoca.com/ru/diox   |   https://karahoca.com/ru/aylux
+- Always wrap in markdown: [text](url). NEVER post a bare URL.
+- Examples:
+  • Arabic: [تصفّح كل منتجات DIOX](https://karahoca.com/ar/diox)
+  • English: [Browse all DIOX products](https://karahoca.com/en/diox)
+  • Turkish: [Tüm DIOX ürünlerini görüntüle](https://karahoca.com/tr/diox)
+  • Russian: [Посмотреть все товары DIOX](https://karahoca.com/ru/diox)
+- Decision rules:
+  • Only DIOX mentioned → only DIOX link.
+  • Only AYLUX mentioned → only AYLUX link.
+  • Both / generic ("what products do you have?", "ما هي منتجاتكم؟") → BOTH links on separate lines.
+  • Unrelated to products (shipping, contact, history, AI capabilities) → NO product link.
+- Place link(s) AFTER the answer, separated by one blank line. The link is a follow-up pointer, not the lead.
+
 TONE & STYLE:
 - Sound like a natural human sales/support assistant, not a keyword bot
 - Answer the customer's actual question directly before offering extra context
@@ -596,6 +617,62 @@ const migrateToneGuidelinesMaleGender = () => {
   }
 
   markMigration('tone_guidelines_male_gender_v1');
+};
+
+/**
+ * Force-add the "always include a brand catalogue link when answering
+ * product questions" rule to the existing tone_guidelines row in
+ * production. The seed (above) carries the same block for fresh installs;
+ * this migration splices it into databases that pre-date this change.
+ *
+ * Idempotent via the migrations table AND via a presence check on the
+ * "PRODUCT BROWSE LINK" anchor — running on a hand-edited row that
+ * already has the rule is a no-op.
+ */
+const migrateToneGuidelinesProductLinks = () => {
+  if (hasMigration('tone_guidelines_product_links_v1')) return;
+
+  const current = db
+    .prepare('SELECT value FROM ai_assistant_config WHERE key = ?')
+    .get('tone_guidelines');
+
+  if (current?.value && !current.value.includes('PRODUCT BROWSE LINK')) {
+    const productLinkBlock = `
+🔗 PRODUCT BROWSE LINK (CRITICAL — ALWAYS INCLUDE WHEN RELEVANT):
+- When the question touches on the products / catalogue of DIOX or AYLUX, append a markdown link to the brand catalogue page at the END of the reply.
+- Use the SAME LANGUAGE as the response, and the correct locale URL prefix:
+  • Arabic: https://karahoca.com/ar/diox   |   https://karahoca.com/ar/aylux
+  • English: https://karahoca.com/en/diox   |   https://karahoca.com/en/aylux
+  • Turkish: https://karahoca.com/tr/diox   |   https://karahoca.com/tr/aylux
+  • Russian: https://karahoca.com/ru/diox   |   https://karahoca.com/ru/aylux
+- Always wrap in markdown: [text](url). NEVER post a bare URL.
+- Examples:
+  • Arabic: [تصفّح كل منتجات DIOX](https://karahoca.com/ar/diox)
+  • English: [Browse all DIOX products](https://karahoca.com/en/diox)
+  • Turkish: [Tüm DIOX ürünlerini görüntüle](https://karahoca.com/tr/diox)
+  • Russian: [Посмотреть все товары DIOX](https://karahoca.com/ru/diox)
+- Decision rules:
+  • Only DIOX mentioned → only DIOX link.
+  • Only AYLUX mentioned → only AYLUX link.
+  • Both / generic ("what products do you have?", "ما هي منتجاتكم؟") → BOTH links on separate lines.
+  • Unrelated to products (shipping, contact, history, AI capabilities) → NO product link.
+- Place link(s) AFTER the answer, separated by one blank line. The link is a follow-up pointer, not the lead.
+`;
+
+    // Insert right before the "TONE & STYLE:" anchor so block ordering
+    // matches the canonical seed. Falls back to appending if the anchor
+    // isn't found (defensive — same row was written by the initial seed).
+    const anchor = 'TONE & STYLE:';
+    const next = current.value.includes(anchor)
+      ? current.value.replace(anchor, `${productLinkBlock.trim()}\n\n${anchor}`)
+      : `${current.value.trimEnd()}\n${productLinkBlock}`;
+
+    db.prepare(
+      'INSERT OR REPLACE INTO ai_assistant_config (key, value) VALUES (?, ?)',
+    ).run('tone_guidelines', next);
+  }
+
+  markMigration('tone_guidelines_product_links_v1');
 };
 
 // ─── Newsletter opaque-key migration ────────────────────────────────────────
