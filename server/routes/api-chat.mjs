@@ -1,7 +1,13 @@
 import { readRequestBody } from '../middlewares/bodyParser.mjs';
 import { sendJson } from '../middlewares/cors.mjs';
 import { SECURITY_HEADERS, getClientIp, isChatRateLimited, isChatLogRateLimited } from '../middlewares/security.mjs';
-import { generateAiReply, streamAiReply, getCachedReply, setCachedReply } from '../services/aiChat.mjs';
+import {
+  generateAiReply,
+  streamAiReply,
+  getCachedReply,
+  setCachedReply,
+  tryPreflightProductSearch,
+} from '../services/aiChat.mjs';
 import { logUserQuestion } from './admin-ai-knowledge.mjs';
 import { handleChatLog as handleChatLogLegacy } from './public-data.mjs';
 import { logger } from '../utils/logger.mjs';
@@ -178,10 +184,31 @@ const handleAiChatStream = async (response, body, origin) => {
     // Cache hit path: collapse into a single-chunk stream so the client
     // never has to special-case cached responses. Identical UX, just no
     // tokens spent.
+    //
+    // The cache stores ONLY the text reply, not the product attachments.
+    // To keep the cached path visually consistent with a fresh stream,
+    // we re-run the server-side preflight intent detection against the
+    // current prompt and emit a `products` event if the question still
+    // shows product intent. Two benefits:
+    //   1. Cached visitors still see interactive cards, not just text.
+    //   2. The cards reflect the LIVE catalogue — if a product was
+    //      renamed / discontinued since the text was cached, the cards
+    //      stay accurate even though the prose may drift slightly.
     const cachedReply = await getCachedReply(body.prompt, body.lang || 'ar');
     if (cachedReply) {
+      const cachedLang = body.lang || 'ar';
+      let cachedAttachments = {};
+      try {
+        const preflight = tryPreflightProductSearch(body.prompt, cachedLang);
+        if (preflight.products.length > 0) {
+          cachedAttachments = { products: preflight.products };
+          sendEvent('products', { products: preflight.products });
+        }
+      } catch (preflightErr) {
+        logger.error('[ai-chat] cache-hit preflight failed:', preflightErr.message || preflightErr);
+      }
       sendEvent('chunk', { text: cachedReply });
-      sendEvent('done', { reply: cachedReply, cached: true });
+      sendEvent('done', { reply: cachedReply, cached: true, attachments: cachedAttachments });
       response.end();
       return;
     }

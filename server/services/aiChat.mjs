@@ -370,6 +370,258 @@ const synthesizeProductIntro = (lang) => {
   }
 };
 
+// ── Server-side product intent detection ────────────────────────────────────
+//
+// The "second invocation path" for product cards: instead of relying on the
+// LLM to emit `tool_calls` (which the free Gemma 3 default doesn't do
+// reliably), we detect product intent on the server BEFORE the model is
+// called, run search_products ourselves, and stream the resulting cards
+// straight to the visitor via the same `products` SSE event the tool path
+// uses. Net effect: cards appear ~50ms after the visitor hits send,
+// regardless of which model is configured.
+//
+// Three steps:
+//   1. extractLastUserUtterance(prompt)  — pull the raw question out of
+//      the multi-line, knowledge-base-enriched prompt the client builds
+//      via `mapKnowledgeToPrompt`. The canonical "Customer Question:"
+//      line near the end is the most reliable anchor.
+//   2. detectProductIntent(text, lang)   — multilingual keyword scan over
+//      brand names, category words, and generic browse phrases. Returns
+//      a `{ query, brand, limit }` payload ready for the search_products
+//      tool, or `null` if no intent is detected.
+//   3. tryPreflightProductSearch(prompt, lang)  — public glue that
+//      composes the two above + the existing `executeTool` dispatcher
+//      and returns the rich attachments shape the SSE emitter expects.
+
+/**
+ * Pull the visitor's actual question out of the enriched prompt the
+ * client sends. The client wraps the question with knowledge base
+ * sections, history, and a "Customer Question: ..." anchor; we want
+ * just the anchor's value. Falls back to the last non-empty line if
+ * the anchor isn't present (defensive — future prompt template
+ * changes won't break intent detection).
+ */
+const extractLastUserUtterance = (prompt) => {
+  if (typeof prompt !== 'string') return '';
+  const match = prompt.match(/^Customer Question:\s*(.+)$/m);
+  if (match && match[1]) return match[1].trim();
+  const lines = prompt.split('\n').map((l) => l.trim()).filter(Boolean);
+  return lines.length > 0 ? lines[lines.length - 1] : '';
+};
+
+/**
+ * Multilingual keyword sets. Coverage focuses on:
+ *   - Brand names (DIOX, AYLUX) in Latin and native scripts
+ *   - The cleaning categories KARAHOCA actually sells: laundry,
+ *     dishwashing, surface cleaners, bathroom, soap/shampoo, bleach,
+ *     softener, plus the generic "product / catalogue / sample" words
+ *     visitors use when they just want to browse.
+ *   - "Show me / what do you have" browse intents that don't name a
+ *     specific category.
+ *
+ * Matching is case-insensitive substring (NOT word-boundary) — Arabic
+ * doesn't space-separate inflections (e.g. "والمنظفات" should match
+ * "منظف"), and likewise for Turkish suffixes and Russian word stems.
+ * Substring matching errs toward false positives, which is the
+ * desired bias: a visitor who sees a relevant card without asking is
+ * a marginal improvement; a visitor who asks about products and sees
+ * NO cards is a regression vs. the tool-call architecture.
+ */
+const BRAND_KEYWORDS = {
+  DIOX: ['diox', 'ديوكس', 'диокс'],
+  AYLUX: ['aylux', 'eylüks', 'eyluks', 'أيلوكس', 'إيلوكس', 'илюкс', 'айлюкс'],
+};
+
+const CATEGORY_KEYWORDS = [
+  // Generic product / browse words
+  'product', 'products', 'catalog', 'catalogue', 'item', 'items',
+  'منتج', 'منتجات', 'بضاعة', 'كتالوج', 'مواد',
+  'ürün', 'urun', 'ürünler', 'urunler', 'katalog',
+  'товар', 'продукт', 'продукц', 'каталог',
+  // Laundry
+  'laundry', 'detergent', 'washing powder', 'washing liquid',
+  'غسيل', 'مسحوق', 'منظف الملابس',
+  'çamaşır', 'camasir', 'deterjan',
+  'стирка', 'стиральн', 'порошок',
+  // Dishwashing / kitchen
+  'dish', 'dishes', 'dishwashing', 'kitchen', 'plate',
+  'صحون', 'أطباق', 'جلي', 'مطبخ',
+  'bulaşık', 'bulasik', 'tabak', 'mutfak',
+  'посуд', 'кухн',
+  // Surface / general cleaner
+  'cleaner', 'cleaning', 'all-purpose', 'surface', 'floor',
+  'منظف', 'منظفات', 'منظّف', 'تنظيف', 'أرض', 'أرضية', 'سطح',
+  'temizleyici', 'temizlik', 'zemin', 'yüzey', 'yuzey',
+  'очисти', 'чистящ', 'пол', 'поверхн',
+  // Bathroom / toilet
+  'bathroom', 'toilet', ' wc',
+  'حمام', 'مرحاض',
+  'tuvalet', 'banyo',
+  'туалет', 'ванн', 'санитар',
+  // Soap / shampoo
+  'soap', 'shampoo', 'hand wash',
+  'صابون', 'شامبو',
+  'sabun', 'şampuan', 'sampuan',
+  'мыло', 'шампунь',
+  // Bleach / softener
+  'bleach', 'softener',
+  'كلور', 'مبيّض', 'مبيض', 'منعّم', 'منعم',
+  'çamaşır suyu', 'yumuşatıcı', 'yumusatici',
+  'отбелив', 'хлор', 'кондиционер',
+  // Samples / pricing-with-product (pricing alone is excluded — it could
+  // be about shipping; but a sample request is unambiguously about products)
+  'sample', 'samples',
+  'عيّنة', 'عينة', 'عينات',
+  'numune', 'örnek',
+  'образец',
+];
+
+const BROWSE_PATTERNS = [
+  /\bwhat (do you|products do you|kind of products) (have|offer|sell|make)/i,
+  /\bshow (me|us) (your|the|some)? ?(products|catalog|catalogue)/i,
+  /\b(list|browse) (your|the|all) products?/i,
+  /ما هي منتجات/,
+  /ما لديكم من/,
+  /شو عندكم/,
+  /وش عندكم/,
+  /أرني .{0,15}منتج/,
+  /منتج.{0,15}لديكم/,
+  /hangi ürünler/i,
+  /ne tür ürünler/i,
+  /ürünleri göster/i,
+  /какие.{0,15}товар/i,
+  /какие.{0,15}продукц/i,
+  /ассортимент/i,
+];
+
+/**
+ * Scan a piece of text (usually the visitor's last utterance) for
+ * product intent. Returns the payload for search_products if matched,
+ * `null` otherwise.
+ *
+ * Search-query strategy:
+ *   1. If a category word matched, use it as the query — the LIKE
+ *      pattern in search_products will rank exact matches highest.
+ *   2. Else if only a brand matched, pass the empty string + the
+ *      brand filter — search_products returns the top N from that
+ *      brand by display_order.
+ *   3. Else (browse intent only), pass empty string + no brand —
+ *      returns the top N overall by display_order.
+ *
+ * `limit` is hard-coded at 4 to match the visible card grid:
+ *   - On desktop the auto-fill grid shows 4 cards in a row at the
+ *     typical viewport.
+ *   - On mobile the 2-column grid shows 4 cards in two rows without
+ *     making the chat scroll for half a screen.
+ */
+const detectProductIntent = (rawText) => {
+  if (typeof rawText !== 'string') return null;
+  const text = rawText.trim();
+  if (text.length === 0) return null;
+  const lower = text.toLowerCase();
+
+  let brand = null;
+  for (const [b, kws] of Object.entries(BRAND_KEYWORDS)) {
+    if (kws.some((kw) => lower.includes(kw))) { brand = b; break; }
+  }
+
+  let categoryHit = null;
+  for (const kw of CATEGORY_KEYWORDS) {
+    if (lower.includes(kw.toLowerCase())) { categoryHit = kw.trim(); break; }
+  }
+
+  const browseHit = !categoryHit && BROWSE_PATTERNS.some((p) => p.test(text));
+
+  if (!brand && !categoryHit && !browseHit) return null;
+
+  return {
+    query: categoryHit || '',
+    brand,
+    limit: 4,
+  };
+};
+
+/**
+ * Public glue: extract the visitor's utterance, classify intent, and
+ * if matched, run search_products against the live DB and return the
+ * resulting attachments shape. Returns `{ products: [] }` when no
+ * intent is detected so callers can branch on length without
+ * null-checking.
+ *
+ * Caller use cases:
+ *   - `streamAiReply` calls this BEFORE the first OpenRouter request
+ *     so cards stream to the visitor before the first model token.
+ *   - The cache-hit branch in `api-chat` calls this so cached replies
+ *     ALSO get fresh product cards (the cache only stores text).
+ */
+export const tryPreflightProductSearch = (prompt, lang) => {
+  try {
+    const utterance = extractLastUserUtterance(prompt);
+    const intent = detectProductIntent(utterance);
+    if (!intent) return { products: [] };
+    const out = executeTool(
+      'search_products',
+      JSON.stringify(intent),
+      lang || 'ar',
+    );
+    const products = out?.attachments?.products;
+    if (Array.isArray(products) && products.length > 0) {
+      return { products };
+    }
+    return { products: [] };
+  } catch (err) {
+    logger.error('[ai-chat] preflight product search failed:', err.message || err);
+    return { products: [] };
+  }
+};
+
+/**
+ * Build the directive note that gets appended to SYSTEM_PROMPT for the
+ * one turn where we've pre-emitted product cards. Tells the model:
+ * "the visitor can already SEE these products as visual cards — narrate
+ * around them, don't re-list them." Written in English because the
+ * SYSTEM_PROMPT is in English and multilingual LLMs follow English
+ * directives reliably even while replying in another language.
+ */
+const buildPreEmittedProductNote = (products) => {
+  const summary = products
+    .slice(0, 5)
+    .map((p) => `${p.brand} ${p.name}`)
+    .join(', ');
+  return [
+    '[INTERNAL DIRECTIVE FOR THIS TURN — do not reveal to visitor]',
+    `The frontend has already rendered interactive product cards for: ${summary}.`,
+    'The visitor sees each card visually with image, name, brand, weight,',
+    'a "View product" link, and an "Ask on WhatsApp" button.',
+    '',
+    'Therefore in your reply:',
+    "- Reference these products naturally in your prose (e.g. \"the DIOX",
+    '  laundry powder 9 kg is ideal for...\"), and explain what makes',
+    "  each one suitable for the visitor's situation.",
+    '- Do NOT enumerate them as a bulleted list — the cards ARE the list.',
+    '- Do NOT include their direct URLs — the cards have buttons.',
+    '- Still end with the brand catalogue link as the main system',
+    '  prompt instructs.',
+  ].join('\n');
+};
+
+/**
+ * De-duplicate a product list by id while preserving order. Used at the
+ * return seam of streamAiReply so a paid tool-capable model that
+ * happens to call search_products with overlapping results doesn't
+ * cause double cards on the frontend.
+ */
+const dedupProductsById = (products) => {
+  const seen = new Set();
+  const out = [];
+  for (const p of products) {
+    if (!p?.id || seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+};
+
 /**
  * Stream a reply token-by-token from OpenRouter, with an agent loop on top
  * of the raw streaming helper so Karo can call tools (search_products,
@@ -409,16 +661,61 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
     throw error;
   }
 
+  // ── Pre-flight: server-side product intent + retrieval ──────────────
+  //
+  // Why this exists: the default model (Gemma 3) does NOT reliably emit
+  // tool_calls on OpenRouter, so the LLM-driven product-card path stays
+  // dormant in production. To get rich cards on EVERY model regardless
+  // of tool-calling support, we do our own retrieval here based on a
+  // multilingual keyword scan of the visitor's question. If intent is
+  // detected, we run search_products synchronously and surface the
+  // products via the same `onToolCall` callback the LLM-tool path uses.
+  // The route handler in turn emits a `products` SSE event, so the
+  // frontend renders cards within ~50 ms of the request hitting the
+  // server — usually BEFORE the first model token arrives.
+  //
+  // The `serverEmittedProducts` flag also disables tools on the first
+  // pass so a paid tool-capable model doesn't redundantly call
+  // search_products and double-emit cards.
+  const preflightProducts = tryPreflightProductSearch(prompt, lang).products;
+  if (preflightProducts.length > 0 && onToolCall) {
+    try {
+      onToolCall({
+        name: 'search_products',
+        args: '__server_intent__',
+        attachments: { products: preflightProducts },
+      });
+    } catch (cbErr) {
+      logger.error('[ai-chat] preflight onToolCall callback error:', cbErr.message || cbErr);
+    }
+  }
+
+  // Conditional directive: only added when we DID pre-emit cards. Tells
+  // the model the visitor can already see them, so the prose should be
+  // narrative not enumerative.
+  const systemContent = preflightProducts.length > 0
+    ? `${SYSTEM_PROMPT}\n\n${buildPreEmittedProductNote(preflightProducts)}`
+    : SYSTEM_PROMPT;
+
   const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemContent },
     ...buildHistoryMessages(history, prompt),
     { role: 'user', content: buildDynamicContext(prompt, lang) },
   ];
 
-  // ── First pass: with tools ────────────────────────────────────────────
+  // Top-level accumulator so BOTH return paths (no-tool-call and
+  // tool-call) can include the pre-emitted products in the final
+  // attachments payload the client reconciles on the `done` event.
+  const aggregatedAttachments = { products: [...preflightProducts] };
+
+  // ── First pass ────────────────────────────────────────────────────────
+  //
+  // Tools are DISABLED when we already pre-emitted (no value in a second
+  // retrieval), ENABLED otherwise so a tool-capable model can still
+  // exercise the LLM-driven path for questions our keyword scan missed.
   const first = await callOpenRouterStream({
     messages,
-    withTools: true,
+    withTools: preflightProducts.length === 0,
     onTextChunk: onChunk,
     signal,
   });
@@ -426,11 +723,31 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
   // No tool calls? We're done — the first pass IS the final answer.
   if (first.toolCalls.length === 0) {
     if (!first.text) {
+      // Empty model output but we DID pre-emit cards: synth a graceful
+      // one-liner so the visitor sees an intro line above the grid
+      // instead of a blank bubble.
+      if (aggregatedAttachments.products.length > 0) {
+        const fallback = synthesizeProductIntro(lang);
+        if (onChunk) {
+          try { onChunk(fallback); } catch { /* relay best-effort */ }
+        }
+        return {
+          success: true,
+          reply: fallback,
+          attachments: { products: dedupProductsById(aggregatedAttachments.products) },
+        };
+      }
       const error = new Error('AI model returned an empty response.');
       error.statusCode = 502;
       throw error;
     }
-    return { success: true, reply: first.text, attachments: {} };
+    return {
+      success: true,
+      reply: first.text,
+      attachments: aggregatedAttachments.products.length > 0
+        ? { products: dedupProductsById(aggregatedAttachments.products) }
+        : {},
+    };
   }
 
   // ── Tool execution + second pass ──────────────────────────────────────
@@ -444,7 +761,6 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
   // matching `role: tool` messages keyed by `tool_call_id`. We mirror
   // the spec exactly so OpenRouter (and any OpenAI-compatible backend)
   // is happy.
-  const aggregatedAttachments = { products: [] };
 
   const toolCallMessageEntries = first.toolCalls.map((tc) => ({
     id: tc.id,
@@ -537,7 +853,7 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
   return {
     success: true,
     reply: combinedText,
-    attachments: aggregatedAttachments,
+    attachments: { products: dedupProductsById(aggregatedAttachments.products) },
   };
 };
 
