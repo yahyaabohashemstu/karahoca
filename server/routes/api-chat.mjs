@@ -88,18 +88,49 @@ const wantsStream = (request) => {
 //      format (e.g. a new WhatsApp number) doesn't require a cache
 //      invalidation — every served reply rebuilds the footer.
 //
-// Format mirrors what the visitor asked for: two short lines,
-// localised label, fully-qualified markdown links so the client's
-// existing `<a>` renderer makes them tappable regardless of how the
-// client-side phone-number rewriter handles spaced E.164 forms.
+// The WhatsApp link uses wa.me's `?text=` parameter so tapping it
+// opens the conversation with a pre-filled message in the visitor's
+// language — they just hit Send. Without `?text=`, wa.me opens an
+// empty chat and the visitor has to type something cold, which
+// loses ~half of intent.
 const CONTACT_EMAIL = 'info@karahoca.com';
+const CONTACT_WHATSAPP_NUMBER_E164 = '905305914990';
 const CONTACT_WHATSAPP_DISPLAY = '+90 530 591 49 90';
-const CONTACT_WHATSAPP_URL = 'https://wa.me/905305914990';
+
+// Localised pre-filled WhatsApp message. The visitor lands on
+// WhatsApp with this text already typed in the composer so the very
+// next action is "Send", not "what do I write?". Keep it short,
+// neutral, and useful as a conversation opener — the team can
+// branch from here based on what the visitor actually needs.
+const WHATSAPP_PREFILLED_MESSAGES = {
+  ar: 'أهلاً، أودّ الاستفسار عن منتجات KARAHOCA',
+  en: "Hello, I'd like to inquire about KARAHOCA products",
+  tr: 'Merhaba, KARAHOCA ürünleri hakkında bilgi almak istiyorum',
+  ru: 'Здравствуйте, я хотел бы узнать о продукции KARAHOCA',
+};
+
+// `encodeURIComponent` leaves unreserved RFC-3986 marks ( ) ! * ' ~
+// alone. We additionally encode the markdown-fragile ones — `(` and
+// `)` would prematurely terminate the URL part of a `[…](…)` link
+// when the client's `withWhatsAppLinks` regex scans for protected
+// regions. Apostrophes and exclamation marks survive markdown fine
+// but get encoded for paranoia.
+const encodeWhatsAppText = (s) =>
+  encodeURIComponent(s).replace(
+    /[()'!*]/g,
+    (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
+  );
+
+const buildWhatsAppUrl = (lang) => {
+  const code = (lang || 'ar').toLowerCase();
+  const msg = WHATSAPP_PREFILLED_MESSAGES[code] || WHATSAPP_PREFILLED_MESSAGES.ar;
+  return `https://wa.me/${CONTACT_WHATSAPP_NUMBER_E164}?text=${encodeWhatsAppText(msg)}`;
+};
 
 const buildContactBlock = (lang) => {
   const code = (lang || 'ar').toLowerCase();
   const email = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
-  const wa = `[${CONTACT_WHATSAPP_DISPLAY}](${CONTACT_WHATSAPP_URL})`;
+  const wa = `[${CONTACT_WHATSAPP_DISPLAY}](${buildWhatsAppUrl(code)})`;
   switch (code) {
     case 'en':
       return `\n\nEmail: ${email}\nWhatsApp: ${wa}`;
