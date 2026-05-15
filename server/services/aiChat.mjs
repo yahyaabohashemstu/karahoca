@@ -534,8 +534,19 @@ const detectProductIntent = (rawText) => {
 
   if (!brand && !categoryHit && !browseHit) return null;
 
+  // Query strategy:
+  //   - SPECIFIC question ("مسحوق غسيل عادي"): pass the FULL utterance
+  //     so the multi-token overlap scorer in search_products can
+  //     reward products matching multiple words and pick a clear
+  //     "primary" winner.
+  //   - Browse-only ("ما هي منتجاتكم؟"): pass an empty query — the
+  //     scorer would just be noise on browse intent, and the empty-
+  //     query branch in search_products returns a curated brand slice.
+  //   - Brand-only ("ماذا لدى DIOX؟"): same as browse — empty query
+  //     plus the brand filter.
+  const isSpecific = Boolean(categoryHit);
   return {
-    query: categoryHit || '',
+    query: isSpecific ? text : '',
     brand,
     limit: 4,
   };

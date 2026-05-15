@@ -40,6 +40,15 @@ export interface ChatProduct {
   material?: string;
   count?: string;
   url: string;
+  /**
+   * Visual-hierarchy flag set by the server's word-overlap relevance
+   * scorer when one product is clearly the best match for the visitor's
+   * query. `MessageList` renders the `primary` product as a featured
+   * card on its own row, with the remaining products demoted to a
+   * "similar products" strip below. Omitted when no clear winner
+   * exists (broad browse queries, ties, single-result responses).
+   */
+  primary?: boolean;
 }
 
 /**
@@ -118,6 +127,13 @@ export interface ChatUIStrings {
   productCard: {
     view: string;
     whatsapp: string;
+    /**
+     * Label shown above the "similar products" strip that appears
+     * beneath a featured (primary) card. Hidden when no product is
+     * flagged primary — in that case the message just renders a flat
+     * grid of equal-tier cards.
+     */
+    similarLabel: string;
   };
 }
 
@@ -452,6 +468,7 @@ const getUIText = (lang: string): ChatUIStrings => {
         productCard: {
           view: 'Ürünü görüntüle',
           whatsapp: 'WhatsApp ile sor',
+          similarLabel: 'Benzer ürünler',
         },
       };
     case 'ru':
@@ -489,6 +506,7 @@ const getUIText = (lang: string): ChatUIStrings => {
         productCard: {
           view: 'Открыть товар',
           whatsapp: 'Спросить в WhatsApp',
+          similarLabel: 'Похожие товары',
         },
       };
     case 'en':
@@ -526,6 +544,7 @@ const getUIText = (lang: string): ChatUIStrings => {
         productCard: {
           view: 'View product',
           whatsapp: 'Ask on WhatsApp',
+          similarLabel: 'Similar products',
         },
       };
     case 'ar':
@@ -564,6 +583,7 @@ const getUIText = (lang: string): ChatUIStrings => {
         productCard: {
           view: 'عرض المنتج',
           whatsapp: 'اسأل عبر واتساب',
+          similarLabel: 'منتجات مشابهة',
         },
       };
   }

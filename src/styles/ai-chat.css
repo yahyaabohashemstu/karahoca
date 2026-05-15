@@ -93,6 +93,98 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   PRODUCT CARD GROUP — primary + similar layout
+
+   When the relevance scorer picks a clear winner for the visitor's
+   question, we render that product as a featured card spanning the
+   whole bubble width (a step up from the equal-tier grid), label the
+   strip beneath as "Similar products", and demote the remaining
+   matches to that strip. The strip uses the same `.ai-chat-product-
+   card-grid` element with an extra `--similar` modifier so the cards
+   read as "secondary options" while still being clickable.
+
+   When no winner is flagged, this whole group degenerates to the flat
+   grid via the existing class — there is no extra DOM cost.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ai-chat-product-card-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+/* Primary card wrapper: takes the full bubble width. The inner
+   .ai-chat-product-card keeps its vertical layout but reads larger
+   because it's alone in the row. We cap max-width so on a wide
+   desktop chat the card doesn't sprawl. */
+.ai-chat-product-card-group__primary {
+  width: 100%;
+  align-self: stretch;
+}
+
+.ai-chat-product-card-group__primary .ai-chat-product-card {
+  /* Subtle highlight ring so the primary card reads as "featured"
+     even before the visitor processes the layout hierarchy. Uses
+     the brand accent colour so it matches the rest of the chat UI
+     without introducing a new colour token. */
+  border-color: rgba(245, 75, 26, 0.45);
+  box-shadow: 0 4px 14px rgba(245, 75, 26, 0.12);
+}
+
+body.light-mode .ai-chat-product-card-group__primary .ai-chat-product-card {
+  border-color: rgba(245, 75, 26, 0.5);
+  box-shadow: 0 4px 14px rgba(245, 75, 26, 0.16);
+}
+
+/* "Similar products" label sits between the primary card and the
+   secondary grid. Small and muted on purpose — it's a wayfinding
+   label, not a call to action. */
+.ai-chat-product-card-group__similar-label {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.02em;
+  /* Logical alignment so Arabic stays right-edge and Latin/Russian
+     stay left-edge inside the same bubble. */
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+body.light-mode .ai-chat-product-card-group__similar-label {
+  color: rgba(21, 61, 122, 0.6);
+}
+
+/* The "similar" grid keeps the existing card markup but compresses
+   the column track so each card reads visibly smaller than the
+   primary above. Desktop: 3 columns at ~140px each. Mobile: 2
+   columns inherited from the base grid rule below. */
+.ai-chat-product-card-grid--similar {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 0; /* the label already provides the gap */
+}
+
+.ai-chat-product-card-grid--similar .ai-chat-product-card__name {
+  font-size: 0.78rem;
+}
+
+.ai-chat-product-card-grid--similar .ai-chat-product-card__cta {
+  font-size: 0.68rem;
+  padding: 5px 6px;
+  min-height: 28px;
+}
+
+@media (max-width: 480px) {
+  .ai-chat-product-card-grid--similar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+}
+
 .ai-chat-product-card {
   display: flex;
   flex-direction: column;

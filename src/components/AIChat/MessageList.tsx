@@ -8,8 +8,15 @@ interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
   loadingLabel: string;
-  /** Localised CTAs for the product cards Karo attaches to a reply. */
-  productCardLabels: { view: string; whatsapp: string };
+  /**
+   * Localised strings for the product card section:
+   *   - `view`, `whatsapp` are CTAs on each card.
+   *   - `similarLabel` is the heading shown above the "similar products"
+   *     strip that appears whenever a product is flagged `primary: true`.
+   *     When no product carries that flag, the message renders a flat
+   *     grid and the label is unused.
+   */
+  productCardLabels: { view: string; whatsapp: string; similarLabel: string };
   /** Ref for the sentinel div at the bottom of the list (auto-scroll anchor). */
   endRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -93,26 +100,75 @@ const MessageListComponent: React.FC<MessageListProps> = ({
           {/* Product cards from a search_products tool call. Rendered
               BETWEEN the prose and the timestamp so the visitor sees
               the narrative answer first, then the actionable cards as
-              a "where to go next" pointer. The grid is horizontal-scroll
-              on narrow widths to avoid each card squeezing below readable
-              width — see ai-chat.css. */}
-          {message.attachments?.products && message.attachments.products.length > 0 && (
-            <div
-              className="ai-chat-product-card-grid"
-              role="list"
-              aria-label={`${message.attachments.products.length} products`}
-            >
-              {message.attachments.products.map((p) => (
-                <div role="listitem" key={p.id}>
-                  <ProductCardInline
-                    product={p}
-                    viewLabel={productCardLabels.view}
-                    whatsappLabel={productCardLabels.whatsapp}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+              a "where to go next" pointer.
+              ──
+              Two visual layouts depending on whether the relevance
+              scorer flagged a clear "primary" winner:
+                1. `primary: true` on one product → render it as a
+                   featured card spanning the full bubble width, then
+                   a "similar products" label, then the remaining
+                   products in a smaller-tier grid. This is the case
+                   the visitor reported ("when I ask for regular
+                   laundry powder I get every powder type") — we
+                   highlight THE answer and demote the alternatives.
+                2. No primary flag → render the flat grid as before
+                   (broad browse queries like "what products do you
+                   have?" where every option is equally valid). */}
+          {message.attachments?.products && message.attachments.products.length > 0 && (() => {
+            const products = message.attachments.products;
+            const primaryIndex = products.findIndex((p) => p.primary === true);
+            const hasPrimary = primaryIndex >= 0;
+            const primary = hasPrimary ? products[primaryIndex] : null;
+            const others = hasPrimary
+              ? products.filter((_, i) => i !== primaryIndex)
+              : products;
+
+            return (
+              <div className="ai-chat-product-card-group">
+                {primary && (
+                  <div
+                    className="ai-chat-product-card-group__primary"
+                    role="region"
+                    aria-label={primary.name}
+                  >
+                    <ProductCardInline
+                      product={primary}
+                      viewLabel={productCardLabels.view}
+                      whatsappLabel={productCardLabels.whatsapp}
+                    />
+                  </div>
+                )}
+                {others.length > 0 && (
+                  <>
+                    {hasPrimary && (
+                      <p className="ai-chat-product-card-group__similar-label">
+                        {productCardLabels.similarLabel}
+                      </p>
+                    )}
+                    <div
+                      className={
+                        hasPrimary
+                          ? 'ai-chat-product-card-grid ai-chat-product-card-grid--similar'
+                          : 'ai-chat-product-card-grid'
+                      }
+                      role="list"
+                      aria-label={`${others.length} products`}
+                    >
+                      {others.map((p) => (
+                        <div role="listitem" key={p.id}>
+                          <ProductCardInline
+                            product={p}
+                            viewLabel={productCardLabels.view}
+                            whatsappLabel={productCardLabels.whatsapp}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           {!isStreaming && (
             <span className="ai-assistant__timestamp">{message.timestamp}</span>
