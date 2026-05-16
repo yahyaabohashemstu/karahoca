@@ -143,6 +143,99 @@ async function callOpenRouterWithRetry(apiKey, prompt) {
   );
 }
 
+// ─── Response shape normalisation ─────────────────────────────────────────────
+//
+// Even with an explicit schema in the prompt, OpenRouter-routed models
+// occasionally drift on the JSON keys: they may wrap field names in
+// `[brackets]` (echoing the older input format), capitalise language
+// keys ("Arabic", "EN"), or spell them in their native script
+// ("العربية"). The frontend pipeline assumes lowercase two-letter
+// codes + exact field names verbatim, so anything else silently
+// produces a `{}` after the field-first transform and the EN/TR/RU
+// tabs stay blank with a misleading "✓ تمت الترجمة" badge.
+//
+// We canonicalise here so the FE only ever sees the shape it expects.
+
+const LANG_CODE_ALIASES = {
+  // English aliases
+  ar: 'ar', arabic: 'ar', 'العربية': 'ar', العربية: 'ar', العربيه: 'ar',
+  en: 'en', english: 'en', eng: 'en', الانجليزية: 'en', الإنجليزية: 'en',
+  tr: 'tr', turkish: 'tr', türkçe: 'tr', turkce: 'tr', التركية: 'tr',
+  ru: 'ru', russian: 'ru', русский: 'ru', russkij: 'ru', الروسية: 'ru',
+};
+
+/**
+ * Normalise a language key the model emitted to the canonical
+ * lowercase 2-letter code. Returns `null` when the key is
+ * unrecognisable so callers can drop it cleanly.
+ */
+const canonicaliseLangKey = (raw) => {
+  if (typeof raw !== 'string') return null;
+  const key = raw.trim().toLowerCase();
+  if (LANG_CODE_ALIASES[key]) return LANG_CODE_ALIASES[key];
+  // Last resort: many emissions use `ar-SA` / `en_US` etc. Take the
+  // leading 2 letters.
+  const short = key.slice(0, 2);
+  if (['ar', 'en', 'tr', 'ru'].includes(short)) return short;
+  return null;
+};
+
+/**
+ * Normalise a field key the model emitted to match one of the field
+ * names the caller asked for. Handles `[subject]`, `"subject "`, and
+ * case differences. Returns the matched ORIGINAL field name (preserving
+ * the caller's casing) so the FE's lookups by exact key still work.
+ */
+const canonicaliseFieldKey = (raw, requestedFields) => {
+  if (typeof raw !== 'string') return null;
+  // Strip any surrounding [brackets], whitespace, then lowercase for
+  // a forgiving lookup. Use the ORIGINAL caller's key on success so
+  // case preserves (e.g. requested 'Subject' → output 'Subject').
+  const normalised = raw.replace(/^\[+|\]+$/g, '').trim().toLowerCase();
+  for (const req of requestedFields) {
+    if (req.toLowerCase() === normalised) return req;
+  }
+  return null;
+};
+
+/**
+ * Walk the model's parsed JSON and rebuild it into the strict
+ * `{ ar: { field1: ... }, en: ... }` shape the FE expects. Drops
+ * anything that can't be canonicalised. Returns null if NOTHING was
+ * salvageable — the caller can then return a real error to the FE
+ * instead of a misleading-success-with-empty-strings.
+ */
+const normaliseTranslationsShape = (raw, requestedFields) => {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  // Allow a top-level "translations" wrapper that some models emit.
+  const root = (raw.translations && typeof raw.translations === 'object')
+    ? raw.translations
+    : raw;
+
+  for (const [langKey, langValue] of Object.entries(root)) {
+    const lang = canonicaliseLangKey(langKey);
+    if (!lang) continue;
+    // Each language value should be an object of field → translated string.
+    if (!langValue || typeof langValue !== 'object' || Array.isArray(langValue)) continue;
+    const langBucket = {};
+    for (const [fieldKey, fieldValue] of Object.entries(langValue)) {
+      const canonField = requestedFields.length === 0
+        ? fieldKey.replace(/^\[+|\]+$/g, '').trim()
+        : canonicaliseFieldKey(fieldKey, requestedFields);
+      if (!canonField) continue;
+      if (typeof fieldValue !== 'string') continue;
+      langBucket[canonField] = fieldValue;
+    }
+    if (Object.keys(langBucket).length > 0) out[lang] = langBucket;
+  }
+
+  // Refuse if NOTHING came through — the badge "✓ تمت الترجمة" with empty
+  // fields is worse than a clear error message.
+  if (Object.keys(out).length === 0) return null;
+  return out;
+};
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 export const handleAdminTranslate = async (req, res, { body, sendJson, origin }) => {
@@ -155,17 +248,20 @@ export const handleAdminTranslate = async (req, res, { body, sendJson, origin })
 
   const { text, sourceLang = 'ar', fields } = body;
 
-  // Build field list using a unique separator so multi-line body content
-  // doesn't confuse the model.
-  const FIELD_SEP = '\n<<<NEXT_FIELD>>>\n';
-  const textToTranslate = fields
-    ? Object.entries(fields)
-        .filter(([, v]) => v && String(v).trim())
-        .map(([k, v]) => `[${k}]: ${String(v).trim()}`)
-        .join(FIELD_SEP)
-    : text;
+  // Resolve the list of field names we'll send to the model — same set the
+  // FE expects back. Filtering out empty values keeps the schema example
+  // concise and stops the model from inventing translations for blank
+  // inputs.
+  const fieldNames = fields
+    ? Object.keys(fields).filter((k) => fields[k] && String(fields[k]).trim())
+    : [];
 
-  if (!textToTranslate || typeof textToTranslate !== 'string' || !textToTranslate.trim()) {
+  if (fields && fieldNames.length === 0) {
+    sendJson(res, 400, { success: false, error: 'No non-empty fields to translate.' }, origin);
+    return;
+  }
+
+  if (!fields && (typeof text !== 'string' || !text.trim())) {
     sendJson(res, 400, { success: false, error: 'Text or fields required.' }, origin);
     return;
   }
@@ -180,38 +276,69 @@ BRAND NAME RULES (must be followed exactly per language):
 - In Turkish (tr): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
 - In Russian (ru): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"`;
 
+  // Build a CONCRETE schema example that embeds the actual field names the
+  // caller asked for. Previously the schema was `{ "ar": { "field1": ... } }`
+  // (placeholder names) and the input wrapped each value with `[brackets]`,
+  // which led some models to either keep the brackets in the JSON keys
+  // (`"[subject]"`) or use the placeholder names verbatim (`"field1"`).
+  // Either way the FE's `translations.subject?.ar` lookup came back
+  // `undefined` and the EN/TR/RU tabs stayed blank.
+  //
+  // Concrete example shape:
+  //   {
+  //     "ar": { "subject": "...", "body": "..." },
+  //     "en": { "subject": "...", "body": "..." },
+  //     ...
+  //   }
+  const schemaForFields = (fieldList) => {
+    const fieldEntries = fieldList.map((f) => `"${f}": "..."`).join(', ');
+    return [
+      '{',
+      `  "ar": { ${fieldEntries} },`,
+      `  "en": { ${fieldEntries} },`,
+      `  "tr": { ${fieldEntries} },`,
+      `  "ru": { ${fieldEntries} }`,
+      '}',
+    ].join('\n');
+  };
+
+  const fieldsInputBlock = (fieldList) =>
+    fieldList
+      .map((f) => `Field name: ${f}\nSource value: ${String(fields[f]).trim()}`)
+      .join('\n\n---\n\n');
+
   const prompt = fields
     ? `You are a professional translator for KARAHOCA cleaning products company.
 
-Translate each labeled field below from ${langNames[sourceLang] || sourceLang} to Arabic (ar), English (en), Turkish (tr), and Russian (ru).
-Fields are separated by <<<NEXT_FIELD>>> markers. Keep the [fieldname] labels exactly as they appear.
+Translate each field below from ${langNames[sourceLang] || sourceLang} to Arabic (ar), English (en), Turkish (tr), and Russian (ru).
 ${BRAND_RULES}
 
-CRITICAL JSON RULES:
+CRITICAL OUTPUT RULES:
 - Return ONLY a raw JSON object — no markdown fences, no explanation, no extra text.
-- All string values must be on a single line. If the original text has paragraph breaks, represent them as \\n\\n (escaped) NOT as literal newlines.
-- Never put literal line-break characters inside a JSON string value.
+- TOP-LEVEL keys MUST be the lowercase two-letter codes: "ar", "en", "tr", "ru" (NOT "Arabic", NOT "العربية").
+- INNER keys MUST be the exact field names listed below — no square brackets, no quotes inside the key, no extra whitespace.
+- For the source language ("${sourceLang}"), copy the original value verbatim.
+- All string values must be on a single line. Represent paragraph breaks as the escaped sequence \\n\\n, NOT literal line breaks inside the JSON string.
 
-Input:
-${textToTranslate}
+Fields to translate:
+${fieldsInputBlock(fieldNames)}
 
-Required output structure:
-{
-  "ar": { "field1": "...", "field2": "..." },
-  "en": { "field1": "...", "field2": "..." },
-  "tr": { "field1": "...", "field2": "..." },
-  "ru": { "field1": "...", "field2": "..." }
-}`
+Output exactly this JSON shape, with the same field names as keys:
+${schemaForFields(fieldNames)}`
     : `You are a professional translator for KARAHOCA cleaning products company.
 
 Translate the following text from ${langNames[sourceLang] || sourceLang} to all four languages.
 Use natural, commercial language.
 ${BRAND_RULES}
 
-CRITICAL: Return ONLY a raw JSON object (no markdown, no explanation). Use \\n for newlines inside strings.
+CRITICAL OUTPUT RULES:
+- Return ONLY a raw JSON object (no markdown, no explanation).
+- TOP-LEVEL keys MUST be lowercase two-letter codes: "ar", "en", "tr", "ru".
+- Use the escaped sequence \\n for newlines inside string values.
 
-Text: "${textToTranslate}"
+Text: "${text}"
 
+Output exactly this shape:
 {"ar":"...","en":"...","tr":"...","ru":"..."}`;
 
   try {
@@ -233,22 +360,60 @@ Text: "${textToTranslate}"
       .replace(/\s*```$/i, '')
       .trim();
 
-    // Attempt 1: parse as-is.
+    // Try parse: as-is first, then with unescaped-newline repair.
+    let parsed = null;
     try {
-      const translations = JSON.parse(cleaned);
-      sendJson(res, 200, { success: true, translations }, origin);
-      return;
-    } catch { /* fall through */ }
+      parsed = JSON.parse(cleaned);
+    } catch {
+      try {
+        parsed = JSON.parse(fixUnescapedNewlinesInJson(cleaned));
+      } catch { /* fall through */ }
+    }
 
-    // Attempt 2: fix unescaped newlines/tabs inside string values then parse.
-    try {
-      const fixed = fixUnescapedNewlinesInJson(cleaned);
-      const translations = JSON.parse(fixed);
-      sendJson(res, 200, { success: true, translations }, origin);
+    if (!parsed) {
+      logger.warn('[translate] failed to parse model JSON. Raw (first 400 chars):',
+        rawText.slice(0, 400));
+      sendJson(res, 502, { success: false, error: 'Failed to parse translation response.' }, origin);
       return;
-    } catch { /* fall through */ }
+    }
 
-    sendJson(res, 502, { success: false, error: 'Failed to parse translation response.' }, origin);
+    // Normalise the parsed shape into strictly { ar/en/tr/ru → { field → val } }.
+    // For free-form `text` requests there are no field names — the
+    // normaliser then accepts the raw inner keys as-is (and the FE
+    // routes this branch differently anyway).
+    const translations = normaliseTranslationsShape(parsed, fieldNames);
+
+    if (!translations) {
+      // Parse succeeded but we couldn't recognise ANY language or field
+      // keys — emit a real error rather than a false-positive success so
+      // the FE shows "حاول مجدداً" instead of an empty form with a green
+      // checkmark.
+      logger.warn(
+        '[translate] parsed JSON has no recognisable lang/field keys. Top-level keys:',
+        Object.keys(parsed || {}),
+        'Sample raw:',
+        rawText.slice(0, 300),
+      );
+      sendJson(
+        res,
+        502,
+        {
+          success: false,
+          error: 'الترجمة عادت بصيغة غير متوقَّعة. حاول مجدداً.',
+        },
+        origin,
+      );
+      return;
+    }
+
+    // Diagnostic: log the SHAPE of what we're returning (not the full
+    // text — could be PII / long). Helps post-mortem any future drift.
+    logger.info(
+      `[translate] returning translations for langs=[${Object.keys(translations).join(',')}], ` +
+      `fields=[${fieldNames.join(',') || 'free-form'}]`,
+    );
+
+    sendJson(res, 200, { success: true, translations }, origin);
 
   } catch (err) {
     // callOpenRouterWithRetry throws a descriptive, user-friendly message.

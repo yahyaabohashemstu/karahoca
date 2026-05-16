@@ -47,23 +47,57 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
     try {
       const result = await adminApi.translate({ fields, sourceLang });
 
-      if (result.success && result.translations) {
-        // Backend returns lang-first: { ar: { field: val }, en: { field: val } }
-        // Callbacks expect field-first: { field: { ar: val, en: val } }
-        const raw = result.translations as Record<string, Record<string, string>>;
-        const fieldFirst: Record<string, Record<string, string>> = {};
-        for (const [lang, fieldValues] of Object.entries(raw)) {
-          if (!fieldValues || typeof fieldValues !== 'object') continue;
-          for (const [field, value] of Object.entries(fieldValues)) {
-            if (!fieldFirst[field]) fieldFirst[field] = {};
-            fieldFirst[field][lang] = value;
-          }
-        }
-        onTranslated(fieldFirst);
-        setSuccess(true);
-        setAttempt(0);
-        setTimeout(() => setSuccess(false), 3000);
+      if (!result.success || !result.translations) {
+        // Server returned success=false OR translations missing — fall
+        // through to the catch below by throwing.
+        throw new Error('Translation service returned no usable data.');
       }
+
+      // Backend returns lang-first: { ar: { field: val }, en: { field: val } }
+      // Callbacks expect field-first: { field: { ar: val, en: val } }
+      const raw = result.translations as Record<string, Record<string, string>>;
+      const fieldFirst: Record<string, Record<string, string>> = {};
+      let translatedLangs = 0;
+      let translatedFields = 0;
+      for (const [lang, fieldValues] of Object.entries(raw)) {
+        if (!fieldValues || typeof fieldValues !== 'object') continue;
+        const before = translatedFields;
+        for (const [field, value] of Object.entries(fieldValues)) {
+          if (typeof value !== 'string') continue;
+          // Mirror the server's bracket-strip / trim defensiveness on
+          // the client side too — belt-and-braces against future shape
+          // drift if the server normaliser is ever bypassed (e.g. a
+          // legacy deploy hits a new FE).
+          const cleanField = field.replace(/^\[+|\]+$/g, '').trim();
+          if (!cleanField) continue;
+          if (!fieldFirst[cleanField]) fieldFirst[cleanField] = {};
+          fieldFirst[cleanField][lang] = value;
+          translatedFields++;
+        }
+        if (translatedFields > before) translatedLangs++;
+      }
+
+      // Empty-result guard: a false-positive "✓ تمت الترجمة" badge with
+      // no actual translations is the regression the user reported.
+      // If we got nothing usable, surface a real error instead.
+      if (translatedFields === 0) {
+        // eslint-disable-next-line no-console
+        console.warn('[translate] empty translations payload', { raw });
+        throw new Error('الترجمة عادت فارغة — حاول مجدداً.');
+      }
+
+      // Diagnostic log (kept lightweight so production console isn't
+      // noisy). Helpful when an admin says "it didn't work" and we
+      // need to see what came back without re-running the request.
+      // eslint-disable-next-line no-console
+      console.info(
+        `[translate] ok — ${translatedLangs} langs, ${translatedFields} field values`,
+      );
+
+      onTranslated(fieldFirst);
+      setSuccess(true);
+      setAttempt(0);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Translation failed';
       setError(friendlyError(raw));
