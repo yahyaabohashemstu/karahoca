@@ -783,8 +783,24 @@ html[dir="ltr"] .ai-exit-intent__close { right: 10px; }
 }
 
 .ai-assistant__window {
-  width: min(500px, 92vw);
-  max-height: 650px;
+  /* Width tuned for desktop — was 500px which forced the contact footer
+     ("+90 530 591 49 90") to wrap to two lines and squeezed the product
+     card grid to 2 cards per row. 680px gives room for:
+       - 3 product cards per row at the 180px min-track (was 2)
+       - Phone number + email on a single line
+       - 3-4 follow-up chips on one line (was 2 rows)
+       - Long DIOX/AYLUX product names without 3-line clamping
+     94vw cap keeps the panel from touching the page edge on narrow
+     desktop windows. Responsive overrides at the bottom of this file
+     step the width down through tablet → phone via a smoother
+     ladder (no more 500 → 320 cliff at 768 px). */
+  width: min(680px, 94vw);
+  /* Height: max(80vh, ~820 px) gives the chat real breathing room on a
+     1080 p screen — was hard-capped at 650 px which left ~300 px of
+     dead viewport above the panel. Now it grows with the viewport
+     while still leaving a comfortable 18 % above for the page header
+     to peek through. */
+  max-height: min(82vh, 820px);
   border-radius: 24px;
   background: rgba(10, 26, 46, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1163,11 +1179,24 @@ body.light-mode .ai-assistant__message th {
   background: rgba(0, 0, 0, 0.05);
 }
 
-/* Mobile responsive tweaks for the chat widget.
-   Breakpoints were normalised in Phase 5 of the mobile audit: 640 → 768
-   (the canonical `--bp-md`) and 360 → 380 (`--bp-xs`). The 640/360 values
-   were one-offs that drifted from the rest of the codebase; aligning them
-   makes the breakpoint set predictable across files. */
+/* Responsive ladder for the chat widget.
+   Breakpoints were normalised in Phase 5 of the mobile audit. The
+   width steps below give a smooth taper from desktop down to phone
+   instead of the previous 500 → 320 cliff at 768 px — visitors on
+   a 700 px laptop or a 9-inch tablet were getting a 320 px stub of
+   the chat. New ladder:
+     ≥1024 px : 680 px (default, defined on .ai-assistant__window)
+     768-1023 : 560 px
+     480-767  : 95 vw  (mostly fills the screen, leaves a 5 % gutter)
+     ≤480 px  : 96 vw  (near full)
+*/
+@media (max-width: 1024px) {
+  .ai-assistant__window {
+    width: min(560px, 94vw);
+    max-height: min(82vh, 760px);
+  }
+}
+
 @media (max-width: 768px) {
   .ai-assistant {
     bottom: 1rem;
@@ -1187,13 +1216,30 @@ body.light-mode .ai-assistant__message th {
   }
 
   .ai-assistant__window {
-    width: min(320px, 92vw);
+    /* Was 320 px — too narrow on a 700 px viewport. 95 vw fills the
+       screen with a small breathing gutter, gives chips one row, gives
+       the product grid 2 cards per row without forced wrapping. */
+    width: min(440px, 95vw);
+    max-height: min(85vh, 700px);
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-assistant__window {
+    /* On a true phone, give the chat almost the whole screen — the
+       remaining 4 vw gutter is enough to show it's a "panel", not
+       full-screen, without sacrificing usable space. */
+    width: 96vw;
+    max-height: 88vh;
   }
 }
 
 @media (max-width: 380px) {
   .ai-assistant__window {
-    width: min(280px, 95vw);
+    /* Tightest phones (iPhone SE, older Android): claim 97 vw and let
+       the safe-area-inset padding handle the notch / home-indicator. */
+    width: 97vw;
+    max-height: 90vh;
   }
 }
 
