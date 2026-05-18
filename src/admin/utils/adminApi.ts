@@ -167,6 +167,37 @@ export const adminApi = {
   translate: (data: TranslateRequest) =>
     request<{ success: boolean; translations: Record<string, unknown> }>('POST', '/api/admin/translate', data),
 
+  /**
+   * Karo Insights: first-party analytics aggregated from visitor_events
+   * + chat_messages. Returns ALL sections in one round-trip — see
+   * server/routes/admin-karo-insights.mjs for the schema rationale.
+   */
+  getKaroInsights: (params: { from?: string; to?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return request<{
+      success: boolean;
+      range: { from: string; to: string };
+      kpi: {
+        chatOpens: number;
+        uniqueVisitors: number;
+        totalMessages: number;
+        userMessages: number;
+        assistantMessages: number;
+        avgMessagesPerConvo: number;
+        whatsappCtr: number;
+        droppedConversations: number;
+      };
+      byDay: Array<{ day: string; unique_visitors: number; opens: number }>;
+      byLang: Array<{ lang: string; count: number }>;
+      byCountry: Array<{ country: string; count: number }>;
+      topProducts: Array<{ product_id: string; hits: number }>;
+      topFollowupChips: Array<{ chip: string; count: number }>;
+    }>('GET', `/api/admin/karo-insights${suffix}`);
+  },
+
   // Email Campaigns
   getCampaigns: () =>
     request<{ success: boolean; campaigns: Campaign[] }>('GET', '/api/admin/campaigns'),

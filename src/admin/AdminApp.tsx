@@ -19,6 +19,7 @@ const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns').then((m) => (
 const AdminCampaignEdit = lazy(() => import('./pages/AdminCampaignEdit').then((m) => ({ default: m.AdminCampaignEdit })));
 const AdminAiKnowledge = lazy(() => import('./pages/AdminAiKnowledge').then((m) => ({ default: m.AdminAiKnowledge })));
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog').then((m) => ({ default: m.AdminAuditLog })));
+const AdminKaroInsights = lazy(() => import('./pages/AdminKaroInsights').then((m) => ({ default: m.AdminKaroInsights })));
 
 const Fallback = () => (
   <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>
@@ -48,6 +49,7 @@ export const AdminApp: React.FC = () => (
       <Route path="campaigns/:id" element={wrap(AdminCampaignEdit)} />
       <Route path="ai-knowledge" element={wrap(AdminAiKnowledge)} />
       <Route path="audit-log" element={wrap(AdminAuditLog)} />
+      <Route path="karo-insights" element={wrap(AdminKaroInsights)} />
     </Route>
 
     <Route path="*" element={<Navigate to="" replace />} />

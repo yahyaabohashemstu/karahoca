@@ -11,6 +11,7 @@ import { createAdminCsrfCookie, generateCsrfToken, readAdminCsrfCookie } from '.
 import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
 import { handleAdminStats } from './admin-stats.mjs';
 import { handleAdminAnalytics } from './admin-analytics.mjs';
+import { handleKaroInsights } from './admin-karo-insights.mjs';
 import { handleAdminChats } from './admin-chats.mjs';
 import { handleAdminProducts, handleAdminCategories } from './admin-products.mjs';
 import { handleAdminNews } from './admin-news.mjs';
@@ -153,6 +154,10 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   }
   if (url === '/api/admin/analytics' && request.method === 'GET') {
     handleAdminAnalytics(request, response, adminCtx);
+    return true;
+  }
+  if (url.startsWith('/api/admin/karo-insights') && request.method === 'GET') {
+    handleKaroInsights(request, response, adminCtx);
     return true;
   }
   if (url === '/api/admin/audit-log' && request.method === 'GET') {
