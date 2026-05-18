@@ -226,8 +226,27 @@ const tokeniseQuery = (raw) => {
     .filter((t) => !STOPWORDS.has(t));
 };
 
+/**
+ * Score a product against the visitor's query tokens AND record WHICH
+ * tokens hit the product's NAME (the strongest relevance signal).
+ *
+ * Why track `nameTokens` separately: a description-only match (the token
+ * appears in the product's description but NOT in its name) is a much
+ * weaker relevance signal than a name match. Two products can both
+ * score positive yet be about completely different categories:
+ *
+ *   Query: "floor freshener with custom formula" (معطر أرضيات بتركيبة خاصة)
+ *   Product A: "DIOX floor freshener"  → name has معطر + أرضيات → score 6, nameTokens: [معطر, ارضيات]
+ *   Product B: "DIOX laundry powder"   → description happens to say "تركيبة خاصة" → score 4, nameTokens: []
+ *
+ * Product B is irrelevant to the query, but the old "score > 0 ⇒ include"
+ * rule put it in the similar-products strip and confused the visitor.
+ * Returning the nameTokens set lets the caller filter the similars
+ * strip so it only contains products that share a NAME token with the
+ * primary — i.e., products that are actually in the same product family.
+ */
 const scoreProductByOverlap = (row, tokens, lang) => {
-  if (tokens.length === 0) return 0;
+  if (tokens.length === 0) return { score: 0, nameTokens: [] };
   const l = normaliseLang(lang);
   // Normalise the product fields the same way we normalise the query so
   // an Arabic name written with shadda ("معطّر") still matches a query
@@ -236,12 +255,13 @@ const scoreProductByOverlap = (row, tokens, lang) => {
   const descBlob = normalizeArabic(`${row[`description_${l}`] || ''} ${row.description_en || ''}`.toLowerCase());
   const catBlob = normalizeArabic(`${row.cat_title_l || ''} ${row.cat_title_en || ''}`.toLowerCase());
   let score = 0;
+  const nameTokens = [];
   for (const t of tokens) {
-    if (nameBlob.includes(t)) score += 3;
+    if (nameBlob.includes(t)) { score += 3; nameTokens.push(t); }
     else if (descBlob.includes(t)) score += 2;
     else if (catBlob.includes(t)) score += 1;
   }
-  return score;
+  return { score, nameTokens };
 };
 
 // ── Dynamic product-name vocabulary ─────────────────────────────────────
@@ -430,14 +450,57 @@ const searchProducts = ({ query, brand, limit }, lang) => {
         .all(...params);
 
       const scored = rows
-        .map((row) => ({ row, score: scoreProductByOverlap(row, tokens, l) }))
+        .map((row) => {
+          const r = scoreProductByOverlap(row, tokens, l);
+          return { row, score: r.score, nameTokens: r.nameTokens };
+        })
         .filter((s) => s.score > 0)
         .sort((a, b) => b.score - a.score || a.row.display_order - b.row.display_order);
 
       if (scored.length > 0) {
-        const trimmed = scored.slice(0, safeLimit);
-        const promote = hasClearPrimaryWinner(trimmed);
-        const products = trimmed.map((entry, idx) =>
+        // ── Relevance filter for the "similar products" strip ─────────
+        //
+        // Without this, a product whose ONLY match was in the
+        // description (not the name) can sneak into the strip even
+        // when its category is completely different from the
+        // primary. Real example from the catalogue:
+        //
+        //   Query:   "معطر أرضيات بتركيبة خاصة"
+        //   Primary: "DIOX معطر أرضيات"  (name: معطر + ارضيات → 6)
+        //   False  : "DIOX مسحوق غسيل أوتوماتيك" — its description
+        //            literally says "تركيبة خاصة" so it scores 4
+        //            (description-only) and gets included in the
+        //            top-4. Visitor sees laundry powder in floor-
+        //            freshener results — confusion.
+        //
+        // Fix: similars must share a NAME-level token with the
+        // primary, EXCLUDING brand tokens (which match every
+        // product of the brand and aren't useful as a similarity
+        // signal). When the primary has no salient (non-brand)
+        // name tokens — e.g., a pure browse query "show me DIOX
+        // products" — we don't filter, because every brand result
+        // is meaningfully similar in that context.
+        const BRAND_LIKE_TOKENS = new Set([
+          'diox', 'aylux', 'karahoca', 'eyluks',
+          'ديوكس', 'ايلوكس', 'الوكس', 'كاراهوكا', 'كاراخوكا',
+        ]);
+        const primary = scored[0];
+        const primarySalient = primary.nameTokens.filter((t) => !BRAND_LIKE_TOKENS.has(t));
+
+        let finalList;
+        if (primarySalient.length === 0) {
+          // Browse-style query or weak primary — preserve broad results.
+          finalList = scored.slice(0, safeLimit);
+        } else {
+          const salientSet = new Set(primarySalient);
+          const keptSimilars = scored.slice(1).filter((s) =>
+            s.nameTokens.some((t) => salientSet.has(t))
+          );
+          finalList = [primary, ...keptSimilars.slice(0, safeLimit - 1)];
+        }
+
+        const promote = hasClearPrimaryWinner(finalList);
+        const products = finalList.map((entry, idx) =>
           formatProduct(entry.row, l, { primary: promote && idx === 0 }),
         );
 
