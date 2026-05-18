@@ -136,18 +136,46 @@ const SYSTEM_PROMPT = [
   '',
   'TOOLS YOU CAN USE:',
   '- `search_products(query, brand?, limit?)` — search the LIVE catalogue.',
-  '  CALL THIS whenever the customer asks about specific products,',
-  '  mentions a category (laundry, dishwashing, cleaner, etc.), or asks',
-  '  "what do you have?" / "ما هي منتجاتكم؟" / similar. The tool returns',
-  '  real product data from the SQLite catalogue — vastly more reliable',
-  '  than recalling from your prompt context. After the tool returns,',
-  '  weave the product names into a natural-language summary in the',
-  '  customer\'s language. Do NOT enumerate raw URLs or IDs from the',
-  '  tool result — the frontend renders rich cards from the data; you',
-  '  just narrate.',
-  '- If the customer asks a general question that does NOT need product',
-  '  data (greeting, shipping, contact, company history), respond',
-  '  directly without calling the tool.',
+  '  The frontend renders inline product cards from the tool result, so',
+  '  calling this tool is HIGHLY VISIBLE to the visitor: cards appear in',
+  '  the chat. Use it ONLY when the visitor genuinely wants to see',
+  '  product cards. Be strict.',
+  '',
+  '  ✅ CALL search_products WHEN the visitor:',
+  '    - Asks about a specific product type or category',
+  '      ("do you have laundry powder?", "أحتاج منظف صحون", "soap").',
+  '    - Asks "what products do you have?" / "ما هي منتجاتكم؟" /',
+  '      "show me the catalogue" — broad browse intent.',
+  '    - Asks for products from one specific brand AND uses an action',
+  '      verb that asks to SEE them ("show me DIOX products",',
+  '      "أرني منتجات AYLUX", "list your DIOX cleaners").',
+  '',
+  '  ❌ DO NOT CALL search_products WHEN the visitor:',
+  '    - Greets ("hi", "hello", "مرحبا", "سلام").',
+  '    - Asks who you are or your name ("who are you?", "من أنت؟",',
+  '      "ما اسمك؟", "what can you do?", "tell me about yourself").',
+  '    - Asks to COMPARE or EXPLAIN something between brands without',
+  '      asking to see products themselves ("what is the difference',
+  '      between DIOX and AYLUX?", "ما الفرق بين الماركتين؟").',
+  '      Answer this from your knowledge — DO NOT call the tool.',
+  '    - Asks about the COMPANY itself: history, founding date,',
+  '      ownership, story, production capacity, certificates',
+  '      ("when was KARAHOCA founded?", "tell me about the',
+  '      company", "متى تأسستم؟").',
+  '    - Asks about CONTACT, shipping, payment, MOQ, or pricing.',
+  '      Direct them to contact us (the footer at the end of every',
+  '      reply already shows the channels).',
+  '    - Mentions a brand name in passing as part of a non-product',
+  '      question ("which is better, DIOX or AYLUX?" without asking',
+  '      to see options).',
+  '',
+  '  When in doubt: DO NOT call the tool. A reply without cards is',
+  '  always safer than a reply with unwanted cards.',
+  '',
+  '  After the tool returns, weave the product names into a natural-',
+  '  language summary in the visitor\'s language. Do NOT enumerate raw',
+  '  URLs or IDs from the tool result — the frontend renders rich',
+  '  cards from the data; you just narrate.',
   '',
   'PRODUCT BROWSE LINK (CRITICAL — ALWAYS INCLUDE WHEN RELEVANT):',
   'When the customer\'s question touches on the products / catalogue of one',
@@ -747,7 +775,62 @@ const detectProductIntent = (rawText) => {
   const browseHit =
     !specificHit && (genericHit || BROWSE_PATTERNS.some((p) => p.test(text)));
 
-  if (!brand && !specificHit && !browseHit) return null;
+  // ── Negative signals (kill-switches for cards) ─────────────────────
+  //
+  // Even when a brand or generic word is mentioned, certain question
+  // SHAPES are clearly not requests for product cards. Returning
+  // cards on those questions clutters the chat ("who are you?" →
+  // suddenly 4 product cards). We pattern-match the most common
+  // non-product shapes and silently downgrade them to "no intent".
+  //
+  // Categories of kill-switch:
+  //   • Identity questions ("who are you?", "what's your name?")
+  //   • Comparisons / explanations between brands ("what's the
+  //     difference between DIOX and AYLUX?")
+  //   • Company history / about ("when was the company founded?",
+  //     "tell me about KARAHOCA")
+  //   • Contact / shipping / pricing-only questions
+  //   • Greetings ("hello", "good morning", "أهلا")
+  const NEGATIVE_PATTERNS = [
+    // Identity
+    /\b(who are you|what is your name|your name)\b/i,
+    /من\s+أنت/u,
+    /ما\s+اسم(?:ك|كم)/u,
+    /كيف\s+حالك/u,
+    /sen\s+kimsin/iu,
+    /кто\s+ты/iu,
+    // Comparison between brands
+    /\bdifference\s+between\b/i,
+    /\bcompare\b/i,
+    /الفرق\s+بين/u,
+    /\bvs\.?\s/i,
+    // Company / brand about/history
+    /\babout\s+(karahoca|the\s+company|the\s+brand)\b/i,
+    /\bwho\s+(is|founded|owns)\b/i,
+    /\bcompany\s+history\b/i,
+    /\bwhen\s+(was\s+|did\s+).*\b(founded|established|started)\b/i,
+    /(عن|من|أين)\s+(الشركة|كاراهوكا|كاراخوكا|قره\s*خوجة)/u,
+    /(تاريخ|قصة|متى\s+تأسس(?:ت)?)\s/u,
+    /كم\s+(عمر|سنة)/u,
+    // Greetings only
+    /^\s*(hi|hello|hey|good\s+(morning|evening|afternoon))[\s!.,?]*$/i,
+    /^\s*(مرحبا|أهلا|أهلًا|السلام\s+عليكم|صباح\s+الخير|مساء\s+الخير)[\s!.,؟?]*$/u,
+    /^\s*(merhaba|selam)[\s!.,?]*$/iu,
+    /^\s*(привет|здравствуйте)[\s!.,?]*$/iu,
+    // Shipping / contact / pricing without a product hook
+    /\b(shipping|delivery|payment|contact|email|phone|whatsapp)\b/i,
+    /(شحن|توصيل|دفع|تواصل|بريد|هاتف|واتساب)/u,
+  ];
+
+  const isNegativeShape = NEGATIVE_PATTERNS.some((p) => p.test(text));
+
+  // Brand alone is no longer enough — a question that just mentions
+  // DIOX/AYLUX without ANY product/browse signal is almost certainly
+  // about the brand itself (history, comparison, identity) and not a
+  // request for cards. We require category, browse intent, or a
+  // generic-browse keyword that's NOT killed by a negative shape.
+  if (isNegativeShape) return null;
+  if (!specificHit && !browseHit) return null;
 
   // Query strategy:
   //   - SPECIFIC question ("مسحوق غسيل عادي", "معطّر هواء", "مزيل بقع"):
@@ -756,10 +839,10 @@ const detectProductIntent = (rawText) => {
   //     and pick a clear "primary" winner. The scorer ALSO normalises
   //     Arabic on its side, so diacritic differences between the
   //     visitor's spelling and the catalogue's spelling don't matter.
-  //   - Browse-only ("ما هي منتجاتكم؟") OR brand-only ("ماذا لدى DIOX؟"):
-  //     pass an empty query. The empty-query branch in search_products
-  //     returns a curated brand slice (top-N by display_order), which
-  //     is the right "here's what we have" response.
+  //   - Browse-only ("ما هي منتجاتكم؟"): pass an empty query and let
+  //     the empty-query branch in search_products return a curated
+  //     brand slice (top-N by display_order). Brand filter still
+  //     applies if the visitor mentioned one.
   return {
     query: specificHit ? text : '',
     brand,
