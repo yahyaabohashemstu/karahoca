@@ -217,6 +217,34 @@ export const adminApi = {
     request<{ success: boolean; translations: Record<string, unknown> }>('POST', '/api/admin/translate', data),
 
   /**
+   * Conversion funnel + search-terms aggregation (Phase G1 + G2).
+   * One round-trip; both panels read the same visitor_events table
+   * over the same date window so it's cheaper to bundle them
+   * server-side than fan out two GETs.
+   */
+  getFunnel: (params: { from?: string; to?: string; lang?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.from) query.set('from', params.from);
+    if (params.to)   query.set('to',   params.to);
+    if (params.lang) query.set('lang', params.lang);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return request<{
+      success: boolean;
+      range: { from: string; to: string };
+      lang: string | null;
+      funnel: Array<{
+        key: string;
+        label: string;
+        icon: string;
+        visitors: number;
+        dropFromPrev: number;
+        conversionFromStart: number;
+      }>;
+      searchTerms: Array<{ term: string; count: number; topLang: string | null }>;
+    }>('GET', `/api/admin/funnel${suffix}`);
+  },
+
+  /**
    * Karo Insights: first-party analytics aggregated from visitor_events
    * + chat_messages. Returns ALL sections in one round-trip — see
    * server/routes/admin-karo-insights.mjs for the schema rationale.

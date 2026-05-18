@@ -9,6 +9,7 @@ const NAV = [
   { group: 'Overview', items: [
     { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { to: '/admin/analytics', label: 'Analytics', icon: '📈' },
+    { to: '/admin/funnel',    label: 'Funnel',    icon: '🪜' },
   ]},
   { group: 'Content', items: [
     { to: '/admin/products', label: 'Products', icon: '🧴' },

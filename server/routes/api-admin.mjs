@@ -21,6 +21,7 @@ import { handleAdminGa } from './admin-ga.mjs';
 import { handleAdminCampaigns } from './admin-campaigns.mjs';
 import { handleAdminAiKnowledge } from './admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './admin-catalog.mjs';
+import { handleAdminFunnel } from './admin-funnel.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -239,6 +240,13 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   }
   if (url === '/api/admin/audit-log' && request.method === 'GET') {
     handleAuditLog(request, response, adminCtx);
+    return true;
+  }
+  // G1 + G2: conversion funnel + search-terms aggregation. Bundled
+  // into one endpoint to halve the round-trip count for the admin
+  // analytics deep-dive page.
+  if (url.startsWith('/api/admin/funnel') && request.method === 'GET') {
+    handleAdminFunnel(request, response, adminCtx);
     return true;
   }
   if (url.startsWith('/api/admin/chats')) {
