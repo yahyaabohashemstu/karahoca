@@ -3,7 +3,7 @@
  * - Custom Q&A pairs (added by admin)
  * - User questions log (auto-captured, admin reviews)
  */
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 import { buildUpdater } from '../services/safeUpdate.mjs';
 
 const AI_QA_UPDATE_FIELDS = [
@@ -80,8 +80,9 @@ export const logUserQuestion = (question, language, userId) => {
 };
 
 // ── Handler ───────────────────────────────────────────────────────────────────
-export const handleAdminAiKnowledge = (req, res, { sendJson, origin, url, body }) => {
+export const handleAdminAiKnowledge = (req, res, { sendJson, origin, url, body, admin }) => {
   const db = getDb();
+  const adminUser = admin?.username || 'admin';
 
   // ── /api/admin/ai-knowledge/questions
   if (url === '/api/admin/ai-knowledge/questions') {
@@ -129,12 +130,28 @@ export const handleAdminAiKnowledge = (req, res, { sendJson, origin, url, body }
 
     if (req.method === 'PUT') {
       updateAiQaRow(id, body);
-      sendJson(res, 200, { success: true, entry: db.prepare('SELECT * FROM ai_custom_qa WHERE id=?').get(id) }, origin);
+      const entry = db.prepare('SELECT * FROM ai_custom_qa WHERE id=?').get(id);
+      logAudit({
+        action: 'UPDATE',
+        entityType: 'ai_qa',
+        entityId: id,
+        entityName: entry?.question_ar || entry?.question_en || `Q&A #${id}`,
+        adminUser,
+      });
+      sendJson(res, 200, { success: true, entry }, origin);
       return;
     }
 
     if (req.method === 'DELETE') {
+      const entry = db.prepare('SELECT question_ar, question_en FROM ai_custom_qa WHERE id=?').get(id);
       db.prepare('DELETE FROM ai_custom_qa WHERE id=?').run(id);
+      logAudit({
+        action: 'DELETE',
+        entityType: 'ai_qa',
+        entityId: id,
+        entityName: entry?.question_ar || entry?.question_en || `Q&A #${id}`,
+        adminUser,
+      });
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -159,7 +176,15 @@ export const handleAdminAiKnowledge = (req, res, { sendJson, origin, url, body }
       answer_tr:   body.answer_tr   || '', answer_ru:   body.answer_ru   || '',
       tags:        body.tags        || '',
     });
-    sendJson(res, 201, { success: true, entry: db.prepare('SELECT * FROM ai_custom_qa WHERE id=?').get(info.lastInsertRowid) }, origin);
+    const entry = db.prepare('SELECT * FROM ai_custom_qa WHERE id=?').get(info.lastInsertRowid);
+    logAudit({
+      action: 'CREATE',
+      entityType: 'ai_qa',
+      entityId: info.lastInsertRowid,
+      entityName: entry?.question_ar || entry?.question_en || `Q&A #${info.lastInsertRowid}`,
+      adminUser,
+    });
+    sendJson(res, 201, { success: true, entry }, origin);
     return;
   }
 

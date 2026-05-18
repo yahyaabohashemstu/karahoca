@@ -204,8 +204,9 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
 
 // ─── Categories ──────────────────────────────────────────────────────────────
 
-export const handleAdminCategories = (req, res, { body, sendJson, origin, url }) => {
+export const handleAdminCategories = (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
+  const adminUser = admin?.username || 'admin';
 
   const idMatch = url.match(/^\/api\/admin\/categories\/([^/]+)$/);
   if (idMatch) {
@@ -215,6 +216,13 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url })
       updateCategoryRow(id, body);
       const cat = db.prepare('SELECT * FROM product_categories WHERE id=?').get(id);
       void invalidateProductsCache(cat?.brand);
+      logAudit({
+        action: 'UPDATE',
+        entityType: 'category',
+        entityId: id,
+        entityName: cat?.title_ar || cat?.title_en || id,
+        adminUser,
+      });
       sendJson(res, 200, { success: true, category: cat }, origin);
       return;
     }
@@ -225,9 +233,16 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url })
         sendJson(res, 400, { success: false, error: `Cannot delete: ${productCount} active products in this category.` }, origin);
         return;
       }
-      const cat = db.prepare('SELECT brand FROM product_categories WHERE id=?').get(id);
+      const cat = db.prepare('SELECT brand, title_ar, title_en FROM product_categories WHERE id=?').get(id);
       db.prepare('DELETE FROM product_categories WHERE id=?').run(id);
       void invalidateProductsCache(cat?.brand);
+      logAudit({
+        action: 'DELETE',
+        entityType: 'category',
+        entityId: id,
+        entityName: cat?.title_ar || cat?.title_en || id,
+        adminUser,
+      });
       sendJson(res, 200, { success: true }, origin);
       return;
     }
@@ -251,6 +266,13 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url })
       title_ar: body.title_ar || '', title_en: body.title_en || '',
       title_tr: body.title_tr || '', title_ru: body.title_ru || '',
       display_order: body.display_order || 0,
+    });
+    logAudit({
+      action: 'CREATE',
+      entityType: 'category',
+      entityId: id,
+      entityName: body.title_ar || body.title_en || id,
+      adminUser,
     });
     sendJson(res, 201, { success: true, category: db.prepare('SELECT * FROM product_categories WHERE id=?').get(id) }, origin);
     return;

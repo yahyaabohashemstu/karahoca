@@ -242,12 +242,48 @@ export const adminApi = {
     request<{ success: boolean; path: string; url: string }>('POST', '/api/admin/upload-image', { imageBase64, fileName }),
 
   // Audit Log
-  getAuditLog: (params?: { limit?: number; offset?: number; entity?: string }) => {
+  getAuditLog: (params?: {
+    limit?: number;
+    offset?: number;
+    entity?: string;
+    action?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  }) => {
     const q = new URLSearchParams();
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.offset) q.set('offset', String(params.offset));
     if (params?.entity) q.set('entity', params.entity);
+    if (params?.action) q.set('action', params.action);
+    if (params?.q)      q.set('q', params.q);
+    if (params?.from)   q.set('from', params.from);
+    if (params?.to)     q.set('to', params.to);
     return request<{ success: boolean; logs: AuditLogEntry[]; total: number }>('GET', `/api/admin/audit-log?${q}`);
+  },
+  /**
+   * Builds the URL of the CSV export of the audit log so the caller can
+   * point a hidden <a download> at it. Doing the download via a plain
+   * link (rather than `request()`) avoids a JSON→Blob roundtrip and
+   * lets the browser handle the Save dialog natively.
+   */
+  auditLogExportUrl: (params?: {
+    entity?: string;
+    action?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  }) => {
+    const q = new URLSearchParams();
+    q.set('format', 'csv');
+    if (params?.entity) q.set('entity', params.entity);
+    if (params?.action) q.set('action', params.action);
+    if (params?.q)      q.set('q', params.q);
+    if (params?.from)   q.set('from', params.from);
+    if (params?.to)     q.set('to', params.to);
+    // buildApiUrl honours VITE_BACKEND_URL so this works on prod where
+    // the API lives at api.karahoca.com.
+    return buildApiUrl(`/api/admin/audit-log?${q.toString()}`);
   },
 };
 

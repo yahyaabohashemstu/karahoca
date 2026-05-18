@@ -1,14 +1,22 @@
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 
-export const handleAdminNewsletter = (req, res, { sendJson, origin, url }) => {
+export const handleAdminNewsletter = (req, res, { sendJson, origin, url, admin }) => {
   const db = getDb();
   const urlObj = new URL(req.url, 'http://localhost');
+  const adminUser = admin?.username || 'admin';
 
   // Export CSV
   if (req.method === 'GET' && url === '/api/admin/newsletter/export') {
     const subscribers = db.prepare(
       'SELECT email, subscribed_at FROM newsletter_subscribers WHERE active=1 ORDER BY subscribed_at DESC'
     ).all();
+    logAudit({
+      action: 'EXPORT',
+      entityType: 'newsletter',
+      entityName: 'CSV export of newsletter subscribers',
+      adminUser,
+      details: `${subscribers.length} rows exported`,
+    });
 
     // Sanitize CSV cells: prefix dangerous chars to prevent Excel formula injection
     const csvSafe = (v = '') => {
@@ -50,6 +58,13 @@ export const handleAdminNewsletter = (req, res, { sendJson, origin, url }) => {
         return;
       }
       db.prepare("UPDATE newsletter_subscribers SET active=0 WHERE email=?").run(email);
+      logAudit({
+        action: 'DELETE',
+        entityType: 'newsletter',
+        entityId: email,
+        entityName: `Unsubscribed ${email}`,
+        adminUser,
+      });
       sendJson(res, 200, { success: true }, origin);
       return;
     }

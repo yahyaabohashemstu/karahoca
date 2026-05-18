@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, readRequestBody } from '../middlewares/bodyParser.mjs';
 import { sendJson } from '../middlewares/cors.mjs';
 import { requireAdminAuth, requireCsrfToken } from '../middlewares/adminAuth.mjs';
-import { getDb } from '../services/db.mjs';
+import { getDb, logAudit } from '../services/db.mjs';
 import { createAdminCsrfCookie, generateCsrfToken, readAdminCsrfCookie } from '../auth.mjs';
 
 import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
@@ -79,16 +79,93 @@ const handleUploadImage = async (request, response, { origin, body }) => {
   sendJson(response, 200, { success: true, path: relativePath, url: absoluteUrl }, origin);
 };
 
-const handleAuditLog = (request, response, { origin }) => {
+/**
+ * GET /api/admin/audit-log[?entity=…&action=…&q=…&from=ISO&to=ISO&limit=…&offset=…&format=csv]
+ *
+ * Read the admin activity log with optional filtering. Supports four
+ * orthogonal filters layered on top of pagination:
+ *
+ *   entity   exact match on entity_type (product, news, campaign, …)
+ *   action   exact match on action (CREATE / UPDATE / DELETE / SEND / EXPORT)
+ *   q        case-insensitive substring on entity_name OR entity_id
+ *   from/to  ISO date bounds on created_at (inclusive on `from`, exclusive on `to`)
+ *
+ * When format=csv the endpoint streams a CSV download instead of JSON.
+ * Used by the admin's "Export log" button for compliance / audit trails.
+ *
+ * Building the WHERE clause from scratch each call (vs caching prepared
+ * statements per filter subset) is fine here — this endpoint is admin-
+ * only and called at most a few times per minute; the schema is small.
+ */
+const handleAuditLog = (request, response, { origin, admin }) => {
   const db = getDb();
   const urlObj = new URL(request.url, 'http://localhost');
   const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '100', 10), 500);
   const offset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
   const entityType = urlObj.searchParams.get('entity') || null;
-  const where = entityType ? 'WHERE entity_type=?' : '';
-  const params = entityType ? [entityType, limit, offset] : [limit, offset];
-  const logs = db.prepare(`SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params);
-  const total = db.prepare(`SELECT COUNT(*) as c FROM admin_audit_log ${where}`).get(...(entityType ? [entityType] : [])).c;
+  const action = urlObj.searchParams.get('action') || null;
+  const q = (urlObj.searchParams.get('q') || '').trim();
+  const from = urlObj.searchParams.get('from') || null;
+  const to = urlObj.searchParams.get('to') || null;
+  const format = (urlObj.searchParams.get('format') || 'json').toLowerCase();
+
+  const conditions = [];
+  const params = [];
+  if (entityType) { conditions.push('entity_type=?'); params.push(entityType); }
+  if (action)     { conditions.push('action=?');      params.push(action); }
+  if (q) {
+    conditions.push('(LOWER(entity_name) LIKE ? OR LOWER(entity_id) LIKE ? OR LOWER(details) LIKE ?)');
+    const needle = `%${q.toLowerCase()}%`;
+    params.push(needle, needle, needle);
+  }
+  if (from) { conditions.push('created_at >= ?'); params.push(from); }
+  if (to)   { conditions.push('created_at < ?');  params.push(to); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  if (format === 'csv') {
+    // Cap CSV exports at 50k rows so a runaway query doesn't OOM the
+    // single-process Node server. 50k is well above any reasonable
+    // audit-log retention horizon for KARAHOCA's volume (~hundreds/day).
+    const CSV_CAP = 50000;
+    const rows = db.prepare(
+      `SELECT id, action, entity_type, entity_id, entity_name, admin_user, details, created_at
+       FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ?`
+    ).all(...params, CSV_CAP);
+
+    // CSV-cell sanitiser: prefix anything that could be parsed as a
+    // formula by Excel / Sheets with `'` so opening the export in a
+    // spreadsheet doesn't execute injected payloads from entity_name.
+    const csvSafe = (v = '') => {
+      const s = String(v ?? '');
+      const escaped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      return /^[=+\-@\t\r]/.test(escaped) ? `'${escaped}` : escaped;
+    };
+    const header = ['id', 'created_at', 'admin_user', 'action', 'entity_type', 'entity_id', 'entity_name', 'details'];
+    const body = rows.map((r) => header.map((k) => csvSafe(r[k])).join(','));
+    const csv = [header.join(','), ...body].join('\n');
+
+    // Log the export itself — fully meta-circular. Useful for spotting
+    // an admin shipping the audit log out of band.
+    logAudit({
+      action: 'EXPORT',
+      entityType: 'audit_log',
+      entityName: `CSV export (${rows.length} rows)`,
+      adminUser: admin?.username || 'admin',
+      details: where ? `Filters: ${where.replace('WHERE ', '')}` : 'No filters',
+    });
+
+    response.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`,
+    });
+    response.end(csv);
+    return;
+  }
+
+  const logs = db.prepare(
+    `SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+  const total = db.prepare(`SELECT COUNT(*) as c FROM admin_audit_log ${where}`).get(...params).c;
   sendJson(response, 200, { success: true, logs, total }, origin);
 };
 
