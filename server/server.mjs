@@ -49,6 +49,7 @@ import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from 
 import { handleAdminRoutes } from './routes/api-admin.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
 import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
+import { resolveVisitorId } from './middlewares/visitorIdentity.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
 import { handleHealth } from './routes/api-health.mjs';
 import { handleAiContext } from './routes/api-ai-context.mjs';
@@ -261,7 +262,11 @@ const server = createServer((req, res) => {
   runWithRequestContext(req, res, () => {
     // 2. pino-http wires req.log + auto-emits start/end lines.
     httpLog(req, res);
-    // 3. Hand off to the router. Async errors propagate to handleServerError
+    // 3. Resolve the visitor anchor (header > cookie > null) and attach
+    //    it to `req` before any route runs. Routes that care read
+    //    `req.visitorId`; routes that don't are unaffected. Cheap O(1).
+    resolveVisitorId(req);
+    // 4. Hand off to the router. Async errors propagate to handleServerError
     //    via the try/catch in handleRequest().
     void handleRequest(req, res);
   });

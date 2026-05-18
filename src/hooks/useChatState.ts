@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../utils/apiFetch';
 import { trackChatOpen, trackChatClose } from '../utils/analytics';
+import { getVisitorId } from '../utils/visitorIdentity';
 import {
   getLanguageDirection,
   normalizeLanguageCode,
@@ -140,27 +141,12 @@ export interface ChatUIStrings {
 // ─── Constants ────────────────────────────────────────────────────────────
 
 const CHAT_STORAGE_KEY = 'karahoca_ai_chat_messages';
-const USER_ID_KEY = 'karahoca_user_id';
 const MAX_STORED_MESSAGES = 100;
 // Sticky flag: set to '1' the moment the visitor clicks the exit-intent
 // popup's primary CTA. Survives reloads, tab close, and future visits — so
 // once accepted, the popup never reappears in this browser. Cleared only
 // by a manual localStorage purge.
 const EXIT_INTENT_ACCEPTED_KEY = 'karahoca_ai_exit_intent_accepted';
-
-// ─── Helpers (module-level — no React involvement) ────────────────────────
-
-const getOrCreateUserId = (): string => {
-  if (typeof window === 'undefined') return 'unknown';
-  let id = window.localStorage.getItem(USER_ID_KEY);
-  if (!id) {
-    id = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `uid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    window.localStorage.setItem(USER_ID_KEY, id);
-  }
-  return id;
-};
 
 // ─── Persistent log queue ────────────────────────────────────────────────
 //
@@ -881,7 +867,13 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const userIdRef = useRef<string>(getOrCreateUserId());
+  // Visitor identity is now centrally managed by the consent-aware
+  // helper in `utils/visitorIdentity` — the chat is just one of
+  // several consumers (analytics events, A/B variants, …) that all
+  // attach to the same browser anchor. The hook still keeps a ref so
+  // the value is captured once per mount and a same-microtask render
+  // doesn't recompute it.
+  const userIdRef = useRef<string>(getVisitorId());
   const sessionIdRef = useRef<string>(`sess-${Date.now()}`);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
   const sendLockRef = useRef(false);

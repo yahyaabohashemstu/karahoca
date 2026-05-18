@@ -42,7 +42,7 @@ export const createJsonHeaders = (requestOrigin = '', extraHeaders = {}) => {
     // or karahoca.com → api.karahoca.com in prod) silently 403s before
     // hitting the server. curl bypasses preflight, which is why server-side
     // smoke tests passed while the browser failed.
-    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRF-Token';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRF-Token, X-Visitor-Id';
     headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     // Tell browsers they can cache the preflight result for 24h so we don't
     // pay the OPTIONS round-trip on every chat message.

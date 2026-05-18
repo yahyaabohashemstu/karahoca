@@ -17,12 +17,20 @@ import './i18n'
 import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
 import { bootstrapCsrf } from './utils/apiFetch'
+import { installVisitorIdentityListener } from './utils/visitorIdentity'
 
 // Seed the public CSRF cookie from the API. Required because the SPA shell
 // is now served by nginx (no inline cookie injection); the backend issues
 // the cookie via GET /api/csrf and the SPA echoes it on mutating requests.
 // Fire-and-forget — failures surface lazily on the first POST.
 void bootstrapCsrf();
+
+// Subscribe the visitor-identity store to the cookie-consent banner so that
+// granting "accept all" mid-session upgrades the in-memory anchor into a
+// persistent cookie + localStorage entry, and revoking it ("essential only")
+// strips those persistent stores without disrupting the current session.
+// Idempotent — safe to call again on any future bootstrap.
+installVisitorIdentityListener();
 
 // ─── Global unhandled-rejection handler ────────────────────────────────────
 // React's ErrorBoundary only catches render-time errors. Promise rejections

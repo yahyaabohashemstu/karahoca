@@ -1,4 +1,5 @@
 import { buildApiUrl } from './api';
+import { getVisitorId } from './visitorIdentity';
 
 /**
  * Thin wrapper around `fetch` that:
@@ -12,6 +13,12 @@ import { buildApiUrl } from './api';
  *   3. Sends cookies with `credentials: 'include'` so the CSRF cookie
  *      round-trips even when the API lives on a sibling subdomain
  *      (frontend at karahoca.com → backend at api.karahoca.com).
+ *   4. Attaches the `X-Visitor-Id` header on every request so the
+ *      backend can attribute the call to the originating browser even
+ *      when the visitor-id cookie is cross-subdomain-blocked (api.
+ *      karahoca.com vs karahoca.com) or when the storage is session-
+ *      only (essential-consent visitors). See `utils/visitorIdentity`
+ *      for the consent-gated storage strategy.
  *
  * Callers pass a path (e.g. `/api/newsletter/subscribe`) + standard init.
  * Return value is the raw `Response` — same contract as `fetch`.
@@ -19,6 +26,7 @@ import { buildApiUrl } from './api';
 
 const CSRF_COOKIE_NAME = 'karahoca_csrf';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
+const VISITOR_HEADER_NAME = 'X-Visitor-Id';
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const readCookie = (name: string): string => {
@@ -61,6 +69,17 @@ export const apiFetch = async (path: string, init: RequestInit = {}): Promise<Re
   const url = buildApiUrl(path);
   const method = (init.method || 'GET').toUpperCase();
   const headers = normaliseHeaders(init.headers);
+
+  // Attach the canonical visitor id to EVERY request (read-only too)
+  // so analytics events, cohort tracking, and A/B variant assignment
+  // can find the same browser across navigations. Skipped silently
+  // when SSR / the helper returns the placeholder.
+  if (!hasHeader(headers, VISITOR_HEADER_NAME)) {
+    const visitorId = getVisitorId();
+    if (visitorId && visitorId !== 'ssr-placeholder') {
+      headers[VISITOR_HEADER_NAME] = visitorId;
+    }
+  }
 
   if (MUTATION_METHODS.has(method) && !hasHeader(headers, CSRF_HEADER_NAME)) {
     let token = readCsrfToken();

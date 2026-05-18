@@ -47,7 +47,7 @@ const createSseHeaders = (requestOrigin = '') => {
   if (requestOrigin) {
     headers['Access-Control-Allow-Origin'] = requestOrigin;
     headers['Access-Control-Allow-Credentials'] = 'true';
-    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRF-Token, Accept';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRF-Token, X-Visitor-Id, Accept';
     headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
     headers['Access-Control-Max-Age'] = '86400';
     headers.Vary = 'Origin';
