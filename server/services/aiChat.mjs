@@ -134,48 +134,27 @@ const SYSTEM_PROMPT = [
   '- Russian question -> Russian response.',
   '- Any other language -> the same language response.',
   '',
-  'TOOLS YOU CAN USE:',
-  '- `search_products(query, brand?, limit?)` — search the LIVE catalogue.',
-  '  The frontend renders inline product cards from the tool result, so',
-  '  calling this tool is HIGHLY VISIBLE to the visitor: cards appear in',
-  '  the chat. Use it ONLY when the visitor genuinely wants to see',
-  '  product cards. Be strict.',
+  'PRODUCT CARDS — HANDLED BY THE SYSTEM, NOT BY YOU:',
+  'You do NOT have any tools or functions to call. Do NOT mention',
+  '"search_products", "calling a tool", or "retrieving data". The',
+  'KARAHOCA system decides server-side whether to attach interactive',
+  'product cards to your reply based on the visitor\'s question. If',
+  'cards ARE attached, the visitor sees them as a card grid beneath',
+  'your text — and you\'ll see an "[INTERNAL DIRECTIVE]" block in this',
+  'prompt naming them.',
   '',
-  '  ✅ CALL search_products WHEN the visitor:',
-  '    - Asks about a specific product type or category',
-  '      ("do you have laundry powder?", "أحتاج منظف صحون", "soap").',
-  '    - Asks "what products do you have?" / "ما هي منتجاتكم؟" /',
-  '      "show me the catalogue" — broad browse intent.',
-  '    - Asks for products from one specific brand AND uses an action',
-  '      verb that asks to SEE them ("show me DIOX products",',
-  '      "أرني منتجات AYLUX", "list your DIOX cleaners").',
+  'Your job is to NARRATE in the visitor\'s language using the product',
+  'knowledge already injected into the prompt below. When the directive',
+  'block IS present, reference those products naturally in your prose',
+  '(e.g. "the DIOX general cleaner is great for kitchen surfaces…") —',
+  'do NOT enumerate them as a bullet list (the cards do that visually)',
+  'and do NOT include URLs.',
   '',
-  '  ❌ DO NOT CALL search_products WHEN the visitor:',
-  '    - Greets ("hi", "hello", "مرحبا", "سلام").',
-  '    - Asks who you are or your name ("who are you?", "من أنت؟",',
-  '      "ما اسمك؟", "what can you do?", "tell me about yourself").',
-  '    - Asks to COMPARE or EXPLAIN something between brands without',
-  '      asking to see products themselves ("what is the difference',
-  '      between DIOX and AYLUX?", "ما الفرق بين الماركتين؟").',
-  '      Answer this from your knowledge — DO NOT call the tool.',
-  '    - Asks about the COMPANY itself: history, founding date,',
-  '      ownership, story, production capacity, certificates',
-  '      ("when was KARAHOCA founded?", "tell me about the',
-  '      company", "متى تأسستم؟").',
-  '    - Asks about CONTACT, shipping, payment, MOQ, or pricing.',
-  '      Direct them to contact us (the footer at the end of every',
-  '      reply already shows the channels).',
-  '    - Mentions a brand name in passing as part of a non-product',
-  '      question ("which is better, DIOX or AYLUX?" without asking',
-  '      to see options).',
-  '',
-  '  When in doubt: DO NOT call the tool. A reply without cards is',
-  '  always safer than a reply with unwanted cards.',
-  '',
-  '  After the tool returns, weave the product names into a natural-',
-  '  language summary in the visitor\'s language. Do NOT enumerate raw',
-  '  URLs or IDs from the tool result — the frontend renders rich',
-  '  cards from the data; you just narrate.',
+  'When the visitor\'s question is NOT about products (greetings,',
+  'identity / "who are you?", brand comparisons, company history,',
+  'contact, shipping, pricing), just answer the question from your',
+  'general knowledge of KARAHOCA. The system will NOT attach cards in',
+  'those cases and you should NOT pretend it did.',
   '',
   'PRODUCT BROWSE LINK (CRITICAL — ALWAYS INCLUDE WHEN RELEVANT):',
   'When the customer\'s question touches on the products / catalogue of one',
@@ -1026,12 +1005,41 @@ export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall
 
   // ── First pass ────────────────────────────────────────────────────────
   //
-  // Tools are DISABLED when we already pre-emitted (no value in a second
-  // retrieval), ENABLED otherwise so a tool-capable model can still
-  // exercise the LLM-driven path for questions our keyword scan missed.
+  // Tools are ALWAYS DISABLED for the model. Server-side
+  // `tryPreflightProductSearch` is the SOLE authority on whether
+  // product cards appear. Why this trade-off:
+  //
+  //   • We previously enabled tools whenever the preflight returned
+  //     nothing, as a fallback for "questions our keyword scan
+  //     missed". Worked fine on Gemma (which doesn't fire tools
+  //     anyway). When we added Gemini 2.0 Flash as the primary
+  //     provider, Gemini's much more aggressive tool-calling
+  //     behaviour started attaching product cards to identity
+  //     questions ("who are you?"), brand-comparison questions
+  //     ("difference between DIOX and AYLUX?"), and other non-
+  //     product turns. Visitors got cards they never asked for.
+  //
+  //   • Tightening the SYSTEM_PROMPT helped but Gemini still
+  //     over-fires. The model treats the tool schema's presence as
+  //     "this is available — use it if remotely relevant", and a
+  //     brand name being mentioned in passing counts as "remotely
+  //     relevant" by its standard.
+  //
+  //   • The deterministic preflight (intent regex + product-name
+  //     dynamic match + negative kill-switches) is auditable, gives
+  //     identical behaviour on Gemma and Gemini, and is easy to
+  //     extend with new patterns when a real product question slips
+  //     through. We trust IT, not the model.
+  //
+  // Net result: model receives the messages with NO `tools` array,
+  // cannot emit `tool_calls`, and only narrates the answer. Cards
+  // (if any) come exclusively from the preflight that already ran
+  // above. The agent loop below remains in place for the rare case
+  // where a future config explicitly re-enables tools — but the
+  // default path never enters it.
   const first = await callOpenRouterStream({
     messages,
-    withTools: preflightProducts.length === 0,
+    withTools: false,
     onTextChunk: onChunk,
     signal,
   });
