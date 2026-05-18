@@ -68,6 +68,12 @@ const ALLOWED_EVENT_TYPES = new Set([
   'search_query',
   // Newsletter
   'newsletter_subscribe',
+  // G4 A/B testing — fired by the SPA's useExperiment hook the first
+  // time a (experiment_key, variant_key) pair is rendered for a
+  // visitor. Payload: { experiment_key, variant_key }. The admin
+  // results report joins on this event to compute per-variant
+  // exposure + conversion.
+  'variant_exposure',
 ]);
 
 const truncate = (value, max = MAX_STRING_LEN) =>

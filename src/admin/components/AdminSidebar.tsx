@@ -11,6 +11,7 @@ const NAV = [
     { to: '/admin/analytics', label: 'Analytics', icon: '📈' },
     { to: '/admin/funnel',    label: 'Funnel',    icon: '🪜' },
     { to: '/admin/cohorts',   label: 'Cohorts',   icon: '👥' },
+    { to: '/admin/ab-tests',  label: 'A/B Tests', icon: '🧪' },
   ]},
   { group: 'Content', items: [
     { to: '/admin/products', label: 'Products', icon: '🧴' },

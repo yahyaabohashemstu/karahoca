@@ -22,6 +22,7 @@ const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog').then((m) => ({ 
 const AdminKaroInsights = lazy(() => import('./pages/AdminKaroInsights').then((m) => ({ default: m.AdminKaroInsights })));
 const AdminFunnel = lazy(() => import('./pages/AdminFunnel').then((m) => ({ default: m.AdminFunnel })));
 const AdminCohorts = lazy(() => import('./pages/AdminCohorts').then((m) => ({ default: m.AdminCohorts })));
+const AdminAbTests = lazy(() => import('./pages/AdminAbTests').then((m) => ({ default: m.AdminAbTests })));
 
 const Fallback = () => (
   <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>
@@ -54,6 +55,7 @@ export const AdminApp: React.FC = () => (
       <Route path="karo-insights" element={wrap(AdminKaroInsights)} />
       <Route path="funnel" element={wrap(AdminFunnel)} />
       <Route path="cohorts" element={wrap(AdminCohorts)} />
+      <Route path="ab-tests" element={wrap(AdminAbTests)} />
     </Route>
 
     <Route path="*" element={<Navigate to="" replace />} />

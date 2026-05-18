@@ -50,6 +50,7 @@ import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from 
 import { handleAdminRoutes } from './routes/api-admin.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
 import { handleProductOg, handleBrandOg } from './routes/og.mjs';
+import { handleAbActive } from './routes/admin-ab-tests.mjs';
 import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
 import { resolveVisitorId } from './middlewares/visitorIdentity.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
@@ -236,6 +237,13 @@ const handleRequest = async (request, response) => {
     }
     if (request.method === 'GET' && url === '/api/news') {
       await handlePublicNews(request, response, ctx);
+      return;
+    }
+    // Public A/B feed. Anonymous; cached on the SPA side. Returns the
+    // running experiments + variants so the client-side resolver can
+    // hash visitor_id → variant without round-tripping per page-view.
+    if (request.method === 'GET' && url === '/api/ab/active') {
+      handleAbActive(request, response, ctx);
       return;
     }
 

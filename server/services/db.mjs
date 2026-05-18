@@ -384,6 +384,43 @@ const migrateInitialData = () => {
   // ── click_count column for campaign-level aggregation ─────────────────────
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN click_count INTEGER DEFAULT 0"); } catch { /* already exists */ }
 
+  // ── A/B testing framework (Phase G4) ─────────────────────────────────────
+  // Two tables: experiments (one row per test) + variants (one row per
+  // arm of a test). Conversion attribution happens via the existing
+  // visitor_events table — we don't need a third table for impressions
+  // or conversions because every visit / event already lands there
+  // with a visitor_id. The only thing we DO store is the assignment
+  // metadata (experiment key, variant weights, goal event) so the
+  // resolver can hand the right variant to the SPA and the report can
+  // count goal-event visitors per variant.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ab_experiments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      goal_event TEXT NOT NULL,
+      started_at TEXT,
+      stopped_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ab_status ON ab_experiments(status);
+
+    CREATE TABLE IF NOT EXISTS ab_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      experiment_id INTEGER NOT NULL REFERENCES ab_experiments(id) ON DELETE CASCADE,
+      variant_key TEXT NOT NULL,
+      label TEXT,
+      weight INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ab_variants_exp ON ab_variants(experiment_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ab_variants_exp_key
+      ON ab_variants(experiment_id, variant_key);
+  `);
+
   // ── Admin audit log ────────────────────────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS admin_audit_log (

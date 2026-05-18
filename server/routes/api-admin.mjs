@@ -22,6 +22,7 @@ import { handleAdminCampaigns } from './admin-campaigns.mjs';
 import { handleAdminAiKnowledge } from './admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './admin-catalog.mjs';
 import { handleAdminFunnel, handleAdminCohorts } from './admin-funnel.mjs';
+import { handleAdminAbTests } from './admin-ab-tests.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -254,6 +255,13 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   // date, and the matrix shape doesn't fit funnel's response.
   if (url.startsWith('/api/admin/cohorts') && request.method === 'GET') {
     handleAdminCohorts(request, response, adminCtx);
+    return true;
+  }
+  // G4: A/B testing framework. Single handler dispatches the full
+  // CRUD surface (experiments + variants + start/stop transitions)
+  // based on URL pattern matching inside admin-ab-tests.mjs.
+  if (url.startsWith('/api/admin/ab-tests')) {
+    handleAdminAbTests(request, response, adminCtx);
     return true;
   }
   if (url.startsWith('/api/admin/chats')) {

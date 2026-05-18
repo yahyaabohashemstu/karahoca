@@ -244,6 +244,37 @@ export const adminApi = {
     }>('GET', `/api/admin/funnel${suffix}`);
   },
 
+  // ── G4 A/B testing ───────────────────────────────────────────────────────
+  // Thin CRUD wrappers — every endpoint round-trips JSON, the admin
+  // page handles its own optimistic-update logic so these stay typed
+  // but unopinionated.
+  listAbTests: () => request<{
+    success: boolean;
+    experiments: Array<AbExperimentRow & { variants: AbVariantRow[] }>;
+  }>('GET', '/api/admin/ab-tests'),
+  getAbTest: (id: number) => request<{
+    success: boolean;
+    experiment: AbExperimentRow;
+    variants: AbVariantRow[];
+    results: AbExperimentResults | null;
+  }>('GET', `/api/admin/ab-tests/${id}`),
+  createAbTest: (body: { key: string; name: string; description?: string; goal_event: string }) =>
+    request<{ success: boolean; experiment: AbExperimentRow & { variants: AbVariantRow[] } }>('POST', '/api/admin/ab-tests', body),
+  updateAbTest: (id: number, body: Partial<AbExperimentRow>) =>
+    request<{ success: boolean; experiment: AbExperimentRow }>('PUT', `/api/admin/ab-tests/${id}`, body),
+  deleteAbTest: (id: number) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/ab-tests/${id}`),
+  startAbTest: (id: number) =>
+    request<{ success: boolean; experiment: AbExperimentRow }>('POST', `/api/admin/ab-tests/${id}/start`, {}),
+  stopAbTest: (id: number) =>
+    request<{ success: boolean; experiment: AbExperimentRow }>('POST', `/api/admin/ab-tests/${id}/stop`, {}),
+  addAbVariant: (id: number, body: { variant_key: string; label?: string; weight?: number }) =>
+    request<{ success: boolean; variants: AbVariantRow[] }>('POST', `/api/admin/ab-tests/${id}/variants`, body),
+  updateAbVariant: (id: number, variantKey: string, body: { label?: string; weight?: number }) =>
+    request<{ success: boolean; variants: AbVariantRow[] }>('PUT', `/api/admin/ab-tests/${id}/variants/${encodeURIComponent(variantKey)}`, body),
+  deleteAbVariant: (id: number, variantKey: string) =>
+    request<{ success: boolean; variants: AbVariantRow[] }>('DELETE', `/api/admin/ab-tests/${id}/variants/${encodeURIComponent(variantKey)}`),
+
   /**
    * G3: cohort retention. Returns a triangular matrix where rows are
    * cohorts (visitors who first appeared in a given week/month) and
@@ -488,6 +519,40 @@ export interface ProductCategory {
   key: string;
   title_ar: string; title_en: string; title_tr: string; title_ru: string;
   display_order: number;
+}
+
+// ─── G4 A/B testing types ────────────────────────────────────────────────────
+export interface AbExperimentRow {
+  id: number;
+  key: string;
+  name: string;
+  description: string | null;
+  status: 'draft' | 'running' | 'stopped' | 'done';
+  goal_event: string;
+  started_at: string | null;
+  stopped_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface AbVariantRow {
+  id: number;
+  variant_key: string;
+  label: string | null;
+  weight: number;
+  created_at: string;
+}
+export interface AbExperimentResults {
+  experiment: AbExperimentRow;
+  results: Array<{
+    variant_key: string;
+    label: string;
+    weight: number;
+    exposed: number;
+    converted: number;
+    rate: number;
+    lift: number;
+    confidence: number;
+  }>;
 }
 
 export interface NewsItem {
