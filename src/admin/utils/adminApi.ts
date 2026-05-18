@@ -111,6 +111,32 @@ export const adminApi = {
   reorderProducts: (items: { id: string; display_order: number }[]) =>
     request<{ success: boolean }>('PUT', '/api/admin/products/reorder', { items }),
 
+  /**
+   * CSV export URL for products. Used as the href of a <a download> in
+   * the admin toolbar so the browser handles streaming + Save dialog.
+   * Honours an optional brand filter the same way the JSON list does.
+   */
+  productsExportCsvUrl: (brand?: string) =>
+    buildApiUrl(`/api/admin/products/export.csv${brand ? `?brand=${brand}` : ''}`),
+  /**
+   * CSV import. `dryRun: true` returns a per-row validation summary
+   * without writing — used to power the preview step before the admin
+   * confirms. With dryRun:false the server runs the import in a single
+   * transaction (all-or-nothing).
+   */
+  importProductsCsv: (csv: string, dryRun = false) =>
+    request<{
+      success: boolean;
+      summary: {
+        total: number;
+        inserted: number;
+        updated: number;
+        errors: Array<{ line: number; error: string }>;
+        dryRun: boolean;
+      };
+      error?: string;
+    }>('POST', '/api/admin/products/import.csv', { csv, dryRun }),
+
   // Categories
   getCategories: (brand?: string) => {
     const q = brand ? `?brand=${brand}` : '';

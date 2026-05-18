@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { adminApi, type Product } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { resolveAdminImage } from '../../utils/image';
+import { ProductCsvImportModal } from '../components/ProductCsvImportModal';
 
 export const AdminProducts: React.FC = () => {
   // ── Browse state ──────────────────────────────────────────────────────────
@@ -18,6 +19,11 @@ export const AdminProducts: React.FC = () => {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  // ── CSV import state ─────────────────────────────────────────────────────
+  // Modal-open boolean — the modal owns its own form state so this
+  // component stays focused on the table view.
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   const { data, loading, error, reload } = useAsync(
     () => adminApi.getProducts(brand || undefined, showHidden),
@@ -363,6 +369,30 @@ export const AdminProducts: React.FC = () => {
           >
             ⠿ Reorder
           </button>
+          {/* CSV round-trip — export downloads the active brand filter
+              (or full catalogue), import opens a two-step preview/apply
+              modal. See server/routes/admin-products.mjs for the
+              column schema and validation rules. */}
+          <a
+            href={adminApi.productsExportCsvUrl(brand || undefined)}
+            className="adm-btn adm-btn-ghost adm-btn-sm"
+            title={brand
+              ? `Download ${brand} products as CSV`
+              : 'Download full product catalogue as CSV'}
+            download
+            target="_self"
+            rel="noopener"
+          >
+            ⬇️ Export CSV
+          </a>
+          <button
+            type="button"
+            className="adm-btn adm-btn-ghost adm-btn-sm"
+            onClick={() => setCsvImportOpen(true)}
+            title="Bulk-import or update products from a CSV file"
+          >
+            📥 Import CSV
+          </button>
           <Link to="/admin/categories" className="adm-btn adm-btn-secondary adm-btn-sm">
             🗂️ Manage Categories
           </Link>
@@ -371,6 +401,12 @@ export const AdminProducts: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      <ProductCsvImportModal
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onComplete={reload}
+      />
 
       <div className="adm-card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         {/* Brand filter */}

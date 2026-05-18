@@ -25,6 +25,7 @@ const ACTION_COLOR: Record<string, string> = {
   DELETE: '#ef4444',
   SEND:   '#f59e0b',
   EXPORT: '#06b6d4',
+  IMPORT: '#0ea5e9',
   REORDER: '#a855f7',
 };
 
@@ -34,6 +35,7 @@ const ACTION_ICON: Record<string, string> = {
   DELETE: '🗑️',
   SEND:   '📧',
   EXPORT: '⬇️',
+  IMPORT: '📥',
   REORDER: '↕️',
 };
 
@@ -183,6 +185,7 @@ export const AdminAuditLog: React.FC = () => {
             <option value="DELETE">Delete</option>
             <option value="SEND">Send</option>
             <option value="EXPORT">Export</option>
+            <option value="IMPORT">Import</option>
             <option value="REORDER">Reorder</option>
           </select>
         </label>
