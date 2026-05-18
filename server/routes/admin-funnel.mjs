@@ -185,6 +185,117 @@ const computeSearchTerms = ({ from, to, lang, limit = 50 }) => {
   return top;
 };
 
+// ─── G3: Cohort retention ────────────────────────────────────────────────────
+
+/**
+ * Bucket a date into the start of its week (Monday) or month, as an
+ * ISO date string. Used to label cohorts and to bin return-visits
+ * into the same buckets so the retention triangle aligns.
+ *
+ * Week starts Monday (ISO 8601). For KARAHOCA's audience that lines up
+ * better with the workweek of a B2B-leaning catalogue — Saturdays and
+ * Sundays look intentionally low rather than chaotically distributed.
+ */
+const bucketDate = (isoString, bucket) => {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCHours(0, 0, 0, 0);
+  if (bucket === 'month') {
+    d.setUTCDate(1);
+  } else {
+    // Week → roll back to Monday. JS getUTCDay returns 0=Sun..6=Sat.
+    const day = d.getUTCDay();
+    const offset = day === 0 ? -6 : 1 - day; // Sun → -6, Mon → 0, Tue → -1...
+    d.setUTCDate(d.getUTCDate() + offset);
+  }
+  return d.toISOString().slice(0, 10);
+};
+
+const addBuckets = (isoDate, bucket, n) => {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  if (bucket === 'month') {
+    d.setUTCMonth(d.getUTCMonth() + n);
+  } else {
+    d.setUTCDate(d.getUTCDate() + n * 7);
+  }
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * Build the cohort retention triangle.
+ *
+ * Algorithm:
+ *   1. For each known visitor_id, find the EARLIEST created_at across
+ *      all their visitor_events. That timestamp's bucket = their
+ *      cohort.
+ *   2. For each subsequent bucket offset (0..periods-1) count whether
+ *      they had at least one event in that bucket.
+ *   3. Roll up: cohort N, period P → (returners / cohort_size) × 100.
+ *
+ * This is N×P SQL passes if done naively. The implementation below
+ * pulls one row per (visitor, bucket) pair and rolls up in JS — for
+ * KARAHOCA's volume (~hundreds of visitors / day) that's a single
+ * fast scan; the matrix is at most ~12 cohorts × 12 periods.
+ */
+const computeCohorts = ({ bucket, periods, lang }) => {
+  const db = getDb();
+  const oldestNeeded = addBuckets(bucketDate(new Date().toISOString(), bucket), bucket, -periods);
+  const langClause = lang ? `AND lang=?` : '';
+  const params = lang ? [oldestNeeded, lang] : [oldestNeeded];
+
+  // Pull every (visitor, bucket-start) tuple in range. created_at
+  // comes back as a TEXT in 'YYYY-MM-DD HH:MM:SS' or full ISO — both
+  // are parseable by `new Date`.
+  const rows = db.prepare(`
+    SELECT visitor_id, created_at
+    FROM visitor_events
+    WHERE visitor_id IS NOT NULL
+      AND created_at >= ?
+      ${langClause}
+  `).all(...params);
+
+  // First pass: visitor → earliest bucket (their cohort).
+  // Second pass: visitor → set of buckets they appeared in.
+  const cohortByVisitor = new Map();
+  const visitedBuckets = new Map();
+  for (const row of rows) {
+    const bk = bucketDate(row.created_at, bucket);
+    if (!bk) continue;
+    const existing = cohortByVisitor.get(row.visitor_id);
+    if (!existing || bk < existing) cohortByVisitor.set(row.visitor_id, bk);
+    if (!visitedBuckets.has(row.visitor_id)) visitedBuckets.set(row.visitor_id, new Set());
+    visitedBuckets.get(row.visitor_id).add(bk);
+  }
+
+  // Build the cohort labels — every distinct cohort date that appears
+  // in cohortByVisitor, sorted ascending. We cap at `periods` cohorts
+  // to keep the matrix bounded.
+  const cohortLabels = [...new Set(cohortByVisitor.values())].sort().slice(-periods);
+  const cohortMembers = new Map(cohortLabels.map((l) => [l, []]));
+  for (const [vid, cohort] of cohortByVisitor.entries()) {
+    if (cohortMembers.has(cohort)) cohortMembers.get(cohort).push(vid);
+  }
+
+  // For each cohort, walk the next `periods` buckets and compute the
+  // retention rate.
+  const out = cohortLabels.map((cohort) => {
+    const members = cohortMembers.get(cohort) || [];
+    const size = members.length;
+    const retention = [];
+    for (let p = 0; p < periods; p++) {
+      const targetBucket = addBuckets(cohort, bucket, p);
+      let returners = 0;
+      for (const vid of members) {
+        if (visitedBuckets.get(vid)?.has(targetBucket)) returners += 1;
+      }
+      const pct = size > 0 ? Math.round((returners / size) * 1000) / 10 : 0;
+      retention.push({ period: p, label: targetBucket, returners, pct });
+    }
+    return { cohort, size, retention };
+  });
+  return out;
+};
+
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
 /**
@@ -203,5 +314,22 @@ export const handleAdminFunnel = (req, res, { sendJson, origin }) => {
   sendJson(res, 200, { success: true, range: { from, to }, lang, funnel, searchTerms }, origin);
 };
 
+/**
+ * GET /api/admin/cohorts?bucket=week|month&periods=8&lang=ar
+ *
+ * Returns a triangular cohort retention matrix.
+ */
+export const handleAdminCohorts = (req, res, { sendJson, origin }) => {
+  const urlObj = new URL(req.url, 'http://localhost');
+  const bucket = urlObj.searchParams.get('bucket') === 'month' ? 'month' : 'week';
+  // Clamp periods to [1, 24] so a malicious / typo'd query can't
+  // request a 1000-week matrix.
+  const rawPeriods = parseInt(urlObj.searchParams.get('periods') || '8', 10);
+  const periods = Number.isFinite(rawPeriods) ? Math.max(1, Math.min(24, rawPeriods)) : 8;
+  const lang = urlObj.searchParams.get('lang') || null;
+  const cohorts = computeCohorts({ bucket, periods, lang });
+  sendJson(res, 200, { success: true, bucket, periods, lang, cohorts }, origin);
+};
+
 // Exposed for unit testing.
-export const __testInternals = { FUNNEL_STEPS };
+export const __testInternals = { FUNNEL_STEPS, bucketDate, addBuckets };

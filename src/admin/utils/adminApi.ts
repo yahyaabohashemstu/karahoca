@@ -245,6 +245,31 @@ export const adminApi = {
   },
 
   /**
+   * G3: cohort retention. Returns a triangular matrix where rows are
+   * cohorts (visitors who first appeared in a given week/month) and
+   * columns are time-since-cohort (period 0 = same bucket, period 1 =
+   * one bucket later, etc.) with the retention % per cell.
+   */
+  getCohorts: (params: { bucket?: 'week' | 'month'; periods?: number; lang?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.bucket)  q.set('bucket', params.bucket);
+    if (params.periods) q.set('periods', String(params.periods));
+    if (params.lang)    q.set('lang', params.lang);
+    const suffix = q.toString() ? `?${q.toString()}` : '';
+    return request<{
+      success: boolean;
+      bucket: 'week' | 'month';
+      periods: number;
+      lang: string | null;
+      cohorts: Array<{
+        cohort: string;
+        size: number;
+        retention: Array<{ period: number; label: string; returners: number; pct: number }>;
+      }>;
+    }>('GET', `/api/admin/cohorts${suffix}`);
+  },
+
+  /**
    * Karo Insights: first-party analytics aggregated from visitor_events
    * + chat_messages. Returns ALL sections in one round-trip — see
    * server/routes/admin-karo-insights.mjs for the schema rationale.

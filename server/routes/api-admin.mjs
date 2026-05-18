@@ -21,7 +21,7 @@ import { handleAdminGa } from './admin-ga.mjs';
 import { handleAdminCampaigns } from './admin-campaigns.mjs';
 import { handleAdminAiKnowledge } from './admin-ai-knowledge.mjs';
 import { handleAdminCatalog } from './admin-catalog.mjs';
-import { handleAdminFunnel } from './admin-funnel.mjs';
+import { handleAdminFunnel, handleAdminCohorts } from './admin-funnel.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -247,6 +247,13 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   // analytics deep-dive page.
   if (url.startsWith('/api/admin/funnel') && request.method === 'GET') {
     handleAdminFunnel(request, response, adminCtx);
+    return true;
+  }
+  // G3: cohort retention triangle. Separate endpoint from funnel
+  // because it bins by visitor-week / -month rather than by event
+  // date, and the matrix shape doesn't fit funnel's response.
+  if (url.startsWith('/api/admin/cohorts') && request.method === 'GET') {
+    handleAdminCohorts(request, response, adminCtx);
     return true;
   }
   if (url.startsWith('/api/admin/chats')) {
