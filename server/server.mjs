@@ -51,6 +51,7 @@ import { handleAdminRoutes } from './routes/api-admin.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
 import { handleProductOg, handleBrandOg } from './routes/og.mjs';
 import { handleAbActive } from './routes/admin-ab-tests.mjs';
+import { handleShareProduct } from './routes/share.mjs';
 import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
 import { resolveVisitorId } from './middlewares/visitorIdentity.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
@@ -267,6 +268,15 @@ const handleRequest = async (request, response) => {
     }
     if (request.method === 'GET' && url.startsWith('/og/brand/')) {
       await handleBrandOg(request, response, ctx);
+      return;
+    }
+    // F2: per-product share interstitial. Crawlers fetch this URL and
+    // see the product's photograph in og:image; real browsers get
+    // redirected to the SPA deep-link via meta-refresh + JS. The web
+    // nginx proxies /share/* to this endpoint so the visible domain
+    // stays on karahoca.com (see web/nginx.conf).
+    if (request.method === 'GET' && url.startsWith('/share/product/')) {
+      handleShareProduct(request, response, ctx);
       return;
     }
 

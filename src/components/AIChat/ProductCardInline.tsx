@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
-import { whatsAppProductInquiryUrl } from '../../utils/whatsapp';
+import { whatsAppProductInquiryUrl, buildProductShareUrl } from '../../utils/whatsapp';
 import type { ChatProduct } from '../../hooks/useChatState';
 
 interface ProductCardInlineProps {
@@ -52,10 +52,17 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
   // pre-filled message matches the active chat language (AR / EN / TR /
   // RU), uses the canonical phone number constant, and is encoded with
   // the paren-safe encoder that all wa.me builders in the app share.
+  //
+  // The URL we drop into the message body changed in Phase F2: instead
+  // of the brand-page hash deep-link (which WhatsApp previewed with the
+  // brand-level OG image), we now point at the share interstitial which
+  // unfurls the actual product photograph. The KARAHOCA sales agent
+  // receiving the inquiry message sees an immediate visual of which
+  // product the visitor is asking about.
   const whatsappUrl = whatsAppProductInquiryUrl(lang, {
     name: product.name,
     brand: product.brand,
-    url: `https://karahoca.com${product.url}`,
+    url: buildProductShareUrl(product.id, lang),
   });
 
   const brandColor = product.brand === 'DIOX' ? '#153D7A' : '#F54B1A';

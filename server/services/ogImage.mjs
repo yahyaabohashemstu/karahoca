@@ -65,6 +65,12 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, '..', 'data', 'og-cache');
+const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
+
+// Origin used to resolve product image paths that aren't under
+// /api/uploads/ (e.g. /diox-images/foo.webp, served by the web nginx).
+// Configurable so a staging environment can point at its own host.
+const STATIC_ASSETS_ORIGIN = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/+$/, '');
 
 // Hard cap so a future "remote image" feature can't time-bomb the cache
 // directory. 5 MB is generously above sharp's PNG output for 1200×630
@@ -378,6 +384,125 @@ const buildBrandSvg = ({ brand, lang }) => {
 </svg>`;
 };
 
+// ─── Product-photo resolver ─────────────────────────────────────────────────
+//
+// The PRIMARY product-OG output is now the actual product photograph
+// composited onto a 1200×630 canvas — that's what WhatsApp / Facebook /
+// Twitter visitors see in the share preview. The designed SVG card
+// (buildProductSvg above) survives as a fallback when the photo
+// can't be loaded (file 404, network error, unsupported format).
+//
+// Photo source resolution:
+//   - 'https://…'                  → HTTPS fetch (admin set a CDN URL)
+//   - '/api/uploads/foo.png'       → read from server/data/uploads (local fs)
+//   - '/diox-images/foo.webp' …    → HTTPS fetch from STATIC_ASSETS_ORIGIN
+//                                    (those assets are served by the
+//                                     separate nginx image, not the API)
+//   - anything else                → treat as relative to STATIC_ASSETS_ORIGIN
+//
+// We cap the fetched bytes at 8 MB so a misbehaving / malicious URL
+// can't blow up memory. The actual product photos in the catalogue are
+// all well under 500 KB after the build-time `optimize-images` pass.
+
+const MAX_FETCH_BYTES = 8 * 1024 * 1024;
+
+const loadProductPhotoBuffer = async (imagePath) => {
+  if (!imagePath || typeof imagePath !== 'string') return null;
+  const trimmed = imagePath.trim();
+  if (!trimmed) return null;
+
+  // Local upload — read straight from disk to avoid a loopback HTTP
+  // hop that would force the API to depend on its own public URL.
+  if (trimmed.startsWith('/api/uploads/')) {
+    const filename = path.basename(trimmed.replace('/api/uploads/', ''));
+    // path.basename strips any '../' so a crafted path can't escape the
+    // uploads directory.
+    const filePath = path.join(UPLOADS_DIR, filename);
+    try {
+      const stat = await fs.stat(filePath);
+      if (stat.isFile() && stat.size > 0 && stat.size <= MAX_FETCH_BYTES) {
+        return await fs.readFile(filePath);
+      }
+    } catch { /* fall through — file missing or unreadable */ }
+    return null;
+  }
+
+  // Build the absolute URL we'll fetch.
+  let url;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    url = trimmed;
+  } else {
+    const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    url = `${STATIC_ASSETS_ORIGIN}${withSlash}`;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      // Tag the User-Agent so we can grep our own logs for these
+      // server-side image fetches and tell them apart from regular
+      // visitor traffic.
+      headers: { 'User-Agent': 'KARAHOCA-OG-Generator/1.0 (+https://karahoca.com)' },
+    });
+    if (!res.ok) return null;
+    const arrayBuf = await res.arrayBuffer();
+    if (arrayBuf.byteLength > MAX_FETCH_BYTES) return null;
+    return Buffer.from(arrayBuf);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Composite the product photograph onto a clean 1200×630 white canvas
+ * (the WhatsApp / Facebook / Twitter standard share ratio). The photo
+ * is scaled to fit inside an inner safe area (1080×550) so a small
+ * margin of white frames every side — looks intentional rather than
+ * "cropped photo glued to the canvas edge".
+ *
+ * Uses sharp's `resize({ fit: 'contain' })` which preserves aspect
+ * ratio and pads to fill, then we composite onto a true-white background
+ * (sharp's default extend colour is transparent → renders black in PNG).
+ *
+ * Returns the PNG buffer or `null` if anything fails (the caller then
+ * falls back to the designed-card SVG).
+ */
+const composeProductPhotoOg = async (sharp, photoBuffer) => {
+  if (!photoBuffer) return null;
+  try {
+    // Step 1: resize the photo to fit inside the safe area while
+    // keeping aspect ratio. We use `contain` with a transparent
+    // extend colour so the inner photo region carries the actual
+    // shape of the product (no implicit white box around it).
+    const inner = await sharp(photoBuffer)
+      .resize(1080, 550, {
+        fit: 'contain',
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+
+    // Step 2: composite the inner image centered on a 1200×630 white
+    // canvas with a 60px top/bottom and 60px left/right margin
+    // (1200-1080 = 120 split between left+right; 630-550 = 80
+    // split between top+bottom).
+    const canvas = await sharp({
+      create: {
+        width: 1200,
+        height: 630,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      },
+    })
+      .composite([{ input: inner, gravity: 'center' }])
+      .png({ quality: 92, compressionLevel: 9 })
+      .toBuffer();
+    return canvas;
+  } catch {
+    return null;
+  }
+};
+
 // Exported for the test harness — same body the route consumes.
 export const __testInternals = {
   buildProductSvg,
@@ -385,6 +510,8 @@ export const __testInternals = {
   truncate,
   wrapLines,
   xmlEscape,
+  loadProductPhotoBuffer,
+  composeProductPhotoOg,
 };
 
 // ─── Cache key + path ───────────────────────────────────────────────────────
@@ -409,10 +536,24 @@ const cachePathFor = (key) => path.join(CACHE_DIR, key);
 /**
  * Get (or generate) a per-product OG image. Returns a Buffer.
  *
+ * Output strategy — PRODUCT PHOTO FIRST (Phase F2):
+ *   The visitor's primary share-preview should be the product's own
+ *   photograph, not a designed marketing card. When the photo can be
+ *   loaded we composite it onto a clean 1200×630 white canvas with a
+ *   small margin so WhatsApp / Facebook / Twitter previews show the
+ *   actual product as a properly-framed hero image.
+ *
+ *   Fallback: if `imagePath` is missing OR the photo can't be fetched
+ *   (404, network error, unsupported format), we fall back to the
+ *   designed SVG card (gradient + brand + name + description). That
+ *   way a sharing visitor always sees SOMETHING bespoke — never the
+ *   generic logo placeholder.
+ *
  * Pipeline:
  *   1. Compute the deterministic cache key from id + lang + updated_at.
- *   2. If the file exists on disk, stream it back.
- *   3. Otherwise build the SVG, hand it to sharp, write to disk, return.
+ *   2. Cache hit → stream from disk.
+ *   3. Try to load + composite the product photo. Success → cache + return.
+ *   4. Photo load failed → render the designed SVG card. Cache + return.
  *
  * The caller is responsible for setting Content-Type: image/png and
  * Cache-Control headers — this function does ONE thing only.
@@ -424,6 +565,7 @@ export const getProductOgImage = async ({
   brand,
   lang,
   updatedAtMs,
+  imagePath, // ← NEW — the product's `image` field from DB
 }) => {
   const sharp = await tryLoadSharp();
   if (!sharp) {
@@ -437,7 +579,9 @@ export const getProductOgImage = async ({
   const key = buildCacheKey({ kind: 'product', id, lang, updatedAtMs });
   const filePath = cachePathFor(key);
 
-  // Cache hit — fast path.
+  // Cache hit — fast path. The key embeds updated_at so an admin edit
+  // (which bumps updated_at + busts the cache file via
+  // invalidateProductOgCache) forces regeneration here.
   try {
     const buf = await fs.readFile(filePath);
     if (buf.byteLength > 0 && buf.byteLength <= MAX_CACHE_FILE_BYTES) {
@@ -447,12 +591,27 @@ export const getProductOgImage = async ({
     // Cache miss — proceed.
   }
 
-  // Build + rasterise.
-  const svg = buildProductSvg({ name, description, brand, lang });
-  const png = await sharp(Buffer.from(svg, 'utf8'))
-    .resize(1200, 630, { fit: 'cover' })
-    .png({ quality: 88, compressionLevel: 9, palette: false })
-    .toBuffer();
+  // Primary path: composite the actual product photograph.
+  let png = null;
+  let source = 'photo';
+  if (imagePath) {
+    const photoBuffer = await loadProductPhotoBuffer(imagePath);
+    if (photoBuffer) {
+      png = await composeProductPhotoOg(sharp, photoBuffer);
+    }
+  }
+
+  // Fallback path: render the designed SVG card. Same shape as the
+  // pre-F2 output so existing tests still pass when imagePath is
+  // omitted (or a photo fetch failed).
+  if (!png) {
+    source = 'card';
+    const svg = buildProductSvg({ name, description, brand, lang });
+    png = await sharp(Buffer.from(svg, 'utf8'))
+      .resize(1200, 630, { fit: 'cover' })
+      .png({ quality: 88, compressionLevel: 9, palette: false })
+      .toBuffer();
+  }
 
   // Best-effort write — failure here doesn't break the response.
   try {
@@ -461,7 +620,7 @@ export const getProductOgImage = async ({
     /* read-only volume / disk full — continue without caching */
   }
 
-  return { buffer: png, cacheKey: key, fromCache: false };
+  return { buffer: png, cacheKey: key, fromCache: false, source };
 };
 
 /**

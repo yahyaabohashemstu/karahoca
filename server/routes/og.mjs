@@ -97,6 +97,7 @@ export const handleProductOg = async (req, res, ctx) => {
         name_en                    AS name_en,
         description_${parsed.lang} AS description,
         description_en             AS description_en,
+        image,
         updated_at
       FROM products
       WHERE id = ? AND active = 1
@@ -122,16 +123,24 @@ export const handleProductOg = async (req, res, ctx) => {
     : 0;
 
   try {
-    const { buffer, cacheKey, fromCache } = await getProductOgImage({
+    const { buffer, cacheKey, fromCache, source } = await getProductOgImage({
       id: row.id,
       name,
       description,
       brand: row.brand,
       lang: parsed.lang,
       updatedAtMs,
+      // Pass the product's photo path so the OG generator composites
+      // the actual product image (instead of a designed text card).
+      // Falls back to the SVG card if the photo can't be loaded.
+      imagePath: row.image || null,
     });
     const headers = PNG_HEADERS(cacheKey);
     headers['X-OG-Cache'] = fromCache ? 'HIT' : 'MISS';
+    // Surface which path produced the image so an admin debugging
+    // "why is my product showing the fallback card?" can curl -I and
+    // see X-OG-Source: card vs photo.
+    if (source) headers['X-OG-Source'] = source;
     res.writeHead(200, headers);
     res.end(buffer);
   } catch (err) {

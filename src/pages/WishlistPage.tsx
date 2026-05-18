@@ -8,7 +8,7 @@ import SEO from '../components/SEO';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { toWebp } from '../utils/image';
-import { whatsAppShareProductUrl } from '../utils/whatsapp';
+import { whatsAppShareProductUrl, buildProductShareUrl } from '../utils/whatsapp';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
 const L = {
@@ -103,14 +103,31 @@ const L = {
 };
 
 /* ─── WhatsApp share URL ─────────────────────────────────────────────────── */
-function buildWaUrl(item: WishlistItem): string {
+/**
+ * Build the WhatsApp share URL for a wishlist item. We point the message
+ * body at the public share interstitial (Phase F2) so the WhatsApp
+ * preview unfurls with the product's actual photograph — see
+ * server/routes/share.mjs for the redirect + OG meta logic.
+ *
+ * Falls back to the legacy brand-page hash URL when the item lacks a
+ * DB id (e.g. a wishlist row added before products were synced to the
+ * `products` table); in that case the share still works but the
+ * preview will show the brand-level OG image.
+ */
+function buildWaUrl(item: WishlistItem, lang: string): string {
+  if (item.productDbId) {
+    return whatsAppShareProductUrl({
+      name: item.name,
+      description: item.description,
+      url: buildProductShareUrl(item.productDbId, lang),
+    });
+  }
   const brandPath = item.brand === 'DIOX' ? 'diox' : 'aylux';
   const base = `${window.location.origin}/${brandPath}`;
-  const productUrl = item.productDbId ? `${base}#${item.productDbId}` : base;
   return whatsAppShareProductUrl({
     name: item.name,
     description: item.description,
-    url: productUrl,
+    url: base,
   });
 }
 
@@ -118,11 +135,12 @@ function buildWaUrl(item: WishlistItem): string {
 interface PopupProps {
   item: WishlistItem;
   l: typeof L['ar'];
+  lang: string;
   onClose: () => void;
   onRemove: () => void;
 }
 
-const WishlistPopup: React.FC<PopupProps> = ({ item, l, onClose, onRemove }) => {
+const WishlistPopup: React.FC<PopupProps> = ({ item, l, lang, onClose, onRemove }) => {
   const brandColor = item.brand === 'DIOX'
     ? { bg: 'rgba(79,110,247,0.15)', border: 'rgba(79,110,247,0.35)', text: '#6b84ff' }
     : { bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.35)', text: '#fb923c' };
@@ -230,7 +248,7 @@ const WishlistPopup: React.FC<PopupProps> = ({ item, l, onClose, onRemove }) => 
           {/* ── Actions ── */}
           <div style={ps.actions}>
             <a
-              href={buildWaUrl(item)}
+              href={buildWaUrl(item, lang)}
               target="_blank"
               rel="noopener noreferrer"
               style={ps.shareBtn}
@@ -480,6 +498,7 @@ const WishlistPage: React.FC = () => {
         <WishlistPopup
           item={selectedItem}
           l={l}
+          lang={lang}
           onClose={() => setSelectedItem(null)}
           onRemove={() => {
             remove(selectedItem.id);

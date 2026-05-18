@@ -2,7 +2,8 @@ import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
-import { whatsAppShareProductUrl } from '../../utils/whatsapp';
+import { whatsAppShareProductUrl, buildProductShareUrl } from '../../utils/whatsapp';
+import { normalizeLanguageCode } from '../../utils/language';
 import type { ProductInfo } from './types';
 
 interface ProductModalProps {
@@ -11,25 +12,42 @@ interface ProductModalProps {
 }
 
 /**
- * Build a WhatsApp share URL for a product. Appends the product id as a
- * URL fragment so the recipient opening the link lands directly on the
- * correct modal via the BrandPage deep-link handler. Delegates the
- * actual encoding to the shared `whatsAppShareProductUrl` so every
- * product-share URL across the app uses the same format AND the same
- * paren-safe encoder.
+ * Build a WhatsApp share URL for a product.
+ *
+ * URL we drop into the WhatsApp message body changed in Phase F2:
+ *
+ *   Before: https://karahoca.com/{lang}/{brand}#{productId}
+ *           ↑ WhatsApp crawler strips the hash, fetches the brand page,
+ *             and renders the BRAND-level OG image — not the actual
+ *             product. Visitor sees a generic preview no matter which
+ *             product they tried to share.
+ *
+ *   Now:    https://karahoca.com/share/product/{productId}?lang={lang}
+ *           ↑ The web nginx proxies /share/* to an interstitial HTML
+ *             page whose og:image points at the actual product
+ *             photograph composited onto a 1200×630 canvas. Real
+ *             browsers get redirected to the SPA deep-link
+ *             /{lang}/{brand}#{productId} via meta-refresh + JS so
+ *             the UX of "tap link → see the product modal" is intact.
+ *
+ * Falls back to the page URL when productId is missing (e.g. a static
+ * data-only product the admin hasn't synced to the DB yet) so the
+ * share button never breaks.
  */
 const buildWhatsAppUrl = (
   productName: string,
   productDesc: string,
   pageUrl: string,
+  lang: string,
   productId?: string,
 ): string => {
-  const base = pageUrl.split('#')[0];
-  const productUrl = productId ? `${base}#${productId}` : base;
+  const shareUrl = productId
+    ? buildProductShareUrl(productId, lang)
+    : pageUrl.split('#')[0];
   return whatsAppShareProductUrl({
     name: productName,
     description: productDesc,
-    url: productUrl,
+    url: shareUrl,
   });
 };
 
@@ -48,7 +66,8 @@ const buildWhatsAppUrl = (
  * callback so the parent's state stays consistent.
  */
 const ProductModalComponent: React.FC<ProductModalProps> = ({ product, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -263,6 +282,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({ product, onClose }
                 product.name,
                 product.description,
                 typeof window !== 'undefined' ? window.location.href : '',
+                lang,
                 product.id,
               )}
               target="_blank"

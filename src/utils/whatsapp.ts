@@ -42,6 +42,30 @@
 export const KARAHOCA_PHONE_NUMBER_E164 = '905305914990';
 export const KARAHOCA_PHONE_DISPLAY = '+90 530 591 49 90';
 
+/**
+ * Public site origin used to build product-share URLs. The interstitial
+ * route lives at `karahoca.com/share/product/{id}?lang=…` and is the
+ * crawler-friendly link we want to drop into WhatsApp / Facebook /
+ * Telegram. We hardcode the origin rather than reading window.location
+ * because the share button can be tapped from a staging build where
+ * the deployed share infra may not be wired up yet — better a clean
+ * link to production than a broken staging interstitial.
+ */
+const SHARE_ORIGIN = 'https://karahoca.com';
+
+/**
+ * Build the public share URL for a product. Crawlers fetching this URL
+ * see the product photograph in og:image; real browsers get redirected
+ * to the SPA deep-link via meta-refresh + JS in the interstitial HTML.
+ *
+ * Format: https://karahoca.com/share/product/{productId}?lang={ar|en|tr|ru}
+ */
+export const buildProductShareUrl = (productId: string, lang: string | undefined): string => {
+  const code = pickLang(lang);
+  const id = encodeURIComponent(productId);
+  return `${SHARE_ORIGIN}/share/product/${id}?lang=${code}`;
+};
+
 /** Languages whose copy is curated explicitly. Anything else falls back to Arabic. */
 type SupportedLang = 'ar' | 'en' | 'tr' | 'ru';
 
