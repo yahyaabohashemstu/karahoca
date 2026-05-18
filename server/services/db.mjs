@@ -137,6 +137,7 @@ export const initDb = () => {
   db.pragma('foreign_keys = ON');
   createSchema();
   migrateNewsStatusColumn();
+  migrateProductStatusColumn();
   migrateInitialData();
   migrateNewsletterSubscriberKeys();
   return db;
@@ -154,6 +155,34 @@ const migrateNewsStatusColumn = () => {
   if (!cols.includes('publish_at')) {
     db.exec(`ALTER TABLE news ADD COLUMN publish_at TEXT`);
   }
+};
+
+// ─── Migration: product status + publish_at columns ──────────────────────────
+// Mirrors the news pattern (see above) — extends the same draft /
+// scheduled / published state machine to the product catalogue so an
+// admin can prep a new product, save it as a draft, then schedule its
+// public reveal for a specific date/time (e.g. a campaign launch).
+//
+// Backward compatibility: existing rows all get `status='published'`
+// so the public catalogue continues to show everything that was
+// visible before the migration ran. The scheduler in
+// server/schedulers/news.mjs grew a sibling for products that promotes
+// `scheduled → published` once `publish_at` passes.
+const migrateProductStatusColumn = () => {
+  const cols = db.prepare('PRAGMA table_info(products)').all().map((c) => c.name);
+  if (!cols.includes('status')) {
+    db.exec(`ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'published'`);
+    db.exec(`UPDATE products SET status='published' WHERE status IS NULL`);
+  }
+  if (!cols.includes('publish_at')) {
+    db.exec(`ALTER TABLE products ADD COLUMN publish_at TEXT`);
+  }
+  // Composite index for the public catalogue read path: hit on every
+  // /api/products/:brand call, filters on (active AND status). Without
+  // this the public site full-scans products once per cache miss.
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_products_active_status ON products(active, status)`);
+  } catch { /* index may already exist on older deploys */ }
 };
 
 // ─── Schema ─────────────────────────────────────────────────────────────────

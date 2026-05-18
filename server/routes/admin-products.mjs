@@ -18,7 +18,13 @@ const PRODUCT_FIELDS = [
   'weight_count_table',
   'image_scale',
   'display_order', 'active',
+  // D5 publishing fields — status is enum-checked at the route layer,
+  // publish_at is an ISO-8601 string (validated by the admin form's
+  // datetime-local picker before submission).
+  'status', 'publish_at',
 ];
+
+const VALID_PRODUCT_STATUSES = new Set(['draft', 'scheduled', 'published']);
 
 // Safe UPDATE helpers — column names are validated at module init, SQL is
 // pre-compiled and cached per unique field subset; no runtime interpolation.
@@ -349,6 +355,22 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
           if (Array.isArray(rows)) body.weight_count_table = JSON.stringify(rows.map(r => ({ ...r, weight: normalizeWeight(r.weight) })));
         } catch {}
       }
+      // Validate status + publish_at consistency. A scheduled row must
+      // have a publish_at; drafts and published rows must NOT (drafts
+      // shouldn't reveal accidentally; published shouldn't surprise an
+      // admin who toggled the dropdown without realising publish_at
+      // was still set from an earlier draft).
+      if (body.status !== undefined) {
+        if (!VALID_PRODUCT_STATUSES.has(body.status)) {
+          sendJson(res, 400, { success: false, error: `status must be one of: ${[...VALID_PRODUCT_STATUSES].join(', ')}.` }, origin);
+          return;
+        }
+        if (body.status === 'scheduled' && !body.publish_at) {
+          sendJson(res, 400, { success: false, error: 'A scheduled product requires publish_at (ISO 8601).' }, origin);
+          return;
+        }
+        if (body.status !== 'scheduled') body.publish_at = null;
+      }
 
       const result = updateProductRow(id, body);
       if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
@@ -415,6 +437,21 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         if (Array.isArray(rows)) body.weight_count_table = JSON.stringify(rows.map(r => ({ ...r, weight: normalizeWeight(r.weight) })));
       } catch {}
     }
+    // Default status to 'published' for backward-compat with admin
+    // flows that don't pass it. Same validation guard as the UPDATE
+    // path so a malformed status / mismatched publish_at can't slip
+    // in via POST either.
+    const status = body.status || 'published';
+    if (!VALID_PRODUCT_STATUSES.has(status)) {
+      sendJson(res, 400, { success: false, error: `status must be one of: ${[...VALID_PRODUCT_STATUSES].join(', ')}.` }, origin);
+      return;
+    }
+    let publishAt = body.publish_at || null;
+    if (status === 'scheduled' && !publishAt) {
+      sendJson(res, 400, { success: false, error: 'A scheduled product requires publish_at (ISO 8601).' }, origin);
+      return;
+    }
+    if (status !== 'scheduled') publishAt = null;
 
     const id = body.id || `${body.brand.toLowerCase()}-${randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
@@ -429,7 +466,7 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         material_ar, material_en, material_tr, material_ru,
         count_ar, count_en, count_tr, count_ru,
         weight_count_table,
-        display_order, active, created_at, updated_at
+        display_order, active, status, publish_at, created_at, updated_at
       ) VALUES(
         @id, @brand, @category_id,
         @name_ar, @name_en, @name_tr, @name_ru,
@@ -439,7 +476,7 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         @mat_ar, @mat_en, @mat_tr, @mat_ru,
         @cnt_ar, @cnt_en, @cnt_tr, @cnt_ru,
         @weight_count_table,
-        @display_order, 1, @now, @now
+        @display_order, 1, @status, @publish_at, @now, @now
       )
     `).run({
       id, brand: body.brand, category_id: body.category_id,
@@ -458,6 +495,8 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       cnt_tr: body.count_tr || '', cnt_ru: body.count_ru || '',
       weight_count_table: body.weight_count_table || null,
       display_order: body.display_order || 0,
+      status,
+      publish_at: publishAt,
       now,
     });
 

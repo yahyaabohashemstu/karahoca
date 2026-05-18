@@ -186,17 +186,28 @@ export const handleSitemap = (req, res) => {
     // We derive lastmod from real row updates rather than `new Date()` so
     // crawlers don't get misled by a sitemap that looks fresh when nothing
     // actually changed.
+    // The public-visibility predicate matches public-data.mjs exactly
+    // so the sitemap can never advertise a URL the catalogue refuses
+    // to serve. Crawlers that follow the sitemap and 404 lose trust
+    // in the whole feed — this guard is the SLA.
+    const PUBLIC_VISIBLE = `
+      active=1
+      AND (
+        status='published'
+        OR (status='scheduled' AND publish_at IS NOT NULL AND datetime(publish_at) <= datetime('now'))
+      )
+    `;
     const maxProductUpdate = toIsoDate(
-      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE active=1`).get()?.m,
+      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE ${PUBLIC_VISIBLE}`).get()?.m,
     );
     const maxNewsUpdate = toIsoDate(
       db.prepare(`SELECT MAX(COALESCE(updated_at, published_at)) AS m FROM news WHERE active=1`).get()?.m,
     );
     const dioxLastMod = toIsoDate(
-      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE active=1 AND brand='DIOX'`).get()?.m,
+      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE ${PUBLIC_VISIBLE} AND brand='DIOX'`).get()?.m,
     );
     const ayluxLastMod = toIsoDate(
-      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE active=1 AND brand='AYLUX'`).get()?.m,
+      db.prepare(`SELECT MAX(updated_at) AS m FROM products WHERE ${PUBLIC_VISIBLE} AND brand='AYLUX'`).get()?.m,
     );
 
     const homeLastMod =
@@ -210,7 +221,7 @@ export const handleSitemap = (req, res) => {
       .prepare(
         `SELECT id, name_ar, name_en, name_tr, name_ru, image, gallery
          FROM products
-         WHERE active=1 AND brand='DIOX'
+         WHERE ${PUBLIC_VISIBLE} AND brand='DIOX'
          ORDER BY display_order, id`,
       )
       .all();
@@ -218,7 +229,7 @@ export const handleSitemap = (req, res) => {
       .prepare(
         `SELECT id, name_ar, name_en, name_tr, name_ru, image, gallery
          FROM products
-         WHERE active=1 AND brand='AYLUX'
+         WHERE ${PUBLIC_VISIBLE} AND brand='AYLUX'
          ORDER BY display_order, id`,
       )
       .all();

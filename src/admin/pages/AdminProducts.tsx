@@ -11,6 +11,11 @@ export const AdminProducts: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // D5: client-side status filter. The list endpoint returns ALL
+  // statuses for admin views, so filtering here keeps the query
+  // surface unchanged while letting the admin focus on drafts /
+  // scheduled / published.
+  const [statusFilter, setStatusFilter] = useState<'' | 'draft' | 'scheduled' | 'published'>('');
 
   // ── Reorder state ─────────────────────────────────────────────────────────
   const [reorderMode, setReorderMode] = useState(false);
@@ -32,7 +37,11 @@ export const AdminProducts: React.FC = () => {
 
   const products = data?.products ?? [];
 
-  const filtered = products.filter(p => {
+  const filtered = products.filter((p) => {
+    // Status filter — clients see EVERY status (the admin endpoint
+    // returns all), then narrow here so the count badge updates
+    // instantly when the dropdown changes.
+    if (statusFilter && (p.status || 'published') !== statusFilter) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -429,6 +438,20 @@ export const AdminProducts: React.FC = () => {
           {showHidden ? '👁 Hide Hidden' : '👁 Show Hidden'}
         </button>
 
+        {/* D5 status filter */}
+        <select
+          className="adm-input adm-input-sm"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as '' | 'draft' | 'scheduled' | 'published')}
+          style={{ width: 160 }}
+          title="Filter by publishing status"
+        >
+          <option value="">All statuses</option>
+          <option value="published">✅ Published</option>
+          <option value="draft">📝 Drafts</option>
+          <option value="scheduled">🕐 Scheduled</option>
+        </select>
+
         {/* Search */}
         <input
           type="search"
@@ -465,56 +488,72 @@ export const AdminProducts: React.FC = () => {
                   <th>Brand</th>
                   <th>Category</th>
                   <th>Order</th>
-                  <th>Status</th>
+                  <th>Visibility</th>
+                  <th>Publishing</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
                       No products found.
                     </td>
                   </tr>
-                ) : filtered.map((p: Product) => (
-                  <tr
-                    key={p.id}
-                    style={!p.active ? { opacity: 0.45, background: 'rgba(255,60,60,0.04)' } : undefined}
-                  >
-                    <td>
-                      {p.image ? (
-                        <img
-                          src={resolveAdminImage(p.image)}
-                          alt={p.alt_en || p.name_en}
-                          style={{ width: 40, height: 40, objectFit: 'contain', background: 'var(--adm-surface2)', borderRadius: 4 }}
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      ) : <span className="adm-text-muted">—</span>}
-                    </td>
-                    <td dir="rtl" style={{ maxWidth: 160, textAlign: 'right' }} className="adm-truncate">{p.name_ar}</td>
-                    <td style={{ maxWidth: 160 }} className="adm-truncate">{p.name_en}</td>
-                    <td><span className={`adm-badge ${p.brand === 'DIOX' ? 'adm-badge-blue' : 'adm-badge-green'}`}>{p.brand}</span></td>
-                    <td className="adm-text-sm adm-text-muted">{p.category_title_en || p.category_id}</td>
-                    <td className="adm-text-sm adm-text-muted">{p.display_order}</td>
-                    <td>
-                      <span className={`adm-badge ${p.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
-                        {p.active ? 'Active' : 'Hidden'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
-                        <button
-                          className="adm-btn adm-btn-danger adm-btn-sm"
-                          onClick={() => handleDelete(p.id)}
-                          disabled={deleting === p.id}
-                        >
-                          {deleting === p.id ? '…' : '🗑'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                ) : filtered.map((p: Product) => {
+                  const status = (p.status || 'published') as 'draft' | 'scheduled' | 'published';
+                  const statusBadge =
+                    status === 'draft'     ? { color: 'adm-badge-warning', text: '📝 Draft' } :
+                    status === 'scheduled' ? { color: 'adm-badge-blue',    text: '🕐 Scheduled' } :
+                                             { color: 'adm-badge-green',   text: '✅ Live' };
+                  return (
+                    <tr
+                      key={p.id}
+                      style={!p.active ? { opacity: 0.45, background: 'rgba(255,60,60,0.04)' } : undefined}
+                    >
+                      <td>
+                        {p.image ? (
+                          <img
+                            src={resolveAdminImage(p.image)}
+                            alt={p.alt_en || p.name_en}
+                            style={{ width: 40, height: 40, objectFit: 'contain', background: 'var(--adm-surface2)', borderRadius: 4 }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : <span className="adm-text-muted">—</span>}
+                      </td>
+                      <td dir="rtl" style={{ maxWidth: 160, textAlign: 'right' }} className="adm-truncate">{p.name_ar}</td>
+                      <td style={{ maxWidth: 160 }} className="adm-truncate">{p.name_en}</td>
+                      <td><span className={`adm-badge ${p.brand === 'DIOX' ? 'adm-badge-blue' : 'adm-badge-green'}`}>{p.brand}</span></td>
+                      <td className="adm-text-sm adm-text-muted">{p.category_title_en || p.category_id}</td>
+                      <td className="adm-text-sm adm-text-muted">{p.display_order}</td>
+                      <td>
+                        <span className={`adm-badge ${p.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
+                          {p.active ? 'Active' : 'Hidden'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`adm-badge ${statusBadge.color}`}>{statusBadge.text}</span>
+                        {status === 'scheduled' && p.publish_at && (
+                          <div style={{ fontSize: 10, color: 'var(--adm-text-dim)', marginTop: 2 }}>
+                            {(() => { try { return new Date(p.publish_at).toLocaleString(); } catch { return p.publish_at; } })()}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
+                          <button
+                            className="adm-btn adm-btn-danger adm-btn-sm"
+                            onClick={() => handleDelete(p.id)}
+                            disabled={deleting === p.id}
+                          >
+                            {deleting === p.id ? '…' : '🗑'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

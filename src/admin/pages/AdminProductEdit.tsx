@@ -17,6 +17,11 @@ const EMPTY: Partial<Product> = {
   material_ar: '', material_en: '', material_tr: '', material_ru: '',
   count_ar: '', count_en: '', count_tr: '', count_ru: '',
   image: '', gallery: '', weight: '', weight_count_table: '', image_scale: 0.85, category_id: '', display_order: 0, active: 1,
+  // D5 defaults — new products start as published so the existing
+  // "create a product and it's live" flow keeps working. Admins flip
+  // to draft / scheduled only when they want delayed reveal.
+  status: 'published',
+  publish_at: null,
 };
 
 const hasWeightCountRows = (rawTable: string | null | undefined) => {
@@ -381,6 +386,54 @@ export const AdminProductEdit: React.FC = () => {
               <label className="adm-label" style={{ margin: 0 }}>Active</label>
               <input type="checkbox" checked={!!form.active} onChange={e => set('active', e.target.checked ? 1 : 0)} style={{ width: 18, height: 18 }} />
             </div>
+
+            {/* D5 publishing controls — mirrors AdminNewsEdit so admins
+                build the same mental model for both content types. The
+                datetime-local picker only renders when status='scheduled'
+                so the field never holds a stale value for a draft / live
+                product. */}
+            <div className="adm-form-group">
+              <label className="adm-label">Publishing status</label>
+              <select
+                className="adm-input"
+                value={form.status ?? 'published'}
+                onChange={(e) => {
+                  const next = e.target.value as 'draft' | 'scheduled' | 'published';
+                  // Clear publish_at when leaving 'scheduled' to keep the
+                  // server-side validation invariant (publish_at MUST be
+                  // null for draft / published).
+                  setForm((f) => ({
+                    ...f,
+                    status: next,
+                    publish_at: next === 'scheduled' ? f.publish_at || '' : null,
+                  }));
+                }}
+              >
+                <option value="published">✅ Published — visible to everyone</option>
+                <option value="draft">📝 Draft — hidden, work in progress</option>
+                <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
+              </select>
+            </div>
+            {form.status === 'scheduled' && (
+              <div className="adm-form-group">
+                <label className="adm-label">Publish at</label>
+                <input
+                  className="adm-input"
+                  type="datetime-local"
+                  value={form.publish_at ? form.publish_at.slice(0, 16) : ''}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      publish_at: e.target.value ? new Date(e.target.value).toISOString() : '',
+                    }))
+                  }
+                />
+                <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
+                  The product will appear in the public catalogue automatically at this
+                  moment (server time, UTC). The catalogue cache is busted on flip.
+                </small>
+              </div>
+            )}
           </div>
 
           {form.image && (

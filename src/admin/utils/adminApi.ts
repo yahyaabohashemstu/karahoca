@@ -418,6 +418,11 @@ export interface Product {
   image_scale?: number;         // 0.3–1.5, controls product image size in card (default 0.85)
   display_order: number;
   active: number;
+  // D5 publishing state machine — same shape as news. 'published' is
+  // the default for backward compat; 'draft' rows are admin-only;
+  // 'scheduled' rows auto-publish at `publish_at` (ISO 8601 UTC).
+  status?: 'draft' | 'scheduled' | 'published';
+  publish_at?: string | null;
   created_at: string;
   updated_at: string;
   category_title_ar?: string;

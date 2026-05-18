@@ -49,6 +49,15 @@ export const handlePublicProducts = async (req, res, { sendJson, origin, url }) 
     SELECT * FROM product_categories WHERE brand=? ORDER BY display_order ASC
   `).all(brand);
 
+  // Public-visibility filter:
+  //   - `active = 1`        soft-delete flag still in force
+  //   - status = 'published'                              OR
+  //     status = 'scheduled' AND publish_at <= now('UTC') ← unblocks
+  //         a scheduled product the moment its window opens, even if
+  //         the per-minute scheduler tick hasn't run yet. The scheduler
+  //         is an opportunistic cleanup; this guard is the SLA.
+  //   - drafts (status = 'draft') are NEVER returned here regardless
+  //     of `active` — they live only in the admin views.
   const products = db.prepare(`
     SELECT
       p.id,
@@ -66,7 +75,12 @@ export const handlePublicProducts = async (req, res, { sendJson, origin, url }) 
       p.image_scale
     FROM products p
     INNER JOIN product_categories c ON c.id = p.category_id
-    WHERE c.brand = ? AND p.active = 1
+    WHERE c.brand = ?
+      AND p.active = 1
+      AND (
+        p.status = 'published'
+        OR (p.status = 'scheduled' AND p.publish_at IS NOT NULL AND datetime(p.publish_at) <= datetime('now'))
+      )
     ORDER BY c.display_order ASC, p.display_order ASC
   `).all(brand);
 
