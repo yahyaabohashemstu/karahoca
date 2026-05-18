@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
@@ -48,12 +49,30 @@ export const AdminNewsEdit: React.FC = () => {
   const setStr = (key: keyof NewsItem, value: string) =>
     setForm(f => ({ ...f, [key]: value }));
 
+  /**
+   * The body is stored on the API as `string[]` (one paragraph per
+   * element) for backward compatibility with the original news pages
+   * that rendered each entry as a plain <p>. With the markdown editor
+   * we now author the body as ONE block of markdown, so:
+   *
+   *   - getBodyText joins existing arrays with \n\n so legacy entries
+   *     keep working when the admin opens them for editing.
+   *   - setBodyText stores the WHOLE markdown as a single-element array
+   *     [fullMarkdown]. Public NewsArticlePage joins on \n\n before
+   *     rendering, so a single element or N elements both yield the
+   *     same react-markdown input.
+   */
   const getBodyText = (lang: Lang): string =>
     (form[`body_${lang}` as keyof NewsItem] as string[] | undefined)?.join('\n\n') ?? '';
 
   const setBodyText = (lang: Lang, text: string) => {
-    const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-    set(`body_${lang}` as keyof NewsItem, paragraphs as unknown as NewsItem[keyof NewsItem]);
+    // Trim trailing whitespace only; PRESERVE internal blank lines so
+    // markdown features that need them (lists, code blocks, blockquotes)
+    // continue to parse. Wrapping in a single-element array keeps the
+    // API contract unchanged.
+    const trimmed = text.replace(/\s+$/, '');
+    const payload = trimmed ? [trimmed] : [];
+    set(`body_${lang}` as keyof NewsItem, payload as unknown as NewsItem[keyof NewsItem]);
   };
 
   const handleTranslated = (translations: Record<string, Record<string, string>>) => {
@@ -280,14 +299,14 @@ export const AdminNewsEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Body ({l.toUpperCase()}) — separate paragraphs with blank line</label>
-                <textarea
-                  className="adm-textarea"
-                  dir={l === 'ar' ? 'rtl' : 'ltr'}
-                  rows={8}
+                <label className="adm-label">
+                  Body ({l.toUpperCase()}) — supports **bold**, *italic*, # headings, lists, [links](url), &gt; quotes
+                </label>
+                <MarkdownEditor
                   value={getBodyText(l)}
-                  onChange={e => setBodyText(l, e.target.value)}
-                  placeholder="First paragraph&#10;&#10;Second paragraph"
+                  onChange={(text) => setBodyText(l, text)}
+                  dir={l === 'ar' ? 'rtl' : 'ltr'}
+                  rows={12}
                 />
               </div>
             </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import SEO from '../components/SEO';
 import { ArticleSchema, BreadcrumbSchema } from '../components/SchemaOrg';
 import Header from '../components/Header';
@@ -113,11 +115,60 @@ const NewsArticlePage: React.FC = () => {
               />
             </figure>
 
-            {/* Body */}
-            <div className="news-article__body" style={{ fontSize: '1.05rem', lineHeight: 1.8 }}>
-              {article.body.map((paragraph, i) => (
-                <p key={i} style={{ marginBottom: '1.2rem' }}>{paragraph}</p>
-              ))}
+            {/* Body — phase F markdown rendering.
+                Existing articles authored as a paragraph array still
+                render correctly because joining on "\n\n" → markdown's
+                blank-line paragraph separator. New articles authored
+                with the rich editor get full markdown semantics:
+                headings, lists, blockquotes, links, code, tables. */}
+            <div
+              className="news-article__body"
+              style={{ fontSize: '1.05rem', lineHeight: 1.8 }}
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ node, ...rest }) => <p {...rest} style={{ marginBottom: '1.2rem' }} />,
+                  h1: ({ node, ...rest }) => <h2 {...rest} style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 700, marginTop: '2rem', marginBottom: '1rem' }} />,
+                  h2: ({ node, ...rest }) => <h3 {...rest} style={{ fontSize: isMobile ? '1.15rem' : '1.4rem', fontWeight: 700, marginTop: '1.6rem', marginBottom: '0.8rem' }} />,
+                  h3: ({ node, ...rest }) => <h4 {...rest} style={{ fontSize: '1.15rem', fontWeight: 600, marginTop: '1.2rem', marginBottom: '0.6rem' }} />,
+                  a: ({ node, href, ...rest }) => (
+                    <a
+                      href={href}
+                      target={href?.startsWith('http') ? '_blank' : undefined}
+                      rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                      {...rest}
+                    />
+                  ),
+                  blockquote: ({ node, ...rest }) => (
+                    <blockquote
+                      {...rest}
+                      style={{
+                        borderInlineStart: '4px solid var(--primary)',
+                        paddingInlineStart: '1rem',
+                        margin: '1.2rem 0',
+                        color: 'var(--text-secondary, #555)',
+                        fontStyle: 'italic',
+                      }}
+                    />
+                  ),
+                  ul: ({ node, ...rest }) => <ul {...rest} style={{ marginBottom: '1.2rem', paddingInlineStart: '1.5rem' }} />,
+                  ol: ({ node, ...rest }) => <ol {...rest} style={{ marginBottom: '1.2rem', paddingInlineStart: '1.5rem' }} />,
+                  img: ({ node, src, alt, ...rest }) => (
+                    <img
+                      src={src}
+                      alt={alt || ''}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ maxWidth: '100%', height: 'auto', borderRadius: 8, margin: '1.2rem 0' }}
+                      {...rest}
+                    />
+                  ),
+                }}
+              >
+                {article.body.join('\n\n')}
+              </ReactMarkdown>
             </div>
 
             {/* Back to news */}
