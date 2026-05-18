@@ -264,6 +264,62 @@ body.light-mode .ai-chat-followup-chip:hover {
   color: #c2410c;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CONTINUE-ON-WHATSAPP CTA
+
+   Sits above the chat composer once the visitor has had at least one
+   real back-and-forth with Karo. Uses the WhatsApp brand green so it
+   reads as a confident hand-off, not a settings toggle. The icon is
+   the same SVG the floating WhatsApp button uses — visual consistency
+   across the site for the "talk to a human" affordance.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ai-assistant__continue-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 14px 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(37, 211, 102, 0.55);
+  background: rgba(37, 211, 102, 0.14);
+  color: #25D366;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 40px;
+  transition:
+    background var(--motion-fast) var(--easing-standard),
+    transform var(--motion-fast) var(--easing-standard);
+}
+
+.ai-assistant__continue-whatsapp:hover {
+  background: rgba(37, 211, 102, 0.22);
+}
+
+.ai-assistant__continue-whatsapp:active {
+  transform: scale(0.98);
+}
+
+.ai-assistant__continue-whatsapp:focus-visible {
+  outline: 2px solid rgba(37, 211, 102, 0.85);
+  outline-offset: 2px;
+}
+
+.ai-assistant__continue-whatsapp svg {
+  flex-shrink: 0;
+}
+
+body.light-mode .ai-assistant__continue-whatsapp {
+  background: rgba(37, 211, 102, 0.12);
+  color: #15803d;
+}
+
+body.light-mode .ai-assistant__continue-whatsapp:hover {
+  background: rgba(37, 211, 102, 0.2);
+}
+
 .ai-chat-product-card {
   display: flex;
   flex-direction: column;

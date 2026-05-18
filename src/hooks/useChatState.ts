@@ -4,6 +4,8 @@ import { apiFetch } from '../utils/apiFetch';
 import { trackChatOpen, trackChatClose } from '../utils/analytics';
 import { track } from '../utils/track';
 import { getVisitorId } from '../utils/visitorIdentity';
+import { whatsAppContinueChatUrl } from '../utils/whatsapp';
+import { buildChatTranscript } from '../utils/chatTranscript';
 import {
   getLanguageDirection,
   normalizeLanguageCode,
@@ -152,6 +154,14 @@ export interface ChatUIStrings {
    * label.
    */
   followupsLabel: string;
+  /**
+   * Label on the "Continue this conversation on WhatsApp" CTA that
+   * appears at the bottom of the chat once the visitor has had at
+   * least one back-and-forth with Karo. Tapping it copies the
+   * transcript into a pre-filled WhatsApp message addressed to
+   * the KARAHOCA number — the sales team picks up with full context.
+   */
+  continueOnWhatsApp: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -473,6 +483,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           similarLabel: 'Benzer ürünler',
         },
         followupsLabel: 'Önerilen sorular',
+        continueOnWhatsApp: "WhatsApp'ta devam et",
       };
     case 'ru':
       return {
@@ -512,6 +523,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           similarLabel: 'Похожие товары',
         },
         followupsLabel: 'Возможные вопросы',
+        continueOnWhatsApp: 'Продолжить в WhatsApp',
       };
     case 'en':
       return {
@@ -551,6 +563,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           similarLabel: 'Similar products',
         },
         followupsLabel: 'Suggested follow-ups',
+        continueOnWhatsApp: 'Continue on WhatsApp',
       };
     case 'ar':
     default:
@@ -591,6 +604,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           similarLabel: 'منتجات مشابهة',
         },
         followupsLabel: 'اقتراحات للمتابعة',
+        continueOnWhatsApp: 'أكمل المحادثة على واتساب',
       };
   }
 };
@@ -846,6 +860,18 @@ export interface UseChatStateResult {
    * can measure follow-up effectiveness.
    */
   handleFollowupClick: (followup: string) => void;
+  /**
+   * Tap the "Continue this conversation on WhatsApp" CTA. Builds a
+   * localised transcript from the in-memory conversation and opens
+   * a wa.me link pre-filled with it.
+   */
+  handleContinueOnWhatsApp: () => void;
+  /**
+   * Whether the CTA is currently meaningful (true ⇒ at least one
+   * complete user/assistant exchange). The chat shell uses this to
+   * hide the button on a fresh, unengaged session.
+   */
+  canContinueOnWhatsApp: boolean;
   /** Ref for the `<textarea>` — the hook focuses it on open / after send. */
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   /** Ref for the scroll-anchor element at the bottom of the message list. */
@@ -1562,6 +1588,53 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     [handleSend, currentLang],
   );
 
+  /**
+   * "Continue this chat on WhatsApp" — build a localised transcript
+   * from the in-memory conversation, drop it into a wa.me URL with
+   * the KARAHOCA number, fire the analytics event, and open
+   * WhatsApp in a new tab. The transcript is truncated to ~2KB on
+   * the URL side (see whatsAppContinueChatUrl) so we never overshoot
+   * wa.me's silent-drop ceiling.
+   */
+  const handleContinueOnWhatsApp = useCallback(() => {
+    track({
+      event_type: 'chat_continue_whatsapp',
+      payload: {
+        lang: currentLang,
+        message_count: messages.filter((m) => m.id !== 'welcome').length,
+      },
+    });
+    const transcript = buildChatTranscript(messages, currentLang);
+    const url = whatsAppContinueChatUrl(currentLang, transcript);
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, [messages, currentLang]);
+
+  /**
+   * The CTA is only useful once the visitor has invested at least one
+   * back-and-forth — showing it on a fresh chat would just be a
+   * "leave the website" button. Requires:
+   *   - ≥1 user message AND ≥1 finished assistant message, which
+   *     together means a real exchange happened.
+   *   - The current turn isn't streaming (we wait until the visitor
+   *     has fully consumed Karo's reply before offering the hand-off).
+   */
+  const canContinueOnWhatsApp = useMemo(() => {
+    if (isLoading) return false;
+    let hasUser = false;
+    let hasFinishedAssistant = false;
+    for (const m of messages) {
+      if (m.id === 'welcome') continue;
+      if (m.role === 'user') hasUser = true;
+      else if (m.role === 'assistant' && m.streaming !== true && m.content.trim().length > 0) {
+        hasFinishedAssistant = true;
+      }
+      if (hasUser && hasFinishedAssistant) return true;
+    }
+    return false;
+  }, [messages, isLoading]);
+
   const openChat = useCallback(() => {
     setIsOpen(true);
     // First open of the session is the signal we wanted — kill all the
@@ -1642,6 +1715,8 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     handleSend,
     handleSuggestionClick,
     handleFollowupClick,
+    handleContinueOnWhatsApp,
+    canContinueOnWhatsApp,
     inputRef,
     messagesEndRef,
   };

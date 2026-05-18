@@ -94,6 +94,20 @@ const PRODUCT_INQUIRY: Record<
     `Здравствуйте, я хотел бы узнать о ${name} (${brand})\n\n${url}`,
 };
 
+/**
+ * Header strings prefixed to a chat transcript when the visitor taps
+ * "Continue this conversation on WhatsApp" at the bottom of the chat.
+ * The header tells the sales agent "this is a hand-off, not a fresh
+ * inquiry" so they pick up the context immediately instead of asking
+ * questions Karo already answered.
+ */
+const CHAT_CONTINUATION_HEADER: Record<SupportedLang, string> = {
+  ar: 'أهلاً، أكمل محادثتي مع المساعد Karo من الموقع:',
+  en: "Hello, I'm continuing my chat with the Karo assistant from the website:",
+  tr: 'Merhaba, web sitesindeki Karo asistanıyla sohbetimi devam ettiriyorum:',
+  ru: 'Здравствуйте, я продолжаю разговор с ассистентом Karo с сайта:',
+};
+
 // ─── URL builders ─────────────────────────────────────────────────────────
 
 const buildKarahocaUrl = (message: string): string =>
@@ -111,6 +125,58 @@ export const whatsAppProductInquiryUrl = (
 ): string => {
   const code = pickLang(lang);
   return buildKarahocaUrl(PRODUCT_INQUIRY[code](product.name, product.brand, product.url));
+};
+
+/**
+ * Hard cap on the URL-encoded text the wa.me handler accepts before it
+ * silently drops the message and opens an empty composer instead.
+ * Real-world testing puts the limit around ~6KB raw; we stay well under
+ * to leave headroom for the URL-encoding inflation (Arabic / Russian
+ * each character expands to 6-9 chars when percent-encoded).
+ */
+const MAX_TRANSCRIPT_CHARS = 2000;
+
+/**
+ * Continue-this-conversation URL. Takes the in-memory chat transcript
+ * (a pre-formatted localised string) and wraps it with a header so the
+ * sales agent picking up the WhatsApp message sees "this is a hand-off
+ * from the website" before reading the back-and-forth.
+ *
+ * The caller is responsible for formatting the transcript itself —
+ * the helper in `useChatState` strips markdown, contact footers, and
+ * empty bubbles, then assembles "Customer: …" / "Karo: …" pairs.
+ * This util only:
+ *   1. Truncates the combined header + transcript to the wa.me-safe
+ *      length (with a localised "[earlier messages omitted]" marker
+ *      when the trim happens).
+ *   2. Builds the URL with the canonical phone number and the paren-
+ *      safe encoder shared by every wa.me helper here.
+ */
+export const whatsAppContinueChatUrl = (
+  lang: string | undefined,
+  transcript: string,
+): string => {
+  const code = pickLang(lang);
+  const header = CHAT_CONTINUATION_HEADER[code];
+  const TRIM_NOTE: Record<SupportedLang, string> = {
+    ar: '\n\n[تم اقتطاع رسائل أقدم للحفاظ على طول الرسالة]\n\n',
+    en: '\n\n[Older messages trimmed to fit]\n\n',
+    tr: '\n\n[Eski mesajlar uzunluğa sığacak şekilde kısaltıldı]\n\n',
+    ru: '\n\n[Старые сообщения сокращены]\n\n',
+  };
+
+  let body = transcript.trim();
+  // Reserve space for the header + a newline + the trim note (if needed).
+  const headerLen = header.length + 2;
+  const usableBudget = MAX_TRANSCRIPT_CHARS - headerLen;
+  if (body.length > usableBudget) {
+    const note = TRIM_NOTE[code];
+    const keepFromEnd = usableBudget - note.length;
+    body = note + body.slice(body.length - keepFromEnd);
+  }
+
+  const full = `${header}\n\n${body}`;
+  return buildKarahocaUrl(full);
 };
 
 /**

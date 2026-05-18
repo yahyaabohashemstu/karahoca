@@ -57,6 +57,8 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
     handleSend,
     handleSuggestionClick,
     handleFollowupClick,
+    handleContinueOnWhatsApp,
+    canContinueOnWhatsApp,
     inputRef,
     messagesEndRef,
   } = state;
@@ -168,6 +170,8 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
           onSubmit={() => { void handleSend(); }}
           onSuggestionClick={handleSuggestionClick}
           onFollowupPick={handleFollowupClick}
+          onContinueOnWhatsApp={handleContinueOnWhatsApp}
+          canContinueOnWhatsApp={canContinueOnWhatsApp}
           onClose={closeChat}
         />
       )}
