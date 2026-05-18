@@ -123,3 +123,21 @@ describe('buildBrandSvg', () => {
     expect(svg).toMatch(/direction="rtl"/);
   });
 });
+
+// Pin: Node's URL constructor percent-encodes non-ASCII path bytes.
+// This is what saved us from ERR_INVALID_CHAR when the API tried to
+// fetch /diox-images/ديوكس سوبر جل.png. If a future refactor swaps
+// `new URL()` for raw string concatenation, the runtime would 500
+// again on every Arabic-named product — this test catches it early.
+describe('URL constructor encoding', () => {
+  it('percent-encodes Arabic path segments', () => {
+    const encoded = new URL('https://karahoca.com/diox-images/ديوكس سوبر جل.png').toString();
+    expect(encoded).toMatch(/%D8%AF%D9%8A%D9%88%D9%83%D8%B3/);
+    // The result is pure ASCII — safe to use anywhere HTTP demands ASCII.
+    expect(/^[\x20-\x7E]*$/.test(encoded)).toBe(true);
+  });
+  it('handles spaces correctly', () => {
+    const encoded = new URL('https://example.com/has space.png').toString();
+    expect(encoded).toContain('has%20space.png');
+  });
+});

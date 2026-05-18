@@ -407,6 +407,48 @@ const buildBrandSvg = ({ brand, lang }) => {
 
 const MAX_FETCH_BYTES = 8 * 1024 * 1024;
 
+/**
+ * Try fetching a URL once. Returns Buffer on 2xx, null on anything else.
+ * Wraps the raw URL string in `new URL()` so non-ASCII characters
+ * (Arabic / Cyrillic in image filenames) get percent-encoded
+ * correctly — `fetch()` with a raw string accepts non-ASCII as-is and
+ * the upstream HTTP server may or may not interpret them, depending
+ * on how the file is published.
+ */
+const tryFetchPhoto = async (rawUrl) => {
+  let url;
+  try {
+    url = new URL(rawUrl).toString();
+  } catch (err) {
+    logger.warn({ rawUrl, err: err.message }, '[og-photo] invalid URL');
+    return null;
+  }
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'KARAHOCA-OG-Generator/1.0 (+https://karahoca.com)' },
+    });
+    if (!res.ok) {
+      logger.warn({ url, status: res.status }, '[og-photo] fetch returned non-OK status');
+      return null;
+    }
+    const arrayBuf = await res.arrayBuffer();
+    if (arrayBuf.byteLength > MAX_FETCH_BYTES) {
+      logger.warn({ url, bytes: arrayBuf.byteLength }, '[og-photo] response too large');
+      return null;
+    }
+    if (arrayBuf.byteLength === 0) {
+      logger.warn({ url }, '[og-photo] response was empty');
+      return null;
+    }
+    logger.info({ url, bytes: arrayBuf.byteLength }, '[og-photo] fetched OK');
+    return Buffer.from(arrayBuf);
+  } catch (err) {
+    logger.warn({ url, err: err.message }, '[og-photo] fetch threw');
+    return null;
+  }
+};
+
 const loadProductPhotoBuffer = async (imagePath) => {
   if (!imagePath || typeof imagePath !== 'string') {
     logger.debug('[og-photo] empty imagePath — falling back to card');
@@ -447,33 +489,27 @@ const loadProductPhotoBuffer = async (imagePath) => {
     url = `${STATIC_ASSETS_ORIGIN}${withSlash}`;
   }
 
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      // Tag the User-Agent so we can grep our own logs for these
-      // server-side image fetches and tell them apart from regular
-      // visitor traffic.
-      headers: { 'User-Agent': 'KARAHOCA-OG-Generator/1.0 (+https://karahoca.com)' },
-    });
-    if (!res.ok) {
-      logger.warn({ url, status: res.status }, '[og-photo] fetch returned non-OK status');
-      return null;
+  // Primary attempt — the URL as stored in DB.
+  let buf = await tryFetchPhoto(url);
+  if (buf) return buf;
+
+  // Webp fallback. Build-time `scripts/optimize-images.mjs` replaces
+  // every PNG / JPEG under web/dist with a .webp sibling AND removes
+  // the original. The admin DB still references the original filename
+  // (e.g. /diox-images/foo.png), so a literal-path fetch 404s on
+  // every catalogue product. Retry with .webp before giving up.
+  const lastDot = url.lastIndexOf('.');
+  if (lastDot > url.lastIndexOf('/')) {
+    const ext = url.slice(lastDot + 1).toLowerCase();
+    if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+      const webpUrl = url.slice(0, lastDot) + '.webp';
+      logger.info({ original: url, retry: webpUrl }, '[og-photo] retrying with .webp');
+      buf = await tryFetchPhoto(webpUrl);
+      if (buf) return buf;
     }
-    const arrayBuf = await res.arrayBuffer();
-    if (arrayBuf.byteLength > MAX_FETCH_BYTES) {
-      logger.warn({ url, bytes: arrayBuf.byteLength }, '[og-photo] response too large');
-      return null;
-    }
-    if (arrayBuf.byteLength === 0) {
-      logger.warn({ url }, '[og-photo] response was empty');
-      return null;
-    }
-    logger.debug({ url, bytes: arrayBuf.byteLength }, '[og-photo] fetched OK');
-    return Buffer.from(arrayBuf);
-  } catch (err) {
-    logger.warn({ url, err: err.message }, '[og-photo] fetch threw');
-    return null;
   }
+
+  return null;
 };
 
 /**

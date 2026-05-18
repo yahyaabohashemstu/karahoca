@@ -46,14 +46,49 @@ const sendError = (res, status, message) => {
 };
 
 /**
- * Parse `{slug-or-id}-{lang}.png` into its parts. We split on the LAST
+ * HTTP header values must be ASCII per RFC 7230. Any non-ASCII byte
+ * (Arabic / Cyrillic / emoji / accented Latin) makes Node throw
+ * ERR_INVALID_CHAR from res.writeHead.
+ *
+ * KARAHOCA product image paths in the DB routinely contain Arabic
+ * (e.g. "/diox-images/ديوكس سوبر جل.png"), so any diagnostic header
+ * we set from that data must be safely encoded first. We use
+ * encodeURIComponent which produces a deterministic ASCII string the
+ * admin can decode back via `decodeURIComponent` if they need the
+ * original.
+ *
+ * The 200-char cap is preserved — encoded UTF-8 inflates by ~3x for
+ * Arabic, so a 200-char raw path becomes a ~600-char encoded one;
+ * we slice AFTER encoding to keep the wire size predictable.
+ */
+const asciiHeaderValue = (s) => {
+  if (s == null) return '';
+  const str = String(s);
+  if (/^[\x20-\x7E]*$/.test(str)) return str.slice(0, 600);
+  return encodeURIComponent(str).slice(0, 600);
+};
+
+/**
+ * Parse `{slug-or-id}-{lang}.{ext}` into its parts. We split on the LAST
  * occurrence of "-" because product slugs themselves can contain "-".
+ *
+ * Accepts EITHER:
+ *   - filenames with explicit extension: 'diox-floor-cleaner-ar.png'
+ *   - bare stem (no extension): 'diox-floor-cleaner-ar' — used by the
+ *     debug endpoint which formats its URL as `…/{stem}.json` and
+ *     strips the .json before calling here.
  *
  * Returns { id: 'diox-floor-cleaner', lang: 'ar' } or null.
  */
 const parseTrailingLang = (filename) => {
-  if (!filename || !filename.endsWith('.png')) return null;
-  const stem = filename.slice(0, -4); // strip .png
+  if (!filename) return null;
+  // Strip any recognised extension. We accept .png because that's the
+  // canonical share-card URL; .webp / .json / no-extension all parse
+  // the same way once the stem is isolated.
+  let stem = filename;
+  for (const ext of ['.png', '.webp', '.json']) {
+    if (stem.endsWith(ext)) { stem = stem.slice(0, -ext.length); break; }
+  }
   const idx = stem.lastIndexOf('-');
   if (idx <= 0) return null;
   const lang = stem.slice(idx + 1).toLowerCase();
@@ -145,10 +180,12 @@ export const handleProductOg = async (req, res, ctx) => {
     // Values: '' (success), 'no-image-path', 'photo-load-failed',
     // 'photo-compose-failed'. Empty string is omitted from the header.
     if (reason) headers['X-OG-Reason'] = reason;
-    // ImagePath echoed back (truncated) so an admin verifying that
-    // the DB has the right path doesn't need to crack open the admin
-    // UI. Truncated to 200 chars to keep the header below limits.
-    if (row.image) headers['X-OG-ImagePath'] = String(row.image).slice(0, 200);
+    // ImagePath echoed back (truncated + percent-encoded if Arabic /
+    // Cyrillic / etc.) — admin can decodeURIComponent() to read it.
+    // RAW non-ASCII bytes in a header value crash Node's writeHead
+    // with ERR_INVALID_CHAR, so the asciiHeaderValue helper is
+    // load-bearing here for products with localised filenames.
+    if (row.image) headers['X-OG-ImagePath'] = asciiHeaderValue(row.image);
     res.writeHead(200, headers);
     res.end(buffer);
   } catch (err) {
@@ -178,8 +215,12 @@ export const handleProductOg = async (req, res, ctx) => {
         ...PNG_HEADERS('emergency-fallback'),
         'X-OG-Source': 'emergency',
         'X-OG-Reason': 'render-threw',
-        'X-OG-Error': (err?.message || 'unknown').slice(0, 200),
-        'X-OG-ImagePath': row.image ? String(row.image).slice(0, 200) : '(empty)',
+        // err.message may contain non-ASCII for fs/network errors that
+        // include the offending path — wrap through asciiHeaderValue
+        // so the emergency fallback never repeats the original
+        // ERR_INVALID_CHAR crash from the primary path.
+        'X-OG-Error': asciiHeaderValue(err?.message || 'unknown'),
+        'X-OG-ImagePath': row.image ? asciiHeaderValue(row.image) : '(empty)',
       });
       res.end(png);
     } catch (fallbackErr) {
@@ -211,10 +252,14 @@ export const handleProductOgDebug = async (req, res, ctx) => {
     res.end(JSON.stringify({ error: 'Not found.' }));
     return;
   }
-  const parsed = parseTrailingLang(match[1].replace(/\.json$/, ''));
+  const parsed = parseTrailingLang(match[1]);
   if (!parsed) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid path. Expected /og/debug/product/{id}-{lang}' }));
+    res.end(JSON.stringify({
+      error: 'Invalid path. Expected /og/debug/product/{id}-{lang}[.json]',
+      received: match[1],
+      supportedLangs: OG_SUPPORTED_LANGS,
+    }));
     return;
   }
 
@@ -264,13 +309,42 @@ export const handleProductOgDebug = async (req, res, ctx) => {
         photoStatus.ok = stat.isFile() && stat.size > 0;
       } else {
         const STATIC_ORIGIN = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/+$/, '');
-        const url = trimmed.startsWith('http') ? trimmed : `${STATIC_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+        const rawUrl = trimmed.startsWith('http') ? trimmed : `${STATIC_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+        // Percent-encode non-ASCII (Arabic, Cyrillic) so fetch sends a
+        // valid HTTP request. Without this, an admin storing
+        // "/diox-images/ديوكس سوبر جل.png" in DB causes the upstream
+        // to receive raw UTF-8 in the path and 404 inconsistently.
+        const url = new URL(rawUrl).toString();
         photoStatus.resolvedUrl = url;
+        photoStatus.rawUrl = rawUrl;
+
+        // Try the original URL first…
         const r = await fetch(url, { method: 'HEAD' });
         photoStatus.ok = r.ok;
         photoStatus.status = r.status;
         photoStatus.contentType = r.headers.get('content-type');
         photoStatus.contentLength = r.headers.get('content-length');
+
+        // …then probe the .webp sibling, the same way the runtime
+        // generator does, so the debug endpoint reports the EFFECTIVE
+        // status rather than just the literal-path 404.
+        if (!r.ok) {
+          const lastDot = url.lastIndexOf('.');
+          if (lastDot > url.lastIndexOf('/')) {
+            const ext = url.slice(lastDot + 1).toLowerCase();
+            if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+              const webpUrl = url.slice(0, lastDot) + '.webp';
+              const r2 = await fetch(webpUrl, { method: 'HEAD' });
+              photoStatus.webpFallback = {
+                url: webpUrl,
+                ok: r2.ok,
+                status: r2.status,
+                contentType: r2.headers.get('content-type'),
+              };
+              if (r2.ok) photoStatus.ok = true;
+            }
+          }
+        }
       }
     } catch (err) {
       photoStatus.error = err?.message || String(err);
