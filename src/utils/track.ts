@@ -99,6 +99,10 @@ const flushNow = async (useKeepalive = false): Promise<void> => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ events: batch }),
       keepalive: useKeepalive,
+      // Tracking is the canonical opt-in for the visitor-id header —
+      // every event needs the anchor. The endpoint is new (deploys
+      // together with this client), so version skew can't break it.
+      withVisitorId: true,
     });
   } catch {
     // Network/CSRF/quota errors swallowed by design. Re-queueing a

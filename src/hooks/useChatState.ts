@@ -1659,7 +1659,13 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       const lang = currentLang;
       const response = await apiFetch(
         `/api/ai/welcome?lang=${encodeURIComponent(lang)}`,
-        { method: 'GET' },
+        {
+          method: 'GET',
+          // The welcome lookup is the whole point of the visitor-id
+          // header on this route. Endpoint is new (Phase B3) so
+          // CORS allowance ships with the matching backend deploy.
+          withVisitorId: true,
+        },
       );
       if (!response.ok) return;
       const payload = (await response.json()) as {

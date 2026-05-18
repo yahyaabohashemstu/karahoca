@@ -13,12 +13,20 @@ import { getVisitorId } from './visitorIdentity';
  *   3. Sends cookies with `credentials: 'include'` so the CSRF cookie
  *      round-trips even when the API lives on a sibling subdomain
  *      (frontend at karahoca.com → backend at api.karahoca.com).
- *   4. Attaches the `X-Visitor-Id` header on every request so the
- *      backend can attribute the call to the originating browser even
- *      when the visitor-id cookie is cross-subdomain-blocked (api.
- *      karahoca.com vs karahoca.com) or when the storage is session-
- *      only (essential-consent visitors). See `utils/visitorIdentity`
- *      for the consent-gated storage strategy.
+ *
+ * The X-Visitor-Id header is OPT-IN via a new `withVisitorId: true` init
+ * option. Originally apiFetch auto-attached it on every request, which
+ * meant a deploy window where the new frontend went live before the new
+ * backend would BREAK CORS preflight (the old backend's Access-Control-
+ * Allow-Headers didn't list X-Visitor-Id, so the browser blocked the
+ * actual request and the chat showed its fallback "Karo is having
+ * trouble connecting…" message). Making it opt-in scopes the header to
+ * endpoints that need it (new tracking + welcome-recognition routes)
+ * without changing the preflight footprint of long-lived routes
+ * (chat, newsletter, log-error, etc.). On those long-lived routes the
+ * visitor identity still rides cookies on same-site / same-domain
+ * deployments — and analytics ride a separate endpoint that DOES opt
+ * into the header.
  *
  * Callers pass a path (e.g. `/api/newsletter/subscribe`) + standard init.
  * Return value is the raw `Response` — same contract as `fetch`.
@@ -28,6 +36,13 @@ const CSRF_COOKIE_NAME = 'karahoca_csrf';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
 const VISITOR_HEADER_NAME = 'X-Visitor-Id';
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Init augmentation: when `withVisitorId` is true, apiFetch attaches
+ * the X-Visitor-Id header (resolved via the consent-gated identity
+ * helper). Defaults to false — see the rationale above.
+ */
+type ApiFetchInit = RequestInit & { withVisitorId?: boolean };
 
 const readCookie = (name: string): string => {
   if (typeof document === 'undefined' || !document.cookie) return '';
@@ -65,16 +80,19 @@ const normaliseHeaders = (input?: HeadersInit): Record<string, string> => {
 const hasHeader = (headers: Record<string, string>, name: string) =>
   Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase());
 
-export const apiFetch = async (path: string, init: RequestInit = {}): Promise<Response> => {
+export const apiFetch = async (path: string, init: ApiFetchInit = {}): Promise<Response> => {
   const url = buildApiUrl(path);
   const method = (init.method || 'GET').toUpperCase();
-  const headers = normaliseHeaders(init.headers);
+  const { withVisitorId, ...restInit } = init;
+  const headers = normaliseHeaders(restInit.headers);
 
-  // Attach the canonical visitor id to EVERY request (read-only too)
-  // so analytics events, cohort tracking, and A/B variant assignment
-  // can find the same browser across navigations. Skipped silently
-  // when SSR / the helper returns the placeholder.
-  if (!hasHeader(headers, VISITOR_HEADER_NAME)) {
+  // OPT-IN visitor-id header — only attached when the caller explicitly
+  // asks (e.g. /api/track/events, /api/ai/welcome). Keeps the CORS
+  // preflight surface of every OTHER endpoint identical to its pre-
+  // visitor-identity-era footprint, so a partial deploy where the
+  // frontend ships before the backend cannot break long-lived
+  // routes like the chat.
+  if (withVisitorId && !hasHeader(headers, VISITOR_HEADER_NAME)) {
     const visitorId = getVisitorId();
     if (visitorId && visitorId !== 'ssr-placeholder') {
       headers[VISITOR_HEADER_NAME] = visitorId;
@@ -109,7 +127,7 @@ export const apiFetch = async (path: string, init: RequestInit = {}): Promise<Re
 
   return fetch(url, {
     credentials: 'include',
-    ...init,
+    ...restInit,
     headers,
   });
 };
