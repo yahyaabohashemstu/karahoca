@@ -3,40 +3,102 @@ import { buildProductContext, buildCustomQAContext } from '../routes/admin-ai-kn
 import { logger } from '../utils/logger.mjs';
 import { TOOLS, executeTool, hasProductNameMatch } from './aiTools.mjs';
 
+// ─── Chat provider configuration ────────────────────────────────────────────
+//
+// Karo can talk to TWO LLM providers, with automatic fallback between
+// them. The chain is computed once at module load and walked top-down
+// by `callChatProviderChain` on every chat turn:
+//
+//   1. Gemini 2.0 Flash via Google AI Studio (the OpenAI-compatible
+//      endpoint at generativelanguage.googleapis.com). Free tier:
+//      1,500 req/day, 15 req/min — generous enough that KARAHOCA's
+//      entire daily traffic should fit. SUPPORTS tool_calls, so the
+//      inline product cards (Phase 4) work natively without the
+//      server-side intent fallback (which keeps working in parallel).
+//
+//   2. OpenRouter with whatever model `OPENROUTER_MODEL` points at
+//      (default: `google/gemma-3-27b-it`, free). Used as the first
+//      fallback if Gemini errors out (rate-limit, network blip,
+//      configuration mistake).
+//
+//   3. OpenRouter with `meta-llama/llama-3.3-70b-instruct` (also
+//      free). Last-resort retry against an entirely different model
+//      family on the same provider — protects against a single-model
+//      outage.
+//
+// ROLLBACK PATH: removing the `GEMINI_API_KEY` env var (and
+// redeploying) takes Gemini out of the chain instantly. The chat
+// reverts to the pre-Gemini OpenRouter-only behaviour without any
+// code change. This is intentional — the env-var presence is the
+// switch.
+
+// ── Provider 1: Gemini direct (Google AI Studio OpenAI-compatible) ──────
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-001';
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+
+// ── Provider 2-3: OpenRouter (existing, preserved) ──────────────────────
 const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
 /**
- * Which OpenRouter model Karo talks to.
- *
- * Configurable via the `OPENROUTER_MODEL` env var so ops can swap models
- * without a code change. The default — `google/gemma-3-27b-it` — is the
- * free tier that's been running since the original Karo launch; it
- * produces excellent Arabic and serves the catalogue well via the
- * baked-in product context.
- *
- * ── Why you might switch ─────────────────────────────────────────────
- * Gemma 3 on OpenRouter does NOT reliably emit `tool_calls` (the
- * function-calling API). The chat still works fine — the model
- * answers from the product catalogue text the server injects into
- * each user message — but the inline product cards introduced in
- * Phase 4 of the AI overhaul will NOT render because no tool is
- * actually invoked. The agent loop in `streamAiReply` detects this
- * (toolCalls.length === 0) and returns the streamed text as-is.
- *
- * For visitors to see the rich product cards, set
- * OPENROUTER_MODEL to a tool-capable model. Verified options as of
- * 2026-05:
- *
- *   google/gemini-2.0-flash-001   ~$10/mo @ 100 chats/day  (recommended)
- *   anthropic/claude-3-haiku       ~$90/mo
- *   openai/gpt-4o-mini             ~$16/mo
- *   meta-llama/llama-3.3-70b-instruct  free tier (check availability)
- *
- * The env var is read once at module load, so flipping it requires a
- * server restart (karahoca-api → Redeploy on Coolify).
+ * Which OpenRouter model Karo talks to when the chain falls back to
+ * OpenRouter. Configurable via `OPENROUTER_MODEL` so ops can swap
+ * without a code change; default `google/gemma-3-27b-it` (free).
+ * Note: if GEMINI_API_KEY is set, this model only gets used when
+ * Gemini errors out.
  */
 const AI_MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it';
+
+/**
+ * Build the ordered provider chain. Each entry carries the endpoint,
+ * API key, model name, and a stable label for logging. Order matters:
+ * the chain is walked top-down on every turn.
+ */
+const CHAT_PROVIDERS = (() => {
+  const chain = [];
+  if (GEMINI_API_KEY) {
+    chain.push({
+      name: `gemini:${GEMINI_MODEL}`,
+      endpoint: GEMINI_ENDPOINT,
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      isOpenRouter: false,
+    });
+  }
+  if (openrouterApiKey) {
+    chain.push({
+      name: `openrouter:${AI_MODEL}`,
+      endpoint: OPENROUTER_ENDPOINT,
+      apiKey: openrouterApiKey,
+      model: AI_MODEL,
+      isOpenRouter: true,
+    });
+    // Last-resort fallback: a different OpenRouter free model. Only
+    // added when the primary OpenRouter model isn't already Llama 3.3
+    // (otherwise we'd retry the same model twice).
+    if (AI_MODEL !== 'meta-llama/llama-3.3-70b-instruct') {
+      chain.push({
+        name: 'openrouter:llama-3.3-70b',
+        endpoint: OPENROUTER_ENDPOINT,
+        apiKey: openrouterApiKey,
+        model: 'meta-llama/llama-3.3-70b-instruct',
+        isOpenRouter: true,
+      });
+    }
+  }
+  return chain;
+})();
+
+// Log the resolved chain ONCE at module load so an operator looking at
+// the boot logs can confirm which providers Karo will use. Surfaces
+// configuration mistakes (typo'd key, missing env var) without having
+// to wait for the first chat turn.
+if (CHAT_PROVIDERS.length === 0) {
+  logger.warn('[ai-chat] NO chat provider configured. Set GEMINI_API_KEY and/or OPENROUTER_API_KEY.');
+} else {
+  logger.info(`[ai-chat] provider chain: ${CHAT_PROVIDERS.map((p) => p.name).join(' → ')}`);
+}
 
 const SYSTEM_PROMPT = [
   'You are Karo — the AI customer-service assistant for KARAHOCA, a',
@@ -211,51 +273,57 @@ const buildHistoryMessages = (history, currentPrompt) => {
   return cleaned;
 };
 
-// ── Retry + model-fallback chain ────────────────────────────────────────────
+// ── Smart retry across the provider chain ──────────────────────────────────
 //
-// `admin-translate.mjs` has had retry-with-model-fallback for months;
-// the chat path was missing it entirely — a single 429 from OpenRouter
-// (very easy to hit on the free Gemma tier: 20 req/min, 200 req/day
-// without an account credit) would surface to the visitor as
-// "Karo is having trouble connecting now…" and they'd bounce.
+// Each call walks `CHAT_PROVIDERS` top-down. Per-provider retry policy is
+// tuned to the failure mode the status code most often indicates,
+// because the chat is INTERACTIVE — the visitor is staring at the
+// composer waiting for tokens to start streaming:
 //
-// What this fixes: chat now retries the same model with short delays
-// on retriable status codes (429 rate limit, 503 overloaded), and on
-// exhaustion falls through to a second model. Net effect: a brief
-// rate-limit spike that resolves in <5 seconds is invisible to the
-// visitor, and a sustained outage on one model promotes Karo to a
-// sibling rather than killing the chat.
+//   • 429 (rate-limited): on free tiers, this means a daily / minute
+//     quota was hit. Won't clear in <5 s for daily, and even per-minute
+//     rate limits aren't worth a retry that locks the visitor in the
+//     blocking call. Skip retries on THIS provider and try the next.
 //
-// Delays are tuned shorter than admin-translate (which can wait up to
-// 11 s for a translation) because the chat is interactive — the
-// visitor is staring at the input box waiting for the streaming
-// cursor to start. Worst-case wait across all retries: ~5 s on the
-// primary, then jump to fallback model.
-const CHAT_FALLBACK_MODELS = (() => {
-  // Always start with the configured primary; append a secondary
-  // free-tier model that's known to handle Arabic well. De-dupe so
-  // setting OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
-  // doesn't cause the same model to be tried twice.
-  const list = [AI_MODEL, 'meta-llama/llama-3.3-70b-instruct'];
-  return [...new Set(list)];
-})();
-
-const CHAT_RETRY_DELAYS_MS = [500, 1500, 3000];
-
+//   • 503 (overloaded): transient upstream pressure on the model
+//     provider. One quick retry after 800 ms — if it still fails the
+//     chain moves on.
+//
+//   • Network error (DNS, TCP, TLS timeouts): one quick retry after
+//     400 ms in case it was a blip. Otherwise next provider.
+//
+//   • Other 4xx (400, 401, 404): configuration / auth fault on THIS
+//     provider — retrying won't help. Skip to next provider.
+//
+//   • Other 5xx: same as network — one retry, then next.
+//
+// Worst-case wall-clock before the visitor sees a fallback bubble (all
+// three providers fail with one retry each): roughly 3-5 seconds.
 const chatSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const openRouterFetchWithRetry = async ({ messages, withTools, signal }) => {
-  let lastErr = null;
-  for (const model of CHAT_FALLBACK_MODELS) {
-    for (let attempt = 0; attempt <= CHAT_RETRY_DELAYS_MS.length; attempt++) {
-      if (attempt > 0) {
-        const delay = CHAT_RETRY_DELAYS_MS[attempt - 1];
-        logger.info(`[ai-chat] retry ${model} attempt ${attempt + 1} after ${delay}ms`);
-        await chatSleep(delay);
-      }
+const callChatProviderChain = async ({ messages, withTools, signal }) => {
+  if (CHAT_PROVIDERS.length === 0) {
+    const error = new Error('No chat provider configured on the server. Set GEMINI_API_KEY or OPENROUTER_API_KEY.');
+    error.statusCode = 500;
+    throw error;
+  }
 
+  let lastErr = null;
+
+  for (const provider of CHAT_PROVIDERS) {
+    // Per-provider attempts: at most 2 (initial + 1 retry on
+    // transient errors). 429 / config-shape errors break out
+    // immediately to skip to the next provider.
+    let attempt = 0;
+    const MAX_ATTEMPTS = 2;
+
+    while (attempt < MAX_ATTEMPTS) {
+      // Build the request body. The body is identical across providers
+      // because both Gemini's OpenAI-compatible endpoint and
+      // OpenRouter accept the same OpenAI chat-completions schema —
+      // only the model name + endpoint differ.
       const body = {
-        model,
+        model: provider.model,
         messages,
         stream: true,
         temperature: 0.7,
@@ -267,49 +335,75 @@ const openRouterFetchWithRetry = async ({ messages, withTools, signal }) => {
         body.tool_choice = 'auto';
       }
 
+      // OpenRouter wants its analytics headers (HTTP-Referer +
+      // X-OpenRouter-Title for the dashboard). Gemini's OpenAI-
+      // compatible endpoint ignores unknown headers but we still
+      // omit them to keep the request clean.
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${provider.apiKey}`,
+      };
+      if (provider.isOpenRouter) {
+        headers['HTTP-Referer'] = 'https://karahoca.com';
+        headers['X-OpenRouter-Title'] = 'KARAHOCA AI Assistant';
+      }
+
       try {
-        const res = await fetch(OPENROUTER_ENDPOINT, {
+        const res = await fetch(provider.endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': 'https://karahoca.com',
-            'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
-          },
+          headers,
           body: JSON.stringify(body),
           signal,
         });
 
         if (res.ok) {
-          if (attempt > 0 || model !== CHAT_FALLBACK_MODELS[0]) {
-            logger.info(`[ai-chat] succeeded with ${model} on attempt ${attempt + 1}`);
+          // Log only when something interesting happened (retry or
+          // fallback). The happy path on the primary provider with no
+          // retries stays silent — otherwise every chat turn would
+          // dump a log line.
+          if (provider !== CHAT_PROVIDERS[0] || attempt > 0) {
+            logger.info(`[ai-chat] using ${provider.name} (attempt ${attempt + 1})`);
           }
           return res;
         }
 
         const errText = await res.text();
-        logger.warn(`[ai-chat] ${model} attempt ${attempt + 1} → HTTP ${res.status}: ${errText.slice(0, 200)}`);
-        lastErr = new Error(errText || `OpenRouter HTTP ${res.status}`);
+        const truncated = errText.slice(0, 200);
+        logger.warn(`[ai-chat] ${provider.name} attempt ${attempt + 1} → HTTP ${res.status}: ${truncated}`);
+        lastErr = new Error(truncated || `${provider.name} HTTP ${res.status}`);
         lastErr.statusCode = res.status;
 
-        // Retriable: rate-limited or service overloaded → try the same
-        // model again after the next delay.
-        if (res.status === 429 || res.status === 503) continue;
-
-        // Anything else (400 bad request, 401 auth, 404 model missing,
-        // 5xx other) is unlikely to resolve with a retry on the SAME
-        // model — skip to the next model in the chain.
+        // 429: quota exhausted (daily quota won't clear; per-minute
+        // is fine but not worth blocking a visitor for 60 s). Next.
+        if (res.status === 429) break;
+        // 503: try once more on the same provider after a short
+        // delay (transient overload).
+        if (res.status === 503 && attempt < MAX_ATTEMPTS - 1) {
+          attempt++;
+          await chatSleep(800);
+          continue;
+        }
+        // Anything else (400, 401, 404, 5xx other): provider config
+        // problem or persistent failure — next provider.
         break;
       } catch (err) {
-        // AbortError = visitor closed the chat. Don't retry, propagate.
+        // AbortError = visitor closed the chat. Propagate so the
+        // route handler can wind down the SSE stream.
         if (err?.name === 'AbortError') throw err;
-        logger.warn(`[ai-chat] ${model} attempt ${attempt + 1} threw: ${err.message || err}`);
+        logger.warn(`[ai-chat] ${provider.name} attempt ${attempt + 1} threw: ${err.message || err}`);
         lastErr = err;
-        // Network error → retry (could be a transient blip).
+        // One retry on network errors, then next provider.
+        if (attempt < MAX_ATTEMPTS - 1) {
+          attempt++;
+          await chatSleep(400);
+          continue;
+        }
+        break;
       }
     }
   }
-  throw lastErr || new Error('All OpenRouter models exhausted.');
+
+  throw lastErr || new Error('All chat providers exhausted.');
 };
 
 // ── OpenRouter streaming helper ─────────────────────────────────────────────
@@ -334,11 +428,16 @@ const openRouterFetchWithRetry = async ({ messages, withTools, signal }) => {
 // name + arguments string. We index by `tool_calls[i].index` so out-of-
 // order arrival (rare but legal per spec) doesn't corrupt the buffer.
 const callOpenRouterStream = async ({ messages, withTools, onTextChunk, signal }) => {
-  // Retry + model-fallback now lives in `openRouterFetchWithRetry` so
-  // a transient 429 doesn't surface as a dead-end error to the
-  // visitor. By the time we read the body below, the response is
-  // guaranteed to be a 2xx from SOME model.
-  const aiResponse = await openRouterFetchWithRetry({ messages, withTools, signal });
+  // Provider chain + retry now lives in `callChatProviderChain` so a
+  // transient failure on the primary (Gemini, if GEMINI_API_KEY is set)
+  // hands off to OpenRouter automatically. By the time we read the
+  // body below, the response is guaranteed to be a 2xx from SOME
+  // provider in the chain.
+  //
+  // The function name stays `callOpenRouterStream` for backward-compat
+  // with the agent loop below — it now means "stream a chat reply
+  // from whichever provider responded", not specifically OpenRouter.
+  const aiResponse = await callChatProviderChain({ messages, withTools, signal });
 
   const reader = aiResponse.body.getReader();
   const decoder = new TextDecoder();
@@ -777,8 +876,15 @@ const dedupProductsById = (products) => {
  * silently (the client closed the chat).
  */
 export const streamAiReply = async ({ prompt, lang, history, onChunk, onToolCall, signal }) => {
-  if (!openrouterApiKey) {
-    const error = new Error('OPENROUTER_API_KEY is not configured on the server.');
+  // At least ONE of (GEMINI_API_KEY, OPENROUTER_API_KEY) must be set —
+  // otherwise we have no provider to route the chat through. The
+  // detailed error message points the operator at both options so
+  // they pick whichever fits the ops setup.
+  if (CHAT_PROVIDERS.length === 0) {
+    const error = new Error(
+      'No chat provider configured. Set GEMINI_API_KEY (free Google AI Studio) '
+      + 'and/or OPENROUTER_API_KEY on the server.',
+    );
     error.statusCode = 500;
     throw error;
   }
