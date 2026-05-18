@@ -209,6 +209,21 @@ export const whatsAppContinueChatUrl = (
  * structural (emoji + name + description + URL) — the product name and
  * description come from a localised catalogue, so language match is
  * carried implicitly without a fixed opener template.
+ *
+ * Emoji choice rationale (post-launch fix):
+ *   The original template used 🧹 (broom) — a perfect cleaning-products
+ *   visual BUT introduced in Unicode 11.0 (2018), which means systems
+ *   without a recent emoji font (older Windows, some Telegram Desktop
+ *   builds, low-end Android) render it as the replacement character ▢.
+ *   The 🔗 (link) prefix on the URL line had the same risk.
+ *
+ *   We swap both for outcomes:
+ *     - ✨ (sparkles, U+2728, Unicode 6.0 / 2010) covers every device
+ *       built in the last decade; conveys "clean / quality" generically
+ *       enough to fit either DIOX or AYLUX positioning.
+ *     - The URL itself no longer carries a leading emoji — every
+ *       messenger auto-styles URLs as tappable links, so the icon was
+ *       redundant marketing noise.
  */
 export const whatsAppShareProductUrl = (product: {
   name: string;
@@ -218,6 +233,6 @@ export const whatsAppShareProductUrl = (product: {
   const desc = product.description
     ? product.description.slice(0, 130) + (product.description.length > 130 ? '…' : '')
     : '';
-  const text = `🧹 *${product.name}*${desc ? '\n' + desc : ''}\n\n🔗 ${product.url}`;
+  const text = `✨ *${product.name}*${desc ? '\n' + desc : ''}\n\n${product.url}`;
   return `https://wa.me/?text=${encodeWhatsAppText(text)}`;
 };
