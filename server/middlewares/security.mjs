@@ -72,3 +72,10 @@ export const isChatLogRateLimited = makeLimiter('rl:chat-log', 60, 60);
 // 120 req/min per IP is generous enough for legitimate uptime monitors
 // hitting every few seconds and tight enough to shut down floods.
 export const isHealthRateLimited = makeLimiter('rl:health', 120, 60);
+
+// /api/track/event(s) — visitor analytics ingest. A single page generates
+// 1-5 events (page_view, product_view, …); a chat-heavy session adds ~20
+// more. We batch flush every 3s on the client (see src/utils/track.ts), so
+// even an extremely active visitor lands well below 120 batches/min.
+// Tighter limit would clip legitimate visitors during heavy SPA navigation.
+export const isTrackEventRateLimited = makeLimiter('rl:track-event', 120, 60);

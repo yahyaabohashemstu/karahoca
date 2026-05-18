@@ -1,5 +1,6 @@
 import ReactGA from 'react-ga4';
 import { getCookieConsent } from './cookieConsent';
+import { track } from './track';
 
 /**
  * Core event emitter — respects cookie consent.
@@ -27,25 +28,39 @@ export const trackEvent = (
 };
 
 // ── Contact & Engagement ─────────────────────────────────────────────────────
+//
+// Every helper below fires TWO sinks:
+//   1. Google Analytics (`trackEvent`) — for marketing dashboards.
+//   2. The first-party event queue (`track` from utils/track) — for
+//      the Karo conversation dashboard, the conversion funnel, A/B
+//      attribution, and anything that needs to JOIN with our own DB.
+// Both honour cookie consent independently so a visitor who accepted
+// GA but disabled functional cookies (currently not possible in our
+// UI but the contract should hold) still gets analytics ON THE PATH
+// THE BANNER PROMISED.
 
 /** WhatsApp button clicked (floating button or inline link) */
 export const trackWhatsAppClick = (source: 'floating_button' | 'footer' | 'inline' = 'floating_button'): void => {
   trackEvent('Contact', 'WhatsApp Click', source);
+  track({ event_type: 'whatsapp_click', payload: { source } });
 };
 
 /** AI chat widget opened */
 export const trackChatOpen = (): void => {
   trackEvent('Engagement', 'Chat Open', 'AI Assistant');
+  track({ event_type: 'chat_open' });
 };
 
 /** AI chat widget closed */
 export const trackChatClose = (): void => {
   trackEvent('Engagement', 'Chat Close', 'AI Assistant');
+  track({ event_type: 'chat_close' });
 };
 
 /** User sent a message in the AI chat */
 export const trackChatMessage = (): void => {
   trackEvent('Engagement', 'Chat Message Sent', 'AI Assistant');
+  track({ event_type: 'chat_message_sent' });
 };
 
 // ── Forms ────────────────────────────────────────────────────────────────────
@@ -58,6 +73,7 @@ export const trackFormSubmit = (formName: string, success: boolean): void => {
 /** Newsletter subscription (more specific than trackFormSubmit) */
 export const trackNewsletterSubscription = (language: string): void => {
   trackEvent('Newsletter', 'Subscribe', language);
+  track({ event_type: 'newsletter_subscribe', payload: { language } });
 };
 
 // ── Downloads ────────────────────────────────────────────────────────────────
@@ -73,12 +89,18 @@ export const trackDownload = (filename: string): void => {
 
 // ── Products ─────────────────────────────────────────────────────────────────
 
-export const trackProductView = (productName: string, brand: string): void => {
+export const trackProductView = (productName: string, brand: string, productId?: string): void => {
   trackEvent('Product', 'View', `${brand} — ${productName}`);
+  track({
+    event_type: 'product_view',
+    product_id: productId,
+    payload: { brand, product_name: productName },
+  });
 };
 
 export const trackProductImageOpen = (productName: string): void => {
   trackEvent('Product', 'Image Open', productName);
+  track({ event_type: 'product_modal_open', payload: { product_name: productName } });
 };
 
 // ── Navigation ───────────────────────────────────────────────────────────────

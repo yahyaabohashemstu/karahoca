@@ -44,6 +44,7 @@ import { requirePublicCsrfToken } from './middlewares/publicCsrf.mjs';
 
 // Routes
 import { handleAiChat, handleChatLogRoute } from './routes/api-chat.mjs';
+import { handleTrackEvent } from './routes/api-track.mjs';
 import { handleNewsletterSubscribe, handleNewsletterUnsubscribe } from './routes/api-newsletter.mjs';
 import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from './routes/api-misc.mjs';
 import { handleAdminRoutes } from './routes/api-admin.mjs';
@@ -198,6 +199,15 @@ const handleRequest = async (request, response) => {
     if (request.method === 'POST' && url === '/api/chat/log') {
       if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
       await handleChatLogRoute(request, response, ctx);
+      return;
+    }
+    // Visitor analytics ingest. Two URLs, same handler — the SPA picks
+    // /events for batch flushes and /event for synchronous single-shot
+    // beacons (e.g. last-event-before-unload via sendBeacon). CSRF
+    // required: same defence-in-depth as the chat log.
+    if (request.method === 'POST' && (url === '/api/track/event' || url === '/api/track/events')) {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      await handleTrackEvent(request, response, ctx);
       return;
     }
     if (request.method === 'GET' && url.startsWith('/api/uploads/')) {

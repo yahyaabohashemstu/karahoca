@@ -371,6 +371,44 @@ const migrateInitialData = () => {
     CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON admin_audit_log(entity_type, entity_id);
   `);
 
+  // ── Visitor analytics events ──────────────────────────────────────────────
+  // Stores per-visitor activity for the Karo analytics dashboard (Phase C),
+  // conversion funnel + cohorts (Phase G), and A/B variant attribution
+  // (Phase G4). Schema notes:
+  //   - `visitor_id` is the value resolved by the visitorIdentity middleware
+  //     (X-Visitor-Id header > kara_visitor_id cookie). Null is allowed for
+  //     server-emitted events that lack an originating browser.
+  //   - `event_type` is an open string (no enum) so new event types can be
+  //     introduced without a migration. The current vocabulary lives in
+  //     src/utils/track.ts.
+  //   - `payload_json` carries event-specific extras (e.g. chip label,
+  //     product brand, country) — never PII.
+  //   - `ip_country` is the ISO-3166 2-letter code derived once at insert
+  //     time from CF-IPCountry / X-Country headers. The raw IP is NEVER
+  //     stored.
+  //   - Indices target the three hot read paths: (visitor, time) for cohort
+  //     analysis, (type, time) for KPI rollups, (product_id) for product-
+  //     inquiry leaderboards.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS visitor_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visitor_id TEXT,
+      event_type TEXT NOT NULL,
+      page_path TEXT,
+      product_id TEXT,
+      lang TEXT,
+      referrer TEXT,
+      user_agent TEXT,
+      ip_country TEXT,
+      payload_json TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ve_visitor_time ON visitor_events(visitor_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_ve_type_time ON visitor_events(event_type, created_at);
+    CREATE INDEX IF NOT EXISTS idx_ve_product ON visitor_events(product_id);
+    CREATE INDEX IF NOT EXISTS idx_ve_created ON visitor_events(created_at);
+  `);
+
   // ── Gallery column for products (DIOX colour-variant images) ──────────────
   try { db.exec("ALTER TABLE products ADD COLUMN gallery TEXT"); } catch { /* already exists */ }
 

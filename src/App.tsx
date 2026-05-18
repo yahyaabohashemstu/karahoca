@@ -20,6 +20,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
 import { useLocaleSync } from './hooks/useLocaleSync';
+import { usePageViewTracking } from './hooks/usePageViewTracking';
 import {
   getLanguageDirection,
   supportedLanguageCodes,
@@ -131,6 +132,7 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
   // URL param internally, which is now empty — we'll pass it explicitly
   // below by synchronising i18n here instead.
   useLocaleSync();
+  usePageViewTracking();
   useScrollAnimations();
   usePerformanceOptimizations();
   useCurrentYear();
