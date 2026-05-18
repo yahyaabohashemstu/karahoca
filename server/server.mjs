@@ -49,6 +49,7 @@ import { handleNewsletterSubscribe, handleNewsletterUnsubscribe } from './routes
 import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from './routes/api-misc.mjs';
 import { handleAdminRoutes } from './routes/api-admin.mjs';
 import { handleSitemap } from './routes/sitemap.mjs';
+import { handleProductOg, handleBrandOg } from './routes/og.mjs';
 import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
 import { resolveVisitorId } from './middlewares/visitorIdentity.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
@@ -247,6 +248,17 @@ const handleRequest = async (request, response) => {
     // ── SEO ──────────────────────────────────────────────────────────────
     if (request.method === 'GET' && url === '/sitemap.xml') {
       handleSitemap(request, response);
+      return;
+    }
+    // Per-product / per-brand OG (Open Graph) share cards.
+    // GET /og/product/{id}-{lang}.png and /og/brand/{brand}-{lang}.png.
+    // Both are anonymous, image/png responses cached at the CDN for 30 d.
+    if (request.method === 'GET' && url.startsWith('/og/product/')) {
+      await handleProductOg(request, response, ctx);
+      return;
+    }
+    if (request.method === 'GET' && url.startsWith('/og/brand/')) {
+      await handleBrandOg(request, response, ctx);
       return;
     }
 

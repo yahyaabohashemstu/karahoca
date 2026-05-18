@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import SEO from '../components/SEO';
+import SEO, { brandOgImageUrl } from '../components/SEO';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
 import { getAyluxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
@@ -10,7 +10,8 @@ const AYLUX_LOGO_SRC = '/Aylux-logo.png.webp';
 const AYLUX_LOGO_FALLBACK = '/Aylux-logo.png';
 
 const AyluxPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
 
   return (
     <>
@@ -18,7 +19,8 @@ const AyluxPage: React.FC = () => {
         title={t('aylux.seo.title')}
         description={t('aylux.seo.description')}
         keywords={t('aylux.seo.keywords')}
-        ogImage={AYLUX_LOGO_SRC}
+        // Dynamic brand OG (see DioxPage for the full rationale).
+        ogImage={brandOgImageUrl('AYLUX', lang)}
         canonicalUrl="https://karahoca.com/aylux"
       />
       <BrandPageSchema

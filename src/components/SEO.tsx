@@ -33,6 +33,39 @@ import { splitLocalePath } from '../utils/localizedPath';
 const SITE_URL = 'https://karahoca.com';
 const DEFAULT_LANG: SupportedLanguageCode = 'ar';
 
+/**
+ * Resolve the API origin where the runtime OG image generator lives.
+ * Build-time env wins (VITE_BACKEND_URL); at runtime in production the
+ * generator is at api.karahoca.com. For local dev we strip the path and
+ * default to the same origin, which the Vite proxy forwards. The
+ * `og:image` URL must be ABSOLUTE — social-platform crawlers don't
+ * resolve relative URLs against the document.
+ */
+const API_ORIGIN = (() => {
+  try {
+    const fromEnv = (import.meta as { env?: { VITE_BACKEND_URL?: string } }).env?.VITE_BACKEND_URL;
+    if (fromEnv) return fromEnv.replace(/\/+$/, '');
+  } catch { /* */ }
+  return 'https://api.karahoca.com';
+})();
+
+/**
+ * Build the URL of the dynamic per-product OG image. The generator lives
+ * on the API and emits a 1200×630 PNG per (product, lang). Callers
+ * forward this to <SEO ogImage={…}> so the page-level og:image meta tag
+ * points at a card customised for the visitor's current language —
+ * which is what crawlers (WhatsApp, Facebook, Twitter, LinkedIn) sample
+ * when the URL is shared.
+ */
+export const productOgImageUrl = (productId: string, lang: SupportedLanguageCode): string =>
+  `${API_ORIGIN}/og/product/${encodeURIComponent(productId)}-${lang}.png`;
+
+/**
+ * Build the URL of the per-brand OG image. Used by DioxPage / AyluxPage.
+ */
+export const brandOgImageUrl = (brand: 'DIOX' | 'AYLUX' | 'KARAHOCA', lang: SupportedLanguageCode): string =>
+  `${API_ORIGIN}/og/brand/${brand}-${lang}.png`;
+
 const OG_LOCALE_MAP: Record<SupportedLanguageCode, string> = {
   ar: 'ar_TR',
   en: 'en_US',

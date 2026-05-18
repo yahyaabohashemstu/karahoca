@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import SEO from '../components/SEO';
+import SEO, { brandOgImageUrl } from '../components/SEO';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
 import { getDioxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
@@ -11,7 +11,8 @@ const DIOX_LOGO_SRC = '/Diox-logo.png.webp';
 const DIOX_LOGO_FALLBACK = '/Diox-logo.png.png';
 
 const DioxPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
 
   return (
     <>
@@ -19,7 +20,13 @@ const DioxPage: React.FC = () => {
         title={t('diox.seo.title')}
         description={t('diox.seo.description')}
         keywords={t('diox.seo.keywords')}
-        ogImage={DIOX_LOGO_SRC}
+        // Use the runtime-generated brand OG card (1200×630, localised
+        // to the visitor's current language). Crawlers fetch this at
+        // share-time so the WhatsApp / Facebook unfurl is bespoke
+        // instead of a logo on white. Falls back to the static logo
+        // path when the API is unreachable — handled by SEO.tsx which
+        // emits the full absolute URL.
+        ogImage={brandOgImageUrl('DIOX', lang)}
         canonicalUrl="https://karahoca.com/diox"
       />
       <BrandPageSchema

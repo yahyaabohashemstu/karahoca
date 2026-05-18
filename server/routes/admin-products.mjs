@@ -2,6 +2,7 @@ import { getDb, logAudit, normalizeWeight } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 import { buildUpdater } from '../services/safeUpdate.mjs';
 import { invalidateProductsCache } from '../services/publicCache.mjs';
+import { invalidateProductOgCache } from '../services/ogImage.mjs';
 
 const PRODUCT_FIELDS = [
   'brand', 'category_id',
@@ -86,6 +87,9 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
       const updated = db.prepare('SELECT * FROM products WHERE id=?').get(id);
       logAudit({ action: 'UPDATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
       void invalidateProductsCache(updated?.brand);
+      // Purge cached OG images for this product across all 4 languages.
+      // Next share-link request rebuilds from the new copy / photo.
+      void invalidateProductOgCache(id);
       sendJson(res, 200, { success: true, product: updated }, origin);
       return;
     }
@@ -95,6 +99,7 @@ export const handleAdminProducts = (req, res, { body, sendJson, origin, url, adm
       db.prepare("UPDATE products SET active=0, updated_at=datetime('now') WHERE id=?").run(id);
       logAudit({ action: 'DELETE', entityType: 'product', entityId: id, entityName: prod?.name_ar || prod?.name_en || id, adminUser });
       void invalidateProductsCache(prod?.brand);
+      void invalidateProductOgCache(id);
       sendJson(res, 200, { success: true }, origin);
       return;
     }

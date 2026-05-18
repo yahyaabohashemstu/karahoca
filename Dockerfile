@@ -31,8 +31,11 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ libc6-compat
 
 COPY package.json package-lock.json ./
-# `--omit=dev` skips Vite, sharp, puppeteer, typescript, eslint — none of
-# which the API uses at runtime.
+# `--omit=dev` skips Vite, puppeteer, typescript, eslint — none of which
+# the API uses at runtime. `sharp` lives in `dependencies` (not devDeps)
+# because the runtime OG-image generator needs it to rasterise product
+# share cards (see server/services/ogImage.mjs). The prebuilt musl
+# binary ships in the npm tarball, no compilation required.
 RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts=false \
   && npm cache clean --force
 
