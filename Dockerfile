@@ -47,8 +47,24 @@ ENV NODE_ENV=production \
     # Let libuv use all available CPUs for bcrypt / crypto work.
     UV_THREADPOOL_SIZE=8
 
-# Runtime shared libraries required by better-sqlite3.
-RUN apk add --no-cache libstdc++ libgcc \
+# Runtime shared libraries:
+#   - libstdc++ / libgcc  → required by better-sqlite3 native binary.
+#   - fontconfig          → required by sharp's librsvg pipeline when
+#                            rasterising SVGs that contain <text>.
+#   - font-noto-arabic    → covers Arabic glyphs in the OG-image
+#                            generator's fallback card. Without it,
+#                            librsvg falls back to the default font
+#                            that doesn't include Arabic and every
+#                            Arabic character renders as a tofu box (□).
+#   - font-noto           → base Noto for Latin + Cyrillic so EN / TR /
+#                            RU text in the same template renders too.
+#                            (font-noto is small, ~3 MB; the Arabic
+#                            variant adds another ~2 MB.)
+RUN apk add --no-cache \
+      libstdc++ libgcc \
+      fontconfig \
+      font-noto font-noto-arabic \
+  && fc-cache -f \
   && rm -rf /var/cache/apk/*
 
 # Copy production-only deps (no compilers, no devDeps).

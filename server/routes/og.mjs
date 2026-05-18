@@ -123,7 +123,7 @@ export const handleProductOg = async (req, res, ctx) => {
     : 0;
 
   try {
-    const { buffer, cacheKey, fromCache, source } = await getProductOgImage({
+    const { buffer, cacheKey, fromCache, source, reason } = await getProductOgImage({
       id: row.id,
       name,
       description,
@@ -141,6 +141,14 @@ export const handleProductOg = async (req, res, ctx) => {
     // "why is my product showing the fallback card?" can curl -I and
     // see X-OG-Source: card vs photo.
     if (source) headers['X-OG-Source'] = source;
+    // Reason carries the failure mode when we fell back to the card.
+    // Values: '' (success), 'no-image-path', 'photo-load-failed',
+    // 'photo-compose-failed'. Empty string is omitted from the header.
+    if (reason) headers['X-OG-Reason'] = reason;
+    // ImagePath echoed back (truncated) so an admin verifying that
+    // the DB has the right path doesn't need to crack open the admin
+    // UI. Truncated to 200 chars to keep the header below limits.
+    if (row.image) headers['X-OG-ImagePath'] = String(row.image).slice(0, 200);
     res.writeHead(200, headers);
     res.end(buffer);
   } catch (err) {

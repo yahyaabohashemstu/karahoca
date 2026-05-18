@@ -62,6 +62,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { logger } from '../utils/logger.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, '..', 'data', 'og-cache');
@@ -407,9 +408,15 @@ const buildBrandSvg = ({ brand, lang }) => {
 const MAX_FETCH_BYTES = 8 * 1024 * 1024;
 
 const loadProductPhotoBuffer = async (imagePath) => {
-  if (!imagePath || typeof imagePath !== 'string') return null;
+  if (!imagePath || typeof imagePath !== 'string') {
+    logger.debug('[og-photo] empty imagePath — falling back to card');
+    return null;
+  }
   const trimmed = imagePath.trim();
-  if (!trimmed) return null;
+  if (!trimmed) {
+    logger.debug('[og-photo] imagePath was whitespace only — falling back to card');
+    return null;
+  }
 
   // Local upload — read straight from disk to avoid a loopback HTTP
   // hop that would force the API to depend on its own public URL.
@@ -421,9 +428,13 @@ const loadProductPhotoBuffer = async (imagePath) => {
     try {
       const stat = await fs.stat(filePath);
       if (stat.isFile() && stat.size > 0 && stat.size <= MAX_FETCH_BYTES) {
+        logger.debug({ filename, size: stat.size }, '[og-photo] loaded from local uploads');
         return await fs.readFile(filePath);
       }
-    } catch { /* fall through — file missing or unreadable */ }
+      logger.warn({ filePath, size: stat.size, isFile: stat.isFile() }, '[og-photo] local upload not usable');
+    } catch (err) {
+      logger.warn({ filePath, err: err.message }, '[og-photo] local upload read failed');
+    }
     return null;
   }
 
@@ -444,11 +455,23 @@ const loadProductPhotoBuffer = async (imagePath) => {
       // visitor traffic.
       headers: { 'User-Agent': 'KARAHOCA-OG-Generator/1.0 (+https://karahoca.com)' },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logger.warn({ url, status: res.status }, '[og-photo] fetch returned non-OK status');
+      return null;
+    }
     const arrayBuf = await res.arrayBuffer();
-    if (arrayBuf.byteLength > MAX_FETCH_BYTES) return null;
+    if (arrayBuf.byteLength > MAX_FETCH_BYTES) {
+      logger.warn({ url, bytes: arrayBuf.byteLength }, '[og-photo] response too large');
+      return null;
+    }
+    if (arrayBuf.byteLength === 0) {
+      logger.warn({ url }, '[og-photo] response was empty');
+      return null;
+    }
+    logger.debug({ url, bytes: arrayBuf.byteLength }, '[og-photo] fetched OK');
     return Buffer.from(arrayBuf);
-  } catch {
+  } catch (err) {
+    logger.warn({ url, err: err.message }, '[og-photo] fetch threw');
     return null;
   }
 };
@@ -594,10 +617,22 @@ export const getProductOgImage = async ({
   // Primary path: composite the actual product photograph.
   let png = null;
   let source = 'photo';
-  if (imagePath) {
+  // `reason` carries the failure mode when we couldn't load the photo.
+  // Surfaces in the X-OG-Reason header so an admin debugging a missing
+  // image preview can curl -I the URL and see e.g. "no-image-path" or
+  // "photo-load-failed".
+  let reason = '';
+  if (!imagePath) {
+    reason = 'no-image-path';
+  } else {
     const photoBuffer = await loadProductPhotoBuffer(imagePath);
-    if (photoBuffer) {
+    if (!photoBuffer) {
+      reason = 'photo-load-failed';
+    } else {
       png = await composeProductPhotoOg(sharp, photoBuffer);
+      if (!png) {
+        reason = 'photo-compose-failed';
+      }
     }
   }
 
@@ -606,6 +641,10 @@ export const getProductOgImage = async ({
   // omitted (or a photo fetch failed).
   if (!png) {
     source = 'card';
+    logger.info(
+      { reason, imagePath: imagePath ? imagePath.slice(0, 200) : null, lang },
+      '[og-photo] using designed-card fallback',
+    );
     const svg = buildProductSvg({ name, description, brand, lang });
     png = await sharp(Buffer.from(svg, 'utf8'))
       .resize(1200, 630, { fit: 'cover' })
@@ -620,7 +659,7 @@ export const getProductOgImage = async ({
     /* read-only volume / disk full — continue without caching */
   }
 
-  return { buffer: png, cacheKey: key, fromCache: false, source };
+  return { buffer: png, cacheKey: key, fromCache: false, source, reason };
 };
 
 /**
