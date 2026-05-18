@@ -1635,6 +1635,51 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     return false;
   }, [messages, isLoading]);
 
+  /**
+   * Latch so we only ever ask the server "is this a returning
+   * visitor?" once per session. Refresh-resilient — if the visitor
+   * reloads with the chat already open we won't keep hitting the
+   * endpoint.
+   */
+  const welcomeRecognitionFetchedRef = useRef(false);
+
+  /**
+   * Fetch the returning-visitor welcome line (if any) and, if the
+   * visitor IS recognised, swap the static welcome bubble's content
+   * for the personalised string. Best-effort: any error / 404 / time-
+   * out silently keeps the static welcome, the chat never blocks on
+   * this. Consent-gated implicitly via `getVisitorId` — an essential-
+   * only visitor sends a session-scoped id the server can't match
+   * against past conversations.
+   */
+  const tryHydrateReturningWelcome = useCallback(async () => {
+    if (welcomeRecognitionFetchedRef.current) return;
+    welcomeRecognitionFetchedRef.current = true;
+    try {
+      const lang = currentLang;
+      const response = await apiFetch(
+        `/api/ai/welcome?lang=${encodeURIComponent(lang)}`,
+        { method: 'GET' },
+      );
+      if (!response.ok) return;
+      const payload = (await response.json()) as {
+        isReturning?: boolean;
+        welcomeText?: string;
+      };
+      if (!payload?.isReturning || !payload.welcomeText) return;
+      // Replace the static welcome bubble's content in-place. The
+      // bubble id is the literal string 'welcome' (see
+      // createWelcomeMessage above), so we can pinpoint it without
+      // tracking a separate ref.
+      setMessages((prev) =>
+        prev.map((m) => (m.id === 'welcome' ? { ...m, content: payload.welcomeText! } : m)),
+      );
+    } catch {
+      // Network blip / abort / parse failure — keep the static
+      // welcome. The visitor never knows recognition was even tried.
+    }
+  }, [currentLang]);
+
   const openChat = useCallback(() => {
     setIsOpen(true);
     // First open of the session is the signal we wanted — kill all the
@@ -1643,7 +1688,12 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     setCurrentHintKey(null);
     setShowExitIntent(false);
     trackChatOpen();
-  }, []);
+    // Hydrate the welcome bubble with the returning-visitor line if
+    // the server recognises this browser. Fire-and-forget — the
+    // chat is interactive immediately; the welcome text just upgrades
+    // itself a moment later when the response lands.
+    void tryHydrateReturningWelcome();
+  }, [tryHydrateReturningWelcome]);
 
   const closeChat = useCallback(() => {
     setIsOpen(false);

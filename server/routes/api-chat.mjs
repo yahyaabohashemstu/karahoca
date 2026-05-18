@@ -10,6 +10,7 @@ import {
   extractLastUserUtterance,
 } from '../services/aiChat.mjs';
 import { generateFollowups } from '../services/aiFollowups.mjs';
+import { buildReturningVisitorWelcome } from '../services/visitorHistory.mjs';
 import { logUserQuestion } from './admin-ai-knowledge.mjs';
 import { handleChatLog as handleChatLogLegacy } from './public-data.mjs';
 import { logger } from '../utils/logger.mjs';
@@ -416,6 +417,30 @@ const handleAiChatStream = async (response, body, origin) => {
   } finally {
     response.off('close', onClose);
   }
+};
+
+/**
+ * GET /api/ai/welcome?lang=ar
+ *
+ * Returning-visitor recognition. The SPA hits this on every chat
+ * open with the X-Visitor-Id header set (the upstream identity
+ * middleware resolved it into req.visitorId). If the visitor has
+ * prior conversation history, we return a localised "welcome back,
+ * last time you asked about X" line that the chat substitutes in
+ * place of the static welcome bubble.
+ *
+ * Read-only + visitor-attributable, so we use the same CORS path
+ * but no CSRF (matches /api/ai/chat which is also POST-but-no-CSRF
+ * because it's anonymous and rate-limited). The visitor-id header
+ * itself is the soft authentication: only the original browser
+ * holds that cookie.
+ */
+export const handleAiWelcome = (request, response, { origin }) => {
+  const url = new URL(request.url || '/', 'http://x');
+  const lang = url.searchParams.get('lang') || 'ar';
+  const visitorId = request.visitorId || null;
+  const result = buildReturningVisitorWelcome({ visitorId, lang });
+  sendJson(response, 200, result, origin);
 };
 
 /**

@@ -43,7 +43,7 @@ import { handleServerError } from './middlewares/errorHandler.mjs';
 import { requirePublicCsrfToken } from './middlewares/publicCsrf.mjs';
 
 // Routes
-import { handleAiChat, handleChatLogRoute } from './routes/api-chat.mjs';
+import { handleAiChat, handleChatLogRoute, handleAiWelcome } from './routes/api-chat.mjs';
 import { handleTrackEvent } from './routes/api-track.mjs';
 import { handleNewsletterSubscribe, handleNewsletterUnsubscribe } from './routes/api-newsletter.mjs';
 import { handleLogError, handleUpload, handleEmailOpen, handleEmailClick } from './routes/api-misc.mjs';
@@ -176,6 +176,13 @@ const handleRequest = async (request, response) => {
     }
     if (request.method === 'GET' && url === '/api/ai/context') {
       handleAiContext(request, response, ctx);
+      return;
+    }
+    // Returning-visitor recognition. Read-only, soft-authenticated by
+    // the X-Visitor-Id header (only the original browser holds the
+    // cookie). The handler is null-safe when the header is missing.
+    if (request.method === 'GET' && url.startsWith('/api/ai/welcome')) {
+      handleAiWelcome(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/subscribe') {
