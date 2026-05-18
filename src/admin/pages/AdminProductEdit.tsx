@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
 import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
+import { ImageCropperDialog } from '../components/ImageCropperDialog';
 import { resolveAdminImage } from '../../utils/image';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
@@ -55,6 +56,12 @@ export const AdminProductEdit: React.FC = () => {
   // generated copy in all 4 languages, then optionally apply it to
   // the description_{ar,en,tr,ru} fields.
   const [aiDescOpen, setAiDescOpen] = useState(false);
+  // Image cropper state. Two routing handles because the cropper can
+  // be invoked from either the main-image picker OR a gallery slot;
+  // the active target tells `handleCropped` where to write the result.
+  // `null` for main image, otherwise the gallery index.
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropTarget, setCropTarget] = useState<'main' | number | null>(null);
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
@@ -196,6 +203,22 @@ export const AdminProductEdit: React.FC = () => {
     }
   };
 
+  /**
+   * Called by the cropper when the admin confirms a crop. Routes the
+   * resulting File to either the main image uploader or the gallery
+   * uploader based on which surface opened the dialog.
+   */
+  const handleCropped = async (cropped: File) => {
+    const target = cropTarget;
+    setCropFile(null);
+    setCropTarget(null);
+    if (target === 'main') {
+      await handleImageUpload(cropped);
+    } else if (typeof target === 'number') {
+      await handleGalleryUpload(target, cropped);
+    }
+  };
+
   const filteredCategories = categories.filter(c => !form.brand || c.brand === form.brand);
 
   if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>;
@@ -254,13 +277,43 @@ export const AdminProductEdit: React.FC = () => {
                 >
                   {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading...</> : '📁 Upload'}
                 </button>
+                {/* Routes the picked file through the cropper before
+                    uploading. Same File object, just clipped first.
+                    The hidden input is shared with the plain upload
+                    button via fileInputRef — we hijack onChange below
+                    based on which button opened it. */}
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-ghost adm-btn-sm"
+                  onClick={() => {
+                    setCropTarget('main');
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={uploading}
+                  style={{ whiteSpace: 'nowrap' }}
+                  title="Open the image in a cropper before uploading"
+                >
+                  ✂️ Crop & upload
+                </button>
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ''; }}
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) { setCropTarget(null); return; }
+                  // If "Crop & upload" was clicked we have a pending
+                  // target — route via the cropper. Otherwise straight
+                  // upload as before.
+                  if (cropTarget === 'main') {
+                    setCropFile(f);
+                  } else {
+                    handleImageUpload(f);
+                  }
+                }}
               />
             </div>
             <div className="adm-form-group">
@@ -435,15 +488,34 @@ export const AdminProductEdit: React.FC = () => {
                 <input className="adm-input" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
                   placeholder={`Image path or URL #${idx + 1}`} style={{ flex: 1 }} />
                 <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
-                  onClick={() => galleryFileRefs.current[idx]?.click()}
-                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}>
+                  onClick={() => { setCropTarget(null); galleryFileRefs.current[idx]?.click(); }}
+                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}
+                  title="Upload directly without cropping">
                   {galleryUploading === idx
                     ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> ...</>
                     : '📁'}
                 </button>
+                {/* Cropper path. Sets the target index so the
+                    shared cropFile pipeline knows which gallery slot
+                    receives the cropped File. */}
+                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
+                  onClick={() => { setCropTarget(idx); galleryFileRefs.current[idx]?.click(); }}
+                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}
+                  title="Open the image in a cropper before uploading">
+                  ✂️
+                </button>
                 <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
                   style={{ display: 'none' }}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleGalleryUpload(idx, f); e.target.value = ''; }} />
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!f) { setCropTarget(null); return; }
+                    if (cropTarget === idx) {
+                      setCropFile(f);
+                    } else {
+                      handleGalleryUpload(idx, f);
+                    }
+                  }} />
                 <button type="button" className="adm-btn adm-btn-sm"
                   style={{ background: '#dc3545', color: '#fff', border: 'none' }}
                   onClick={() => removeGalleryImage(idx)} title="Remove">
@@ -577,6 +649,16 @@ export const AdminProductEdit: React.FC = () => {
           });
           setForm((f) => ({ ...f, ...updates }));
         }}
+      />
+
+      {/* Image cropper dialog. Mounted once for the whole page; the
+          cropTarget ref-style state decides which uploader receives
+          the cropped File (main image vs a specific gallery slot). */}
+      <ImageCropperDialog
+        open={cropFile !== null}
+        file={cropFile}
+        onCancel={() => { setCropFile(null); setCropTarget(null); }}
+        onCropped={handleCropped}
       />
     </div>
   );
