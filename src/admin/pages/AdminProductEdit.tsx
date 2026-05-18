@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
+import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
 import { resolveAdminImage } from '../../utils/image';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
@@ -49,6 +50,11 @@ export const AdminProductEdit: React.FC = () => {
   const [galleryUploading, setGalleryUploading] = useState<number | null>(null);
   const galleryFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [showWCTable, setShowWCTable] = useState(false);
+  // The AI description writer modal — opens with the current form's
+  // name/brand/category pre-filled, lets the admin preview the
+  // generated copy in all 4 languages, then optionally apply it to
+  // the description_{ar,en,tr,ru} fields.
+  const [aiDescOpen, setAiDescOpen] = useState(false);
 
   useEffect(() => {
     adminApi.getCategories().then(r => setCategories(r.categories));
@@ -486,7 +492,22 @@ export const AdminProductEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Description ({l.toUpperCase()})</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <label className="adm-label" style={{ margin: 0 }}>Description ({l.toUpperCase()})</label>
+                  {/* AI writer is mounted once per language tab; the
+                      dialog body decides for itself whether to use
+                      the visible language as the source. Clicking
+                      from any tab opens the SAME dialog state. */}
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-ghost adm-btn-sm"
+                    onClick={() => setAiDescOpen(true)}
+                    title="Generate a draft description in all 4 languages from the product name + an optional hint"
+                    disabled={!form.name_ar && !form.name_en}
+                  >
+                    ✨ AI write
+                  </button>
+                </div>
                 <textarea
                   className="adm-textarea"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -526,6 +547,37 @@ export const AdminProductEdit: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* AI description writer modal. Reads its inputs from the current
+          form state so the brief always reflects what the admin sees.
+          The category lookup goes through `filteredCategories` so an
+          English-speaker editing a DIOX product gets the English
+          category name in the prompt context. */}
+      <AiDescriptionDialog
+        open={aiDescOpen}
+        onClose={() => setAiDescOpen(false)}
+        defaults={{
+          name: (form.name_ar || form.name_en || '').trim(),
+          brand: (form.brand as 'DIOX' | 'AYLUX') || 'DIOX',
+          category: (() => {
+            const cat = filteredCategories.find((c) => c.id === form.category_id);
+            return cat?.title_en || cat?.title_ar || undefined;
+          })(),
+          sourceLang: form.name_ar ? 'ar' : 'en',
+        }}
+        onApply={(descs) => {
+          // Apply only NON-EMPTY languages from the model so a partial
+          // response (3 of 4 langs) doesn't blank out an existing field.
+          const updates: Partial<Product> = {};
+          (['ar', 'en', 'tr', 'ru'] as const).forEach((lang) => {
+            const val = descs[lang];
+            if (typeof val === 'string' && val.trim()) {
+              (updates as Record<string, string>)[`description_${lang}`] = val;
+            }
+          });
+          setForm((f) => ({ ...f, ...updates }));
+        }}
+      />
     </div>
   );
 };

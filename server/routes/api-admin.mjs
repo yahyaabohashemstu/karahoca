@@ -246,7 +246,11 @@ export const handleAdminRoutes = async (request, response, ctx) => {
     return true;
   }
   if (url.startsWith('/api/admin/products')) {
-    handleAdminProducts(request, response, adminCtx);
+    // handleAdminProducts is async (CSV import + AI description writer
+    // both await an upstream service). Awaiting here lets thrown errors
+    // bubble to api-admin's try/catch in server.mjs instead of becoming
+    // an unhandled rejection that only the process logger sees.
+    await handleAdminProducts(request, response, adminCtx);
     return true;
   }
   if (url.startsWith('/api/admin/categories')) {

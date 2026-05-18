@@ -137,6 +137,29 @@ export const adminApi = {
       error?: string;
     }>('POST', '/api/admin/products/import.csv', { csv, dryRun }),
 
+  /**
+   * AI description writer. Given a brief (name + brand + optional
+   * category + optional hint), returns polished marketing copy in all
+   * four languages. The model is asked to author the four versions
+   * together so terminology stays consistent across translations.
+   *
+   * The endpoint already routes through the same Gemini → OpenRouter
+   * provider chain as the visitor-facing chat, so retries / fallbacks
+   * are handled server-side; failures here are user-actionable (model
+   * 503, parse failure) and should be surfaced verbatim.
+   */
+  generateProductDescriptions: (params: {
+    name: string;
+    brand: 'DIOX' | 'AYLUX';
+    category?: string;
+    hint?: string;
+    sourceLang?: 'ar' | 'en' | 'tr' | 'ru';
+  }) =>
+    request<{
+      success: boolean;
+      descriptions: Partial<Record<'ar' | 'en' | 'tr' | 'ru', string>>;
+    }>('POST', '/api/admin/products/ai-description', params),
+
   // Categories
   getCategories: (brand?: string) => {
     const q = brand ? `?brand=${brand}` : '';

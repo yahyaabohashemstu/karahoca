@@ -4,6 +4,7 @@ import { buildUpdater } from '../services/safeUpdate.mjs';
 import { invalidateProductsCache } from '../services/publicCache.mjs';
 import { invalidateProductOgCache } from '../services/ogImage.mjs';
 import { parseCsvObjects, stringifyCsv } from '../services/csv.mjs';
+import { generateProductDescriptions } from '../services/aiDescriptionWriter.mjs';
 
 const PRODUCT_FIELDS = [
   'brand', 'category_id',
@@ -94,10 +95,51 @@ const normalizeImportRow = (raw, db, lineNumber) => {
   return { ok: true, data, mode };
 };
 
-export const handleAdminProducts = (req, res, { body, sendJson, origin, url, admin }) => {
+export const handleAdminProducts = async (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
   const adminUser = admin?.username || 'admin';
   const urlObj = new URL(req.url, 'http://localhost');
+
+  // ── POST /api/admin/products/ai-description — AI copywriter ──────────────
+  // Generates a polished commercial description in all four languages
+  // from a short brief (name + brand + optional category/hint). Routes
+  // through the same Gemini → OpenRouter provider chain as the visitor
+  // chat, so we inherit its retry / fallback behaviour. The admin
+  // gets four-language output in a single round-trip, with consistent
+  // terminology across translations because the model sees them
+  // together.
+  if (url === '/api/admin/products/ai-description' && req.method === 'POST') {
+    const { name, brand, category, hint, sourceLang } = body || {};
+    try {
+      const descriptions = await generateProductDescriptions({
+        name,
+        brand,
+        category,
+        hint,
+        sourceLang: sourceLang || 'ar',
+      });
+      logAudit({
+        action: 'UPDATE',
+        entityType: 'product',
+        entityName: `AI description draft for "${name}" (${brand})`,
+        adminUser,
+        details: hint ? `Hint: ${String(hint).slice(0, 200)}` : 'No hint provided',
+      });
+      sendJson(res, 200, { success: true, descriptions }, origin);
+    } catch (err) {
+      const code = err?.code;
+      if (code === 'VALIDATION') {
+        sendJson(res, 400, { success: false, error: err.message }, origin);
+      } else if (code === 'AI_PROVIDERS_UNAVAILABLE') {
+        sendJson(res, 503, { success: false, error: err.message }, origin);
+      } else {
+        // PARSE_FAILED / SHAPE_FAILED / EMPTY_RESPONSE — model-side
+        // issues that an admin retry will usually fix.
+        sendJson(res, 502, { success: false, error: err.message || 'AI generation failed.' }, origin);
+      }
+    }
+    return;
+  }
 
   // ── GET /api/admin/products/export.csv — download full catalogue ─────────
   if (url === '/api/admin/products/export.csv' && req.method === 'GET') {
