@@ -19,6 +19,12 @@ interface ChatShellProps {
   onInputChange: (value: string) => void;
   onSubmit: () => void;
   onSuggestionClick: (suggestion: string) => void;
+  /**
+   * Follow-up chip clicked under the latest assistant message. Separate
+   * from `onSuggestionClick` so the hook can fire a distinct analytics
+   * event (`chat_followup_chip_used`) for chip-driven engagement.
+   */
+  onFollowupPick: (followup: string) => void;
   onClose: () => void;
 }
 
@@ -42,6 +48,7 @@ const ChatShellComponent: React.FC<ChatShellProps> = ({
   onInputChange,
   onSubmit,
   onSuggestionClick,
+  onFollowupPick,
   onClose,
 }) => (
   <div className="ai-assistant__window" data-lang={currentLang}>
@@ -66,6 +73,8 @@ const ChatShellComponent: React.FC<ChatShellProps> = ({
       loadingLabel={uiText.loadingLabel}
       productCardLabels={uiText.productCard}
       lang={currentLang}
+      followupsLabel={uiText.followupsLabel}
+      onFollowupPick={onFollowupPick}
       endRef={messagesEndRef}
     />
 

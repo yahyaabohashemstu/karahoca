@@ -185,6 +185,85 @@ body.light-mode .ai-chat-product-card-group__similar-label {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   FOLLOW-UP SUGGESTION CHIPS
+
+   Tappable "what to ask next" buttons rendered below the LATEST
+   assistant message (never under older turns — see MessageList for
+   the eligibility check). Three chips max per turn; horizontal wrap
+   on narrow screens so a long Turkish or Russian phrase doesn't
+   force a horizontal scrollbar.
+
+   The chips are deliberately quieter than the product CTAs — they're
+   gentle nudges, not primary actions. A subtle outline on the dark
+   theme, a low-saturation tint on the light theme. Hover bumps the
+   accent slightly so the visitor sees the affordance.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ai-chat-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  /* Logical alignment so chips hug the same edge as the message text
+     in both LTR and RTL. */
+  padding-inline-start: 0;
+}
+
+.ai-chat-followup-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  /* Min-height ≥ 32px for WCAG 2.5.5 touch-target compliance when
+     combined with the 6px row gap. */
+  min-height: 32px;
+  /* Prevent the chip from stretching to fill flex line on small
+     wraps. */
+  flex: 0 0 auto;
+  white-space: normal;
+  text-align: start;
+  unicode-bidi: plaintext;
+  transition:
+    background var(--motion-fast) var(--easing-standard),
+    border-color var(--motion-fast) var(--easing-standard),
+    color var(--motion-fast) var(--easing-standard),
+    transform var(--motion-fast) var(--easing-standard);
+}
+
+.ai-chat-followup-chip:hover {
+  background: rgba(245, 75, 26, 0.14);
+  border-color: rgba(245, 75, 26, 0.5);
+  color: #fff;
+}
+
+.ai-chat-followup-chip:active {
+  transform: scale(0.97);
+}
+
+.ai-chat-followup-chip:focus-visible {
+  outline: 2px solid rgba(245, 75, 26, 0.7);
+  outline-offset: 2px;
+}
+
+body.light-mode .ai-chat-followup-chip {
+  border-color: rgba(21, 61, 122, 0.18);
+  background: rgba(232, 236, 242, 0.5);
+  color: rgba(21, 61, 122, 0.85);
+}
+
+body.light-mode .ai-chat-followup-chip:hover {
+  background: rgba(245, 75, 26, 0.12);
+  border-color: rgba(245, 75, 26, 0.55);
+  color: #c2410c;
+}
+
 .ai-chat-product-card {
   display: flex;
   flex-direction: column;

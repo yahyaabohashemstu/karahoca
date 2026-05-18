@@ -401,7 +401,7 @@ const synthesizeProductIntro = (lang) => {
  * the anchor isn't present (defensive — future prompt template
  * changes won't break intent detection).
  */
-const extractLastUserUtterance = (prompt) => {
+export const extractLastUserUtterance = (prompt) => {
   if (typeof prompt !== 'string') return '';
   const match = prompt.match(/^Customer Question:\s*(.+)$/m);
   if (match && match[1]) return match[1].trim();

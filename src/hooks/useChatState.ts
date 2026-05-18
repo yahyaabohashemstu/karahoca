@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../utils/apiFetch';
 import { trackChatOpen, trackChatClose } from '../utils/analytics';
+import { track } from '../utils/track';
 import { getVisitorId } from '../utils/visitorIdentity';
 import {
   getLanguageDirection,
@@ -82,6 +83,14 @@ export interface ChatMessage {
    * `ChatAttachments`. Omitted when the message is plain text only.
    */
   attachments?: ChatAttachments;
+  /**
+   * Up to 3 "what to ask next" chips the server generated for this
+   * turn. Rendered as tappable suggestions below the last assistant
+   * message only — when the visitor sends their next message, the
+   * chips collapse with the now-stale assistant turn and a fresh set
+   * appears under the new reply. See `server/services/aiFollowups.mjs`.
+   */
+  followups?: string[];
 }
 
 /**
@@ -136,6 +145,13 @@ export interface ChatUIStrings {
      */
     similarLabel: string;
   };
+  /**
+   * Accessible label for the follow-up chip strip rendered below the
+   * latest assistant message — invisible to sighted users (the chips
+   * speak for themselves), announced by screen readers as the region
+   * label.
+   */
+  followupsLabel: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -456,6 +472,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'WhatsApp ile sor',
           similarLabel: 'Benzer ürünler',
         },
+        followupsLabel: 'Önerilen sorular',
       };
     case 'ru':
       return {
@@ -494,6 +511,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'Спросить в WhatsApp',
           similarLabel: 'Похожие товары',
         },
+        followupsLabel: 'Возможные вопросы',
       };
     case 'en':
       return {
@@ -532,6 +550,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'Ask on WhatsApp',
           similarLabel: 'Similar products',
         },
+        followupsLabel: 'Suggested follow-ups',
       };
     case 'ar':
     default:
@@ -571,6 +590,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'اسأل عبر واتساب',
           similarLabel: 'منتجات مشابهة',
         },
+        followupsLabel: 'اقتراحات للمتابعة',
       };
   }
 };
@@ -818,6 +838,14 @@ export interface UseChatStateResult {
   handleSend: (override?: string) => Promise<void>;
   /** Click a suggestion chip (sends its text as a message). */
   handleSuggestionClick: (suggestion: string) => void;
+  /**
+   * Click a follow-up chip rendered below the latest assistant
+   * message. Same effect as a suggestion click (sends the chip text
+   * as a new user turn) but also fires the
+   * `chat_followup_chip_used` analytics event so the admin dashboard
+   * can measure follow-up effectiveness.
+   */
+  handleFollowupClick: (followup: string) => void;
   /** Ref for the `<textarea>` — the hook focuses it on open / after send. */
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   /** Ref for the scroll-anchor element at the bottom of the message list. */
@@ -1273,6 +1301,11 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         let buffer = '';
         let finalReply = '';
         let receivedError: string | null = null;
+        // Follow-up suggestion chips arrive in the terminal 'done' event
+        // (see server/services/aiFollowups.mjs). Cached here in plain
+        // variables so they can be merged into the final assistant
+        // message once streaming completes.
+        let collectedFollowups: string[] = [];
         // Products may arrive mid-stream via a 'products' event (when
         // Karo invokes the search_products tool) OR in the terminal
         // 'done' event payload. We accumulate them here so the same
@@ -1319,6 +1352,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
                 error?: string;
                 products?: ChatProduct[];
                 attachments?: ChatAttachments;
+                followups?: string[];
               };
               try {
                 parsed = JSON.parse(payload);
@@ -1363,6 +1397,12 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
                     for (const p of parsed.attachments.products) {
                       if (p && typeof p.id === 'string') collectedProducts.set(p.id, p);
                     }
+                  }
+                  // Capture follow-up chips for the assistant message.
+                  if (Array.isArray(parsed.followups)) {
+                    collectedFollowups = parsed.followups
+                      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+                      .slice(0, 3);
                   }
                   finalReply = streamedText;
                   break;
@@ -1424,6 +1464,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           content: replyContent,
           timestamp: formatTimestamp(replyLang),
           ...(collectedAttachments ? { attachments: collectedAttachments } : {}),
+          ...(collectedFollowups.length > 0 ? { followups: collectedFollowups } : {}),
         };
 
         // Finalise: drop streaming flag, commit cleaned content +
@@ -1499,6 +1540,26 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       void handleSend(suggestion);
     },
     [handleSend],
+  );
+
+  /**
+   * Specialised wrapper for the follow-up chip strip. Fires the
+   * `chat_followup_chip_used` analytics event (so the admin
+   * conversation dashboard can measure which chips actually convert
+   * to engagement) before sending the chip text as a regular
+   * message. The chip text is truncated to 100 chars in the payload
+   * so an upstream edit to long copy can't accidentally bloat the
+   * event store.
+   */
+  const handleFollowupClick = useCallback(
+    (followup: string) => {
+      track({
+        event_type: 'chat_followup_chip_used',
+        payload: { chip: followup.slice(0, 100), lang: currentLang },
+      });
+      void handleSend(followup);
+    },
+    [handleSend, currentLang],
   );
 
   const openChat = useCallback(() => {
@@ -1580,6 +1641,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     setInputValue,
     handleSend,
     handleSuggestionClick,
+    handleFollowupClick,
     inputRef,
     messagesEndRef,
   };

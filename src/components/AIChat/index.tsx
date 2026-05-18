@@ -56,6 +56,7 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
     setInputValue,
     handleSend,
     handleSuggestionClick,
+    handleFollowupClick,
     inputRef,
     messagesEndRef,
   } = state;
@@ -166,6 +167,7 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
           onInputChange={setInputValue}
           onSubmit={() => { void handleSend(); }}
           onSuggestionClick={handleSuggestionClick}
+          onFollowupPick={handleFollowupClick}
           onClose={closeChat}
         />
       )}

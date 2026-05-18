@@ -7,7 +7,9 @@ import {
   getCachedReply,
   setCachedReply,
   tryPreflightProductSearch,
+  extractLastUserUtterance,
 } from '../services/aiChat.mjs';
+import { generateFollowups } from '../services/aiFollowups.mjs';
 import { logUserQuestion } from './admin-ai-knowledge.mjs';
 import { handleChatLog as handleChatLogLegacy } from './public-data.mjs';
 import { logger } from '../utils/logger.mjs';
@@ -200,7 +202,20 @@ const handleAiChatJson = async (response, body, origin) => {
   const lang = body.lang || 'ar';
   const cachedReply = await getCachedReply(body.prompt, lang);
   if (cachedReply) {
-    sendJson(response, 200, { success: true, reply: cachedReply + buildContactBlock(lang) }, origin);
+    sendJson(
+      response,
+      200,
+      {
+        success: true,
+        reply: cachedReply + buildContactBlock(lang),
+        followups: generateFollowups({
+          lastUserText: extractLastUserUtterance(body.prompt),
+          assistantReplyText: cachedReply,
+          lang,
+        }),
+      },
+      origin,
+    );
     return;
   }
 
@@ -215,7 +230,15 @@ const handleAiChatJson = async (response, body, origin) => {
     });
     if (result?.reply) await setCachedReply(body.prompt, lang, result.reply);
     const payload = result?.reply
-      ? { ...result, reply: result.reply + buildContactBlock(lang) }
+      ? {
+          ...result,
+          reply: result.reply + buildContactBlock(lang),
+          followups: generateFollowups({
+            lastUserText: extractLastUserUtterance(body.prompt),
+            assistantReplyText: result.reply,
+            lang,
+          }),
+        }
       : result;
     sendJson(response, 200, payload, origin);
   } catch (aiErr) {
@@ -295,10 +318,20 @@ const handleAiChatStream = async (response, body, origin) => {
       // client's terminal reconciliation matches what was streamed.
       const contactBlock = buildContactBlock(cachedLang);
       sendEvent('chunk', { text: contactBlock });
+      // Follow-up chips for the cached turn. Generated from the
+      // visitor's last utterance + the cached reply so the
+      // suggestion strip stays contextually accurate even on a
+      // 24-hour-old cache entry.
+      const cachedFollowups = generateFollowups({
+        lastUserText: extractLastUserUtterance(body.prompt),
+        assistantReplyText: cachedReply,
+        lang: cachedLang,
+      });
       sendEvent('done', {
         reply: cachedReply + contactBlock,
         cached: true,
         attachments: cachedAttachments,
+        followups: cachedFollowups,
       });
       response.end();
       return;
@@ -345,8 +378,19 @@ const handleAiChatStream = async (response, body, origin) => {
       // the visitor sees it slide in at the end of the bubble, and
       // included in `done.reply` so the client's terminal
       // reconciliation matches what was streamed.
-      const contactBlock = buildContactBlock(body.lang || 'ar');
+      const liveLang = body.lang || 'ar';
+      const contactBlock = buildContactBlock(liveLang);
       sendEvent('chunk', { text: contactBlock });
+
+      // Follow-up chips: rule-based 3-phrase set tailored to the
+      // visitor's last question + Karo's reply. Same generator as the
+      // cache-hit path so the chip strip looks identical regardless
+      // of cache state.
+      const liveFollowups = generateFollowups({
+        lastUserText: extractLastUserUtterance(body.prompt),
+        assistantReplyText: result.reply,
+        lang: liveLang,
+      });
 
       // The terminal 'done' event includes both the final text and any
       // aggregated attachments so the client can reconcile state if it
@@ -355,6 +399,7 @@ const handleAiChatStream = async (response, body, origin) => {
       sendEvent('done', {
         reply: result.reply + contactBlock,
         attachments: result.attachments || {},
+        followups: liveFollowups,
       });
     }
 

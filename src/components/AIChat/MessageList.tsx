@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ProductCardInline from './ProductCardInline';
+import FollowupChips from './FollowupChips';
 import type { ChatMessage } from '../../hooks/useChatState';
 
 interface MessageListProps {
@@ -23,6 +24,10 @@ interface MessageListProps {
    * the conversation.
    */
   lang: string;
+  /** Accessible label for the follow-up chip strip (region landmark). */
+  followupsLabel: string;
+  /** Fires when the visitor taps a follow-up chip below the latest assistant turn. */
+  onFollowupPick: (followup: string) => void;
   /** Ref for the sentinel div at the bottom of the list (auto-scroll anchor). */
   endRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -42,8 +47,26 @@ const MessageListComponent: React.FC<MessageListProps> = ({
   loadingLabel,
   productCardLabels,
   lang,
+  followupsLabel,
+  onFollowupPick,
   endRef,
-}) => (
+}) => {
+  // The followup chip strip should ONLY appear under the latest
+  // assistant message — once the visitor sends a new turn, the old
+  // strip is stale (chips were curated for the previous reply's
+  // context). We pre-compute the id of the eligible message here so
+  // the per-message render below can do a cheap equality check.
+  const lastAssistantWithFollowups = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === 'assistant' && m.followups && m.followups.length > 0 && m.streaming !== true) {
+        return m.id;
+      }
+    }
+    return null;
+  })();
+
+  return (
   <div className="ai-assistant__messages" role="log">
     {messages.map((message) => {
       const isStreaming = message.streaming === true;
@@ -179,6 +202,19 @@ const MessageListComponent: React.FC<MessageListProps> = ({
             );
           })()}
 
+          {/* Follow-up chips: rendered ONLY beneath the latest finished
+              assistant message (see `lastAssistantWithFollowups` lookup
+              above) so the strip never appears under an older,
+              context-stale turn. The chip set arrives in the SSE 'done'
+              event and is attached to the message in useChatState. */}
+          {message.id === lastAssistantWithFollowups && message.followups && (
+            <FollowupChips
+              followups={message.followups}
+              ariaLabel={followupsLabel}
+              onPick={onFollowupPick}
+            />
+          )}
+
           {!isStreaming && (
             <span className="ai-assistant__timestamp">{message.timestamp}</span>
           )}
@@ -198,7 +234,8 @@ const MessageListComponent: React.FC<MessageListProps> = ({
 
     <div ref={endRef} />
   </div>
-);
+  );
+};
 
 /**
  * Memoised so parent re-renders (e.g. input typing) don't repaint the whole
