@@ -152,9 +152,152 @@ export const handleProductOg = async (req, res, ctx) => {
     res.writeHead(200, headers);
     res.end(buffer);
   } catch (err) {
-    logger.error({ err, id: parsed.id, lang: parsed.lang }, '[og] product render failed');
-    sendError(res, 500, 'OG image render failed.');
+    // The composite / SVG renderers can throw on edge cases (corrupt
+    // photo, missing fontconfig in older deploys, librsvg quirks). We
+    // can't let that 500 the share preview — WhatsApp / Facebook /
+    // Twitter all need a 200 + valid image bytes or they drop the
+    // preview entirely. So we try one final, dependency-light fallback
+    // before giving up: a plain solid-colour 1200×630 PNG with the
+    // brand's primary colour. No SVG, no font rendering, no compose.
+    logger.error(
+      { err: { message: err?.message, code: err?.code, stack: err?.stack?.slice(0, 800) }, id: parsed.id, lang: parsed.lang, image: row.image },
+      '[og] product render failed — falling back to solid card',
+    );
+    try {
+      const sharp = (await import('sharp')).default;
+      const brandColor = row.brand === 'AYLUX'
+        ? { r: 122, g: 61, b: 163 } // AYLUX purple
+        : { r: 26, g: 77, b: 143 }; // DIOX blue (default)
+      const png = await sharp({
+        create: {
+          width: 1200, height: 630, channels: 4,
+          background: { ...brandColor, alpha: 1 },
+        },
+      }).png().toBuffer();
+      res.writeHead(200, {
+        ...PNG_HEADERS('emergency-fallback'),
+        'X-OG-Source': 'emergency',
+        'X-OG-Reason': 'render-threw',
+        'X-OG-Error': (err?.message || 'unknown').slice(0, 200),
+        'X-OG-ImagePath': row.image ? String(row.image).slice(0, 200) : '(empty)',
+      });
+      res.end(png);
+    } catch (fallbackErr) {
+      logger.error({ err: fallbackErr }, '[og] emergency fallback also failed');
+      // Give up — return the error message in the JSON so the admin
+      // testing this URL in a browser sees what went wrong.
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        error: 'OG image render failed.',
+        details: err?.message || 'unknown',
+        code: err?.code || null,
+        imagePath: row.image || null,
+      }));
+    }
   }
+};
+
+// ─── GET /og/debug/product/{id}-{lang}.json ─────────────────────────────────
+// Admin-friendly diagnostic that walks the same code path as the PNG
+// endpoint but returns JSON describing every step. Public/anonymous on
+// purpose: the data is the same the OG endpoint already exposes via
+// headers, just easier to read in a browser. Helps debug "why doesn't
+// my share preview show the actual photo?" without curl gymnastics.
+export const handleProductOgDebug = async (req, res, ctx) => {
+  const match = ctx.url.match(/^\/og\/debug\/product\/([^/?]+)$/);
+  if (!match) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found.' }));
+    return;
+  }
+  const parsed = parseTrailingLang(match[1].replace(/\.json$/, ''));
+  if (!parsed) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid path. Expected /og/debug/product/{id}-{lang}' }));
+    return;
+  }
+
+  const sharpAvailable = await isOgImageGenerationAvailable();
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT id, brand,
+      name_${parsed.lang}        AS name,
+      name_en                    AS name_en,
+      description_${parsed.lang} AS description,
+      image, updated_at, active
+    FROM products WHERE id = ?
+  `).get(parsed.id);
+
+  if (!row) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Product not found in database.',
+      lookedUpId: parsed.id,
+      hint: 'Check that the slug in the URL matches a row in the products table.',
+    }));
+    return;
+  }
+
+  // Attempt to load the photo and report what happened — purely
+  // diagnostic, no image is generated.
+  const { default: sharp } = sharpAvailable ? await import('sharp') : { default: null };
+  let photoStatus = { attempted: false, ok: false, bytes: 0, error: null, resolvedUrl: null };
+  if (row.image) {
+    photoStatus.attempted = true;
+    const imagePath = row.image;
+    try {
+      // Re-implement the resolver here in inline form so we capture
+      // the exact intermediate values for the JSON output. Keeps the
+      // service code unchanged.
+      const trimmed = imagePath.trim();
+      if (trimmed.startsWith('/api/uploads/')) {
+        photoStatus.resolvedUrl = `local:${trimmed}`;
+        const { promises: fs } = await import('node:fs');
+        const path = (await import('node:path')).default;
+        const { fileURLToPath } = await import('node:url');
+        const here = path.dirname(fileURLToPath(import.meta.url));
+        const filename = path.basename(trimmed.replace('/api/uploads/', ''));
+        const filePath = path.join(here, '..', 'data', 'uploads', filename);
+        const stat = await fs.stat(filePath);
+        photoStatus.bytes = stat.size;
+        photoStatus.ok = stat.isFile() && stat.size > 0;
+      } else {
+        const STATIC_ORIGIN = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/+$/, '');
+        const url = trimmed.startsWith('http') ? trimmed : `${STATIC_ORIGIN}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+        photoStatus.resolvedUrl = url;
+        const r = await fetch(url, { method: 'HEAD' });
+        photoStatus.ok = r.ok;
+        photoStatus.status = r.status;
+        photoStatus.contentType = r.headers.get('content-type');
+        photoStatus.contentLength = r.headers.get('content-length');
+      }
+    } catch (err) {
+      photoStatus.error = err?.message || String(err);
+    }
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify({
+    sharpAvailable,
+    sharpError: sharpAvailable ? null : (getOgImageGenerationError()?.message || 'unknown'),
+    product: {
+      id: row.id,
+      brand: row.brand,
+      active: row.active,
+      hasName: Boolean((row.name || '').trim()),
+      hasDescription: Boolean((row.description || '').trim()),
+      image: row.image || null,
+    },
+    photo: photoStatus,
+    nextSteps: !sharpAvailable
+      ? 'sharp module unavailable — API container needs rebuild with sharp in dependencies.'
+      : !row.image
+        ? 'Product has no image field. Open /admin/products/' + row.id + ' and upload one.'
+        : photoStatus.ok
+          ? 'Photo is reachable. The PNG endpoint should now serve a composited image. Try X-OG-Source header on the .png URL.'
+          : `Photo at ${photoStatus.resolvedUrl} could not be loaded (${photoStatus.error || photoStatus.status}). Check that the file actually exists.`,
+  }, null, 2));
 };
 
 // ─── GET /og/brand/{brand}-{lang}.png ───────────────────────────────────────
