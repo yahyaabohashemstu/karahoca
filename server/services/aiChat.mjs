@@ -211,6 +211,107 @@ const buildHistoryMessages = (history, currentPrompt) => {
   return cleaned;
 };
 
+// ── Retry + model-fallback chain ────────────────────────────────────────────
+//
+// `admin-translate.mjs` has had retry-with-model-fallback for months;
+// the chat path was missing it entirely — a single 429 from OpenRouter
+// (very easy to hit on the free Gemma tier: 20 req/min, 200 req/day
+// without an account credit) would surface to the visitor as
+// "Karo is having trouble connecting now…" and they'd bounce.
+//
+// What this fixes: chat now retries the same model with short delays
+// on retriable status codes (429 rate limit, 503 overloaded), and on
+// exhaustion falls through to a second model. Net effect: a brief
+// rate-limit spike that resolves in <5 seconds is invisible to the
+// visitor, and a sustained outage on one model promotes Karo to a
+// sibling rather than killing the chat.
+//
+// Delays are tuned shorter than admin-translate (which can wait up to
+// 11 s for a translation) because the chat is interactive — the
+// visitor is staring at the input box waiting for the streaming
+// cursor to start. Worst-case wait across all retries: ~5 s on the
+// primary, then jump to fallback model.
+const CHAT_FALLBACK_MODELS = (() => {
+  // Always start with the configured primary; append a secondary
+  // free-tier model that's known to handle Arabic well. De-dupe so
+  // setting OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
+  // doesn't cause the same model to be tried twice.
+  const list = [AI_MODEL, 'meta-llama/llama-3.3-70b-instruct'];
+  return [...new Set(list)];
+})();
+
+const CHAT_RETRY_DELAYS_MS = [500, 1500, 3000];
+
+const chatSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const openRouterFetchWithRetry = async ({ messages, withTools, signal }) => {
+  let lastErr = null;
+  for (const model of CHAT_FALLBACK_MODELS) {
+    for (let attempt = 0; attempt <= CHAT_RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt > 0) {
+        const delay = CHAT_RETRY_DELAYS_MS[attempt - 1];
+        logger.info(`[ai-chat] retry ${model} attempt ${attempt + 1} after ${delay}ms`);
+        await chatSleep(delay);
+      }
+
+      const body = {
+        model,
+        messages,
+        stream: true,
+        temperature: 0.7,
+        top_p: 0.95,
+        max_tokens: 1024,
+      };
+      if (withTools) {
+        body.tools = TOOLS;
+        body.tool_choice = 'auto';
+      }
+
+      try {
+        const res = await fetch(OPENROUTER_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': 'https://karahoca.com',
+            'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
+          },
+          body: JSON.stringify(body),
+          signal,
+        });
+
+        if (res.ok) {
+          if (attempt > 0 || model !== CHAT_FALLBACK_MODELS[0]) {
+            logger.info(`[ai-chat] succeeded with ${model} on attempt ${attempt + 1}`);
+          }
+          return res;
+        }
+
+        const errText = await res.text();
+        logger.warn(`[ai-chat] ${model} attempt ${attempt + 1} → HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        lastErr = new Error(errText || `OpenRouter HTTP ${res.status}`);
+        lastErr.statusCode = res.status;
+
+        // Retriable: rate-limited or service overloaded → try the same
+        // model again after the next delay.
+        if (res.status === 429 || res.status === 503) continue;
+
+        // Anything else (400 bad request, 401 auth, 404 model missing,
+        // 5xx other) is unlikely to resolve with a retry on the SAME
+        // model — skip to the next model in the chain.
+        break;
+      } catch (err) {
+        // AbortError = visitor closed the chat. Don't retry, propagate.
+        if (err?.name === 'AbortError') throw err;
+        logger.warn(`[ai-chat] ${model} attempt ${attempt + 1} threw: ${err.message || err}`);
+        lastErr = err;
+        // Network error → retry (could be a transient blip).
+      }
+    }
+  }
+  throw lastErr || new Error('All OpenRouter models exhausted.');
+};
+
 // ── OpenRouter streaming helper ─────────────────────────────────────────────
 //
 // One round-trip to OpenRouter, parsed as Server-Sent Events. Returns:
@@ -233,38 +334,11 @@ const buildHistoryMessages = (history, currentPrompt) => {
 // name + arguments string. We index by `tool_calls[i].index` so out-of-
 // order arrival (rare but legal per spec) doesn't corrupt the buffer.
 const callOpenRouterStream = async ({ messages, withTools, onTextChunk, signal }) => {
-  const body = {
-    model: AI_MODEL,
-    messages,
-    stream: true,
-    temperature: 0.7,
-    top_p: 0.95,
-    max_tokens: 1024,
-  };
-  if (withTools) {
-    body.tools = TOOLS;
-    body.tool_choice = 'auto';
-  }
-
-  const aiResponse = await fetch(OPENROUTER_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openrouterApiKey}`,
-      'HTTP-Referer': 'https://karahoca.com',
-      'X-OpenRouter-Title': 'KARAHOCA AI Assistant',
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
-
-  if (!aiResponse.ok) {
-    const rawError = await aiResponse.text();
-    logger.error(`[ai-chat] OpenRouter HTTP ${aiResponse.status}:`, rawError.slice(0, 300));
-    const error = new Error(rawError || 'AI request failed (' + aiResponse.status + ').');
-    error.statusCode = aiResponse.status;
-    throw error;
-  }
+  // Retry + model-fallback now lives in `openRouterFetchWithRetry` so
+  // a transient 429 doesn't surface as a dead-end error to the
+  // visitor. By the time we read the body below, the response is
+  // guaranteed to be a 2xx from SOME model.
+  const aiResponse = await openRouterFetchWithRetry({ messages, withTools, signal });
 
   const reader = aiResponse.body.getReader();
   const decoder = new TextDecoder();
