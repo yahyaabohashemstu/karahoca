@@ -100,18 +100,47 @@ body.light-mode .home-blog-card:hover {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
+/* Product-photo treatment for the home-blog card thumbnails.
+ *
+ * KARAHOCA's product photos are tall bottles, label crops, and
+ * compositions that DON'T tile cleanly into a 16:10 cover. Using
+ * `object-fit: cover` over-zoomed labels and cropped bottles in half.
+ *
+ * Switched to `contain` with:
+ *   - 4:3 aspect ratio (less landscape-y, gives the product more
+ *     vertical room without leaving huge horizontal margins)
+ *   - Soft light-mode background gradient (cream → very light brand
+ *     blue) so the white-bg product photos blend in instead of
+ *     fighting a flat grey
+ *   - Dark-mode equivalent (deep navy → subtle warm tone)
+ *   - Inner padding so the photo never touches the edges
+ *   - Gentler hover scale (1.04 inside the contained box — the photo
+ *     grows but never spills past the card)
+ */
 .home-blog-card__media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f3f5f9;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(245, 75, 26, 0.04) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+
+body.light-mode .home-blog-card__media {
+  background: linear-gradient(135deg, #f8fafc 0%, #fff5ef 100%);
 }
 
 .home-blog-card__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform 0.45s ease;
+  /* Slight drop shadow on the photo itself makes the product feel
+     "lifted" off the card background */
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
 }
 
 .home-blog-card:hover .home-blog-card__media img {
@@ -379,9 +408,17 @@ body.light-mode .blog-category-strip__desc {
 }
 
 .blog-featured-card__media {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f3f5f9;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(245, 75, 26, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+body.light-mode .blog-featured-card__media {
+  background: linear-gradient(135deg, #f8fafc 0%, #fff5ef 100%);
 }
 
 .blog-featured-card__media img,
@@ -389,15 +426,18 @@ body.light-mode .blog-category-strip__desc {
 .blog-related-card__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain (not cover) keeps the full product photo visible — no
+     more chopped bottle tops or zoomed-into-label crops */
+  object-fit: contain;
   display: block;
   transition: transform 0.4s ease;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
 }
 
 .blog-featured-card:hover .blog-featured-card__media img,
 .blog-card:hover .blog-card__media img,
 .blog-related-card:hover .blog-related-card__media img {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .blog-featured-card__body {
@@ -479,9 +519,17 @@ a.blog-category-badge:hover {
 }
 
 .blog-card__media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f3f5f9;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(245, 75, 26, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+body.light-mode .blog-card__media {
+  background: linear-gradient(135deg, #f8fafc 0%, #fff5ef 100%);
 }
 
 .blog-card__body {
@@ -1829,20 +1877,29 @@ body.light-mode .blog-related-v2__card:hover {
 }
 
 .blog-related-v2__media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f3f5f9;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(21, 61, 122, 0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+body.light-mode .blog-related-v2__media {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%);
 }
 
 .blog-related-v2__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.5s ease;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
 }
 
 .blog-related-v2__card:hover .blog-related-v2__media img {
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .blog-related-v2__body {
@@ -2218,9 +2275,17 @@ body.light-mode .blog-related-v2__meta {
 }
 
 .blog-related-card__media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f3f5f9;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(21, 61, 122, 0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem;
+}
+
+body.light-mode .blog-related-card__media {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%);
 }
 
 .blog-related-card__body {
