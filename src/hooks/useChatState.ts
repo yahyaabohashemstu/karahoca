@@ -1410,10 +1410,23 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
                   }
                   break;
                 case 'done':
-                  if (typeof parsed.reply === 'string' && parsed.reply.length > streamedText.length) {
-                    // The server always sends 'done' with the full reply
-                    // text; if we somehow missed deltas (race / dropped
-                    // packets), reconcile from the canonical version.
+                  if (typeof parsed.reply === 'string' && parsed.reply.length > 0) {
+                    // The server always sends 'done' with the canonical
+                    // reply text — reconcile UNCONDITIONALLY (not just
+                    // when it's longer than streamedText). Two reasons:
+                    //
+                    //   1. We might have missed deltas (race / dropped
+                    //      SSE packets / bg-tab throttling). Reconciling
+                    //      pulls in the missing content.
+                    //   2. The server may have STRIPPED text from what
+                    //      was streamed — e.g. when the model emitted
+                    //      a duplicate contact footer mid-stream and
+                    //      the server swallowed the post-trigger chunks
+                    //      to avoid the duplication. In that case
+                    //      parsed.reply is SHORTER than streamedText
+                    //      but is the correct terminal state. The old
+                    //      `length > streamedText.length` guard left
+                    //      stale duplicated text in the bubble.
                     streamedText = parsed.reply;
                   }
                   // Done may also include the full attachments payload —

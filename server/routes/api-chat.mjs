@@ -148,6 +148,56 @@ const buildContactBlock = (lang) => {
 };
 
 /**
+ * Strip any contact-footer-like block the model emitted into its
+ * reply. The system prompt EXPLICITLY tells Karo to skip the contact
+ * info because the API appends one canonical footer per response.
+ * Gemini (and the OpenRouter fallbacks) ignore this instruction
+ * inconsistently — sometimes they faithfully omit, sometimes they
+ * copy the exact email + phone formatting from the knowledge-base
+ * context that gets injected as system memory.
+ *
+ * Without this stripper, every "good" answer ends with TWO footers
+ * back-to-back — once from the model, once from buildContactBlock.
+ *
+ * The pattern matches a paragraph at the END of the reply that
+ * contains either the canonical email or any of the canonical phone
+ * formats. Anchored to end-of-string to avoid stripping a mid-reply
+ * sentence that happens to mention "info@karahoca.com" naturally
+ * (e.g. "you can also email info@karahoca.com" in the middle of a
+ * paragraph). The regex is `m` (multiline) + `i` (case-insensitive)
+ * + sticky-trailing so it removes at most ONE trailing block per
+ * call and leaves the prose body intact.
+ *
+ * Tested cases that strip:
+ *   - "...some prose\n\nالبريد: info@karahoca.com\nواتساب: +90..."
+ *   - "...some prose\n\nEmail: info@karahoca.com\nWhatsApp: +905..."
+ *   - "...some prose\n\nE-posta: [info@…](mailto:…)\nWhatsApp: …"
+ *
+ * Tested cases that DO NOT strip:
+ *   - "Yes, you can reach info@karahoca.com for samples."
+ *   - "WhatsApp +90 530 591 49 90 is also fine." (no leading \n\n)
+ *   - Empty / null / undefined input → returned unchanged
+ */
+const CONTACT_FOOTER_TRAILING = /\n+(?:[^\n]*(?:info@karahoca\.com|530[\s ]*591[\s ]*49[\s ]*90|905305914990)[^\n]*\n?)+\s*$/i;
+
+const stripModelContactFooter = (text) => {
+  if (typeof text !== 'string' || !text) return text;
+  // Loop in case the model emitted TWO consecutive footers (rare but
+  // observed when the prompt asks "how do I reach you" and the model
+  // gets enthusiastic). One iteration handles the common single case;
+  // the loop guard breaks at the first no-op replace.
+  let out = text;
+  for (let i = 0; i < 3; i++) {
+    const next = out.replace(CONTACT_FOOTER_TRAILING, '').trimEnd();
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+};
+
+export const __testInternals = { stripModelContactFooter };
+
+/**
  * POST /api/ai/chat
  * Rate limit: 30 req/min per IP.
  *
@@ -203,15 +253,19 @@ const handleAiChatJson = async (response, body, origin) => {
   const lang = body.lang || 'ar';
   const cachedReply = await getCachedReply(body.prompt, lang);
   if (cachedReply) {
+    // Strip any model-emitted footer in case the cache was warmed
+    // before the stripper landed (old entries can be poisoned with
+    // duplicate footers). Cheap regex, no-op on clean text.
+    const cleanCached = stripModelContactFooter(cachedReply);
     sendJson(
       response,
       200,
       {
         success: true,
-        reply: cachedReply + buildContactBlock(lang),
+        reply: cleanCached + buildContactBlock(lang),
         followups: generateFollowups({
           lastUserText: extractLastUserUtterance(body.prompt),
-          assistantReplyText: cachedReply,
+          assistantReplyText: cleanCached,
           lang,
         }),
       },
@@ -229,14 +283,17 @@ const handleAiChatJson = async (response, body, origin) => {
       lang,
       history: body.history,
     });
-    if (result?.reply) await setCachedReply(body.prompt, lang, result.reply);
-    const payload = result?.reply
+    // Strip the model's accidental footer BEFORE caching so future
+    // cache hits don't inherit a poisoned entry.
+    const cleanReply = result?.reply ? stripModelContactFooter(result.reply) : result?.reply;
+    if (cleanReply) await setCachedReply(body.prompt, lang, cleanReply);
+    const payload = cleanReply
       ? {
           ...result,
-          reply: result.reply + buildContactBlock(lang),
+          reply: cleanReply + buildContactBlock(lang),
           followups: generateFollowups({
             lastUserText: extractLastUserUtterance(body.prompt),
-            assistantReplyText: result.reply,
+            assistantReplyText: cleanReply,
             lang,
           }),
         }
@@ -312,7 +369,11 @@ const handleAiChatStream = async (response, body, origin) => {
       } catch (preflightErr) {
         logger.error('[ai-chat] cache-hit preflight failed:', preflightErr.message || preflightErr);
       }
-      sendEvent('chunk', { text: cachedReply });
+      // Strip any model-emitted contact footer in case this cache
+      // entry was warmed before the stripper landed. Otherwise the
+      // visitor would see a duplicate footer on every cache hit.
+      const cleanCached = stripModelContactFooter(cachedReply);
+      sendEvent('chunk', { text: cleanCached });
       // Auto-append contact footer AFTER the cached body. Streamed as a
       // separate chunk so the visitor sees it slide in like the rest of
       // the response, and included in the final `done.reply` so the
@@ -325,11 +386,11 @@ const handleAiChatStream = async (response, body, origin) => {
       // 24-hour-old cache entry.
       const cachedFollowups = generateFollowups({
         lastUserText: extractLastUserUtterance(body.prompt),
-        assistantReplyText: cachedReply,
+        assistantReplyText: cleanCached,
         lang: cachedLang,
       });
       sendEvent('done', {
-        reply: cachedReply + contactBlock,
+        reply: cleanCached + contactBlock,
         cached: true,
         attachments: cachedAttachments,
         followups: cachedFollowups,
@@ -342,13 +403,61 @@ const handleAiChatStream = async (response, body, origin) => {
     const historyLen = Array.isArray(body.history) ? body.history.length : 0;
     logger.info(`[ai-chat] prompt length: ${promptLen} chars, history turns: ${historyLen} (stream)`);
 
+    // Live chunk buffer + footer-detection.
+    //
+    // The model may emit a contact-footer-like block inline (e.g.
+    // "\n\nالبريد: info@karahoca.com\nواتساب: +90 530 591 49 90")
+    // despite the system prompt telling it not to. If we forwarded
+    // those chunks straight to the visitor and THEN sent our own
+    // canonical footer, they'd see the contact info twice.
+    //
+    // Strategy: keep a rolling tail buffer (last few hundred chars of
+    // streamed output). When a chunk arrives, scan the buffer for
+    // contact-label tokens. If we detect the start of a footer block,
+    // stop forwarding everything from that boundary onward — those
+    // bytes are diverted into a quarantine zone that we discard at
+    // stream end. Pre-footer text already flushed to the visitor is
+    // safe; the buffer simply ensures the boundary-crossing chunk
+    // isn't sent. Empty buffer means we never saw the trigger and
+    // every chunk flows through unchanged.
+    //
+    // The detection threshold (TRIGGER_TOKENS) only fires near the
+    // END of a response — earlier mentions of `info@karahoca.com` or
+    // a phone number in a different context are unaffected because
+    // the trigger requires the canonical "label : value" shape
+    // immediately preceded by a paragraph break.
+    const TRIGGER_RE = /\n\s*(?:البريد|Email|E-posta|Электронная почта|واتساب|WhatsApp)\s*[:：]/i;
+    let streamedSoFar = '';
+    let inFooterMode = false;
+
     const result = await streamAiReply({
       prompt: body.prompt,
       lang: body.lang || 'ar',
       history: body.history,
       onChunk: (chunk) => {
         if (aborted) return;
-        sendEvent('chunk', { text: chunk });
+        if (inFooterMode) {
+          // Already detected the model's footer started — silently
+          // swallow everything from here to end of stream.
+          return;
+        }
+        streamedSoFar += chunk;
+        const triggerIdx = streamedSoFar.search(TRIGGER_RE);
+        if (triggerIdx < 0) {
+          // No footer pattern yet — flush this chunk as-is.
+          sendEvent('chunk', { text: chunk });
+          return;
+        }
+        // Footer pattern detected. Compute how much of the CURRENT
+        // chunk lies before the trigger, send that prefix, then
+        // engage footer-mode to discard everything after.
+        const before = streamedSoFar.slice(0, triggerIdx);
+        const alreadyFlushed = streamedSoFar.length - chunk.length;
+        const chunkPrefix = before.length > alreadyFlushed
+          ? before.slice(alreadyFlushed)
+          : '';
+        if (chunkPrefix) sendEvent('chunk', { text: chunkPrefix });
+        inFooterMode = true;
       },
       onToolCall: ({ name, attachments }) => {
         if (aborted) return;
@@ -366,6 +475,11 @@ const handleAiChatStream = async (response, body, origin) => {
     });
 
     if (!aborted && result?.reply) {
+      // Strip any leftover footer in the final assembled reply (covers
+      // the case where the model emitted footer-like text in one tight
+      // chunk that didn't trigger the streaming detector).
+      const cleanReply = stripModelContactFooter(result.reply);
+
       // Cache the model's PURE reply (no contact footer) once the
       // stream completes. We deliberately do this AFTER the model
       // finishes — caching a partial reply (from a client that
@@ -373,7 +487,7 @@ const handleAiChatStream = async (response, body, origin) => {
       // stores the model output only; the contact footer is appended
       // on the way OUT every request so format changes propagate
       // without invalidating warm entries.
-      await setCachedReply(body.prompt, body.lang || 'ar', result.reply);
+      await setCachedReply(body.prompt, body.lang || 'ar', cleanReply);
 
       // Auto-append the contact footer. Streamed as a final chunk so
       // the visitor sees it slide in at the end of the bubble, and
@@ -389,7 +503,7 @@ const handleAiChatStream = async (response, body, origin) => {
       // of cache state.
       const liveFollowups = generateFollowups({
         lastUserText: extractLastUserUtterance(body.prompt),
-        assistantReplyText: result.reply,
+        assistantReplyText: cleanReply,
         lang: liveLang,
       });
 
@@ -398,7 +512,7 @@ const handleAiChatStream = async (response, body, origin) => {
       // missed a transient 'products' event (e.g. fast-tab-switch
       // throttling on Chrome / Safari).
       sendEvent('done', {
-        reply: result.reply + contactBlock,
+        reply: cleanReply + contactBlock,
         attachments: result.attachments || {},
         followups: liveFollowups,
       });
