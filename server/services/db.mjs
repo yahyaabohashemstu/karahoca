@@ -440,6 +440,7 @@ const migrateInitialData = () => {
   migrateBlogBatch2();
   migrateBlogCleanupV1();
   migrateBlogCleanupV2NoHaram();
+  migrateBlogCleanupV3LatinDigits();
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
@@ -1737,7 +1738,7 @@ const BLOG_SEED_POSTS = [
     featured: 1,
     tags: ['floor', 'mop', 'tips'],
     title: {
-      ar: '٧ خطوات لتنظيف الأرضيات بشكل احترافي',
+      ar: '7 خطوات لتنظيف الأرضيات بشكل احترافي',
       en: '7 Steps to Clean Floors Like a Professional',
       tr: 'Zeminleri Profesyonel Gibi Temizlemek için 7 Adım',
       ru: '7 шагов к профессионально чистым полам',
@@ -1751,11 +1752,11 @@ const BLOG_SEED_POSTS = [
     body: {
       ar: `الأرضيات هي أول ما يلاحظه الزائر عند دخول منزلك أو محلّك التجاري. تنظيفها بشكل صحيح ليس مجرد ممسحة وماء — إنه مزيج من المنتج المناسب، التقنية الصحيحة، والترتيب المنطقي للخطوات.
 
-## ١. ابدأ بإزالة الأتربة الجافّة
+## 1. ابدأ بإزالة الأتربة الجافّة
 
 قبل أيّ مسح رطب، استخدم مكنسة أو ممسحة جافّة لإزالة الأتربة والشعر والحبيبات الصغيرة. مسح أرضيّة عليها أتربة بماء وصابون يحوّل الأتربة إلى طين دقيق يلتصق بالمسامات.
 
-## ٢. اختر المنتج المناسب حسب نوع الأرضية
+## 2. اختر المنتج المناسب حسب نوع الأرضية
 
 | نوع الأرضية | المنتج الأمثل |
 |---|---|
@@ -1766,23 +1767,23 @@ const BLOG_SEED_POSTS = [
 
 > **تنبيه:** لا تستخدم المنتجات الحامضية على الرخام — تسبّب بقع دائمة.
 
-## ٣. حضّر محلول التنظيف بالنسبة الصحيحة
+## 3. حضّر محلول التنظيف بالنسبة الصحيحة
 
-النسبة العامة: **١٠٠ مل من المنتج لكلّ ٥ لتر ماء فاتر**. الماء الساخن يبخّر المنتج قبل أن يعمل، والبارد لا ينشّط المكوّنات.
+النسبة العامة: **100 مل من المنتج لكلّ 5 لتر ماء فاتر**. الماء الساخن يبخّر المنتج قبل أن يعمل، والبارد لا ينشّط المكوّنات.
 
-## ٤. ابدأ من الزاوية البعيدة عن الباب
+## 4. ابدأ من الزاوية البعيدة عن الباب
 
 اجعل اتّجاه مسحك دائماً نحو المخرج — هكذا تخرج من الغرفة على أرضيّة نظيفة دون أن تترك آثار قدم.
 
-## ٥. اشطف الممسحة باستمرار
+## 5. اشطف الممسحة باستمرار
 
-أهمّ خطوة يهملها الناس. اشطف الممسحة في الماء النظيف كلّ ٥-٧ خطوات، وأبدلها كاملاً عندما يصبح الماء عكراً.
+أهمّ خطوة يهملها الناس. اشطف الممسحة في الماء النظيف كلّ 5-7 خطوات، وأبدلها كاملاً عندما يصبح الماء عكراً.
 
-## ٦. اترك الأرضية تجفّ طبيعياً
+## 6. اترك الأرضية تجفّ طبيعياً
 
 لا تمشِ عليها وهي رطبة. الجفاف الطبيعي يسمح للمنتج بإكمال عمله ضدّ الجراثيم.
 
-## ٧. كرّر ٢-٣ مرّات أسبوعياً
+## 7. كرّر 2-3 مرّات أسبوعياً
 
 التنظيف العميق مرّة واحدة كلّ أسبوع لا يحلّ محل التنظيف الخفيف اليومي. المثاليّ: ممسحة سريعة يومياً + تنظيف عميق مرّتين أسبوعياً.
 
@@ -1957,8 +1958,8 @@ Haftalık derin temizlik, günlük hafif paspaslamanın yerini tutmaz. İdeali: 
 ## 💡 السرّ المهنيّ
 
 في الفنادق والمنشآت التجارية يستخدمون **الاثنين معاً**:
-- مسحوق للأقمشة البيضاء والشراشف بدرجة ٦٠°.
-- سائل للأقمشة الملوّنة والمناشف بدرجة ٤٠°.
+- مسحوق للأقمشة البيضاء والشراشف بدرجة 60°.
+- سائل للأقمشة الملوّنة والمناشف بدرجة 40°.
 
 هذا يوفّر **عمر أطول للأقمشة** و **نظافة أعمق** بنفس الوقت.
 
@@ -2334,7 +2335,7 @@ const HARAM_CONTENT_PATCHES = {
 1. **رشّ ملحاً فوراً** — يمتصّ السائل
 2. اشطف بماء فاتر
 3. ضع كمّية من غاز الصودا (Sparkling Water) لتفكيك الصبغة
-4. اغسل بـ **DIOX مسحوق أوتوماتيك** على ٤٠°
+4. اغسل بـ **DIOX مسحوق أوتوماتيك** على 40°
 
 > **خرافة:** الملح **لا يزيل** بقعة النبيذ — يمنعها فقط من الانتشار. لا تكتفِ به.
 
@@ -2344,7 +2345,7 @@ const HARAM_CONTENT_PATCHES = {
     // 2. Ballpoint pen section (uses 100% alcohol)
     {
       from: `### حبر القلم الجاف (Ballpoint)
-1. ضع قطنة مبلّلة بكحول ١٠٠٪ تحت البقعة
+1. ضع قطنة مبلّلة بكحول 100٪ تحت البقعة
 2. اطبع البقعة بقطنة أخرى نظيفة — الحبر ينتقل
 3. اغسل عادياً
 
@@ -2354,7 +2355,7 @@ const HARAM_CONTENT_PATCHES = {
 استخدم **DIOX مزيل بقع** + ماء فاتر — يعمل على جميع أنواع الحبر (جافّ، جلّ، فلوماستر).`,
     },
     // 3. Wine row in the reference table
-    { from: '| نبيذ | ٤٠° | DIOX مسحوق |\n', to: '' },
+    { from: '| نبيذ | 40° | DIOX مسحوق |\n', to: '' },
     // 4. Update the ink row — remove "alcohol" mention
     { from: '| حبر | بارد | كحول + DIOX |', to: '| حبر | بارد | DIOX مزيل بقع |' },
   ],
@@ -2482,6 +2483,92 @@ const migrateBlogCleanupV2NoHaram = () => {
 
   markMigration('blog_cleanup_v2_no_haram');
   logger.info({ touched }, '[db] Blog cleanup v2 complete — removed wine/alcohol content');
+};
+
+// ─── Blog Cleanup v3 — convert Arabic-Indic digits to Latin ──────────────────
+//
+// Editorial directive: the blog should use Western/Latin digits (0-9)
+// throughout, NOT Arabic-Indic (٠١٢٣٤٥٦٧٨٩). Latin digits are easier
+// to read for international visitors and consistent with how the rest
+// of the site (product specs, weights, prices, admin UI) already
+// renders numbers.
+//
+// The seed source files are already clean post-fix — fresh installs
+// don't need this migration. But existing production DBs were seeded
+// BEFORE the conversion, so they still carry Arabic-Indic digits
+// inside body_ar / excerpt_ar / title_ar (and possibly category
+// descriptions). This migration sweeps every Arabic text field in
+// blog_posts and blog_categories and rewrites in place.
+
+/**
+ * Convert U+0660–U+0669 (Arabic-Indic 0-9) and U+06F0–U+06F9
+ * (Extended Arabic-Indic, used by Persian/Urdu — different code
+ * points than the Arabic block) to Latin 0-9. Leaves any other
+ * character alone. Idempotent — running on already-Latin text
+ * is a no-op.
+ */
+const arabicIndicToLatin = (s) => {
+  if (typeof s !== 'string' || !s) return s;
+  return s
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+};
+
+const migrateBlogCleanupV3LatinDigits = () => {
+  if (hasMigration('blog_cleanup_v3_latin_digits')) return;
+
+  // Posts — touch title / excerpt / body in Arabic only. Other
+  // languages already use Latin digits.
+  const posts = db.prepare('SELECT id, title_ar, excerpt_ar, body_ar FROM blog_posts').all();
+  const updatePost = db.prepare(`
+    UPDATE blog_posts
+    SET title_ar=@title_ar, excerpt_ar=@excerpt_ar, body_ar=@body_ar,
+        updated_at=datetime('now')
+    WHERE id=@id
+  `);
+  let postsTouched = 0;
+  for (const p of posts) {
+    const nextTitle = arabicIndicToLatin(p.title_ar);
+    const nextExcerpt = arabicIndicToLatin(p.excerpt_ar);
+    const nextBody = arabicIndicToLatin(p.body_ar);
+    if (nextTitle !== p.title_ar || nextExcerpt !== p.excerpt_ar || nextBody !== p.body_ar) {
+      updatePost.run({
+        id: p.id,
+        title_ar: nextTitle,
+        excerpt_ar: nextExcerpt,
+        body_ar: nextBody,
+      });
+      postsTouched += 1;
+    }
+  }
+
+  // Categories — name + description (Arabic only).
+  const cats = db.prepare('SELECT id, name_ar, description_ar FROM blog_categories').all();
+  const updateCat = db.prepare(`
+    UPDATE blog_categories
+    SET name_ar=@name_ar, description_ar=@description_ar,
+        updated_at=datetime('now')
+    WHERE id=@id
+  `);
+  let catsTouched = 0;
+  for (const c of cats) {
+    const nextName = arabicIndicToLatin(c.name_ar);
+    const nextDesc = arabicIndicToLatin(c.description_ar);
+    if (nextName !== c.name_ar || nextDesc !== c.description_ar) {
+      updateCat.run({
+        id: c.id,
+        name_ar: nextName,
+        description_ar: nextDesc,
+      });
+      catsTouched += 1;
+    }
+  }
+
+  markMigration('blog_cleanup_v3_latin_digits');
+  logger.info(
+    { postsTouched, catsTouched },
+    '[db] Blog cleanup v3 complete — converted Arabic-Indic digits to Latin',
+  );
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────
