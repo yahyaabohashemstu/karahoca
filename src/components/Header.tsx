@@ -33,6 +33,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const hashLink = (hash: string) => (isHomePage ? hash : `${homePath}${hash}`);
   const brandsHref = hashLink('#brands');
   const newsHref = hashLink('#news');
+  const blogHref = lp('/blog');
   const numbersHref = hashLink('#numbers');
   const aboutHref = isHomePage ? '#about' : lp('/about');
   // Footer (`id="contact"`) is rendered on every page, so the contact link
@@ -170,6 +171,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
         <nav className="menu header__menu" aria-label={t('nav.menu')}>
           <a href={brandsHref} className="nav-link">{t('nav.brands')}</a>
+          <Link to={blogHref} className="nav-link">{t('nav.blog', { defaultValue: 'Blog' })}</Link>
           <a href={newsHref} className="nav-link">{t('nav.news')}</a>
           <a href={numbersHref} className="nav-link">{t('numbers.title')}</a>
           <a href={aboutHref} className="nav-link">{t('nav.about')}</a>
@@ -242,6 +244,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         inert={!isMobileMenuOpen ? '' : undefined}
       >
         <a href={brandsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.brands')}</a>
+        <Link to={blogHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.blog', { defaultValue: 'Blog' })}</Link>
         <a href={newsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.news')}</a>
         <a href={numbersHref} className="nav-link" onClick={closeMobileMenu}>{t('numbers.title')}</a>
         <a href={aboutHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.about')}</a>

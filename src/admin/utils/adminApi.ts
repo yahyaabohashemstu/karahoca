@@ -184,6 +184,29 @@ export const adminApi = {
   deleteNews: (id: string) =>
     request<{ success: boolean }>('DELETE', `/api/admin/news/${encodeURIComponent(id)}`),
 
+  // Blog (Phase F2)
+  getBlogPosts: (all = true) =>
+    request<{ success: boolean; items: BlogPostItem[] }>('GET', `/api/admin/blog/posts${all ? '?all=1' : ''}`),
+  getBlogPost: (id: string) =>
+    request<{ success: boolean; item: BlogPostItem }>('GET', `/api/admin/blog/posts/${encodeURIComponent(id)}`),
+  createBlogPost: (data: Partial<BlogPostItem>) =>
+    request<{ success: boolean; item: BlogPostItem }>('POST', '/api/admin/blog/posts', data),
+  updateBlogPost: (id: string, data: Partial<BlogPostItem>) =>
+    request<{ success: boolean; item: BlogPostItem }>('PUT', `/api/admin/blog/posts/${encodeURIComponent(id)}`, data),
+  deleteBlogPost: (id: string) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/blog/posts/${encodeURIComponent(id)}`),
+
+  getBlogCategories: () =>
+    request<{ success: boolean; items: BlogCategoryItem[] }>('GET', '/api/admin/blog/categories'),
+  getBlogCategory: (id: string) =>
+    request<{ success: boolean; item: BlogCategoryItem }>('GET', `/api/admin/blog/categories/${encodeURIComponent(id)}`),
+  createBlogCategory: (data: Partial<BlogCategoryItem>) =>
+    request<{ success: boolean; item: BlogCategoryItem }>('POST', '/api/admin/blog/categories', data),
+  updateBlogCategory: (id: string, data: Partial<BlogCategoryItem>) =>
+    request<{ success: boolean; item: BlogCategoryItem }>('PUT', `/api/admin/blog/categories/${encodeURIComponent(id)}`, data),
+  deleteBlogCategory: (id: string) =>
+    request<{ success: boolean }>('DELETE', `/api/admin/blog/categories/${encodeURIComponent(id)}`),
+
   // Newsletter
   getNewsletter: (page?: number) => {
     const q = page ? `?page=${page}` : '';
@@ -553,6 +576,44 @@ export interface AbExperimentResults {
     lift: number;
     confidence: number;
   }>;
+}
+
+export interface BlogPostItem {
+  id: string;
+  slug: string;
+  image: string;
+  hero_image: string;
+  category_id: string | null;
+  tags: string[];
+  title_ar: string; title_en: string; title_tr: string; title_ru: string;
+  excerpt_ar: string; excerpt_en: string; excerpt_tr: string; excerpt_ru: string;
+  body_ar: string; body_en: string; body_tr: string; body_ru: string;
+  meta_title_ar: string; meta_title_en: string; meta_title_tr: string; meta_title_ru: string;
+  meta_description_ar: string; meta_description_en: string; meta_description_tr: string; meta_description_ru: string;
+  author_name: string;
+  author_avatar: string;
+  reading_time: number;
+  view_count: number;
+  featured: number;
+  status: 'draft' | 'published' | 'scheduled';
+  published_at: string;
+  publish_at: string | null;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogCategoryItem {
+  id: string;
+  slug: string;
+  color: string | null;
+  icon: string | null;
+  name_ar: string; name_en: string; name_tr: string; name_ru: string;
+  description_ar: string; description_en: string; description_tr: string; description_ru: string;
+  display_order: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NewsItem {

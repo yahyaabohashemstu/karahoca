@@ -28,7 +28,8 @@
       "menu": "Menü",
       "closeMenu": "Menüyü kapat",
       "changeLanguage": "Dili değiştir",
-      "news": "Haberler"
+      "news": "Haberler",
+      "blog": "Blog"
     },
     "errorBoundary": {
       "title": "Üzgünüz, beklenmeyen bir hata oluştu",

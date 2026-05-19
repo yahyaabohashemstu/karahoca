@@ -41,6 +41,8 @@ const DryerPage = lazy(() => import('./pages/DryerPage'));
 const AyluxPage = lazy(() => import('./pages/AyluxPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
+const BlogIndexPage = lazy(() => import('./pages/BlogIndexPage'));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const UnsubscribePage = lazy(() => import('./pages/UnsubscribePage'));
@@ -179,6 +181,8 @@ const renderLocalisedChildren = () => (
     <Route path="about" element={<AboutPage />} />
     <Route path="news" element={<NewsPage />} />
     <Route path="news/:slug" element={<NewsArticlePage />} />
+    <Route path="blog" element={<BlogIndexPage />} />
+    <Route path="blog/:slug" element={<BlogPostPage />} />
     <Route path="diox" element={<DioxPage />} />
     <Route path="aylux" element={<AyluxPage />} />
     <Route path="production" element={<ProductionPage />} />

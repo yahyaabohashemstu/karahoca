@@ -14,6 +14,9 @@ const AdminCategories = lazy(() => import('./pages/AdminCategories').then((m) =>
 const AdminProductEdit = lazy(() => import('./pages/AdminProductEdit').then((m) => ({ default: m.AdminProductEdit })));
 const AdminNews = lazy(() => import('./pages/AdminNews').then((m) => ({ default: m.AdminNews })));
 const AdminNewsEdit = lazy(() => import('./pages/AdminNewsEdit').then((m) => ({ default: m.AdminNewsEdit })));
+const AdminBlog = lazy(() => import('./pages/AdminBlog').then((m) => ({ default: m.AdminBlog })));
+const AdminBlogEdit = lazy(() => import('./pages/AdminBlogEdit').then((m) => ({ default: m.AdminBlogEdit })));
+const AdminBlogCategories = lazy(() => import('./pages/AdminBlogCategories').then((m) => ({ default: m.AdminBlogCategories })));
 const AdminNewsletter = lazy(() => import('./pages/AdminNewsletter').then((m) => ({ default: m.AdminNewsletter })));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns').then((m) => ({ default: m.AdminCampaigns })));
 const AdminCampaignEdit = lazy(() => import('./pages/AdminCampaignEdit').then((m) => ({ default: m.AdminCampaignEdit })));
@@ -47,6 +50,9 @@ export const AdminApp: React.FC = () => (
       <Route path="products/:id" element={wrap(AdminProductEdit)} />
       <Route path="news" element={wrap(AdminNews)} />
       <Route path="news/:id" element={wrap(AdminNewsEdit)} />
+      <Route path="blog" element={wrap(AdminBlog)} />
+      <Route path="blog/categories" element={wrap(AdminBlogCategories)} />
+      <Route path="blog/:id" element={wrap(AdminBlogEdit)} />
       <Route path="newsletter" element={wrap(AdminNewsletter)} />
       <Route path="campaigns" element={wrap(AdminCampaigns)} />
       <Route path="campaigns/:id" element={wrap(AdminCampaignEdit)} />

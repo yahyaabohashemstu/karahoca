@@ -28,7 +28,8 @@
       "menu": "Menu",
       "closeMenu": "Close menu",
       "changeLanguage": "Change language",
-      "news": "News"
+      "news": "News",
+      "blog": "Blog"
     },
     "errorBoundary": {
       "title": "Sorry, something went wrong",

@@ -247,6 +247,7 @@ export const handleSitemap = (req, res) => {
       { pageSlug: '/diox',       priority: '0.9', changefreq: 'weekly',  lastmod: dioxLastMod,  images: dioxImages },
       { pageSlug: '/aylux',      priority: '0.9', changefreq: 'weekly',  lastmod: ayluxLastMod, images: ayluxImages },
       { pageSlug: '/news',       priority: '0.8', changefreq: 'daily',   lastmod: maxNewsUpdate },
+      { pageSlug: '/blog',       priority: '0.8', changefreq: 'weekly',  lastmod: null },
       { pageSlug: '/about',      priority: '0.7', changefreq: 'monthly', lastmod: null },
       { pageSlug: '/production', priority: '0.7', changefreq: 'monthly', lastmod: null },
       { pageSlug: '/goal',       priority: '0.6', changefreq: 'monthly', lastmod: null },
@@ -294,8 +295,45 @@ export const handleSitemap = (req, res) => {
         };
       });
 
+    // ── Dynamic blog posts (Phase F2) ────────────────────────────────────
+    // Same hardening as news: regex slug filter + image enrichment.
+    const blogRows = db
+      .prepare(
+        `SELECT slug, image, hero_image,
+                title_ar, title_en, title_tr, title_ru,
+                published_at, updated_at
+         FROM blog_posts
+         WHERE active=1 AND status='published' AND published_at <= datetime('now')
+         ORDER BY published_at DESC`,
+      )
+      .all();
+
+    const blogPages = blogRows
+      .filter((p) => typeof p?.slug === 'string' && /^[a-z0-9_-]+$/i.test(p.slug))
+      .map((p) => {
+        const heroUrl = resolveImageUrl(p.hero_image || p.image);
+        const images = heroUrl
+          ? [{
+              loc: heroUrl,
+              titles: {
+                ar: p.title_ar || p.title_en || p.slug,
+                en: p.title_en || p.title_ar || p.slug,
+                tr: p.title_tr || p.title_en || p.title_ar || p.slug,
+                ru: p.title_ru || p.title_en || p.title_ar || p.slug,
+              },
+            }]
+          : [];
+        return {
+          pageSlug: `/blog/${p.slug}`,
+          priority: '0.7',
+          changefreq: 'monthly',
+          lastmod: toIsoDate(p.updated_at) || toIsoDate(p.published_at),
+          images,
+        };
+      });
+
     // ── Emit ─────────────────────────────────────────────────────────────
-    const allPages = [...staticPages, ...newsPages];
+    const allPages = [...staticPages, ...newsPages, ...blogPages];
     const body = allPages.map(expandPage).join('\n');
 
     const xml =
