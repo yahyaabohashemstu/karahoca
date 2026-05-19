@@ -1089,14 +1089,6 @@ Evde < 3 yaş çocuk veya evcil hayvan var mı?
 3. اغسل عادياً بـ **DIOX سائل غسيل** على ٣٠°
 4. **بقع قديمة**: استخدم **DIOX مزيل بقع** قبل الغسلة
 
-### النبيذ الأحمر
-1. **رشّ ملحاً فوراً** — يمتصّ السائل
-2. اشطف بماء فاتر
-3. ضع كمّية من غاز الصودا (Sparkling Water) لتفكيك الصبغة
-4. اغسل بـ **DIOX مسحوق أوتوماتيك** على ٤٠°
-
-> **خرافة:** الملح **لا يزيل** بقعة النبيذ — يمنعها فقط من الانتشار. لا تكتفِ به.
-
 ## 🍔 بقع الطعام
 
 ### الشحوم والزيوت
@@ -1135,13 +1127,8 @@ Evde < 3 yaş çocuk veya evcil hayvan var mı?
 
 ## ✏️ الحبر والصبغة
 
-### حبر القلم الجاف (Ballpoint)
-1. ضع قطنة مبلّلة بكحول ١٠٠٪ تحت البقعة
-2. اطبع البقعة بقطنة أخرى نظيفة — الحبر ينتقل
-3. اغسل عادياً
-
-### حبر القلم الجلّ (Gel) / الفلوماستر
-أصعب من الجاف. استخدم **DIOX مزيل بقع** المخصّص + ماء فاتر.
+### الحبر
+استخدم **DIOX مزيل بقع** + ماء فاتر — يعمل على جميع أنواع الحبر (جافّ، جلّ، فلوماستر).
 
 ### بقع الصبغة (Hair Dye)
 1. **خلال ١٢ ساعة فقط** يمكن إزالتها كاملاً
@@ -1169,11 +1156,10 @@ Evde < 3 yaş çocuk veya evcil hayvan var mı?
 | البقعة | الحرارة | المنتج الموصى به |
 |--------|---------|------------------|
 | قهوة / شاي | ٣٠° بارد | DIOX سائل |
-| نبيذ | ٤٠° | DIOX مسحوق |
 | زيت / شحوم | ٤٠° | AYLUX سائل |
 | دم | بارد فقط | Peroxide + DIOX |
 | عرق | ٦٠° (قطن) | DIOX مسحوق |
-| حبر | بارد | كحول + DIOX |
+| حبر | بارد | DIOX مزيل بقع |
 | لبن أطفال | ٣٠° | DIOX سائل |
 | صبغة | بارد | DIOX كلور (أبيض) |
 
@@ -1189,14 +1175,6 @@ Evde < 3 yaş çocuk veya evcil hayvan var mı?
 2. Add two drops of dish soap + soak in cold water for 30 minutes
 3. Wash normally with **DIOX Liquid Detergent** at 30°
 4. **Old stains**: use **DIOX Stain Remover** before the wash
-
-### Red wine
-1. **Sprinkle salt immediately** — absorbs the liquid
-2. Rinse with cool water
-3. Pour sparkling water to break down the dye
-4. Wash with **DIOX Automatic Powder** at 40°
-
-> **Myth:** Salt **doesn't remove** wine stain — only prevents spread. Don't stop there.
 
 ## 🍔 Food stains
 
@@ -1236,13 +1214,8 @@ Evde < 3 yaş çocuk veya evcil hayvan var mı?
 
 ## ✏️ Ink and dye
 
-### Ballpoint ink
-1. Place a cotton ball with 100% alcohol under the stain
-2. Blot with another clean cotton ball — ink transfers
-3. Wash normally
-
-### Gel pen / Marker ink
-Harder than ballpoint. Use **DIOX Stain Remover** + warm water.
+### Ink
+Use **DIOX Stain Remover** + warm water — works on every ink type (ballpoint, gel, marker).
 
 ### Hair dye stains
 1. **Only removable within 12 hours**
@@ -1270,11 +1243,10 @@ Harder than ballpoint. Use **DIOX Stain Remover** + warm water.
 | Stain | Temperature | Recommended product |
 |--------|---------|------------------|
 | Coffee / Tea | 30° cold | DIOX Liquid |
-| Wine | 40° | DIOX Powder |
 | Oil / Grease | 40° | AYLUX Liquid |
 | Blood | Cold only | Peroxide + DIOX |
 | Sweat | 60° (cotton) | DIOX Powder |
-| Ink | Cold | Alcohol + DIOX |
+| Ink | Cold | DIOX Stain Remover |
 | Baby milk | 30° | DIOX Liquid |
 | Hair dye | Cold | DIOX Chlorine (whites only) |
 
@@ -1290,14 +1262,6 @@ Harder than ballpoint. Use **DIOX Stain Remover** + warm water.
 2. İki damla bulaşık deterjanı + 30 dakika soğuk suda bekletin
 3. Normal olarak **DIOX Sıvı Deterjan** ile 30° de yıkayın
 4. **Eski lekeler**: yıkamadan önce **DIOX Leke Çıkarıcı** uygulayın
-
-### Kırmızı şarap
-1. **Hemen tuz serpin** — sıvıyı emer
-2. Ilık suyla durulayın
-3. Boyayı parçalamak için soda dökün
-4. **DIOX Otomatik Toz** ile 40° de yıkayın
-
-> **Efsane:** Tuz şarap lekesini **çıkarmaz** — sadece yayılmasını önler. Burada durmayın.
 
 ## 🍔 Yemek lekeleri
 
@@ -1337,13 +1301,8 @@ Harder than ballpoint. Use **DIOX Stain Remover** + warm water.
 
 ## ✏️ Mürekkep ve boya
 
-### Tükenmez kalem mürekkebi
-1. Lekenin altına %100 alkollü pamuk koyun
-2. Üstüne başka temiz pamuk bastırın — mürekkep geçer
-3. Normal olarak yıkayın
-
-### Jel kalem / Keçeli kalem
-Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.
+### Mürekkep
+**DIOX Leke Çıkarıcı** + ılık su kullanın — her mürekkep türünde çalışır (tükenmez, jel, keçeli).
 
 ### Saç boyası lekeleri
 1. **Sadece 12 saat içinde** çıkarılabilir
@@ -1371,11 +1330,10 @@ Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.
 | Leke | Sıcaklık | Önerilen ürün |
 |--------|---------|------------------|
 | Kahve / Çay | 30° soğuk | DIOX Sıvı |
-| Şarap | 40° | DIOX Toz |
 | Yağ / Gres | 40° | AYLUX Sıvı |
 | Kan | Sadece soğuk | Peroksit + DIOX |
 | Ter | 60° (pamuk) | DIOX Toz |
-| Mürekkep | Soğuk | Alkol + DIOX |
+| Mürekkep | Soğuk | DIOX Leke Çıkarıcı |
 | Bebek mama | 30° | DIOX Sıvı |
 | Saç boyası | Soğuk | DIOX Klor (beyaz) |
 
@@ -1391,14 +1349,6 @@ Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.
 2. Две капли средства для посуды + замочите в холодной воде на 30 минут
 3. Постирайте обычно с **DIOX жидким** при 30°
 4. **Старые пятна**: используйте **DIOX пятновыводитель** перед стиркой
-
-### Красное вино
-1. **Сразу посыпьте солью** — впитывает жидкость
-2. Промойте тёплой водой
-3. Налейте газированной воды — разрушает краситель
-4. Постирайте **DIOX порошком автомат** при 40°
-
-> **Миф:** Соль **не удаляет** винное пятно — только не даёт ему расползаться. Не останавливайтесь.
 
 ## 🍔 Пищевые пятна
 
@@ -1438,13 +1388,8 @@ Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.
 
 ## ✏️ Чернила и краски
 
-### Шариковая ручка
-1. Под пятно подложите ватку, смоченную 100% спиртом
-2. Промакивайте сверху другой чистой ваткой — чернила переходят
-3. Постирайте как обычно
-
-### Гелевая ручка / Маркер
-Сложнее шариковой. Используйте **DIOX пятновыводитель** + тёплую воду.
+### Чернила
+Используйте **DIOX пятновыводитель** + тёплую воду — работает с любым типом чернил (шариковая, гелевая, маркер).
 
 ### Краска для волос
 1. **Удаляется только в первые 12 часов**
@@ -1472,11 +1417,10 @@ Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.
 | Пятно | Температура | Рекомендуемое средство |
 |--------|---------|------------------|
 | Кофе / чай | 30° холодная | DIOX жидкое |
-| Вино | 40° | DIOX порошок |
 | Масло / жир | 40° | AYLUX жидкое |
 | Кровь | Только холодная | Перекись + DIOX |
 | Пот | 60° (хлопок) | DIOX порошок |
-| Чернила | Холодная | Спирт + DIOX |
+| Чернила | Холодная | DIOX пятновыводитель |
 | Детское молоко | 30° | DIOX жидкое |
 | Краска для волос | Холодная | DIOX хлор (белое) |
 

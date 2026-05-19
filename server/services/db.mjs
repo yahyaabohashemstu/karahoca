@@ -439,6 +439,7 @@ const migrateInitialData = () => {
   migrateBlog();
   migrateBlogBatch2();
   migrateBlogCleanupV1();
+  migrateBlogCleanupV2NoHaram();
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
@@ -2304,6 +2305,183 @@ const migrateBlogCleanupV1 = () => {
     { deletedPost: delResult.changes, hiddenCategory: catResult.changes, cleanedBodies: cleaned },
     '[db] Blog cleanup v1 complete — removed all pricing content',
   );
+};
+
+// ─── Blog Cleanup v2 — remove wine / alcohol / haram-related content ──────────
+//
+// Editorial directive: the blog must not mention wine, alcohol, or any
+// religiously forbidden substances — not even as stain types to remove.
+// This affects the stain-removal cheatsheet post in all 4 languages.
+//
+// Three transformations per language body:
+//   1. Delete the "Red wine" H3 section entirely (instructions + myth callout).
+//   2. Delete the "Ballpoint pen" H3 section (its method uses 100% alcohol).
+//      The remaining "Gel pen / Marker" section already recommends DIOX
+//      Stain Remover, which covers all ink types, so the cheatsheet stays
+//      complete after removal.
+//   3. Drop "wine" and "alcohol" entries from the reference table at the
+//      bottom of each language variant.
+//
+// The migration is keyed on its own sentinel `blog_cleanup_v2_no_haram`,
+// runs once on next boot, and is idempotent on reruns (the .replace()
+// calls become no-ops when the strings are already gone).
+
+const HARAM_CONTENT_PATCHES = {
+  ar: [
+    // 1. Wine section
+    {
+      from: `### النبيذ الأحمر
+1. **رشّ ملحاً فوراً** — يمتصّ السائل
+2. اشطف بماء فاتر
+3. ضع كمّية من غاز الصودا (Sparkling Water) لتفكيك الصبغة
+4. اغسل بـ **DIOX مسحوق أوتوماتيك** على ٤٠°
+
+> **خرافة:** الملح **لا يزيل** بقعة النبيذ — يمنعها فقط من الانتشار. لا تكتفِ به.
+
+`,
+      to: '',
+    },
+    // 2. Ballpoint pen section (uses 100% alcohol)
+    {
+      from: `### حبر القلم الجاف (Ballpoint)
+1. ضع قطنة مبلّلة بكحول ١٠٠٪ تحت البقعة
+2. اطبع البقعة بقطنة أخرى نظيفة — الحبر ينتقل
+3. اغسل عادياً
+
+### حبر القلم الجلّ (Gel) / الفلوماستر
+أصعب من الجاف. استخدم **DIOX مزيل بقع** المخصّص + ماء فاتر.`,
+      to: `### الحبر
+استخدم **DIOX مزيل بقع** + ماء فاتر — يعمل على جميع أنواع الحبر (جافّ، جلّ، فلوماستر).`,
+    },
+    // 3. Wine row in the reference table
+    { from: '| نبيذ | ٤٠° | DIOX مسحوق |\n', to: '' },
+    // 4. Update the ink row — remove "alcohol" mention
+    { from: '| حبر | بارد | كحول + DIOX |', to: '| حبر | بارد | DIOX مزيل بقع |' },
+  ],
+  en: [
+    {
+      from: `### Red wine
+1. **Sprinkle salt immediately** — absorbs the liquid
+2. Rinse with cool water
+3. Pour sparkling water to break down the dye
+4. Wash with **DIOX Automatic Powder** at 40°
+
+> **Myth:** Salt **doesn't remove** wine stain — only prevents spread. Don't stop there.
+
+`,
+      to: '',
+    },
+    {
+      from: `### Ballpoint ink
+1. Place a cotton ball with 100% alcohol under the stain
+2. Blot with another clean cotton ball — ink transfers
+3. Wash normally
+
+### Gel pen / Marker ink
+Harder than ballpoint. Use **DIOX Stain Remover** + warm water.`,
+      to: `### Ink
+Use **DIOX Stain Remover** + warm water — works on every ink type (ballpoint, gel, marker).`,
+    },
+    { from: '| Wine | 40° | DIOX Powder |\n', to: '' },
+    { from: '| Ink | Cold | Alcohol + DIOX |', to: '| Ink | Cold | DIOX Stain Remover |' },
+  ],
+  tr: [
+    {
+      from: `### Kırmızı şarap
+1. **Hemen tuz serpin** — sıvıyı emer
+2. Ilık suyla durulayın
+3. Boyayı parçalamak için soda dökün
+4. **DIOX Otomatik Toz** ile 40° de yıkayın
+
+> **Efsane:** Tuz şarap lekesini **çıkarmaz** — sadece yayılmasını önler. Burada durmayın.
+
+`,
+      to: '',
+    },
+    {
+      from: `### Tükenmez kalem mürekkebi
+1. Lekenin altına %100 alkollü pamuk koyun
+2. Üstüne başka temiz pamuk bastırın — mürekkep geçer
+3. Normal olarak yıkayın
+
+### Jel kalem / Keçeli kalem
+Tükenmezden daha zor. **DIOX Leke Çıkarıcı** + ılık su kullanın.`,
+      to: `### Mürekkep
+**DIOX Leke Çıkarıcı** + ılık su kullanın — her mürekkep türünde çalışır (tükenmez, jel, keçeli).`,
+    },
+    { from: '| Şarap | 40° | DIOX Toz |\n', to: '' },
+    { from: '| Mürekkep | Soğuk | Alkol + DIOX |', to: '| Mürekkep | Soğuk | DIOX Leke Çıkarıcı |' },
+  ],
+  ru: [
+    {
+      from: `### Красное вино
+1. **Сразу посыпьте солью** — впитывает жидкость
+2. Промойте тёплой водой
+3. Налейте газированной воды — разрушает краситель
+4. Постирайте **DIOX порошком автомат** при 40°
+
+> **Миф:** Соль **не удаляет** винное пятно — только не даёт ему расползаться. Не останавливайтесь.
+
+`,
+      to: '',
+    },
+    {
+      from: `### Шариковая ручка
+1. Под пятно подложите ватку, смоченную 100% спиртом
+2. Промакивайте сверху другой чистой ваткой — чернила переходят
+3. Постирайте как обычно
+
+### Гелевая ручка / Маркер
+Сложнее шариковой. Используйте **DIOX пятновыводитель** + тёплую воду.`,
+      to: `### Чернила
+Используйте **DIOX пятновыводитель** + тёплую воду — работает с любым типом чернил (шариковая, гелевая, маркер).`,
+    },
+    { from: '| Вино | 40° | DIOX порошок |\n', to: '' },
+    { from: '| Чернила | Холодная | Спирт + DIOX |', to: '| Чернила | Холодная | DIOX пятновыводитель |' },
+  ],
+};
+
+const applyHaramPatches = (body, lang) => {
+  if (typeof body !== 'string' || !body) return body;
+  const patches = HARAM_CONTENT_PATCHES[lang];
+  if (!patches) return body;
+  let out = body;
+  for (const { from, to } of patches) {
+    out = out.split(from).join(to);
+  }
+  return out;
+};
+
+const migrateBlogCleanupV2NoHaram = () => {
+  if (hasMigration('blog_cleanup_v2_no_haram')) return;
+
+  const rows = db.prepare('SELECT id, body_ar, body_en, body_tr, body_ru FROM blog_posts').all();
+  const update = db.prepare(`
+    UPDATE blog_posts
+    SET body_ar=@body_ar, body_en=@body_en, body_tr=@body_tr, body_ru=@body_ru,
+        updated_at=datetime('now')
+    WHERE id=@id
+  `);
+
+  let touched = 0;
+  for (const row of rows) {
+    const body_ar = applyHaramPatches(row.body_ar, 'ar');
+    const body_en = applyHaramPatches(row.body_en, 'en');
+    const body_tr = applyHaramPatches(row.body_tr, 'tr');
+    const body_ru = applyHaramPatches(row.body_ru, 'ru');
+    const changed =
+      body_ar !== row.body_ar ||
+      body_en !== row.body_en ||
+      body_tr !== row.body_tr ||
+      body_ru !== row.body_ru;
+    if (changed) {
+      update.run({ id: row.id, body_ar, body_en, body_tr, body_ru });
+      touched += 1;
+    }
+  }
+
+  markMigration('blog_cleanup_v2_no_haram');
+  logger.info({ touched }, '[db] Blog cleanup v2 complete — removed wine/alcohol content');
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────
