@@ -17,7 +17,7 @@ const NAV = [
     { to: '/admin/products', label: 'Products', icon: '🧴' },
     { to: '/admin/categories', label: 'Categories', icon: '🗂️' },
     { to: '/admin/news', label: 'News', icon: '📰' },
-    { to: '/admin/blog', label: 'Blog', icon: '📝' },
+    { to: '/admin/blog', label: 'Blog', icon: '' },
   ]},
   { group: 'Marketing', items: [
     { to: '/admin/campaigns', label: 'Campaigns', icon: '📧' },

@@ -37,7 +37,7 @@ interface BlogTeaserPost {
 
 const STRINGS: Record<string, Record<string, string>> = {
   ar: {
-    sectionLabel: '📝 المدوّنة',
+    sectionLabel: 'المدوّنة',
     sectionTitle: 'نصائح وأدلّة من خبراء كاراهوكا',
     sectionSubtitle: 'مقالات عملية حول التنظيف الاحترافي، اختيار المنتجات، والاستخدام الأمثل لـ DIOX و AYLUX.',
     viewAll: 'عرض كل المنشورات ←',
@@ -45,7 +45,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     minReadSingle: 'دقيقة',
   },
   en: {
-    sectionLabel: '📝 The Blog',
+    sectionLabel: 'The Blog',
     sectionTitle: 'Tips and guides from KARAHOCA experts',
     sectionSubtitle: 'Practical articles on professional cleaning, picking the right product, and getting the most out of DIOX and AYLUX.',
     viewAll: 'View all posts →',
@@ -53,7 +53,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     minReadSingle: 'min',
   },
   tr: {
-    sectionLabel: '📝 Blog',
+    sectionLabel: 'Blog',
     sectionTitle: 'KARAHOCA uzmanlarından ipuçları ve rehberler',
     sectionSubtitle: 'Profesyonel temizlik, doğru ürün seçimi ve DIOX ile AYLUX\'tan maksimum verim almak üzerine pratik yazılar.',
     viewAll: 'Tüm yazılar →',
@@ -61,7 +61,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     minReadSingle: 'dk',
   },
   ru: {
-    sectionLabel: '📝 Блог',
+    sectionLabel: 'Блог',
     sectionTitle: 'Советы и руководства от экспертов KARAHOCA',
     sectionSubtitle: 'Практические статьи о профессиональной уборке, выборе продуктов и максимальной отдаче от DIOX и AYLUX.',
     viewAll: 'Все статьи →',

@@ -172,7 +172,6 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         <nav className="menu header__menu" aria-label={t('nav.menu')}>
           <a href={brandsHref} className="nav-link">{t('nav.brands')}</a>
           <Link to={blogHref} className="nav-link nav-link--blog">
-            <span aria-hidden="true" style={{ marginInlineEnd: 4 }}>📝</span>
             {t('nav.blog', { defaultValue: 'Blog' })}
           </Link>
           <a href={newsHref} className="nav-link">{t('nav.news')}</a>
@@ -248,7 +247,6 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
       >
         <a href={brandsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.brands')}</a>
         <Link to={blogHref} className="nav-link nav-link--blog" onClick={closeMobileMenu}>
-          <span aria-hidden="true" style={{ marginInlineEnd: 4 }}>📝</span>
           {t('nav.blog', { defaultValue: 'Blog' })}
         </Link>
         <a href={newsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.news')}</a>
