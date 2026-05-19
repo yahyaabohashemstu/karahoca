@@ -139,6 +139,53 @@ body.light-mode .ai-chat-product-card-group__primary .ai-chat-product-card {
   box-shadow: 0 4px 14px rgba(245, 75, 26, 0.16);
 }
 
+/* Primary-card media height cap.
+ *
+ * The default `.ai-chat-product-card__media` uses `aspect-ratio: 1/1`,
+ * which is fine for the small grid cards (~140-180px wide → matching
+ * height). But the PRIMARY card takes the full bubble width
+ * (520-580px on desktop) → a 1:1 ratio renders a ~560px-tall photo
+ * that dominates the chat panel and pushes the action buttons below
+ * the fold.
+ *
+ * Override to a flatter, fixed height: still visibly larger than the
+ * 140px similar-card row (so visual hierarchy is preserved) but
+ * comfortably above the buttons + meta strip without scrolling. The
+ * inner <img> uses `object-fit: contain` (see line 365) so the photo
+ * itself stays proportional inside the new wider-than-tall box.
+ *
+ * Responsive ladder:
+ *   wide desktop / panel >=600px → 280px tall (room for caption)
+ *   480-600px chat panel        → 240px tall
+ *   ≤480px (phone)              → 200px tall (≈ matches card width
+ *                                  so the layout still reads as
+ *                                  "card with prominent photo")
+ *   ≤380px (small phones)       → 180px tall (one-handed reach)
+ */
+.ai-chat-product-card-group__primary .ai-chat-product-card__media {
+  aspect-ratio: auto;
+  height: 280px;
+  max-height: 38vh;
+}
+
+@media (max-width: 600px) {
+  .ai-chat-product-card-group__primary .ai-chat-product-card__media {
+    height: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-chat-product-card-group__primary .ai-chat-product-card__media {
+    height: 200px;
+  }
+}
+
+@media (max-width: 380px) {
+  .ai-chat-product-card-group__primary .ai-chat-product-card__media {
+    height: 180px;
+  }
+}
+
 /* "Similar products" label sits between the primary card and the
    secondary grid. Small and muted on purpose — it's a wayfinding
    label, not a call to action. */
