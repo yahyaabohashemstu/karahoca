@@ -16,6 +16,7 @@ import { handleAdminChats } from './admin-chats.mjs';
 import { handleAdminProducts, handleAdminCategories } from './admin-products.mjs';
 import { handleAdminNews } from './admin-news.mjs';
 import { handleAdminNewsletter } from './admin-newsletter.mjs';
+import { handleAdminBlog } from './admin-blog.mjs';
 import { handleAdminTranslate } from './admin-translate.mjs';
 import { handleAdminGa } from './admin-ga.mjs';
 import { handleAdminCampaigns } from './admin-campaigns.mjs';
@@ -287,6 +288,10 @@ export const handleAdminRoutes = async (request, response, ctx) => {
   if (url.startsWith('/api/admin/news')) {
     handleAdminNews(request, response, adminCtx);
     return true;
+  }
+  if (url.startsWith('/api/admin/blog/')) {
+    const handled = handleAdminBlog(request, response, adminCtx);
+    if (handled) return true;
   }
   if (url === '/api/admin/translate' && request.method === 'POST') {
     await handleAdminTranslate(request, response, adminCtx);

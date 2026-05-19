@@ -250,6 +250,83 @@ const createSchema = () => {
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
+    -- ── BLOG (separate from news) ───────────────────────────────────────
+    -- The 'news' table is for time-bound announcements (new product
+    -- launch, factory tour, press releases). The 'blog' tables here
+    -- power evergreen content: cleaning tips, how-to guides, product
+    -- explainers — the kind of articles a visitor finds via Google
+    -- months after publishing.
+    --
+    -- Separation rationale:
+    --   1. Different shelf-life → different indexing strategies.
+    --   2. Different IA → news is a chronological feed, blog is
+    --      categorised topical content with featured posts and search.
+    --   3. Different SEO targets → news uses NewsArticle JSON-LD,
+    --      blog uses BlogPosting which is the canonical Google type
+    --      for non-news editorial content.
+    --   4. Keeps each admin UI focused on its real workflow rather
+    --      than a "everything is news" pile.
+
+    CREATE TABLE IF NOT EXISTS blog_categories (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      -- Hex (#RRGGBB) used by the badge and the category page hero.
+      -- Defaults to brand accent if NULL.
+      color TEXT,
+      -- One-character or short emoji marker (e.g. "🧹", "💡"). Renders
+      -- next to the category name in the index page filter strip.
+      icon TEXT,
+      name_ar TEXT, name_en TEXT, name_tr TEXT, name_ru TEXT,
+      description_ar TEXT, description_en TEXT, description_tr TEXT, description_ru TEXT,
+      display_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      -- Card thumbnail (~16:9). hero_image used as the article-page
+      -- hero; falls back to image when unset.
+      image TEXT,
+      hero_image TEXT,
+      -- Loose FK — we don't enforce REFERENCES so a category can be
+      -- deleted (soft-delete) without orphaning posts; the public
+      -- API joins gracefully.
+      category_id TEXT,
+      -- JSON array of free-form lowercase tags (e.g. ["floor","mop"]).
+      -- Indexed by full-text scan in the search route; no normalised
+      -- tag table because tag taxonomy churns too fast to warrant one.
+      tags TEXT DEFAULT '[]',
+      title_ar TEXT, title_en TEXT, title_tr TEXT, title_ru TEXT,
+      excerpt_ar TEXT, excerpt_en TEXT, excerpt_tr TEXT, excerpt_ru TEXT,
+      body_ar TEXT, body_en TEXT, body_tr TEXT, body_ru TEXT,
+      -- SEO overrides — when populated, the public page uses these
+      -- INSTEAD of the title / excerpt for <title> + meta description.
+      -- Empty → the page falls back to the canonical fields above.
+      meta_title_ar TEXT, meta_title_en TEXT, meta_title_tr TEXT, meta_title_ru TEXT,
+      meta_description_ar TEXT, meta_description_en TEXT, meta_description_tr TEXT, meta_description_ru TEXT,
+      author_name TEXT,
+      author_avatar TEXT,
+      -- Auto-computed at save time from the longest-non-empty body
+      -- variant: round(words / 200) minutes (200 wpm reading speed,
+      -- conservative middle ground for AR/EN/TR/RU readers).
+      reading_time INTEGER DEFAULT 0,
+      view_count INTEGER DEFAULT 0,
+      featured INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'draft' CHECK(status IN ('draft','published','scheduled')),
+      published_at TEXT,
+      publish_at TEXT,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id);
+    CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status, active);
+    CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_blog_posts_featured ON blog_posts(featured, published_at DESC);
+
     CREATE TABLE IF NOT EXISTS newsletter_subscribers (
       email TEXT PRIMARY KEY,
       subscribed_at TEXT NOT NULL,
@@ -358,6 +435,7 @@ const migrateInitialData = () => {
   migrateProducts();
   migrateNews();
   migrateNewsletter();
+  migrateBlog();
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
@@ -1569,6 +1647,690 @@ const migrateNews = () => {
 
   markMigration('initial_news');
   logger.info('[db] News migration complete');
+};
+
+// ─── Blog Migration ──────────────────────────────────────────────────────────
+//
+// Seeds 4 starter categories + 3 evergreen posts the moment the table
+// is created. Admin can edit/delete/extend freely afterwards — the
+// migration just guarantees the public /blog page never looks empty
+// on first deploy.
+//
+// The seed posts are AR-primary with full EN/TR/RU translations. The
+// markdown is real markdown (headings, lists, callouts) so the public
+// page demonstrates the editor's full rendering on day one.
+
+const BLOG_SEED_CATEGORIES = [
+  {
+    id: 'cat-cleaning-tips',
+    slug: 'cleaning-tips',
+    color: '#1a4d8f',
+    icon: '🧹',
+    name: {
+      ar: 'نصائح التنظيف',
+      en: 'Cleaning Tips',
+      tr: 'Temizlik İpuçları',
+      ru: 'Советы по уборке',
+    },
+    description: {
+      ar: 'إرشادات عملية للحفاظ على منزلك ومحلك التجاري نظيفاً ومعقّماً.',
+      en: 'Practical guidance for keeping your home and business spotless.',
+      tr: 'Evinizi ve işyerinizi tertemiz tutmanız için pratik rehberler.',
+      ru: 'Практичные советы, чтобы ваш дом и бизнес всегда сияли чистотой.',
+    },
+    display_order: 1,
+  },
+  {
+    id: 'cat-product-guides',
+    slug: 'product-guides',
+    color: '#7a3da3',
+    icon: '📦',
+    name: {
+      ar: 'أدلّة المنتجات',
+      en: 'Product Guides',
+      tr: 'Ürün Rehberleri',
+      ru: 'Руководства по продуктам',
+    },
+    description: {
+      ar: 'شرح مفصّل لكلّ منتج وكيفية الاستفادة منه بأفضل شكل.',
+      en: 'Deep-dives on each product and how to get the most out of it.',
+      tr: 'Her ürünün detaylı kullanımı ve verimli olarak nasıl yararlanılır.',
+      ru: 'Подробные обзоры каждого продукта и максимальная отдача от него.',
+    },
+    display_order: 2,
+  },
+  {
+    id: 'cat-how-to-choose',
+    slug: 'how-to-choose',
+    color: '#d97706',
+    icon: '🎯',
+    name: {
+      ar: 'كيف تختار',
+      en: 'How to Choose',
+      tr: 'Nasıl Seçilir',
+      ru: 'Как выбрать',
+    },
+    description: {
+      ar: 'مقارنات وأدلّة لاختيار المنتج المناسب لاحتياجك.',
+      en: 'Comparisons and decision guides to pick the right product.',
+      tr: 'İhtiyacınıza en uygun ürünü seçmenize yardımcı kılavuzlar.',
+      ru: 'Сравнения и инструкции, чтобы выбрать нужный продукт.',
+    },
+    display_order: 3,
+  },
+  {
+    id: 'cat-business-bulk',
+    slug: 'business-bulk',
+    color: '#059669',
+    icon: '🏢',
+    name: {
+      ar: 'الجملة والأعمال',
+      en: 'Wholesale & Business',
+      tr: 'Toptan ve İşletme',
+      ru: 'Опт и бизнес',
+    },
+    description: {
+      ar: 'محتوى للموزّعين، تجّار الجملة، والشركات التي تشتري بكميات كبيرة.',
+      en: 'Content for distributors, wholesalers, and bulk-buying businesses.',
+      tr: 'Distribütörler, toptancılar ve toplu alıcılar için içerik.',
+      ru: 'Контент для дистрибьюторов, оптовиков и бизнес-клиентов.',
+    },
+    display_order: 4,
+  },
+];
+
+// One markdown body per language — multi-paragraph, with H2/H3 headings,
+// bullet lists, and a closing call-to-action so the rendered output
+// demonstrates the markdown editor's full capabilities.
+const BLOG_SEED_POSTS = [
+  {
+    id: 'post-floor-cleaning-guide',
+    slug: 'how-to-clean-floors-properly',
+    category_id: 'cat-cleaning-tips',
+    image: '/diox-images/ديوكس معطر أرضيات.webp',
+    hero_image: '/diox-images/ديوكس معطر أرضيات.webp',
+    featured: 1,
+    tags: ['floor', 'mop', 'tips'],
+    title: {
+      ar: '٧ خطوات لتنظيف الأرضيات بشكل احترافي',
+      en: '7 Steps to Clean Floors Like a Professional',
+      tr: 'Zeminleri Profesyonel Gibi Temizlemek için 7 Adım',
+      ru: '7 шагов к профессионально чистым полам',
+    },
+    excerpt: {
+      ar: 'دليل عملي يشرح خطوات تنظيف الأرضيات الخزفية والبورسلين والباركيه باستخدام منتجات DIOX و AYLUX.',
+      en: 'A practical guide to cleaning ceramic, porcelain, and parquet floors with DIOX and AYLUX products.',
+      tr: 'Seramik, porselen ve parke zeminleri DIOX ve AYLUX ürünleri ile temizleme rehberi.',
+      ru: 'Практическое руководство по уборке керамических, фарфоровых и паркетных полов с DIOX и AYLUX.',
+    },
+    body: {
+      ar: `الأرضيات هي أول ما يلاحظه الزائر عند دخول منزلك أو محلّك التجاري. تنظيفها بشكل صحيح ليس مجرد ممسحة وماء — إنه مزيج من المنتج المناسب، التقنية الصحيحة، والترتيب المنطقي للخطوات.
+
+## ١. ابدأ بإزالة الأتربة الجافّة
+
+قبل أيّ مسح رطب، استخدم مكنسة أو ممسحة جافّة لإزالة الأتربة والشعر والحبيبات الصغيرة. مسح أرضيّة عليها أتربة بماء وصابون يحوّل الأتربة إلى طين دقيق يلتصق بالمسامات.
+
+## ٢. اختر المنتج المناسب حسب نوع الأرضية
+
+| نوع الأرضية | المنتج الأمثل |
+|---|---|
+| الخزف والبورسلين | **DIOX منظف عام** |
+| الباركيه الخشبي | **DIOX معطّر أرضيات** (مخفّف) |
+| الرخام والجرانيت | **AYLUX منظف عام** |
+| الأرضيات الصناعية | **DIOX سوبر جل** |
+
+> **تنبيه:** لا تستخدم المنتجات الحامضية على الرخام — تسبّب بقع دائمة.
+
+## ٣. حضّر محلول التنظيف بالنسبة الصحيحة
+
+النسبة العامة: **١٠٠ مل من المنتج لكلّ ٥ لتر ماء فاتر**. الماء الساخن يبخّر المنتج قبل أن يعمل، والبارد لا ينشّط المكوّنات.
+
+## ٤. ابدأ من الزاوية البعيدة عن الباب
+
+اجعل اتّجاه مسحك دائماً نحو المخرج — هكذا تخرج من الغرفة على أرضيّة نظيفة دون أن تترك آثار قدم.
+
+## ٥. اشطف الممسحة باستمرار
+
+أهمّ خطوة يهملها الناس. اشطف الممسحة في الماء النظيف كلّ ٥-٧ خطوات، وأبدلها كاملاً عندما يصبح الماء عكراً.
+
+## ٦. اترك الأرضية تجفّ طبيعياً
+
+لا تمشِ عليها وهي رطبة. الجفاف الطبيعي يسمح للمنتج بإكمال عمله ضدّ الجراثيم.
+
+## ٧. كرّر ٢-٣ مرّات أسبوعياً
+
+التنظيف العميق مرّة واحدة كلّ أسبوع لا يحلّ محل التنظيف الخفيف اليومي. المثاليّ: ممسحة سريعة يومياً + تنظيف عميق مرّتين أسبوعياً.
+
+---
+
+**جرّب الآن:** أحضر **DIOX معطّر أرضيات** من أقرب موزّع، أو راسلنا على واتساب للحصول على السعر بالجملة.`,
+      en: `Floors are the first thing a visitor notices when they walk into your home or business. Cleaning them properly is more than mop + water — it's a mix of the right product, the right technique, and the right sequence.
+
+## 1. Start by removing dry dust
+
+Before any wet pass, sweep or dry-mop to lift dust, hair, and grit. Mopping a dusty floor turns dust into fine mud that lodges in the pores.
+
+## 2. Pick the right product for the surface
+
+| Floor type | Best product |
+|---|---|
+| Ceramic & porcelain | **DIOX General Cleaner** |
+| Wooden parquet | **DIOX Floor Fragrance** (diluted) |
+| Marble & granite | **AYLUX General Cleaner** |
+| Industrial floors | **DIOX Super Gel** |
+
+> **Warning:** Never use acidic cleaners on marble — they leave permanent stains.
+
+## 3. Mix the solution at the right ratio
+
+General rule: **100 ml of product per 5 L of lukewarm water**. Hot water evaporates the product before it can work; cold water won't activate the active ingredients.
+
+## 4. Start from the corner farthest from the door
+
+Always mop toward the exit — that way you leave the room across a clean floor without footprints.
+
+## 5. Rinse the mop constantly
+
+The single most-skipped step. Rinse in clean water every 5-7 strokes, and swap the bucket completely once the water turns cloudy.
+
+## 6. Let the floor air-dry
+
+Don't walk on it while wet. Air-drying lets the product finish its job against germs.
+
+## 7. Repeat 2-3 times per week
+
+A weekly deep clean doesn't replace daily quick mopping. The sweet spot: a fast pass every day + deep clean twice a week.
+
+---
+
+**Try it now:** Grab **DIOX Floor Fragrance** from your nearest distributor, or message us on WhatsApp for wholesale pricing.`,
+      tr: `Zeminler, bir ziyaretçinin evinize veya işyerinize girdiğinde fark ettiği ilk şeydir. Doğru temizlemek; sadece paspas ve su değil — doğru ürün, doğru teknik ve doğru sıralamadır.
+
+## 1. Önce kuru tozu süpürün
+
+Islak paspas yapmadan önce süpürge veya kuru paspas ile tozu, saçları ve küçük taneleri kaldırın. Tozlu bir zemini ıslak temizlemek tozu çamura çevirir.
+
+## 2. Zemin türüne göre ürün seçin
+
+| Zemin türü | En iyi ürün |
+|---|---|
+| Seramik & porselen | **DIOX Genel Temizleyici** |
+| Ahşap parke | **DIOX Zemin Kokusu** (seyreltilmiş) |
+| Mermer & granit | **AYLUX Genel Temizleyici** |
+| Endüstriyel zemin | **DIOX Süper Jel** |
+
+> **Uyarı:** Mermere asitli temizleyici kullanmayın — kalıcı leke bırakır.
+
+## 3. Solüsyonu doğru oranda hazırlayın
+
+Genel oran: **5 L ılık suya 100 ml ürün**. Sıcak su ürünü etki etmeden buharlaştırır; soğuk su aktif bileşenleri çalıştırmaz.
+
+## 4. Kapıdan en uzak köşeden başlayın
+
+Her zaman çıkışa doğru paspas yapın — odadan ayak izi bırakmadan, temiz zeminin üzerinden çıkın.
+
+## 5. Paspası sürekli durulayın
+
+En çok atlanan adım budur. Her 5-7 hareket sonrası temiz suda durulayın, su bulanınca tüm kovayı değiştirin.
+
+## 6. Zemini doğal kurumaya bırakın
+
+Islakken üzerinde yürümeyin. Doğal kuruma, ürünün mikroplar üzerinde işini bitirmesine olanak tanır.
+
+## 7. Haftada 2-3 kez tekrarlayın
+
+Haftalık derin temizlik, günlük hafif paspaslamanın yerini tutmaz. İdeali: günde hızlı paspas + haftada iki kez derin temizlik.
+
+---
+
+**Hemen deneyin:** En yakın dağıtıcıdan **DIOX Zemin Kokusu** alın veya toptan fiyat için WhatsApp'tan bize yazın.`,
+      ru: `Полы — первое, что замечает гость, входя в ваш дом или офис. Правильно мыть их — это больше, чем швабра и вода: это сочетание правильного средства, техники и последовательности шагов.
+
+## 1. Начните с сухой уборки
+
+Перед влажной уборкой смести пыль, волосы и мелкий мусор. Влажная уборка по пыли превращает её в грязь, забивающую поры.
+
+## 2. Подберите средство под тип пола
+
+| Тип пола | Лучшее средство |
+|---|---|
+| Керамика и фарфор | **DIOX универсальное** |
+| Паркет | **DIOX освежитель** (разведённый) |
+| Мрамор и гранит | **AYLUX универсальное** |
+| Промышленный пол | **DIOX супер гель** |
+
+> **Внимание:** Не используйте кислотные средства на мраморе — оставят несмываемые пятна.
+
+## 3. Готовьте раствор в правильной пропорции
+
+Общее правило: **100 мл средства на 5 л тёплой воды**. Горячая вода испаряет средство, холодная не активирует компоненты.
+
+## 4. Начинайте с угла, дальнего от двери
+
+Всегда мойте по направлению к выходу — выйдете из комнаты по чистому полу без следов.
+
+## 5. Постоянно полощите швабру
+
+Самый игнорируемый шаг. Полощите швабру каждые 5-7 движений, меняйте всю воду как только она помутнеет.
+
+## 6. Дайте полу высохнуть естественно
+
+Не ходите по влажному полу. Естественная сушка позволяет средству завершить работу против бактерий.
+
+## 7. Повторяйте 2-3 раза в неделю
+
+Глубокая уборка раз в неделю не заменит ежедневной лёгкой уборки. Идеально: быстрая уборка каждый день + глубокая дважды в неделю.
+
+---
+
+**Попробуйте сейчас:** Купите **DIOX освежитель для полов** у ближайшего дистрибьютора или напишите нам в WhatsApp для оптовой цены.`,
+    },
+    author_name: 'فريق KARAHOCA',
+    reading_time: 5,
+  },
+  {
+    id: 'post-laundry-powder-vs-liquid',
+    slug: 'laundry-powder-vs-liquid',
+    category_id: 'cat-how-to-choose',
+    image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك (1).webp',
+    hero_image: '/diox-images/ديوكس مسحوق غسيل أوتوماتيك (1).webp',
+    featured: 1,
+    tags: ['laundry', 'powder', 'liquid', 'comparison'],
+    title: {
+      ar: 'مسحوق الغسيل أم السائل؟ دليل الاختيار',
+      en: 'Powder vs Liquid Detergent: Which One Should You Pick?',
+      tr: 'Toz mu Sıvı Deterjan mı: Hangisini Seçmelisiniz?',
+      ru: 'Порошок или жидкость: что выбрать для стирки?',
+    },
+    excerpt: {
+      ar: 'لكلّ نوع نقاط قوّة وضعف. هذا الدليل يساعدك على اتّخاذ القرار حسب نوع غسالتك ونوع البقع التي تتعامل معها.',
+      en: 'Each type has strengths and weaknesses. This guide helps you decide based on your washer and the stains you face.',
+      tr: 'Her birinin güçlü ve zayıf yanları var. Bu rehber, çamaşır makineniz ve karşılaştığınız lekelere göre karar vermenize yardımcı olur.',
+      ru: 'У каждого типа есть сильные и слабые стороны. Этот гид поможет выбрать, исходя из вашей машинки и пятен.',
+    },
+    body: {
+      ar: `سؤال يصلنا أسبوعياً عبر واتساب: "ديوكس مسحوق غسيل أم ديوكس سائل غسيل؟" الجواب يعتمد على عوامل عدّة. دعنا نحلّلها.
+
+## ✅ متى تختار **المسحوق**
+
+- **غسالات أوتوماتيك بدرجات حرارة عالية (60°-90°)** — المسحوق يذوب أفضل في الماء الساخن.
+- **بقع الطين والعشب والأوساخ العضوية** — حبيبات المسحوق الكاشطة الصغيرة تساعد على تفكيك البقع.
+- **ميزانية محدودة** — المسحوق عادةً أرخص لكلّ غسلة.
+- **تخزين طويل** — لا يتأثّر بالحرارة كالسائل.
+
+**منتجنا الموصى به:** [DIOX مسحوق غسيل أوتوماتيك](/ar/diox)
+
+## ✅ متى تختار **السائل**
+
+- **غسالات ذات درجات حرارة منخفضة (30°-40°)** — السائل يعمل في كلّ درجات الحرارة.
+- **ألوان داكنة وأقمشة حسّاسة** — لا يترك بقايا بيضاء على القماش.
+- **بقع الزيت والشحوم والمكياج** — السائل يخترق المسامات أعمق.
+- **غسيل بكميات صغيرة** — أسهل في القياس بدقّة.
+
+**منتجنا الموصى به:** [DIOX سائل غسيل](/ar/diox)
+
+## 💡 السرّ المهنيّ
+
+في الفنادق والمنشآت التجارية يستخدمون **الاثنين معاً**:
+- مسحوق للأقمشة البيضاء والشراشف بدرجة ٦٠°.
+- سائل للأقمشة الملوّنة والمناشف بدرجة ٤٠°.
+
+هذا يوفّر **عمر أطول للأقمشة** و **نظافة أعمق** بنفس الوقت.
+
+## 🚫 خطأ شائع
+
+لا تخلط المسحوق والسائل في نفس الغسلة — يتفاعلان كيميائياً ويُلغيان مفعول بعضهما. استخدم نوعاً واحداً في كلّ دورة.
+
+---
+
+هل لديك سؤال محدّد عن نوع قماشك أو بقعة معيّنة؟ راسلنا على واتساب وسنخبرك بالمنتج المناسب.`,
+      en: `A question we get every week on WhatsApp: "DIOX powder or DIOX liquid?" The answer depends on several factors. Let's break it down.
+
+## ✅ When to pick **powder**
+
+- **Automatic washers at high temperatures (60°-90°)** — powder dissolves better in hot water.
+- **Mud, grass, organic dirt** — small abrasive grains help break down the stain.
+- **Budget conscious** — powder is usually cheaper per wash.
+- **Long-term storage** — not affected by heat like liquid.
+
+**Our recommendation:** [DIOX Automatic Laundry Powder](/en/diox)
+
+## ✅ When to pick **liquid**
+
+- **Low-temperature washers (30°-40°)** — liquid works at every temperature.
+- **Dark colors & delicate fabrics** — no white residue on fabric.
+- **Oil, grease, makeup stains** — liquid penetrates pores deeper.
+- **Small loads** — easier to measure accurately.
+
+**Our recommendation:** [DIOX Liquid Laundry Detergent](/en/diox)
+
+## 💡 The professional secret
+
+Hotels and commercial facilities use **both together**:
+- Powder for whites and sheets at 60°.
+- Liquid for colored fabrics and towels at 40°.
+
+This gives you **longer fabric life** and **deeper cleanliness** at the same time.
+
+## 🚫 Common mistake
+
+Don't mix powder and liquid in the same wash — they react chemically and cancel each other out. Use one type per cycle.
+
+---
+
+Have a specific question about your fabric or a particular stain? Message us on WhatsApp and we'll tell you the right product.`,
+      tr: `WhatsApp'tan her hafta gelen soru: "DIOX toz mu DIOX sıvı mı?" Cevap, birkaç faktöre bağlı. Hadi inceleyelim.
+
+## ✅ Ne zaman **toz** seçilir
+
+- **Yüksek sıcaklıkta otomatik makineler (60°-90°)** — toz sıcak suda daha iyi çözünür.
+- **Çamur, çim, organik kir** — küçük aşındırıcı taneler lekeleri parçalar.
+- **Ekonomik tercih** — yıkama başına genellikle daha ucuz.
+- **Uzun süreli depolama** — sıvı gibi ısıdan etkilenmez.
+
+**Önerimiz:** [DIOX Otomatik Çamaşır Tozu](/tr/diox)
+
+## ✅ Ne zaman **sıvı** seçilir
+
+- **Düşük sıcaklık makineleri (30°-40°)** — sıvı her sıcaklıkta çalışır.
+- **Koyu renkler & hassas kumaşlar** — kumaşta beyaz iz bırakmaz.
+- **Yağ, gres, makyaj lekeleri** — sıvı gözeneklere daha derin işler.
+- **Küçük yıkamalar** — ölçmesi daha kolay.
+
+**Önerimiz:** [DIOX Sıvı Çamaşır Deterjanı](/tr/diox)
+
+## 💡 Profesyonel sır
+
+Otel ve ticari işletmelerde **ikisi birden** kullanılır:
+- 60° de beyazlar ve nevresimler için toz.
+- 40° de renkli kumaşlar ve havlular için sıvı.
+
+Bu, kumaşa **daha uzun ömür** ve aynı anda **daha derin temizlik** sağlar.
+
+## 🚫 Yaygın hata
+
+Toz ve sıvıyı aynı yıkamada karıştırmayın — kimyasal olarak tepkimeye girer ve birbirini iptal ederler. Her döngüde bir tür kullanın.
+
+---
+
+Kumaşınız veya belirli bir leke hakkında sorunuz var mı? WhatsApp'tan yazın, doğru ürünü söyleyelim.`,
+      ru: `Вопрос, который мы получаем каждую неделю в WhatsApp: «DIOX порошок или DIOX жидкое?» Ответ зависит от нескольких факторов. Разберём.
+
+## ✅ Когда выбирать **порошок**
+
+- **Автоматы при высоких температурах (60°-90°)** — порошок лучше растворяется в горячей воде.
+- **Грязь, трава, органические загрязнения** — мелкие абразивные частицы разрушают пятна.
+- **Экономия** — порошок обычно дешевле за стирку.
+- **Длительное хранение** — не страдает от жары, как жидкость.
+
+**Наша рекомендация:** [DIOX Стиральный порошок автомат](/ru/diox)
+
+## ✅ Когда выбирать **жидкое**
+
+- **Машинки с низкими температурами (30°-40°)** — жидкость работает при любой температуре.
+- **Тёмные цвета и деликатные ткани** — не оставляет белых разводов.
+- **Жирные, масляные пятна, косметика** — жидкость проникает в поры глубже.
+- **Маленькие загрузки** — легче точно дозировать.
+
+**Наша рекомендация:** [DIOX Жидкий стиральный порошок](/ru/diox)
+
+## 💡 Профессиональный секрет
+
+В отелях и коммерческих предприятиях используют **оба сразу**:
+- Порошок для белого и постельного при 60°.
+- Жидкость для цветных и полотенец при 40°.
+
+Это даёт **более долгую жизнь тканей** и **более глубокую чистоту** одновременно.
+
+## 🚫 Распространённая ошибка
+
+Не смешивайте порошок и жидкость в одной стирке — они вступают в химическую реакцию и нейтрализуют друг друга. Используйте один тип за цикл.
+
+---
+
+Есть вопрос по вашей ткани или конкретному пятну? Напишите нам в WhatsApp — подскажем правильное средство.`,
+    },
+    author_name: 'فريق KARAHOCA',
+    reading_time: 4,
+  },
+  {
+    id: 'post-bulk-buying-guide',
+    slug: 'bulk-buying-cleaning-supplies',
+    category_id: 'cat-business-bulk',
+    image: '/karahoca-logo-1-Photoroom.webp',
+    hero_image: '/karahoca-logo-1-Photoroom.webp',
+    featured: 0,
+    tags: ['wholesale', 'business', 'b2b'],
+    title: {
+      ar: 'دليل الشراء بالجملة لمنتجات التنظيف',
+      en: 'A Guide to Bulk Buying Cleaning Supplies',
+      tr: 'Toptan Temizlik Ürünleri Satın Alma Rehberi',
+      ru: 'Гид по оптовой закупке моющих средств',
+    },
+    excerpt: {
+      ar: 'كيف توفّر ٢٠-٤٠٪ من ميزانية التنظيف الشهرية إذا كنت تدير فندقاً، مدرسة، أو منشأة تجارية.',
+      en: 'How to save 20-40% on monthly cleaning budget if you run a hotel, school, or business facility.',
+      tr: 'Otel, okul veya işletme yönetiyorsanız aylık temizlik bütçesinden %20-40 nasıl tasarruf edilir.',
+      ru: 'Как сэкономить 20-40% месячного бюджета на уборку, если у вас отель, школа или бизнес.',
+    },
+    body: {
+      ar: `إذا كنت تدير منشأة تستهلك منتجات تنظيف بكميات كبيرة — فندق، مدرسة، مستشفى، مطعم، أو سلسلة محلّات — فإنّ الشراء بالجملة من KARAHOCA يوفّر بشكل كبير عن السوبر ماركت العادي.
+
+## كيف نسعّر بالجملة
+
+نقدّم **٣ مستويات** بحسب الحجم الشهري:
+
+| المستوى | الحدّ الأدنى/شهر | الخصم |
+|---|---|---|
+| **Bronze** | ٥٠٠ كغ | ١٥٪ |
+| **Silver** | ٢ طن | ٢٥٪ |
+| **Gold** | ٥ طن | ٤٠٪ + شحن مجّاني |
+
+## ما الذي يحدّد السعر
+
+- **الحجم المتعهّد به**: العقد الشهري يضمن سعراً ثابتاً لـ ٦ أشهر.
+- **التشكيلة**: عميل يأخذ ٥ منتجات مختلفة يحصل على سعر أفضل من واحد يأخذ منتجاً واحداً.
+- **الموقع**: تركيا (شحن داخلي مجّاني فوق ٢ طن) أم تصدير (FOB أو CIF).
+
+## التغليف المخصّص (Private Label)
+
+نوفّر خدمة الإنتاج بعلامتك التجارية الخاصة:
+- الحدّ الأدنى: **١٠ طن** لكلّ منتج.
+- وقت التسليم: **٢١-٣٠ يوماً** بعد اعتماد التصميم.
+- تصميم الملصق على حسابنا (مع مصمّمنا الداخلي).
+
+## أمثلة على عملاء حاليّين
+
+- **سلسلة فنادق في إسطنبول** (٤٥٠ غرفة): يستهلكون ٣ طن شهرياً من DIOX منظف عام + ١.٥ طن سائل غسيل = توفير سنوي ~٤٢٠٠٠ ليرة.
+- **مدرسة دولية في أنطاكية** (١٢٠٠ طالب): ١.٢ طن شهرياً، خصم ٢٥٪ بعقد سنوي.
+
+## كيف تبدأ
+
+1. أرسل لنا قائمة احتياجك الشهري عبر واتساب أو email.
+2. نرجع لك بعرض سعر مفصّل خلال ٢٤ ساعة.
+3. توقيع عقد إطار (لمدّة ٦-١٢ شهر).
+4. شحنة الاختبار خلال أسبوع.
+
+**جاهز لخفض ميزانية التنظيف؟** [راسلنا الآن](mailto:info@karahoca.com)`,
+      en: `If you run a facility that consumes cleaning products in large quantities — a hotel, school, hospital, restaurant, or store chain — wholesale buying from KARAHOCA delivers significant savings over the supermarket.
+
+## How our wholesale pricing works
+
+We offer **3 tiers** by monthly volume:
+
+| Tier | Min/month | Discount |
+|---|---|---|
+| **Bronze** | 500 kg | 15% |
+| **Silver** | 2 tons | 25% |
+| **Gold** | 5 tons | 40% + free shipping |
+
+## What determines the price
+
+- **Committed volume**: monthly contract locks the price for 6 months.
+- **Mix**: a customer ordering 5 products gets a better rate than one ordering a single product.
+- **Location**: Türkiye (free domestic shipping above 2 tons) vs export (FOB or CIF).
+
+## Private label
+
+We offer production under your own brand:
+- Minimum: **10 tons** per product.
+- Lead time: **21-30 days** after design approval.
+- Label design free of charge (with our in-house designer).
+
+## Current customer examples
+
+- **Hotel chain in Istanbul** (450 rooms): consumes 3 tons/month of DIOX General Cleaner + 1.5 tons of liquid detergent = annual savings ~₺42,000.
+- **International school in Antakya** (1,200 students): 1.2 tons/month, 25% discount with annual contract.
+
+## How to start
+
+1. Send us your monthly need list via WhatsApp or email.
+2. We come back with a detailed quote within 24 hours.
+3. Sign a framework contract (6-12 months).
+4. Trial shipment within a week.
+
+**Ready to cut your cleaning budget?** [Contact us now](mailto:info@karahoca.com)`,
+      tr: `Büyük miktarda temizlik ürünü tüketen bir tesisiniz varsa — otel, okul, hastane, restoran veya mağaza zinciri — KARAHOCA'dan toptan satın alma süpermarkete kıyasla önemli tasarruf sağlar.
+
+## Toptan fiyatlandırma nasıl çalışır
+
+Aylık hacme göre **3 seviye** sunuyoruz:
+
+| Seviye | Min/ay | İndirim |
+|---|---|---|
+| **Bronz** | 500 kg | %15 |
+| **Gümüş** | 2 ton | %25 |
+| **Altın** | 5 ton | %40 + ücretsiz kargo |
+
+## Fiyatı belirleyen faktörler
+
+- **Taahhüt edilen hacim**: aylık sözleşme 6 ay için fiyatı kilitler.
+- **Ürün çeşitliliği**: 5 farklı ürün alan müşteri, tek ürün alandan daha iyi fiyat alır.
+- **Konum**: Türkiye (2 ton üzeri ücretsiz iç kargo) veya ihracat (FOB veya CIF).
+
+## Özel etiket (Private Label)
+
+Kendi markanızla üretim hizmeti sunuyoruz:
+- Minimum: ürün başına **10 ton**.
+- Teslim süresi: tasarım onayından sonra **21-30 gün**.
+- Etiket tasarımı ücretsiz (kurum içi tasarımcımızla).
+
+## Mevcut müşteri örnekleri
+
+- **İstanbul'da otel zinciri** (450 oda): aylık 3 ton DIOX Genel Temizleyici + 1,5 ton sıvı deterjan tüketiyor = yıllık tasarruf ~₺42.000.
+- **Antakya'daki uluslararası okul** (1.200 öğrenci): aylık 1,2 ton, yıllık sözleşme ile %25 indirim.
+
+## Nasıl başlanır
+
+1. Aylık ihtiyaç listenizi WhatsApp veya e-posta ile gönderin.
+2. 24 saat içinde detaylı teklif geri döner.
+3. Çerçeve sözleşme imzala (6-12 ay).
+4. Deneme sevkiyatı bir hafta içinde.
+
+**Temizlik bütçenizi azaltmaya hazır mısınız?** [Şimdi bize ulaşın](mailto:info@karahoca.com)`,
+      ru: `Если у вас объект, потребляющий моющие средства в больших количествах — отель, школа, больница, ресторан или сеть магазинов — оптовая закупка у KARAHOCA даёт ощутимую экономию по сравнению с супермаркетом.
+
+## Как работает наше оптовое ценообразование
+
+Мы предлагаем **3 уровня** по месячному объёму:
+
+| Уровень | Мин/мес | Скидка |
+|---|---|---|
+| **Бронза** | 500 кг | 15% |
+| **Серебро** | 2 тонны | 25% |
+| **Золото** | 5 тонн | 40% + бесплатная доставка |
+
+## Что определяет цену
+
+- **Обязательный объём**: месячный контракт фиксирует цену на 6 месяцев.
+- **Ассортимент**: клиент, заказывающий 5 продуктов, получает лучшую цену, чем один продукт.
+- **Локация**: Турция (бесплатная внутренняя доставка от 2 тонн) или экспорт (FOB или CIF).
+
+## Private Label (под вашим брендом)
+
+Производим под вашей собственной маркой:
+- Минимум: **10 тонн** на продукт.
+- Срок: **21-30 дней** после утверждения дизайна.
+- Дизайн этикетки бесплатно (наш штатный дизайнер).
+
+## Примеры текущих клиентов
+
+- **Гостиничная сеть в Стамбуле** (450 номеров): потребляет 3 тонны DIOX универсального + 1,5 тонны жидкого средства в месяц = годовая экономия ~₺42.000.
+- **Международная школа в Антакье** (1.200 учеников): 1,2 тонны в месяц, скидка 25% по годовому контракту.
+
+## Как начать
+
+1. Пришлите нам список месячных потребностей в WhatsApp или e-mail.
+2. В течение 24 часов вернёмся с детальным предложением.
+3. Подпишите рамочный контракт (6-12 месяцев).
+4. Тестовая поставка в течение недели.
+
+**Готовы сократить бюджет на уборку?** [Свяжитесь с нами сейчас](mailto:info@karahoca.com)`,
+    },
+    author_name: 'فريق المبيعات في KARAHOCA',
+    reading_time: 6,
+  },
+];
+
+const migrateBlog = () => {
+  if (hasMigration('initial_blog')) return;
+
+  const insertCat = db.prepare(`
+    INSERT OR IGNORE INTO blog_categories(
+      id, slug, color, icon,
+      name_ar, name_en, name_tr, name_ru,
+      description_ar, description_en, description_tr, description_ru,
+      display_order, active
+    ) VALUES(
+      @id, @slug, @color, @icon,
+      @name_ar, @name_en, @name_tr, @name_ru,
+      @desc_ar, @desc_en, @desc_tr, @desc_ru,
+      @display_order, 1
+    )
+  `);
+
+  for (const cat of BLOG_SEED_CATEGORIES) {
+    insertCat.run({
+      id: cat.id, slug: cat.slug, color: cat.color, icon: cat.icon,
+      name_ar: cat.name.ar, name_en: cat.name.en, name_tr: cat.name.tr, name_ru: cat.name.ru,
+      desc_ar: cat.description.ar, desc_en: cat.description.en, desc_tr: cat.description.tr, desc_ru: cat.description.ru,
+      display_order: cat.display_order,
+    });
+  }
+
+  const insertPost = db.prepare(`
+    INSERT OR IGNORE INTO blog_posts(
+      id, slug, image, hero_image, category_id, tags,
+      title_ar, title_en, title_tr, title_ru,
+      excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
+      body_ar, body_en, body_tr, body_ru,
+      author_name, reading_time, featured,
+      status, published_at, active
+    ) VALUES(
+      @id, @slug, @image, @hero_image, @category_id, @tags,
+      @title_ar, @title_en, @title_tr, @title_ru,
+      @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
+      @body_ar, @body_en, @body_tr, @body_ru,
+      @author_name, @reading_time, @featured,
+      'published', @published_at, 1
+    )
+  `);
+
+  const now = new Date().toISOString();
+  for (const p of BLOG_SEED_POSTS) {
+    insertPost.run({
+      id: p.id, slug: p.slug, image: p.image, hero_image: p.hero_image,
+      category_id: p.category_id, tags: JSON.stringify(p.tags),
+      title_ar: p.title.ar, title_en: p.title.en, title_tr: p.title.tr, title_ru: p.title.ru,
+      excerpt_ar: p.excerpt.ar, excerpt_en: p.excerpt.en, excerpt_tr: p.excerpt.tr, excerpt_ru: p.excerpt.ru,
+      body_ar: p.body.ar, body_en: p.body.en, body_tr: p.body.tr, body_ru: p.body.ru,
+      author_name: p.author_name, reading_time: p.reading_time, featured: p.featured,
+      published_at: now,
+    });
+  }
+
+  markMigration('initial_blog');
+  logger.info({ categories: BLOG_SEED_CATEGORIES.length, posts: BLOG_SEED_POSTS.length }, '[db] Blog migration complete');
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────

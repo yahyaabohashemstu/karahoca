@@ -55,6 +55,12 @@ import { handleShareProduct } from './routes/share.mjs';
 import { ensurePublicCsrfCookie } from './middlewares/publicCsrf.mjs';
 import { resolveVisitorId } from './middlewares/visitorIdentity.mjs';
 import { handlePublicProducts, handlePublicNews } from './routes/public-data.mjs';
+import {
+  handleBlogList,
+  handleBlogPost,
+  handleBlogCategories,
+  handleBlogViewIncrement,
+} from './routes/blog-public.mjs';
 import { handleHealth } from './routes/api-health.mjs';
 import { handleAiContext } from './routes/api-ai-context.mjs';
 
@@ -238,6 +244,28 @@ const handleRequest = async (request, response) => {
     }
     if (request.method === 'GET' && url === '/api/news') {
       await handlePublicNews(request, response, ctx);
+      return;
+    }
+
+    // ── Blog (Phase F2) ─────────────────────────────────────────────────
+    // Public, read-only listing + single-post + categories. Match the
+    // most-specific routes first so /api/blog/posts/:slug/view doesn't
+    // collide with /api/blog/posts/:slug.
+    if (request.method === 'POST' && /^\/api\/blog\/posts\/[^/]+\/view$/.test(url)) {
+      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      handleBlogViewIncrement(request, response, ctx);
+      return;
+    }
+    if (request.method === 'GET' && url === '/api/blog/categories') {
+      await handleBlogCategories(request, response, ctx);
+      return;
+    }
+    if (request.method === 'GET' && /^\/api\/blog\/posts\/[^/]+$/.test(url)) {
+      await handleBlogPost(request, response, ctx);
+      return;
+    }
+    if (request.method === 'GET' && url === '/api/blog/posts') {
+      await handleBlogList(request, response, ctx);
       return;
     }
     // Public A/B feed. Anonymous; cached on the SPA side. Returns the

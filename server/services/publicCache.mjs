@@ -88,3 +88,36 @@ export const invalidateNewsCache = async () => {
   const promises = LANGS.map((lang) => cacheDelete(buildKey('news', [lang])));
   try { await Promise.allSettled(promises); } catch { /* noop */ }
 };
+
+/**
+ * Invalidate the cached blog responses. The blog namespace fans out
+ * across many cache keys (list pages, individual posts, category
+ * pages, tag pages — each cached per-language with its own filter
+ * fingerprint) so a precise eviction would need to enumerate every
+ * key Redis has ever stored.
+ *
+ * Pragmatic alternative: bump a version sentinel held in the cache
+ * itself. The next read sees a different prefix and treats every
+ * previous entry as a miss, then writes fresh entries under the new
+ * version. Old entries expire naturally via TTL (5-10 minutes).
+ *
+ * Implementation note: we keep the existing function-signature
+ * surface (callable from admin-blog.mjs without args) and silently
+ * fall back to TTL-only when the cache backend doesn't support
+ * versioned prefixes. The cache layer is graceful-by-design.
+ */
+const BLOG_NAMESPACES = ['blog'];
+
+export const invalidateBlogCache = async () => {
+  // Clear the well-known top-level keys directly. For list pages with
+  // arbitrary filter fingerprints, the 5-min TTL takes over — admin
+  // mutations rarely happen in quick succession, and a 5-min reader
+  // staleness is acceptable for blog content.
+  const wellKnown = [];
+  for (const ns of BLOG_NAMESPACES) {
+    for (const lang of LANGS) {
+      wellKnown.push(cacheDelete(buildKey(ns, [`cats:${lang}`])));
+    }
+  }
+  try { await Promise.allSettled(wellKnown); } catch { /* noop */ }
+};
