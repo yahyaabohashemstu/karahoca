@@ -159,8 +159,12 @@ const STRINGS: Record<string, Record<string, string>> = {
 
 const formatDate = (iso: string, lang: string): string => {
   try {
+    // The `-u-nu-latn` Unicode locale extension forces Latin digits
+    // (0-9) while keeping the localised month/weekday names. Without
+    // it, `ar-EG` defaults to Arabic-Indic digits (٠-٩), which is
+    // inconsistent with the rest of the site's typography.
     return new Date(iso).toLocaleDateString(
-      { ar: 'ar-EG', en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' }[lang] || 'en-US',
+      { ar: 'ar-EG-u-nu-latn', en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' }[lang] || 'en-US',
       { year: 'numeric', month: 'long', day: 'numeric' },
     );
   } catch {
@@ -432,7 +436,7 @@ const BlogPostPage: React.FC = () => {
                   {post.viewCount > 0 && (
                     <span className="blog-hero-v3__meta-item">
                       <span aria-hidden="true">👁️</span>
-                      {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.views}
+                      {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')} {t.views}
                     </span>
                   )}
                 </div>
