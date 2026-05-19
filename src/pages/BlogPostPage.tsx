@@ -363,15 +363,26 @@ const BlogPostPage: React.FC = () => {
       <Header />
 
       <main className="blog-post-main">
-        {/* ── Cinematic hero ─────────────────────────────────────────── */}
-        <header
-          className="blog-hero-v2"
-          style={{ backgroundImage: `url("${heroImage}")` }}
-        >
-          <div className="blog-hero-v2__overlay" aria-hidden="true" />
-          <div className="container blog-hero-v2__inner">
+        {/* ── Editorial hero ──────────────────────────────────────────
+            Split layout: text + product image side by side on desktop,
+            stacked (text → image) on mobile. The background is a
+            blurred/tinted version of the hero image so the whole
+            page feels color-coordinated with the article without the
+            image being stretched as a full-bleed banner. */}
+        <header className="blog-hero-v3">
+          {/* Soft blurred backdrop using the same image — gives the
+              hero a cohesive colour without the harsh detail of a
+              stretched product photo. */}
+          <div
+            className="blog-hero-v3__backdrop"
+            style={{ backgroundImage: `url("${heroImage}")` }}
+            aria-hidden="true"
+          />
+          <div className="blog-hero-v3__veil" aria-hidden="true" />
+
+          <div className="container blog-hero-v3__inner">
             {/* Breadcrumb */}
-            <nav className="blog-hero-v2__breadcrumb" aria-label="Breadcrumb">
+            <nav className="blog-hero-v3__breadcrumb" aria-label="Breadcrumb">
               <Link to={lp('/')}>{t.home}</Link>
               <span aria-hidden="true">/</span>
               <Link to={lp('/blog')}>{t.blog}</Link>
@@ -385,42 +396,62 @@ const BlogPostPage: React.FC = () => {
               )}
             </nav>
 
-            {post.category && (
-              <span
-                className="blog-hero-v2__category"
-                style={post.category.color ? {
-                  background: post.category.color,
-                  boxShadow: `0 8px 28px ${post.category.color}40`,
-                } : undefined}
-              >
-                {post.category.icon ? `${post.category.icon}  ` : ''}{post.category.name}
-              </span>
-            )}
+            <div className="blog-hero-v3__grid">
+              {/* Text column */}
+              <div className="blog-hero-v3__text">
+                {post.category && (
+                  <span
+                    className="blog-hero-v3__category"
+                    style={post.category.color ? {
+                      background: post.category.color,
+                      boxShadow: `0 8px 28px ${post.category.color}40`,
+                    } : undefined}
+                  >
+                    {post.category.icon ? `${post.category.icon}  ` : ''}{post.category.name}
+                  </span>
+                )}
 
-            <h1 className="blog-hero-v2__title">{post.title}</h1>
-            <p className="blog-hero-v2__dek">{post.excerpt}</p>
+                <h1 className="blog-hero-v3__title">{post.title}</h1>
+                <p className="blog-hero-v3__dek">{post.excerpt}</p>
 
-            <div className="blog-hero-v2__meta">
-              {post.authorName && (
-                <span className="blog-hero-v2__meta-item">
-                  <span aria-hidden="true">✍️</span>
-                  {t.by} <strong>{post.authorName}</strong>
-                </span>
-              )}
-              <span className="blog-hero-v2__meta-item">
-                <span aria-hidden="true">📅</span>
-                {formatDate(post.publishedAt, lang)}
-              </span>
-              <span className="blog-hero-v2__meta-item">
-                <span aria-hidden="true">⏱️</span>
-                {post.readingTime} {post.readingTime === 1 ? t.minReadSingle : t.minRead}
-              </span>
-              {post.viewCount > 0 && (
-                <span className="blog-hero-v2__meta-item">
-                  <span aria-hidden="true">👁️</span>
-                  {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.views}
-                </span>
-              )}
+                <div className="blog-hero-v3__meta">
+                  {post.authorName && (
+                    <span className="blog-hero-v3__meta-item">
+                      <span aria-hidden="true">✍️</span>
+                      {t.by} <strong>{post.authorName}</strong>
+                    </span>
+                  )}
+                  <span className="blog-hero-v3__meta-item">
+                    <span aria-hidden="true">📅</span>
+                    {formatDate(post.publishedAt, lang)}
+                  </span>
+                  <span className="blog-hero-v3__meta-item">
+                    <span aria-hidden="true">⏱️</span>
+                    {post.readingTime} {post.readingTime === 1 ? t.minReadSingle : t.minRead}
+                  </span>
+                  {post.viewCount > 0 && (
+                    <span className="blog-hero-v3__meta-item">
+                      <span aria-hidden="true">👁️</span>
+                      {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.views}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Image column — the actual product photo lives inside
+                  a contained card with rounded corners + soft shadow,
+                  so it reads as a designed asset instead of a
+                  cropped background. */}
+              <div className="blog-hero-v3__image-wrap">
+                <div className="blog-hero-v3__image-frame">
+                  <img
+                    src={heroImage}
+                    alt={post.title}
+                    className="blog-hero-v3__image"
+                    loading="eager"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </header>
