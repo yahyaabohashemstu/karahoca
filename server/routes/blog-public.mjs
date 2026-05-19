@@ -156,7 +156,13 @@ export const handleBlogList = async (req, res, { sendJson, origin, url }) => {
   // Build WHERE conditions. Status='published' AND active=1 cuts drafts
   // and the scheduler's pending entries; published_at <= now drops any
   // future-dated rows that aren't yet released.
-  const conditions = ["status='published'", 'active=1', "published_at <= datetime('now')"];
+  //
+  // `datetime(published_at)` normalises both ISO 8601 (with 'T' / 'Z')
+  // and SQLite-canonical formats to the same shape before comparing,
+  // so a post seeded with `Date.toISOString()` doesn't get filtered
+  // out by lexical string ordering (the bug that hid every seeded
+  // blog post from the public list on first deploy).
+  const conditions = ["status='published'", 'active=1', "datetime(published_at) <= datetime('now')"];
   const params = {};
   let categoryRow = null;
 
@@ -248,7 +254,7 @@ export const handleBlogPost = async (req, res, { sendJson, origin, url }) => {
 
   const row = db.prepare(`
     SELECT * FROM blog_posts
-    WHERE slug=? AND active=1 AND status='published' AND published_at <= datetime('now')
+    WHERE slug=? AND active=1 AND status='published' AND datetime(published_at) <= datetime('now')
   `).get(slug);
 
   if (!row) {
@@ -268,7 +274,7 @@ export const handleBlogPost = async (req, res, { sendJson, origin, url }) => {
     const relatedRows = db.prepare(`
       SELECT * FROM blog_posts
       WHERE category_id=? AND id != ? AND status='published' AND active=1
-        AND published_at <= datetime('now')
+        AND datetime(published_at) <= datetime('now')
       ORDER BY published_at DESC
       LIMIT 3
     `).all(categoryRow.id, row.id);
@@ -278,7 +284,7 @@ export const handleBlogPost = async (req, res, { sendJson, origin, url }) => {
     const fillRows = db.prepare(`
       SELECT * FROM blog_posts
       WHERE id != ? AND status='published' AND active=1
-        AND published_at <= datetime('now')
+        AND datetime(published_at) <= datetime('now')
       ORDER BY published_at DESC
       LIMIT ?
     `).all(row.id, 3 - related.length);
@@ -325,7 +331,7 @@ export const handleBlogCategories = async (req, res, { sendJson, origin }) => {
   const counts = db.prepare(`
     SELECT category_id, COUNT(*) AS n
     FROM blog_posts
-    WHERE active=1 AND status='published' AND published_at <= datetime('now')
+    WHERE active=1 AND status='published' AND datetime(published_at) <= datetime('now')
     GROUP BY category_id
   `).all();
   const countMap = new Map(counts.map((c) => [c.category_id, c.n]));

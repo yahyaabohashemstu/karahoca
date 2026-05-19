@@ -303,7 +303,7 @@ export const handleSitemap = (req, res) => {
                 title_ar, title_en, title_tr, title_ru,
                 published_at, updated_at
          FROM blog_posts
-         WHERE active=1 AND status='published' AND published_at <= datetime('now')
+         WHERE active=1 AND status='published' AND datetime(published_at) <= datetime('now')
          ORDER BY published_at DESC`,
       )
       .all();

@@ -2318,7 +2318,14 @@ const migrateBlog = () => {
     )
   `);
 
-  const now = new Date().toISOString();
+  // Use a SQLite-compatible datetime format (no 'T', no 'Z') so the
+  // public query's `published_at <= datetime('now')` comparison
+  // works. ISO 8601 ('YYYY-MM-DDTHH:MM:SS.sssZ') sorts LEXICALLY
+  // AFTER the SQLite format ('YYYY-MM-DD HH:MM:SS') because 'T' (0x54)
+  // > ' ' (0x20), which made every seeded post look "scheduled for
+  // the future" and disappear from the public list. The fix is to
+  // store in the SQLite-canonical shape.
+  const sqliteNow = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
   for (const p of BLOG_SEED_POSTS) {
     insertPost.run({
       id: p.id, slug: p.slug, image: p.image, hero_image: p.hero_image,
@@ -2327,7 +2334,7 @@ const migrateBlog = () => {
       excerpt_ar: p.excerpt.ar, excerpt_en: p.excerpt.en, excerpt_tr: p.excerpt.tr, excerpt_ru: p.excerpt.ru,
       body_ar: p.body.ar, body_en: p.body.en, body_tr: p.body.tr, body_ru: p.body.ru,
       author_name: p.author_name, reading_time: p.reading_time, featured: p.featured,
-      published_at: now,
+      published_at: sqliteNow,
     });
   }
 
@@ -2373,7 +2380,10 @@ const migrateBlogBatch2 = () => {
     )
   `);
 
-  const now = new Date().toISOString();
+  // SQLite-canonical format — see note in migrateBlog. ISO 8601 from
+  // `Date.toISOString()` would sort lexically AFTER datetime('now')
+  // and the public query would never surface these posts.
+  const sqliteNow = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
   let inserted = 0;
   for (const p of batch) {
     const r = insertPost.run({
@@ -2383,7 +2393,7 @@ const migrateBlogBatch2 = () => {
       excerpt_ar: p.excerpt.ar, excerpt_en: p.excerpt.en, excerpt_tr: p.excerpt.tr, excerpt_ru: p.excerpt.ru,
       body_ar: p.body.ar, body_en: p.body.en, body_tr: p.body.tr, body_ru: p.body.ru,
       author_name: p.author_name, reading_time: p.reading_time, featured: p.featured ? 1 : 0,
-      published_at: now,
+      published_at: sqliteNow,
     });
     if (r.changes > 0) inserted += 1;
   }
