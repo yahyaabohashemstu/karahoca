@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
 import { logger } from '../utils/logger.mjs';
+import { BLOG_BATCH_2 as BLOG_BATCH_2_SEED } from './blogSeedBatch2.mjs';
 
 const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3');
@@ -436,6 +437,7 @@ const migrateInitialData = () => {
   migrateNews();
   migrateNewsletter();
   migrateBlog();
+  migrateBlogBatch2();
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
@@ -2331,6 +2333,63 @@ const migrateBlog = () => {
 
   markMigration('initial_blog');
   logger.info({ categories: BLOG_SEED_CATEGORIES.length, posts: BLOG_SEED_POSTS.length }, '[db] Blog migration complete');
+};
+
+// ─── Blog Batch-2 Migration ──────────────────────────────────────────────────
+//
+// Separate sentinel (`blog_seed_v2`) so the second batch of posts ships
+// even on databases where `initial_blog` was already marked done with
+// only the first 3 entries. Uses INSERT OR IGNORE keyed on the post id,
+// so reruns are no-ops.
+
+const migrateBlogBatch2 = () => {
+  if (hasMigration('blog_seed_v2')) return;
+
+  // The batch is required eagerly at module top — keeping this sync
+  // mirrors the rest of the migration sequence and avoids ordering
+  // races with downstream initialisation that assumes the DB is
+  // fully seeded after initDb() returns.
+  const batch = BLOG_BATCH_2_SEED;
+  if (!Array.isArray(batch) || batch.length === 0) {
+    markMigration('blog_seed_v2');
+    return;
+  }
+
+  const insertPost = db.prepare(`
+    INSERT OR IGNORE INTO blog_posts(
+      id, slug, image, hero_image, category_id, tags,
+      title_ar, title_en, title_tr, title_ru,
+      excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
+      body_ar, body_en, body_tr, body_ru,
+      author_name, reading_time, featured,
+      status, published_at, active
+    ) VALUES(
+      @id, @slug, @image, @hero_image, @category_id, @tags,
+      @title_ar, @title_en, @title_tr, @title_ru,
+      @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
+      @body_ar, @body_en, @body_tr, @body_ru,
+      @author_name, @reading_time, @featured,
+      'published', @published_at, 1
+    )
+  `);
+
+  const now = new Date().toISOString();
+  let inserted = 0;
+  for (const p of batch) {
+    const r = insertPost.run({
+      id: p.id, slug: p.slug, image: p.image, hero_image: p.hero_image,
+      category_id: p.category_id, tags: JSON.stringify(p.tags || []),
+      title_ar: p.title.ar, title_en: p.title.en, title_tr: p.title.tr, title_ru: p.title.ru,
+      excerpt_ar: p.excerpt.ar, excerpt_en: p.excerpt.en, excerpt_tr: p.excerpt.tr, excerpt_ru: p.excerpt.ru,
+      body_ar: p.body.ar, body_en: p.body.en, body_tr: p.body.tr, body_ru: p.body.ru,
+      author_name: p.author_name, reading_time: p.reading_time, featured: p.featured ? 1 : 0,
+      published_at: now,
+    });
+    if (r.changes > 0) inserted += 1;
+  }
+
+  markMigration('blog_seed_v2');
+  logger.info({ inserted, total: batch.length }, '[db] Blog batch-2 migration complete');
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────

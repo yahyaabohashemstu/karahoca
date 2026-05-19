@@ -171,7 +171,10 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
         <nav className="menu header__menu" aria-label={t('nav.menu')}>
           <a href={brandsHref} className="nav-link">{t('nav.brands')}</a>
-          <Link to={blogHref} className="nav-link">{t('nav.blog', { defaultValue: 'Blog' })}</Link>
+          <Link to={blogHref} className="nav-link nav-link--blog">
+            <span aria-hidden="true" style={{ marginInlineEnd: 4 }}>📝</span>
+            {t('nav.blog', { defaultValue: 'Blog' })}
+          </Link>
           <a href={newsHref} className="nav-link">{t('nav.news')}</a>
           <a href={numbersHref} className="nav-link">{t('numbers.title')}</a>
           <a href={aboutHref} className="nav-link">{t('nav.about')}</a>
@@ -244,7 +247,10 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         inert={!isMobileMenuOpen ? '' : undefined}
       >
         <a href={brandsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.brands')}</a>
-        <Link to={blogHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.blog', { defaultValue: 'Blog' })}</Link>
+        <Link to={blogHref} className="nav-link nav-link--blog" onClick={closeMobileMenu}>
+          <span aria-hidden="true" style={{ marginInlineEnd: 4 }}>📝</span>
+          {t('nav.blog', { defaultValue: 'Blog' })}
+        </Link>
         <a href={newsHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.news')}</a>
         <a href={numbersHref} className="nav-link" onClick={closeMobileMenu}>{t('numbers.title')}</a>
         <a href={aboutHref} className="nav-link" onClick={closeMobileMenu}>{t('nav.about')}</a>

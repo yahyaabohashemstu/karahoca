@@ -1,4 +1,192 @@
 /* ═══════════════════════════════════════════════════════════════════════════
+ * Home-page Blog teaser strip
+ *
+ * Lives between BrandsSection and WorkSection (or NewsSection). The
+ * design intent is a calm 3-card grid that visually echoes the
+ * BrandsSection above it: same container width, same vertical rhythm,
+ * subtle gradient eyebrow, primary-coloured CTA at the bottom.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.home-blog-section {
+  padding: 4.5rem 0 4rem;
+  background: linear-gradient(180deg, transparent 0%, rgba(245, 75, 26, 0.04) 50%, transparent 100%);
+}
+
+.home-blog-section__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-blog-section__header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.home-blog-section__eyebrow {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-brand-accent, #f54b1a);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.home-blog-section__title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin: 0 0 0.8rem;
+  letter-spacing: -0.015em;
+}
+
+.home-blog-section__subtitle {
+  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.home-blog-section__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  padding: 0 1rem;
+}
+
+@media (max-width: 900px) {
+  .home-blog-section__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .home-blog-section__grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+}
+
+.home-blog-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.home-blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.home-blog-card__media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #f3f5f9;
+}
+
+.home-blog-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.home-blog-card:hover .home-blog-card__media img {
+  transform: scale(1.05);
+}
+
+.home-blog-card__body {
+  padding: 1.3rem 1.4rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1;
+}
+
+.home-blog-card__category {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  background: rgba(21, 61, 122, 0.85);
+  color: #fff;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.home-blog-card__title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: -0.005em;
+  color: rgba(0, 0, 0, 0.92);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.home-blog-card__excerpt {
+  font-size: 0.92rem;
+  color: rgba(0, 0, 0, 0.62);
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.home-blog-card__meta {
+  font-size: 0.82rem;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: auto;
+  padding-top: 0.4rem;
+}
+
+.home-blog-section__cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.home-blog-section__cta-link {
+  display: inline-block;
+  padding: 0.85rem 2rem;
+  background: var(--color-brand-accent, #f54b1a);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 14px rgba(245, 75, 26, 0.3);
+}
+
+.home-blog-section__cta-link:hover {
+  opacity: 0.93;
+  transform: translateY(-2px);
+}
+
+.home-blog-section__loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * Blog page styles (Phase F2)
  *
  * Scoped under `.blog-page` and `.blog-post-page` wrappers so these rules

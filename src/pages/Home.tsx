@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Hero from '../components/Hero';
 import BrandsSection from '../components/BrandsSection';
 import NewsSection from '../components/NewsSection';
+import BlogSection from '../components/BlogSection';
 import WorkSection from '../components/WorkSection';
 import NumbersSection from '../components/NumbersSection';
 import AboutSection from '../components/AboutSection';
@@ -33,6 +34,7 @@ const Home: React.FC = () => {
       <main>
         <Hero />
         <BrandsSection />
+        <BlogSection />
         <NewsSection />
         <WorkSection />
         <NumbersSection />
