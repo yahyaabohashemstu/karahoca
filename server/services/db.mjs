@@ -438,6 +438,7 @@ const migrateInitialData = () => {
   migrateNewsletter();
   migrateBlog();
   migrateBlogBatch2();
+  migrateBlogCleanupV1();
   migrateCatalogAssetPathsAndMetadata();
   // Add image_url column to email_campaigns if missing
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN image_url TEXT"); } catch { /* already exists */ }
@@ -1720,25 +1721,6 @@ const BLOG_SEED_CATEGORIES = [
     },
     display_order: 3,
   },
-  {
-    id: 'cat-business-bulk',
-    slug: 'business-bulk',
-    color: '#059669',
-    icon: '🏢',
-    name: {
-      ar: 'الجملة والأعمال',
-      en: 'Wholesale & Business',
-      tr: 'Toptan ve İşletme',
-      ru: 'Опт и бизнес',
-    },
-    description: {
-      ar: 'محتوى للموزّعين، تجّار الجملة، والشركات التي تشتري بكميات كبيرة.',
-      en: 'Content for distributors, wholesalers, and bulk-buying businesses.',
-      tr: 'Distribütörler, toptancılar ve toplu alıcılar için içerik.',
-      ru: 'Контент для дистрибьюторов, оптовиков и бизнес-клиентов.',
-    },
-    display_order: 4,
-  },
 ];
 
 // One markdown body per language — multi-paragraph, with H2/H3 headings,
@@ -2095,183 +2077,6 @@ Kumaşınız veya belirli bir leke hakkında sorunuz var mı? WhatsApp'tan yazı
     author_name: 'فريق KARAHOCA',
     reading_time: 4,
   },
-  {
-    id: 'post-bulk-buying-guide',
-    slug: 'bulk-buying-cleaning-supplies',
-    category_id: 'cat-business-bulk',
-    image: '/karahoca-logo-1-Photoroom.webp',
-    hero_image: '/karahoca-logo-1-Photoroom.webp',
-    featured: 0,
-    tags: ['wholesale', 'business', 'b2b'],
-    title: {
-      ar: 'دليل الشراء بالجملة لمنتجات التنظيف',
-      en: 'A Guide to Bulk Buying Cleaning Supplies',
-      tr: 'Toptan Temizlik Ürünleri Satın Alma Rehberi',
-      ru: 'Гид по оптовой закупке моющих средств',
-    },
-    excerpt: {
-      ar: 'كيف توفّر ٢٠-٤٠٪ من ميزانية التنظيف الشهرية إذا كنت تدير فندقاً، مدرسة، أو منشأة تجارية.',
-      en: 'How to save 20-40% on monthly cleaning budget if you run a hotel, school, or business facility.',
-      tr: 'Otel, okul veya işletme yönetiyorsanız aylık temizlik bütçesinden %20-40 nasıl tasarruf edilir.',
-      ru: 'Как сэкономить 20-40% месячного бюджета на уборку, если у вас отель, школа или бизнес.',
-    },
-    body: {
-      ar: `إذا كنت تدير منشأة تستهلك منتجات تنظيف بكميات كبيرة — فندق، مدرسة، مستشفى، مطعم، أو سلسلة محلّات — فإنّ الشراء بالجملة من KARAHOCA يوفّر بشكل كبير عن السوبر ماركت العادي.
-
-## كيف نسعّر بالجملة
-
-نقدّم **٣ مستويات** بحسب الحجم الشهري:
-
-| المستوى | الحدّ الأدنى/شهر | الخصم |
-|---|---|---|
-| **Bronze** | ٥٠٠ كغ | ١٥٪ |
-| **Silver** | ٢ طن | ٢٥٪ |
-| **Gold** | ٥ طن | ٤٠٪ + شحن مجّاني |
-
-## ما الذي يحدّد السعر
-
-- **الحجم المتعهّد به**: العقد الشهري يضمن سعراً ثابتاً لـ ٦ أشهر.
-- **التشكيلة**: عميل يأخذ ٥ منتجات مختلفة يحصل على سعر أفضل من واحد يأخذ منتجاً واحداً.
-- **الموقع**: تركيا (شحن داخلي مجّاني فوق ٢ طن) أم تصدير (FOB أو CIF).
-
-## التغليف المخصّص (Private Label)
-
-نوفّر خدمة الإنتاج بعلامتك التجارية الخاصة:
-- الحدّ الأدنى: **١٠ طن** لكلّ منتج.
-- وقت التسليم: **٢١-٣٠ يوماً** بعد اعتماد التصميم.
-- تصميم الملصق على حسابنا (مع مصمّمنا الداخلي).
-
-## أمثلة على عملاء حاليّين
-
-- **سلسلة فنادق في إسطنبول** (٤٥٠ غرفة): يستهلكون ٣ طن شهرياً من DIOX منظف عام + ١.٥ طن سائل غسيل = توفير سنوي ~٤٢٠٠٠ ليرة.
-- **مدرسة دولية في أنطاكية** (١٢٠٠ طالب): ١.٢ طن شهرياً، خصم ٢٥٪ بعقد سنوي.
-
-## كيف تبدأ
-
-1. أرسل لنا قائمة احتياجك الشهري عبر واتساب أو email.
-2. نرجع لك بعرض سعر مفصّل خلال ٢٤ ساعة.
-3. توقيع عقد إطار (لمدّة ٦-١٢ شهر).
-4. شحنة الاختبار خلال أسبوع.
-
-**جاهز لخفض ميزانية التنظيف؟** [راسلنا الآن](mailto:info@karahoca.com)`,
-      en: `If you run a facility that consumes cleaning products in large quantities — a hotel, school, hospital, restaurant, or store chain — wholesale buying from KARAHOCA delivers significant savings over the supermarket.
-
-## How our wholesale pricing works
-
-We offer **3 tiers** by monthly volume:
-
-| Tier | Min/month | Discount |
-|---|---|---|
-| **Bronze** | 500 kg | 15% |
-| **Silver** | 2 tons | 25% |
-| **Gold** | 5 tons | 40% + free shipping |
-
-## What determines the price
-
-- **Committed volume**: monthly contract locks the price for 6 months.
-- **Mix**: a customer ordering 5 products gets a better rate than one ordering a single product.
-- **Location**: Türkiye (free domestic shipping above 2 tons) vs export (FOB or CIF).
-
-## Private label
-
-We offer production under your own brand:
-- Minimum: **10 tons** per product.
-- Lead time: **21-30 days** after design approval.
-- Label design free of charge (with our in-house designer).
-
-## Current customer examples
-
-- **Hotel chain in Istanbul** (450 rooms): consumes 3 tons/month of DIOX General Cleaner + 1.5 tons of liquid detergent = annual savings ~₺42,000.
-- **International school in Antakya** (1,200 students): 1.2 tons/month, 25% discount with annual contract.
-
-## How to start
-
-1. Send us your monthly need list via WhatsApp or email.
-2. We come back with a detailed quote within 24 hours.
-3. Sign a framework contract (6-12 months).
-4. Trial shipment within a week.
-
-**Ready to cut your cleaning budget?** [Contact us now](mailto:info@karahoca.com)`,
-      tr: `Büyük miktarda temizlik ürünü tüketen bir tesisiniz varsa — otel, okul, hastane, restoran veya mağaza zinciri — KARAHOCA'dan toptan satın alma süpermarkete kıyasla önemli tasarruf sağlar.
-
-## Toptan fiyatlandırma nasıl çalışır
-
-Aylık hacme göre **3 seviye** sunuyoruz:
-
-| Seviye | Min/ay | İndirim |
-|---|---|---|
-| **Bronz** | 500 kg | %15 |
-| **Gümüş** | 2 ton | %25 |
-| **Altın** | 5 ton | %40 + ücretsiz kargo |
-
-## Fiyatı belirleyen faktörler
-
-- **Taahhüt edilen hacim**: aylık sözleşme 6 ay için fiyatı kilitler.
-- **Ürün çeşitliliği**: 5 farklı ürün alan müşteri, tek ürün alandan daha iyi fiyat alır.
-- **Konum**: Türkiye (2 ton üzeri ücretsiz iç kargo) veya ihracat (FOB veya CIF).
-
-## Özel etiket (Private Label)
-
-Kendi markanızla üretim hizmeti sunuyoruz:
-- Minimum: ürün başına **10 ton**.
-- Teslim süresi: tasarım onayından sonra **21-30 gün**.
-- Etiket tasarımı ücretsiz (kurum içi tasarımcımızla).
-
-## Mevcut müşteri örnekleri
-
-- **İstanbul'da otel zinciri** (450 oda): aylık 3 ton DIOX Genel Temizleyici + 1,5 ton sıvı deterjan tüketiyor = yıllık tasarruf ~₺42.000.
-- **Antakya'daki uluslararası okul** (1.200 öğrenci): aylık 1,2 ton, yıllık sözleşme ile %25 indirim.
-
-## Nasıl başlanır
-
-1. Aylık ihtiyaç listenizi WhatsApp veya e-posta ile gönderin.
-2. 24 saat içinde detaylı teklif geri döner.
-3. Çerçeve sözleşme imzala (6-12 ay).
-4. Deneme sevkiyatı bir hafta içinde.
-
-**Temizlik bütçenizi azaltmaya hazır mısınız?** [Şimdi bize ulaşın](mailto:info@karahoca.com)`,
-      ru: `Если у вас объект, потребляющий моющие средства в больших количествах — отель, школа, больница, ресторан или сеть магазинов — оптовая закупка у KARAHOCA даёт ощутимую экономию по сравнению с супермаркетом.
-
-## Как работает наше оптовое ценообразование
-
-Мы предлагаем **3 уровня** по месячному объёму:
-
-| Уровень | Мин/мес | Скидка |
-|---|---|---|
-| **Бронза** | 500 кг | 15% |
-| **Серебро** | 2 тонны | 25% |
-| **Золото** | 5 тонн | 40% + бесплатная доставка |
-
-## Что определяет цену
-
-- **Обязательный объём**: месячный контракт фиксирует цену на 6 месяцев.
-- **Ассортимент**: клиент, заказывающий 5 продуктов, получает лучшую цену, чем один продукт.
-- **Локация**: Турция (бесплатная внутренняя доставка от 2 тонн) или экспорт (FOB или CIF).
-
-## Private Label (под вашим брендом)
-
-Производим под вашей собственной маркой:
-- Минимум: **10 тонн** на продукт.
-- Срок: **21-30 дней** после утверждения дизайна.
-- Дизайн этикетки бесплатно (наш штатный дизайнер).
-
-## Примеры текущих клиентов
-
-- **Гостиничная сеть в Стамбуле** (450 номеров): потребляет 3 тонны DIOX универсального + 1,5 тонны жидкого средства в месяц = годовая экономия ~₺42.000.
-- **Международная школа в Антакье** (1.200 учеников): 1,2 тонны в месяц, скидка 25% по годовому контракту.
-
-## Как начать
-
-1. Пришлите нам список месячных потребностей в WhatsApp или e-mail.
-2. В течение 24 часов вернёмся с детальным предложением.
-3. Подпишите рамочный контракт (6-12 месяцев).
-4. Тестовая поставка в течение недели.
-
-**Готовы сократить бюджет на уборку?** [Свяжитесь с нами сейчас](mailto:info@karahoca.com)`,
-    },
-    author_name: 'فريق المبيعات في KARAHOCA',
-    reading_time: 6,
-  },
 ];
 
 const migrateBlog = () => {
@@ -2400,6 +2205,105 @@ const migrateBlogBatch2 = () => {
 
   markMigration('blog_seed_v2');
   logger.info({ inserted, total: batch.length }, '[db] Blog batch-2 migration complete');
+};
+
+// ─── Blog Cleanup v1 — strip all pricing content from existing rows ──────────
+//
+// Editorial policy: the KARAHOCA blog publishes cleaning tips, how-to
+// guides, and product-use explainers. It does NOT publish pricing,
+// discounts, wholesale offers, or commercial CTAs. That belongs on the
+// product / contact pages, not on the editorial surface.
+//
+// This migration cleans up the seed data shipped before that policy
+// was tightened. It runs ONCE (`blog_cleanup_v1` sentinel) and:
+//
+//   1. Deletes the entirely-commercial "bulk buying" post, if present.
+//   2. Hides the entirely-commercial "Wholesale & Business" category.
+//   3. Strips every body's trailing CTA block — anything that comes
+//      after the LAST `---` horizontal rule in each language variant.
+//      The CTAs invariably promote wholesale pricing, free samples,
+//      contract pricing, or SDS document requests — all of which fall
+//      under "anything price-related" per the editorial directive.
+//   4. Surgical removal of two known mid-body price mentions in the
+//      "powder vs liquid" comparison post (the "cheaper per wash"
+//      bullet in each language).
+//
+// View counts and created_at timestamps are preserved — the UPDATE
+// touches only body_* columns + updated_at. Existing visitor analytics
+// on the cleaned posts stay intact.
+
+const stripCtaAfterLastSeparator = (body) => {
+  if (typeof body !== 'string' || !body) return body;
+  // The last `---` on its own line marks the start of the CTA block in
+  // every seeded post. Belt-and-braces: only strip when the trailing
+  // chunk is at most 800 chars (a real CTA is ~100-400) so we don't
+  // accidentally chop a legitimate trailing section in a hand-edited
+  // admin post.
+  const sepRegex = /\n\n---\n\n[\s\S]*$/;
+  const match = body.match(sepRegex);
+  if (!match) return body;
+  if (match[0].length > 1200) return body; // too long to be a CTA — leave alone
+  return body.replace(sepRegex, '').trimEnd();
+};
+
+// Known mid-body "cheaper per wash" bullets in the powder-vs-liquid
+// post. One per language, with the trailing newline so the
+// surrounding list stays clean after removal.
+const POWDER_BUDGET_LINES = [
+  '- **ميزانية محدودة** — المسحوق عادةً أرخص لكلّ غسلة.\n',
+  '- **Budget conscious** — powder is usually cheaper per wash.\n',
+  '- **Ekonomik tercih** — yıkama başına genellikle daha ucuz.\n',
+  '- **Экономия** — порошок обычно дешевле за стирку.\n',
+];
+
+const migrateBlogCleanupV1 = () => {
+  if (hasMigration('blog_cleanup_v1')) return;
+
+  // 1. Delete the bulk-buying post (entirely commercial).
+  const delResult = db.prepare("DELETE FROM blog_posts WHERE id = 'post-bulk-buying-guide'").run();
+
+  // 2. Hide the business-bulk category. Soft-delete (active=0) instead
+  //    of physical delete so any future analytics dashboard showing
+  //    historical category data doesn't break.
+  const catResult = db.prepare("UPDATE blog_categories SET active=0, updated_at=datetime('now') WHERE id = 'cat-business-bulk'").run();
+
+  // 3. Strip trailing CTA blocks from every remaining post's body
+  //    in every language. Read → clean → write back.
+  const rows = db.prepare('SELECT id, body_ar, body_en, body_tr, body_ru FROM blog_posts').all();
+  const update = db.prepare(`
+    UPDATE blog_posts
+    SET body_ar=@body_ar, body_en=@body_en, body_tr=@body_tr, body_ru=@body_ru,
+        updated_at=datetime('now')
+    WHERE id=@id
+  `);
+
+  let cleaned = 0;
+  for (const row of rows) {
+    let body_ar = stripCtaAfterLastSeparator(row.body_ar);
+    let body_en = stripCtaAfterLastSeparator(row.body_en);
+    let body_tr = stripCtaAfterLastSeparator(row.body_tr);
+    let body_ru = stripCtaAfterLastSeparator(row.body_ru);
+
+    // 4. Surgical removal of mid-body price mentions in the
+    //    powder-vs-liquid post.
+    if (row.id === 'post-laundry-powder-vs-liquid') {
+      for (const line of POWDER_BUDGET_LINES) {
+        body_ar = body_ar.replace(line, '');
+        body_en = body_en.replace(line, '');
+        body_tr = body_tr.replace(line, '');
+        body_ru = body_ru.replace(line, '');
+      }
+    }
+
+    update.run({ id: row.id, body_ar, body_en, body_tr, body_ru });
+    cleaned += 1;
+  }
+
+  markMigration('blog_cleanup_v1');
+  logger.info(
+    { deletedPost: delResult.changes, hiddenCategory: catResult.changes, cleanedBodies: cleaned },
+    '[db] Blog cleanup v1 complete — removed all pricing content',
+  );
 };
 
 // ─── Newsletter Migration ────────────────────────────────────────────────────
