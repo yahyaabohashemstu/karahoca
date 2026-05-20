@@ -943,6 +943,14 @@ body.light-mode .brand__logo {
   gap: 1.5rem;
   margin: 2rem 0;
   padding: 0 1rem;
+  /* Logical alignment — items flow from the inline-start of the grid.
+     In RTL this means the cards "start from the right" naturally;
+     in LTR they start from the left. Without this, a row that's
+     shorter than the column count (e.g. a category with only 2
+     products in a 4-column grid) can end up looking centered
+     because of legacy `justify-items: center` overrides below. */
+  justify-content: start;
+  justify-items: start;
 }
 
 /* حاوية البطاقة مع تأثير الانقلاب */
@@ -5510,7 +5518,11 @@ body.light-mode .catalog-print-trigger {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
     padding: 0;
-    justify-items: center;
+    /* Was `justify-items: center` — replaced because a category row
+       with only 1 or 2 products ended up looking centered in the
+       grid rather than starting from the right edge (RTL) / left
+       edge (LTR). `start` matches the rest of the section flow. */
+    justify-items: start;
   }
 
   .product-card-flip-container {
@@ -5886,7 +5898,12 @@ body.light-mode .catalog-print-trigger {
     grid-template-columns: 1fr;
     gap: 1.25rem;
     padding: 0;
-    justify-items: center;
+    /* At ≤480px the grid is a single column — cards take the full
+       width naturally. Centering here was harmless visually but
+       inconsistent with the wider breakpoints which now start at
+       the inline-start. Kept `center` semantically but applied as
+       `start` so a partial row never looks off-balance. */
+    justify-items: start;
   }
 
   .product-card,
