@@ -945,6 +945,36 @@ body.light-mode .brand__logo {
   padding: 0 1rem;
 }
 
+/* ─── Partial-row alignment fix — RTL desktop ONLY ───────────────────────────
+ *
+ * The base `repeat(auto-fill, minmax(300px, 1fr))` distributes empty
+ * tracks via `1fr`, so a category with only 2 products in a grid that
+ * could hold 4 ends up with the 2 items looking centered in the
+ * container (because the empty 1fr tracks on the inline-end side
+ * consume equal space).
+ *
+ * For RTL Arabic only — every other language was reported as correct —
+ * we switch the grid template to `auto-fit` (collapses empty tracks)
+ * with a fixed 300px track width (no 1fr stretching) and pack the
+ * resulting tracks tight against the inline-start (right) edge via
+ * `justify-content: start`. Full-row categories (4+ products) behave
+ * identically to the base rule because every track is filled and the
+ * total grid width matches the container; partial-row categories now
+ * hug the right edge like the visitor expects.
+ *
+ * Scoped to `min-width: 769px` so the existing mobile rules below
+ * (`@media (max-width: 768px)`) — which use a fixed 2-column grid
+ * and have lower specificity — stay in charge of small viewports.
+ * Without the media query gate, this attribute-selector rule would
+ * outweigh the mobile-breakpoint rule and break tablet/phone layout.
+ */
+@media (min-width: 769px) {
+  [dir="rtl"] .products-grid-compact {
+    grid-template-columns: repeat(auto-fit, 300px);
+    justify-content: start;
+  }
+}
+
 /* حاوية البطاقة مع تأثير الانقلاب */
 .product-card-flip-container {
   width: 300px;
