@@ -938,19 +938,29 @@ body.light-mode .brand__logo {
 
 /* Compact Products Grid for DIOX page */
 .products-grid-compact {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* Switched from CSS Grid + auto-fill to Flexbox because the previous
+     `repeat(auto-fill, minmax(300px, 1fr))` was producing inconsistent
+     placement: a category with only 2 products in a 4-track grid ended
+     up centered/left in some viewports because empty `1fr` tracks took
+     space on the inline-end side, pushing items away from the inline-
+     start edge.
+     Flexbox + flex-wrap + justify-content: flex-start handles RTL the
+     way the visitor expects: items pack tight against the inline-start
+     edge (right in RTL, left in LTR), wrap to the next row when full,
+     and ALWAYS start from the same edge regardless of how many items
+     are in the row. */
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.5rem;
   margin: 2rem 0;
   padding: 0 1rem;
-  /* Logical alignment — items flow from the inline-start of the grid.
-     In RTL this means the cards "start from the right" naturally;
-     in LTR they start from the left. Without this, a row that's
-     shorter than the column count (e.g. a category with only 2
-     products in a 4-column grid) can end up looking centered
-     because of legacy `justify-items: center` overrides below. */
-  justify-content: start;
-  justify-items: start;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Each card keeps its fixed 300px width but doesn't grow/shrink. */
+.products-grid-compact > .product-card-flip-container {
+  flex: 0 0 auto;
 }
 
 /* حاوية البطاقة مع تأثير الانقلاب */
@@ -5515,18 +5525,18 @@ body.light-mode .catalog-print-trigger {
      `.container` already supplies the gutter. Was costing 32px of
      usable card width on every breakpoint.                      */
   .products-grid-compact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
     padding: 0;
-    /* Was `justify-items: center` — replaced because a category row
-       with only 1 or 2 products ended up looking centered in the
-       grid rather than starting from the right edge (RTL) / left
-       edge (LTR). `start` matches the rest of the section flow. */
-    justify-items: start;
+    /* The flex layout from the base rule already starts from the
+       inline-start edge — no override needed here. */
   }
 
-  .product-card-flip-container {
-    width: 100%;
+  /* On tablet/phone each card takes roughly half the row, capped at
+     320px so two-up never gets uncomfortably wide. Flex-basis controls
+     the per-card width; `calc(50% - 0.5rem)` accounts for the 1rem
+     gap between cards. */
+  .products-grid-compact > .product-card-flip-container {
+    flex: 0 0 calc(50% - 0.5rem);
     max-width: 320px;
     height: 400px;
   }
@@ -5895,15 +5905,12 @@ body.light-mode .catalog-print-trigger {
      width from 343px to 311px for no reason.                  */
   .products-grid,
   .products-grid-compact {
-    grid-template-columns: 1fr;
     gap: 1.25rem;
     padding: 0;
-    /* At ≤480px the grid is a single column — cards take the full
-       width naturally. Centering here was harmless visually but
-       inconsistent with the wider breakpoints which now start at
-       the inline-start. Kept `center` semantically but applied as
-       `start` so a partial row never looks off-balance. */
-    justify-items: start;
+    /* Single-column phones — cards stack vertically and take the full
+       width of the inner container. Flex direction stays row + wrap
+       which is equivalent to a single-column stack when each child
+       is flex-basis: 100%. */
   }
 
   .product-card,
@@ -5913,6 +5920,8 @@ body.light-mode .catalog-print-trigger {
   }
 
   .product-card-flip-container {
+    /* Single-column phone: each card takes the full row */
+    flex: 0 0 100%;
     width: 100%;
     max-width: 340px;
     height: 420px;
