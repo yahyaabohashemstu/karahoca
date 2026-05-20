@@ -945,50 +945,6 @@ body.light-mode .brand__logo {
   padding: 0 1rem;
 }
 
-/* ─── RTL partial-row alignment ──────────────────────────────────────────────
- *
- * The base `repeat(auto-fill, minmax(300px, 1fr))` creates 3 tracks
- * at desktop, each stretched to ~373px via the `1fr` component. A
- * category with only 2 products fills tracks 1 and 2; with the
- * default `justify-self: start` (= right edge in RTL) inside each
- * track, the 2 cards visually hug the right side of the container,
- * which is what the visitor expects.
- *
- * HOWEVER — the cards are 300px FIXED width inside 373px tracks.
- * The 73px of slack inside each track means even though the card
- * itself is at the inline-start (right) edge of its track, the
- * NEXT card to its left has 73px of empty track-space between them.
- * The overall row looks "spread out" rather than "tightly packed
- * against the right edge".
- *
- * This rule only fires when the page direction is RTL and the
- * viewport is wide enough to make this visible (>=769px). It
- * collapses the unused tracks via `auto-fit` (instead of `auto-fill`)
- * and forces a fixed 300px track size (no `1fr` stretching). The 2-
- * product row now consists of exactly 2 × 300px tracks packed tight
- * against the inline-start (right) edge of the container via
- * `justify-content: start`.
- *
- * Important: this DOES leave empty space on the inline-end (left)
- * side of the container for partial rows. That's the expected
- * behaviour — visitors comparing two brand pages now see partial
- * rows aligned consistently regardless of whether the brand's
- * earlier categories happen to fill all their tracks. Full-row
- * categories (≥3 products) look identical to the base rule because
- * every track is occupied and the total grid width = container
- * width.
- *
- * Mobile breakpoints (<769px) keep using the unmodified base rule
- * + their own `repeat(2, minmax(0, 1fr))` override below, so phones
- * keep the centred 2-up layout the user already accepted.
- */
-@media (min-width: 769px) {
-  [dir="rtl"] .products-grid-compact {
-    grid-template-columns: repeat(auto-fit, 300px);
-    justify-content: start;
-  }
-}
-
 /* حاوية البطاقة مع تأثير الانقلاب */
 .product-card-flip-container {
   width: 300px;
@@ -2920,9 +2876,16 @@ html[dir="ltr"] .theme-toggle {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  /* Mobile optimizations for compact products */
+  /* Compact products grid at desktop (≥900px).
+   * NOTE the `minmax(300px, 1fr)` — was previously `minmax(280px, 1fr)`
+   * which created 280px-wide tracks at 1200px container, but cards have
+   * a FIXED 300px width (.product-card-flip-container), so they
+   * overflowed their tracks by 20px and visually bled into adjacent
+   * columns. Matching the min track width to the actual card width
+   * eliminates the overflow and produces a clean grid in both RTL
+   * and LTR. */
   .products-grid-compact {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     padding: 0 0.5rem;
   }
