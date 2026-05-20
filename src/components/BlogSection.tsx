@@ -38,7 +38,7 @@ interface BlogTeaserPost {
 const STRINGS: Record<string, Record<string, string>> = {
   ar: {
     sectionLabel: 'المدوّنة',
-    sectionTitle: 'نصائح وأدلّة من خبراء كاراهوكا',
+    sectionTitle: 'نصائح وأدلّة من خبراء قره خوجة',
     sectionSubtitle: 'مقالات عملية حول التنظيف الاحترافي، اختيار المنتجات، والاستخدام الأمثل لـ DIOX و AYLUX.',
     viewAll: 'عرض كل المنشورات ←',
     minRead: 'دقائق قراءة',

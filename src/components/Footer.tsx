@@ -121,7 +121,7 @@ const Footer: React.FC = () => {
         <section className="footer__brand">
           <img
             src="/cropped-karahoca-logo-s-.webp"
-            alt="KARAHOCA — قره خوجة — كاراهوكا"
+            alt="KARAHOCA — قره خوجة"
             className="brand__logo"
             loading="lazy"
             decoding="async"

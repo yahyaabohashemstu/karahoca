@@ -66,7 +66,7 @@ const PAGE_SIZE = 12;
 /** Localised UI strings for the blog index/category page. */
 const STRINGS: Record<string, Record<string, string>> = {
   ar: {
-    pageTitle: 'مدوّنة كاراهوكا',
+    pageTitle: 'مدوّنة قره خوجة',
     pageSubtitle: 'نصائح، أدلّة، وأفكار عملية حول التنظيف الاحترافي ومنتجات DIOX و AYLUX',
     allPosts: 'كل المنشورات',
     featured: 'المختارة',
@@ -79,9 +79,9 @@ const STRINGS: Record<string, Record<string, string>> = {
     next: 'التالي →',
     page: 'صفحة',
     of: 'من',
-    seoTitle: 'مدوّنة كاراهوكا — نصائح وأدلّة التنظيف',
+    seoTitle: 'مدوّنة قره خوجة — نصائح وأدلّة التنظيف',
     seoDescription: 'مقالات حول طرق التنظيف الاحترافية، أدلّة استخدام منتجات DIOX و AYLUX، ونصائح لمالكي الفنادق والمنشآت التجارية.',
-    seoKeywords: 'مدونة, تنظيف, نصائح, DIOX, AYLUX, كاراهوكا, طرق استخدام',
+    seoKeywords: 'مدونة, تنظيف, نصائح, DIOX, AYLUX, قره خوجة, طرق استخدام',
   },
   en: {
     pageTitle: 'KARAHOCA Blog',

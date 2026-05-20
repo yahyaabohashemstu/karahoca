@@ -11,9 +11,11 @@
  *                   chemical / industrial brands use.
  *   - "قرة خوجة"  Modern standard Arabic punctuation (tāʾ marbūṭa).
  *   - "قرا هوجا"  Phonetic transliteration popular in the Levant.
- *   - "كاراهوكا"  Direct phonetic borrow from Turkish "karahoca"
- *                  treating 'c' as 'k'.
- *   - "كاراهوجا"  Same, treating 'c' as 'g' (Egyptian-influenced).
+ *
+ * Other phonetic spellings exist (e.g. كاراهوكا / كاراهوجا — direct
+ * borrowings from Turkish "karahoca") but we deliberately don't use
+ * them as display aliases; per brand directive the canonical Arabic
+ * display form everywhere on the site is the Ottoman "قره خوجة".
  *
  * A buyer searching for the Aleppo cleaning supplier may type any of
  * these. The site previously only ranked for the Latin "KARAHOCA" and
@@ -37,6 +39,11 @@ export const BRAND_ARABIC_PRIMARY = 'قره خوجة';
  * is the canonical search target; everything after is supporting
  * coverage for less-common spellings. Keep this list focused — bloating
  * it with near-duplicates dilutes the search signal.
+ *
+ * Editorial policy (per brand directive): the spelling "كاراهوكا" is
+ * NOT included anywhere visible — neither as a displayed alias nor in
+ * SEO keyword targets. We rank on the canonical Ottoman form
+ * "قره خوجة" plus the punctuation / phonetic variants below.
  */
 export const BRAND_ARABIC_VARIANTS = [
   'قره خوجة',  // ★ primary
@@ -45,8 +52,6 @@ export const BRAND_ARABIC_VARIANTS = [
   'قرا خوجة',
   'قرا هوجا',
   'كرا هوجا',
-  'كاراهوكا',
-  'كاراهوجا',
 ] as const;
 
 /**
@@ -74,24 +79,25 @@ export const BRAND_ALTERNATE_NAMES: ReadonlyArray<string> = [
 ];
 
 /**
- * Compact display string for footers / hero subtitles where space is
- * limited but we still want both languages visible to crawlers AND to
- * Arabic-speaking buyers who recognise the Arabic form first.
+ * Bilingual compact display for hero subtitle / footer.
  *
- * Format: `KARAHOCA · كاراهوكا · قره خوجة`
+ * Format: `KARAHOCA · قره خوجة`
  *   - Latin official first (legal name)
- *   - Most common modern Arabic form
- *   - Traditional Ottoman form (the one we want to rank on)
+ *   - Traditional Ottoman Arabic form (the canonical we rank on)
+ *
+ * Note: this string deliberately omits "كاراهوكا" per the brand
+ * directive — we don't want the same name shown twice in two Arabic
+ * spellings; "قره خوجة" is the single canonical Arabic display form.
  */
 export const BRAND_DISPLAY_TRILINGUAL =
-  `${BRAND_LATIN_OFFICIAL} · كاراهوكا · ${BRAND_ARABIC_PRIMARY}`;
+  `${BRAND_LATIN_OFFICIAL} · ${BRAND_ARABIC_PRIMARY}`;
 
 /**
- * Comma-separated string for use in HTML `alt` attributes on the brand
- * logo, in search-engine-targeted meta keywords, and inside `<meta
- * name="application-name">`. Crawlers parse alt text as image
- * description AND as a weak text signal — including the Arabic name
- * here lets image search find the logo via Arabic queries too.
+ * Used for HTML `alt` attributes on the brand logo, in search-engine-
+ * targeted meta keywords, and inside `<meta name="application-name">`.
+ * Crawlers parse alt text as image description AND as a weak text
+ * signal — including the Arabic name here lets image search find the
+ * logo via Arabic queries too.
  */
 export const BRAND_LOGO_ALT_TEXT =
-  `${BRAND_LATIN_OFFICIAL} — ${BRAND_ARABIC_PRIMARY} — كاراهوكا`;
+  `${BRAND_LATIN_OFFICIAL} — ${BRAND_ARABIC_PRIMARY}`;

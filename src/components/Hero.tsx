@@ -13,19 +13,20 @@ const Hero: React.FC = () => {
             <span className="accent gradient-text">{t('hero.title')}</span>
           </h1>
           {/* Brand-name eyebrow visible to Arabic visitors above the lead.
-              Carries BOTH the most-searched Arabic transliteration
-              ("قره خوجة") and the modern phonetic form ("كاراهوكا") so
-              the homepage's primary text content carries the variants
-              search engines need to associate the URL with each query.
-              Rendered as semantic <p> with role="text" so screen readers
-              announce it once, and aria-label maps the dot to a comma
-              for natural reading. */}
+              Carries the canonical Arabic transliteration "قره خوجة"
+              + the Latin official name so the homepage's primary text
+              content carries both forms for search. Rendered as a
+              semantic <p> with aria-label that maps the dot separator
+              to a comma for natural screen-reader reading.
+              Note: per brand directive, the phonetic "كاراهوكا" form
+              is intentionally NOT shown here — "قره خوجة" is the
+              single canonical Arabic display name. */}
           {isArabic && (
             <p
               className="fx-reveal hero-brand-line"
-              aria-label="كاراهوكا، قره خوجة"
+              aria-label="قره خوجة"
             >
-              <span aria-hidden="true">كاراهوكا · قره خوجة · KARAHOCA</span>
+              <span aria-hidden="true">قره خوجة · KARAHOCA</span>
             </p>
           )}
           <p className="lead fx-reveal">{t('hero.subtitle')}</p>
