@@ -945,43 +945,6 @@ body.light-mode .brand__logo {
   padding: 0 1rem;
 }
 
-/* ─── RTL grid alignment (Arabic pages) ──────────────────────────────────────
- *
- * User-confirmed expectation after the DIOX screenshot comparison: in
- * Arabic, product cards should always pack against the inline-start
- * (right) edge of the container, in source order (item 1 = rightmost).
- * The default `auto-fill, minmax(300px, 1fr)` distributes the row by
- * stretching every track to fill the container; a category with 2
- * products in a 3-track grid ends up with the items in the right two
- * tracks BUT separated by visible track-slack that makes them read as
- * "spread out" instead of "tightly packed at the right".
- *
- * Switching to `auto-fit, 300px` for RTL desktop:
- *   - `auto-fit` collapses unoccupied tracks (vs `auto-fill` which
- *     keeps them and reserves space)
- *   - Fixed 300px tracks (no 1fr stretching) match the card's own
- *     fixed width, so cards align flush inside their tracks
- *   - `justify-content: start` packs the resulting (narrower) grid
- *     tight against the inline-start edge — right in RTL
- *
- * Result: AYLUX and DIOX now look identical in Arabic — both have the
- * 2-card "personal hygiene" partial row hugging the right edge with
- * a visible empty band on the left. Full-row categories (3 products)
- * still occupy the bulk of the container because 3 × 300 + 2 × 16
- * = 932px is most of the 1168px available content area.
- *
- * Scoped to viewports ≥769px so the mobile-breakpoint rules below
- * (which use a 2-column fixed grid + centered items) stay in charge
- * of phones and small tablets — those layouts were already
- * user-approved and don't need RTL-specific treatment.
- */
-@media (min-width: 769px) {
-  [dir="rtl"] .products-grid-compact {
-    grid-template-columns: repeat(auto-fit, 300px);
-    justify-content: start;
-  }
-}
-
 /* حاوية البطاقة مع تأثير الانقلاب */
 .product-card-flip-container {
   width: 300px;
@@ -2913,16 +2876,9 @@ html[dir="ltr"] .theme-toggle {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  /* Compact products grid at desktop (≥900px).
-   * NOTE the `minmax(300px, 1fr)` — was previously `minmax(280px, 1fr)`
-   * which created 280px-wide tracks at 1200px container, but cards have
-   * a FIXED 300px width (.product-card-flip-container), so they
-   * overflowed their tracks by 20px and visually bled into adjacent
-   * columns. Matching the min track width to the actual card width
-   * eliminates the overflow and produces a clean grid in both RTL
-   * and LTR. */
+  /* Mobile optimizations for compact products */
   .products-grid-compact {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
     padding: 0 0.5rem;
   }
