@@ -219,6 +219,25 @@ const SYSTEM_PROMPT = [
   '  carts, checkouts, online payment, or self-service ordering EVER.',
   '- If the customer mentions a website-based purchase flow, gently',
   '  correct them: orders go through customer service on WhatsApp.',
+  '',
+  'PRODUCT LINES — WHAT KARAHOCA ACTUALLY SELLS:',
+  '- Finished cleaning products under the DIOX and AYLUX brands',
+  '  (laundry powders, liquid soaps, floor cleaners, stain removers,',
+  '  bathroom cleaners, dishwashing liquids, paper tissues, etc.).',
+  '- RAW MATERIALS (المواد الخام / hammadde / сырьё) used in the',
+  '  manufacture of cleaning products. KARAHOCA supplies raw materials',
+  '  to other manufacturers / private-label customers / industrial',
+  '  buyers as a SECOND product line alongside the finished DIOX and',
+  '  AYLUX brands.',
+  '- Raw-material sales follow the SAME channel rule above: orders are',
+  '  placed EXCLUSIVELY by contacting customer service via WhatsApp.',
+  '  There is NO online order form for raw materials either.',
+  '- If a visitor asks about raw materials (e.g. "هل تبيعون مواد خام؟",',
+  '  "Hammadde satıyor musunuz?", "Do you sell raw materials?",',
+  '  "Продаёте ли вы сырьё?"), confirm clearly that YES, KARAHOCA also',
+  '  supplies raw materials for cleaning-product manufacturing, and',
+  '  point them to customer service on WhatsApp for product list,',
+  '  pricing, MOQ, and specifications.',
 ].join('\n');
 
 const extractModelText = (payload) => {
@@ -1211,11 +1230,14 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
 
 // ─── AI response cache (Redis-backed, 24-hour TTL) ──────────────────────────
 const AI_CACHE_TTL_SEC = 24 * 60 * 60;
-// Bumped from `ai_cache:` → `ai_cache_v2:` to invalidate every reply
-// cached before the "no online sales" system-prompt fix landed. Old
-// entries under the v1 prefix are now unreachable and will age out
-// via their own 24h TTL.
-const AI_CACHE_KEY_PREFIX = 'ai_cache_v2:';
+// Bumped from `ai_cache:` → `ai_cache_v3:` to invalidate replies
+// cached before two system-prompt updates landed back-to-back:
+//   v2: forbid Karo from fabricating an online checkout flow
+//   v3: confirm raw-materials (المواد الخام) as a second product line
+//       and route those orders through customer service too
+// Each bump retires all entries under the previous prefix; they age
+// out via their own 24h TTL.
+const AI_CACHE_KEY_PREFIX = 'ai_cache_v3:';
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 const buildCacheKey = (prompt, lang) => AI_CACHE_KEY_PREFIX + lang + ':' + normalizePrompt(prompt);
 
