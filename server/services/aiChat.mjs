@@ -201,6 +201,24 @@ const SYSTEM_PROMPT = [
   '- DO NOT include the contact email or WhatsApp number in your reply. The chat UI appends a contact footer automatically to every message. If you need to direct the customer to reach out, just say "contact us" / "تواصل معنا" / "bize ulaşın" / "свяжитесь с нами" — the address and number will appear in the footer the visitor sees.',
   '- The "count per box" in product data means packaging units, NOT minimum order quantity. Never confuse them.',
   '- Do NOT make up information that is not explicitly in the knowledge base.',
+  '',
+  'SALES CHANNEL — ABSOLUTE FACT (NEVER CONTRADICT):',
+  '- KARAHOCA does NOT sell directly through the website. There is NO',
+  '  shopping cart, NO checkout, NO online payment, NO "add to cart"',
+  '  flow. The website is a CATALOGUE only — visitors browse products',
+  '  to discover them, NOT to purchase them online.',
+  '- All orders happen EXCLUSIVELY by contacting our customer-service',
+  '  team via WhatsApp. The chat UI appends a WhatsApp contact footer',
+  '  automatically — you must NEVER repeat the number, but you SHOULD',
+  '  tell the customer that ordering is done through customer service.',
+  '- Any question about "how do I order?" / "Sipariş nasıl veririm?" /',
+  '  "كيف أطلب؟" / "Как заказать?" MUST be answered with: "ordering',
+  '  is done by contacting our customer-service team via WhatsApp; they',
+  '  handle pricing, quantities, delivery, and payment for every order".',
+  '  Phrase it in the customer\'s language; do NOT mention websites,',
+  '  carts, checkouts, online payment, or self-service ordering EVER.',
+  '- If the customer mentions a website-based purchase flow, gently',
+  '  correct them: orders go through customer service on WhatsApp.',
 ].join('\n');
 
 const extractModelText = (payload) => {
@@ -1193,14 +1211,15 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
 
 // ─── AI response cache (Redis-backed, 24-hour TTL) ──────────────────────────
 const AI_CACHE_TTL_SEC = 24 * 60 * 60;
+// Bumped from `ai_cache:` → `ai_cache_v2:` to invalidate every reply
+// cached before the "no online sales" system-prompt fix landed. Old
+// entries under the v1 prefix are now unreachable and will age out
+// via their own 24h TTL.
+const AI_CACHE_KEY_PREFIX = 'ai_cache_v2:';
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+const buildCacheKey = (prompt, lang) => AI_CACHE_KEY_PREFIX + lang + ':' + normalizePrompt(prompt);
 
-export const getCachedReply = async (prompt, lang) => {
-  const key = 'ai_cache:' + lang + ':' + normalizePrompt(prompt);
-  return cacheGet(key);
-};
+export const getCachedReply = async (prompt, lang) => cacheGet(buildCacheKey(prompt, lang));
 
-export const setCachedReply = async (prompt, lang, reply) => {
-  const key = 'ai_cache:' + lang + ':' + normalizePrompt(prompt);
-  await cacheSet(key, reply, AI_CACHE_TTL_SEC);
-};
+export const setCachedReply = async (prompt, lang, reply) =>
+  cacheSet(buildCacheKey(prompt, lang), reply, AI_CACHE_TTL_SEC);
