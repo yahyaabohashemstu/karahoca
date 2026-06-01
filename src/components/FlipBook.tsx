@@ -87,6 +87,36 @@ const MAX_ZOOM     = 3.0;
 const ZOOM_STEP    = 0.15;
 const AUTO_MS      = 3500;
 
+// ── Drag-to-flip tuning ───────────────────────────────────────────────────────
+// DRAG_FLIP_THRESHOLD: minimum horizontal travel (px) before a pointer-down
+//   is interpreted as a page-turn drag, not a stray click or vertical scroll.
+// DRAG_FLIP_VERT_RATIO: if |dy| > |dx| * this, the user is scrolling, not
+//   flipping — abort the gesture so the page scroll still works.
+// DRAG_FLIP_COMMIT: progress threshold on release. ≥ this snaps forward to
+//   complete the flip; below it snaps back to the original spread.
+// DRAG_RELEASE_MS: duration of the snap animation after the user lets go.
+//   Kept short so commit/abort feels responsive but not jarring.
+const DRAG_FLIP_THRESHOLD = 10;
+const DRAG_FLIP_VERT_RATIO = 1.5;
+const DRAG_FLIP_COMMIT = 0.5;
+const DRAG_RELEASE_MS = 260;
+const DRAG_RELEASE_EASING = 'cubic-bezier(0.45, 0.10, 0.55, 0.95)';
+
+// State of an in-progress page-turn drag.
+// `progress` is normalized 0 → 1 along the rotation arc:
+//   • 0   = page sits flat in its starting half
+//   • 0.5 = page is perpendicular to the book (90° world rotation)
+//   • 1   = page lies flat in the destination half (180° world rotation)
+// `releasing` is true while we're animating the snap-back / snap-forward
+// triggered by the user lifting their pointer. While releasing, the CSS
+// transform transitions toward progress 0 or 1; the user can no longer
+// drive `progress` directly.
+type DragFlipState = {
+  dir: 'next' | 'prev';
+  progress: number;
+  releasing: boolean;
+};
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface FlipBookProps {
   /** Pre-rendered image URLs (preferred — no PDF dependency) */
@@ -123,12 +153,21 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const [isDragging, setIsDragging] = useState(false);
   const [autoPlay,   setAutoPlay]   = useState(false);
   const [jumpInput,  setJumpInput]  = useState('');
+  // Page-turn drag — when non-null, the user is mid-grab and rotating a
+  // page. Coexists with the button-triggered `flipping` state but the two
+  // are mutually exclusive (the pointer-down handler refuses to start a
+  // drag while `flipping`, and the button/keyboard handlers refuse to fire
+  // while `dragFlip` is set).
+  const [dragFlip,   setDragFlip]   = useState<DragFlipState | null>(null);
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const wrapRef       = useRef<HTMLDivElement>(null);
   const bookRef       = useRef<HTMLDivElement>(null);
   const timerRef      = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const autoRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Snap-back / snap-forward timer fired on pointer-up. Kept in a ref so a
+  // rapid second drag can cancel an in-flight release cleanly.
+  const dragReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDraggingRef = useRef(false);
   const dragStartRef  = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
@@ -136,8 +175,24 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const panYRef       = useRef(0);
   const zoomRef       = useRef(zoom);
   const canNextRef    = useRef(false);
+  const canPrevRef    = useRef(false);
+  const maxSprRef     = useRef(0);
   const flippingRef   = useRef(false);
   const goNextRef     = useRef<() => void>(() => {});
+  // Live mirror of dragFlip state — read inside DOM event listeners
+  // (which are registered once and would otherwise close over stale state).
+  const dragFlipRef   = useRef<DragFlipState | null>(null);
+  // Where the pointer landed and which direction the drag is intended for.
+  // `engaged` flips to true after the pointer crosses DRAG_FLIP_THRESHOLD
+  // in the correct horizontal direction — only then do we start rendering
+  // the flip overlay. Before that, the gesture is still ambiguous (could
+  // be a click, a vertical scroll, or a flip in the wrong direction).
+  const flipDragStartRef = useRef<{
+    x: number;
+    y: number;
+    dir: 'next' | 'prev' | null;
+    engaged: boolean;
+  }>({ x: 0, y: 0, dir: null, engaged: false });
 
   panXRef.current     = panX;
   panYRef.current     = panY;
@@ -161,7 +216,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const canPrev = spread > 0;
 
   canNextRef.current  = canNext;
+  canPrevRef.current  = canPrev;
+  maxSprRef.current   = maxSpr;
   flippingRef.current = flipping;
+  dragFlipRef.current = dragFlip;
 
   // ── Reset UI state when the source content changes ──────────────────────
   // The actual fetching is in useFlipBookLoader; we only reset the
@@ -178,25 +236,29 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   }, []);
 
   // ── Navigation ───────────────────────────────────────────────────────────
+  // Refuses while either form of flip is active: the button-triggered CSS
+  // animation (`flipping`) AND the user-driven page-turn drag (`dragFlip`).
+  // Without the second guard, a keyboard arrow during a drag would commit a
+  // second flip on top of the in-progress one and corrupt the spread state.
   const goNext = useCallback(() => {
-    if (flipping || !canNext) return;
+    if (flipping || dragFlip || !canNext) return;
     setFlipDir('next');
     setFlipping(true);
     timerRef.current = setTimeout(() => {
       setSpread(s => s + 1);
       setFlipping(false);
     }, FLIP_MS);
-  }, [flipping, canNext]);
+  }, [flipping, dragFlip, canNext]);
 
   const goPrev = useCallback(() => {
-    if (flipping || !canPrev) return;
+    if (flipping || dragFlip || !canPrev) return;
     setFlipDir('prev');
     setFlipping(true);
     timerRef.current = setTimeout(() => {
       setSpread(s => s - 1);
       setFlipping(false);
     }, FLIP_MS);
-  }, [flipping, canPrev]);
+  }, [flipping, dragFlip, canPrev]);
 
   goNextRef.current = goNext;
 
@@ -208,7 +270,10 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   useEffect(() => { setPanX(0); setPanY(0); }, [spread]);
   useEffect(() => { if (zoom === 1) { setPanX(0); setPanY(0); } }, [zoom]);
 
-  // ── Drag-to-pan ────────────────────────────────────────────────────────────
+  // ── Drag-to-pan (zoomed view) ──────────────────────────────────────────────
+  // Activated only when zoom > 1: clicking on a zoomed-in page should pan
+  // the view, not start a page-turn drag. The page-turn gesture below owns
+  // the pointer-down handler when zoom === 1.
   const startDrag = useCallback((clientX: number, clientY: number) => {
     if (zoomRef.current <= 1) return;
     isDraggingRef.current = true;
@@ -221,25 +286,165 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
     };
   }, []);
 
+  // ── Drag-to-flip (page-turn gesture) ───────────────────────────────────────
+  // Records the pointer-down origin and probable direction, but does NOT
+  // commit to a flip yet. The actual engagement happens in the move handler
+  // once we know whether the user is dragging horizontally in the correct
+  // direction (and not just clicking or scrolling vertically).
+  //
+  // Decision matrix:
+  //   pointer down on right half + canNext  → potential NEXT flip
+  //   pointer down on left  half + canPrev  → potential PREV flip
+  //   anything else                          → ignored (click falls through)
+  //
+  // Refuses while a button-triggered animation OR a previous release is
+  // still in flight so we never have two flips queued on top of each
+  // other. Also no-ops on zoomed views — pan owns that case.
+  const tryStartPageDrag = useCallback((clientX: number, clientY: number) => {
+    if (zoomRef.current > 1) return;
+    if (flippingRef.current) return;
+    if (dragFlipRef.current?.releasing) return;
+
+    const book = bookRef.current;
+    if (!book) return;
+
+    const rect = book.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const onRightHalf = relX > rect.width / 2;
+
+    let dir: 'next' | 'prev' | null = null;
+    if (onRightHalf && canNextRef.current) dir = 'next';
+    else if (!onRightHalf && canPrevRef.current) dir = 'prev';
+
+    if (!dir) return;
+
+    flipDragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      dir,
+      engaged: false,
+    };
+  }, []);
+
+  // Snap-back or snap-forward animation after the user releases mid-drag.
+  // Called from the pointer-up handler with the final progress; threshold
+  // logic decides which direction to snap.
+  const releaseDragFlip = useCallback(() => {
+    const drag = dragFlipRef.current;
+    if (!drag || drag.releasing) return;
+
+    const commit = drag.progress >= DRAG_FLIP_COMMIT;
+    const released: DragFlipState = {
+      dir: drag.dir,
+      progress: commit ? 1 : 0,
+      releasing: true,
+    };
+    dragFlipRef.current = released;
+    setDragFlip(released);
+
+    if (dragReleaseTimerRef.current) clearTimeout(dragReleaseTimerRef.current);
+    dragReleaseTimerRef.current = setTimeout(() => {
+      if (commit) {
+        if (drag.dir === 'next') {
+          setSpread(s => Math.min(s + 1, maxSprRef.current));
+        } else {
+          setSpread(s => Math.max(s - 1, 0));
+        }
+      }
+      dragFlipRef.current = null;
+      setDragFlip(null);
+      dragReleaseTimerRef.current = null;
+    }, DRAG_RELEASE_MS);
+  }, []);
+
+  // Cleanup any in-flight release timer on unmount so we don't try to
+  // setState on an unmounted component.
+  useEffect(() => () => {
+    if (dragReleaseTimerRef.current) clearTimeout(dragReleaseTimerRef.current);
+  }, []);
+
   useEffect(() => {
     const onMove = (clientX: number, clientY: number) => {
-      if (!isDraggingRef.current) return;
-      const dx = clientX - dragStartRef.current.x;
-      const dy = clientY - dragStartRef.current.y;
-      const [cx, cy] = clampPan(
-        bookRef.current,
-        dragStartRef.current.panX + dx,
-        dragStartRef.current.panY + dy,
-        zoomRef.current,
-      );
-      setPanX(cx);
-      setPanY(cy);
+      // Pan mode owns the gesture if it was started on a zoomed view.
+      if (isDraggingRef.current) {
+        const dx = clientX - dragStartRef.current.x;
+        const dy = clientY - dragStartRef.current.y;
+        const [cx, cy] = clampPan(
+          bookRef.current,
+          dragStartRef.current.panX + dx,
+          dragStartRef.current.panY + dy,
+          zoomRef.current,
+        );
+        setPanX(cx);
+        setPanY(cy);
+        return;
+      }
+
+      // Page-turn drag — handled per-direction.
+      const start = flipDragStartRef.current;
+      if (!start.dir) return;
+      // While a snap animation is running, don't let new moves re-engage
+      // — the release is committed and we wait for the timer to clear it.
+      if (dragFlipRef.current?.releasing) return;
+
+      const dx = clientX - start.x;
+      const dy = clientY - start.y;
+
+      if (!start.engaged) {
+        // Three reasons to drop the gesture before we ever render anything:
+        //   1. Not enough horizontal travel yet — could still be a click.
+        //   2. Vertical travel dominates — the user is scrolling the page.
+        //   3. Horizontal travel is in the wrong direction for the side
+        //      they grabbed (e.g. grabbed right half but dragging right).
+        if (Math.abs(dx) < DRAG_FLIP_THRESHOLD) return;
+        if (Math.abs(dy) > Math.abs(dx) * DRAG_FLIP_VERT_RATIO) {
+          flipDragStartRef.current = { x: 0, y: 0, dir: null, engaged: false };
+          return;
+        }
+        if (start.dir === 'next' && dx > 0) {
+          flipDragStartRef.current = { x: 0, y: 0, dir: null, engaged: false };
+          return;
+        }
+        if (start.dir === 'prev' && dx < 0) {
+          flipDragStartRef.current = { x: 0, y: 0, dir: null, engaged: false };
+          return;
+        }
+        start.engaged = true;
+      }
+
+      const book = bookRef.current;
+      if (!book) return;
+      const pageWidth = book.getBoundingClientRect().width / 2;
+      if (pageWidth <= 0) return;
+
+      // Progress is normalised so 0 = at-rest and 1 = fully flipped.
+      // For NEXT, drag-left is negative dx → flip is `-dx / pageWidth`.
+      // For PREV, drag-right is positive dx → flip is `dx / pageWidth`.
+      // Clamped to [0, 1] so dragging past the spine doesn't oversteer.
+      let progress: number;
+      if (start.dir === 'next') {
+        progress = -dx / pageWidth;
+      } else {
+        progress = dx / pageWidth;
+      }
+      progress = Math.max(0, Math.min(1, progress));
+
+      const next: DragFlipState = { dir: start.dir, progress, releasing: false };
+      dragFlipRef.current = next;
+      setDragFlip(next);
     };
 
     const onEnd = () => {
-      if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
-      setIsDragging(false);
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setIsDragging(false);
+        return;
+      }
+      const start = flipDragStartRef.current;
+      flipDragStartRef.current = { x: 0, y: 0, dir: null, engaged: false };
+      // Nothing engaged = nothing to release (click without drag).
+      if (!start.engaged) return;
+      releaseDragFlip();
     };
 
     const onMouseMove  = (e: MouseEvent) => onMove(e.clientX, e.clientY);
@@ -249,14 +454,16 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
     document.addEventListener('mouseup',    onEnd);
     document.addEventListener('touchmove',  onTouchMove, { passive: true });
     document.addEventListener('touchend',   onEnd);
+    document.addEventListener('touchcancel', onEnd);
 
     return () => {
       document.removeEventListener('mousemove',  onMouseMove);
       document.removeEventListener('mouseup',    onEnd);
       document.removeEventListener('touchmove',  onTouchMove);
       document.removeEventListener('touchend',   onEnd);
+      document.removeEventListener('touchcancel', onEnd);
     };
-  }, []);
+  }, [releaseDragFlip]);
 
   // ── Jump to page ──────────────────────────────────────────────────────────
   // Mobile: page N (1-indexed) lives on spread N-1 (one page per spread).
@@ -279,7 +486,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
       return;
     }
     autoRef.current = setInterval(() => {
-      if (flippingRef.current) return;
+      if (flippingRef.current || dragFlipRef.current) return;
       if (canNextRef.current) goNextRef.current();
       else setAutoPlay(false);
     }, AUTO_MS);
@@ -402,8 +609,62 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   })();
 
   const bookTransform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
-  const bookCursor    = zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : undefined;
-  const bookTouchAction = zoom > 1 ? 'none' : undefined;
+  // Cursor cue: zoomed view = pan grab/grabbing; otherwise we suggest the
+  // page is grabbable for flipping (only on potentially-navigable spreads).
+  const bookCursor = zoom > 1
+    ? (isDragging ? 'grabbing' : 'grab')
+    : (dragFlip?.releasing
+        ? undefined
+        : (dragFlip
+            ? 'grabbing'
+            : ((canNext || canPrev) ? 'grab' : undefined)));
+  // touch-action policy:
+  //   zoomed view  → 'none'  (we own pan, browser must not scroll/zoom)
+  //   normal view  → 'pan-y' (allow vertical page scroll, claim the
+  //                          horizontal axis for our page-turn drag)
+  // Without 'pan-y' on touch screens, a horizontal swipe inside the book
+  // gets consumed by the browser's horizontal-overscroll behaviour and
+  // never reaches our touchmove listener.
+  const bookTouchAction = zoom > 1 ? 'none' : 'pan-y';
+
+  // Combined visibility — render the flip overlay when either a CSS
+  // animation OR a manual drag has it active. The same boolean drives
+  // the halves' --under z-index swap so the destination half is exposed
+  // underneath while the flipping page rotates over it.
+  const showFlipNext = isFlippingNext || dragFlip?.dir === 'next';
+  const showFlipPrev = isFlippingPrev || dragFlip?.dir === 'prev';
+
+  // Inline transform that takes over from the CSS keyframe animation
+  // while the user is dragging. `animation: none` removes the keyframe
+  // rule's authority; the manual `transform: rotateY(...)` then drives
+  // the page directly. While `releasing` we restore a CSS transition so
+  // the snap eases instead of teleporting.
+  const dragFlipInlineStyle = (forDir: 'next' | 'prev'): React.CSSProperties | undefined => {
+    if (!dragFlip || dragFlip.dir !== forDir) return undefined;
+    const rot = dragFlip.dir === 'next'
+      ? -180 * dragFlip.progress
+      :  180 * dragFlip.progress;
+    return {
+      animation: 'none',
+      transform: `rotateY(${rot}deg)`,
+      WebkitTransform: `rotateY(${rot}deg)`,
+      transition: dragFlip.releasing
+        ? `transform ${DRAG_RELEASE_MS}ms ${DRAG_RELEASE_EASING}`
+        : 'none',
+    };
+  };
+
+  // Mid-flip surface darkening on the gradient overlay, mirroring the
+  // sin-shaped pulse from the keyframe animation but driven by the drag
+  // progress. 4·p·(1−p) is a smooth parabola peaking at 1 when p=0.5.
+  // While not dragging this returns undefined so the keyframe animation
+  // remains in charge.
+  const dragGradInlineStyle: React.CSSProperties | undefined = dragFlip
+    ? {
+        animation: 'none',
+        opacity: 4 * dragFlip.progress * (1 - dragFlip.progress),
+      }
+    : undefined;
 
   // Resolve download URL: explicit prop > pdfUrl > null
   const dlUrl = downloadUrl || pdfUrl || null;
@@ -540,9 +801,9 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
         <div className="fb-scene">
 
           <button
-            className={`fb-nav fb-nav--l${!canPrev || flipping ? ' fb-nav--off' : ''}`}
+            className={`fb-nav fb-nav--l${!canPrev || flipping || dragFlip ? ' fb-nav--off' : ''}`}
             onClick={goPrev}
-            disabled={!canPrev || flipping}
+            disabled={!canPrev || flipping || !!dragFlip}
             aria-label={t('flipbook.prevPage')}
           >‹</button>
 
@@ -556,38 +817,56 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
               touchAction: bookTouchAction,
             }}
             onMouseDown={e => {
-              if (zoom <= 1) return;
-              e.preventDefault();
-              startDrag(e.clientX, e.clientY);
+              if (zoom > 1) {
+                // Zoom > 1 → pan mode. preventDefault to suppress the
+                // browser's drag-image behaviour on the underlying <img>.
+                e.preventDefault();
+                startDrag(e.clientX, e.clientY);
+                return;
+              }
+              // Normal view → potential page-turn drag. Do NOT preventDefault
+              // here so clicks on inner controls (none today, but future-
+              // proofed) still bubble; the move handler decides whether
+              // to engage based on travel distance & direction.
+              tryStartPageDrag(e.clientX, e.clientY);
             }}
             onTouchStart={e => {
-              if (zoom <= 1) return;
-              startDrag(e.touches[0].clientX, e.touches[0].clientY);
+              if (zoom > 1) {
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
+                return;
+              }
+              tryStartPageDrag(e.touches[0].clientX, e.touches[0].clientY);
             }}
           >
-            <div className={`fb-half fb-half--l${isFlippingPrev ? ' fb-half--under' : ''}`}>
-              <PageImg idx={isFlippingPrev ? pL : cL} />
+            <div className={`fb-half fb-half--l${showFlipPrev ? ' fb-half--under' : ''}`}>
+              <PageImg idx={showFlipPrev ? pL : cL} />
               <div className="fb-pgshad fb-pgshad--r" />
             </div>
 
-            <div className={`fb-half fb-half--r${isFlippingNext ? ' fb-half--under' : ''}`}>
-              <PageImg idx={isFlippingNext ? nR : cR} />
+            <div className={`fb-half fb-half--r${showFlipNext ? ' fb-half--under' : ''}`}>
+              <PageImg idx={showFlipNext ? nR : cR} />
               <div className="fb-pgshad fb-pgshad--l" />
             </div>
 
-            {isFlippingNext && (
-              <div className="fb-flip fb-flip--next">
+            {showFlipNext && (
+              <div
+                className={`fb-flip fb-flip--next${dragFlip?.dir === 'next' ? ' fb-flip--dragging' : ''}`}
+                style={dragFlipInlineStyle('next')}
+              >
                 <div className="fb-face fb-face--front"><PageImg idx={cR} /></div>
                 <div className="fb-face fb-face--back"><PageImg idx={nL} /></div>
-                <div className="fb-flip-grad" />
+                <div className="fb-flip-grad" style={dragGradInlineStyle} />
               </div>
             )}
 
-            {isFlippingPrev && (
-              <div className="fb-flip fb-flip--prev">
+            {showFlipPrev && (
+              <div
+                className={`fb-flip fb-flip--prev${dragFlip?.dir === 'prev' ? ' fb-flip--dragging' : ''}`}
+                style={dragFlipInlineStyle('prev')}
+              >
                 <div className="fb-face fb-face--front"><PageImg idx={cL} /></div>
                 <div className="fb-face fb-face--back"><PageImg idx={pR} /></div>
-                <div className="fb-flip-grad" />
+                <div className="fb-flip-grad" style={dragGradInlineStyle} />
               </div>
             )}
 
@@ -595,9 +874,9 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
           </div>
 
           <button
-            className={`fb-nav fb-nav--r${!canNext || flipping ? ' fb-nav--off' : ''}`}
+            className={`fb-nav fb-nav--r${!canNext || flipping || dragFlip ? ' fb-nav--off' : ''}`}
             onClick={goNext}
-            disabled={!canNext || flipping}
+            disabled={!canNext || flipping || !!dragFlip}
             aria-label={t('flipbook.nextPage')}
           >›</button>
 

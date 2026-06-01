@@ -612,6 +612,32 @@
   100% { filter: brightness(1.00); }
 }
 
+/* ── Drag-to-flip override ─────────────────────────────────────────────────────
+ * When the user is directly driving the rotation by dragging, the parent
+ * .fb-flip gets the `--dragging` modifier and an inline `transform` /
+ * `animation: none` style. The keyframe-based child animations
+ * (`fb-flip-img-lift` on the page image, `fb-shadow-pulse` on the
+ * gradient overlay) must also stop, otherwise they would play out on
+ * their own 720 ms timeline, decoupled from the drag — brightness would
+ * pulse while the user holds the page motionless, and the gradient
+ * would dim/brighten on the wrong schedule.
+ *
+ * The gradient overlay's opacity is then driven via an inline style on
+ * the .fb-flip-grad element so it still tracks the drag progress
+ * (4·p·(1−p), peaks at p=0.5). The page image stays at full brightness
+ * during the drag — keeping the lift cue would require a second inline
+ * style on every PageImg render, which isn't worth the small visual
+ * gain.
+ *
+ * During the post-release snap (`releasing: true` in component state),
+ * the inline `transform` carries a CSS transition so the rotation eases
+ * to its target. Both child rules below remain suppressed so the snap
+ * is purely the rotation animation. */
+.fb-flip--dragging .fb-pg-img,
+.fb-flip--dragging .fb-flip-grad {
+  animation: none;
+}
+
 /* ── Faces ──────────────────────────────────────────────────────────────────── */
 .fb-face {
   position: absolute;
