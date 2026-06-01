@@ -939,7 +939,15 @@ body.light-mode .brand__logo {
 /* Compact Products Grid for DIOX page */
 .products-grid-compact {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* Tracks are EXACTLY the card width (cards are a fixed 300px), so there's
+     no leftover "1fr stretch" slack inside each cell that pushed every card
+     to the left of an over-wide track. `auto-fit` collapses the unused
+     trailing tracks, and `justify-content: center` then centres the real
+     run of cards — so a short category (e.g. a single product) sits in the
+     middle instead of stranded at the inline-start edge with a big empty
+     gap beside it. Works identically in LTR and RTL. */
+  grid-template-columns: repeat(auto-fit, 300px);
+  justify-content: center;
   gap: 1.5rem;
   margin: 2rem 0;
   padding: 0 1rem;
@@ -2878,7 +2886,11 @@ html[dir="ltr"] .theme-toggle {
 
   /* Mobile optimizations for compact products */
   .products-grid-compact {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    /* Track = the grid ITEM width (.product-card-flip-container is 300px
+       here; only the inner .product-card-mini shrinks to 280px), so the
+       track stays 300px to avoid the item overflowing its cell. */
+    grid-template-columns: repeat(auto-fit, 300px);
+    justify-content: center;
     gap: 1rem;
     padding: 0 0.5rem;
   }
