@@ -15,7 +15,6 @@ import GoogleAnalytics from './components/GoogleAnalytics';
 import CookieConsent from './components/CookieConsent';
 import ThemeToggle from './components/ThemeToggle';
 import LazyAIChatWidget from './components/LazyAIChatWidget';
-import BackendStatusBanner from './components/BackendStatusBanner';
 import ScrollToTop from './components/ScrollToTop';
 import { OrganizationSchema, WebsiteSchema } from './components/SchemaOrg';
 import { useScrollAnimations, usePerformanceOptimizations, useCurrentYear } from './hooks/useAnimations';
@@ -151,7 +150,6 @@ const LocalizedShell: React.FC<LocalizedShellProps> = ({ lang: shellLang }) => {
         <html lang={lang} dir={dir} />
       </Helmet>
 
-      <BackendStatusBanner />
       <GoogleAnalytics />
       <CookieConsent />
       <OrganizationSchema />

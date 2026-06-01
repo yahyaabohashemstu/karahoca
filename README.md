@@ -108,7 +108,7 @@ Four languages with **URL-prefixed routing** (`/ar/...`, `/en/...`, `/tr/...`, `
 | **Frontend routing** | URL-prefixed locales (`/ar/`, `/en/`, etc.) → real hreflang SEO, language-correct canonicals. |
 | **Prerender** | Per-language SSG via Puppeteer: `dist/{ar,en,tr,ru}/<route>/index.html`. |
 | **Component shape** | God-components split into folders (`AIChat/`, `BrandPage/`) with memoised leaf components and extracted hooks (`useChatState`, `useFlipBookLoader`). |
-| **Resilience** | `/api/health` fails closed on DB loss. Frontend `BackendStatusBanner` surfaces an unreachable API without gating the whole site. |
+| **Resilience** | `/api/health` fails closed on DB loss so monitors can alert without gating the whole site. |
 
 ---
 
@@ -183,7 +183,6 @@ karahoca-react-vite/
 │   │   │   ├── ProductModal.tsx          # Native <dialog> gallery + WhatsApp share
 │   │   │   └── types.ts
 │   │   │
-│   │   ├── BackendStatusBanner.tsx   # Non-blocking banner when /api/health is unreachable
 │   │   ├── ErrorBoundary.tsx         # Catches render errors, forwards to Sentry
 │   │   ├── FlipBook.tsx              # Interactive PDF/image catalog viewer
 │   │   ├── Header.tsx · Footer.tsx · LanguageSwitcher.tsx · SEO.tsx · SchemaOrg.tsx
@@ -231,7 +230,6 @@ karahoca-react-vite/
 │   ├── utils/
 │   │   ├── api.ts                        # buildApiUrl (VITE_BACKEND_URL-aware)
 │   │   ├── apiFetch.ts                   # fetch wrapper with auto-CSRF
-│   │   ├── backendProbe.ts               # /api/health boot probe with listeners
 │   │   ├── catalogUrls.ts                # VITE_CATALOG_BASE_URL resolver
 │   │   ├── localizedPath.ts              # URL locale splitting + prefixing
 │   │   └── language.ts · analytics.ts · clientSession.ts · image.ts
