@@ -409,7 +409,9 @@
   max-width: 1300px;
   aspect-ratio: 74.94 / 23.68;
   perspective: 1800px;
+  -webkit-perspective: 1800px;            /* Safari/iOS Webkit */
   perspective-origin: 50% 60%;
+  -webkit-perspective-origin: 50% 60%;
   background: transparent;
   box-shadow:
     0 10px 40px rgba(0,0,0,.6),
@@ -517,12 +519,20 @@
   height: 100%;
   width: 50%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;   /* Safari/iOS Webkit fallback */
   z-index: 3;
-  /* `will-change: transform, filter` hoists the page onto its own GPU
-     layer for the duration of the flip — without it, browsers re-paint
-     the 200-dpi page image every frame and a slow phone judders. With
-     it, the only frame work is recomputing the matrix transform. */
-  will-change: transform, filter;
+  /* NOTE: NEVER set `filter`, `opacity<1`, `mix-blend-mode`, `mask`,
+     `clip-path` or `will-change` with any of these properties on this
+     element. Per the CSS Transforms 2 spec, ANY of them flattens
+     `transform-style: preserve-3d` for the children — which means the
+     back face would stop following the parent's rotateY into the
+     opposite half and would instead render mirrored, IN-PLACE on the
+     same side. That bug was visible as: "the destination page doesn't
+     appear during the flip; the flipping page looks mirrored on its
+     starting side until the animation completes."
+     The lift / darken effect is now applied to the inner <img> below,
+     where filter cannot harm the parent's 3D context. */
+  will-change: transform;
 }
 
 /* NEXT: right half, pivots on LEFT edge (the spine).
@@ -546,25 +556,25 @@
  * page-fall: real paper does NOT slow as much on lift-off as it does on
  * landing.
  *
- * The lift-shadow animation runs in parallel on the same timing so the
- * cast shadow under the page peaks at exactly the same moment the page
- * is at 90 ° (perpendicular to the book), then fades as it lands flat.
+ * The on-page lighting cue (mid-flip darken) is applied to the inner
+ * <img> via `fb-flip-img-lift` further below — NOT to .fb-flip itself,
+ * because `filter` on a preserve-3d element flattens the 3D context
+ * and prevents the back face from following the rotation to the
+ * opposite half.
  */
 .fb-flip--next {
   left: 50%;
   transform-origin: 0% 50%;
-  animation:
-    fb-flip-next  720ms cubic-bezier(0.55, 0.06, 0.18, 1) both,
-    fb-flip-lift  720ms cubic-bezier(0.45, 0.10, 0.55, 0.95) both;
+  -webkit-transform-origin: 0% 50%;
+  animation: fb-flip-next 720ms cubic-bezier(0.55, 0.06, 0.18, 1) both;
 }
 
 /* PREV: left half, pivots on RIGHT edge (the spine) */
 .fb-flip--prev {
   left: 0;
   transform-origin: 100% 50%;
-  animation:
-    fb-flip-prev  720ms cubic-bezier(0.55, 0.06, 0.18, 1) both,
-    fb-flip-lift  720ms cubic-bezier(0.45, 0.10, 0.55, 0.95) both;
+  -webkit-transform-origin: 100% 50%;
+  animation: fb-flip-prev 720ms cubic-bezier(0.55, 0.06, 0.18, 1) both;
 }
 
 @keyframes fb-flip-next {
@@ -577,26 +587,29 @@
   to   { transform: rotateY(180deg); }
 }
 
-/* Cast shadow + slight darkening of the flipping page itself.
+/* Mid-flip lighting cue — darken the page image as it tips to perpendicular,
+ * matching the way real paper viewed from an oblique angle reflects less
+ * specular light. Applied to the inner <img> (NOT to .fb-flip), because
+ * `filter` on the preserve-3d element flattens its children to 2D and
+ * locks the back face on the starting side. The <img> has no 3D children,
+ * so applying `filter` to it is safe.
  *
- * A `drop-shadow` filter — not box-shadow — because we want the shadow
- * to follow the page's *visible silhouette* as it rotates. As the page
- * tips past 30 ° the silhouette starts to foreshorten, and box-shadow
- * (which paints around the original rectangle) would lag behind the
- * actual page edge by tens of pixels. drop-shadow shrinks correctly.
- *
- * The keyframes pulse the shadow strength so the page reads as
- * lifting (peak shadow at the mid-flip moment when it's perpendicular
- * to the book) and then landing (shadow fades as the page returns
- * parallel to the surface). The `brightness()` step adds a tiny
- * darkening at the mid-flip — paper viewed from an oblique angle
- * reflects less specular light, so this matches the way a real page
- * looks slightly darker right when it's edge-on to the viewer.
- */
-@keyframes fb-flip-lift {
-  0%   { filter: drop-shadow(0 1px  2px rgba(0,0,0,.10)) brightness(1.00); }
-  50%  { filter: drop-shadow(0 14px 32px rgba(0,0,0,.45)) brightness(0.94); }
-  100% { filter: drop-shadow(0 1px  2px rgba(0,0,0,.10)) brightness(1.00); }
+ * The previous version of this animation also pulsed a `drop-shadow`
+ * filter for a cast-shadow effect; that has been removed because it
+ * could only render correctly when applied to the rotating element
+ * itself (which is the exact thing that breaks 3D). The .fb-flip-grad
+ * pulse already provides the on-page darkening for the perpendicular
+ * moment, so the visual "lift" cue is preserved without the silhouette
+ * drop-shadow. */
+.fb-flip--next .fb-pg-img,
+.fb-flip--prev .fb-pg-img {
+  animation: fb-flip-img-lift 720ms cubic-bezier(0.45, 0.10, 0.55, 0.95) both;
+}
+
+@keyframes fb-flip-img-lift {
+  0%   { filter: brightness(1.00); }
+  50%  { filter: brightness(0.92); }
+  100% { filter: brightness(1.00); }
 }
 
 /* ── Faces ──────────────────────────────────────────────────────────────────── */
@@ -615,6 +628,7 @@
 .fb-face--back {
   /* pre-rotated 180°; combined with parent -180° or +180° → net 0° = faces camera */
   transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
 }
 
 /* Gradient shadow on the flipping page surface (depth effect).
@@ -638,6 +652,7 @@
   pointer-events: none;
   z-index: 4;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background: linear-gradient(
     to right,
     rgba(0,0,0,.42) 0%,    /* spine side: heavy shadow from the page bend */
@@ -676,14 +691,14 @@
    ────────────────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .fb-flip--next {
-    animation:
-      fb-flip-next 280ms cubic-bezier(0.4, 0, 0.4, 1) both,
-      fb-flip-lift 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
+    animation: fb-flip-next 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
   }
   .fb-flip--prev {
-    animation:
-      fb-flip-prev 280ms cubic-bezier(0.4, 0, 0.4, 1) both,
-      fb-flip-lift 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
+    animation: fb-flip-prev 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
+  }
+  .fb-flip--next .fb-pg-img,
+  .fb-flip--prev .fb-pg-img {
+    animation: fb-flip-img-lift 280ms cubic-bezier(0.4, 0, 0.4, 1) both;
   }
   .fb-flip-grad {
     animation: fb-shadow-pulse 280ms ease both;
