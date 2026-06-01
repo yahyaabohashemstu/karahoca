@@ -43,12 +43,15 @@ describe('generateFollowups — category routing', () => {
 });
 
 describe('generateFollowups — brand-only path', () => {
-  it('returns DIOX brand chips when only the brand is mentioned', () => {
+  it('returns DİOX brand chips when only the brand is mentioned', () => {
     const out = generateFollowups({
+      // Input is the plain-ASCII "DIOX" a user would type; detectBrand
+      // folds the dotted-İ both ways so this still resolves to the brand.
       lastUserText: 'tell me about DIOX',
       lang: 'en',
     });
-    expect(out.some((s) => s.includes('DIOX'))).toBe(true);
+    // Chip TEXT now carries the display wordmark "DİOX" (dotted capital İ).
+    expect(out.some((s) => s.includes('DİOX'))).toBe(true);
   });
 
   it('returns AYLUX brand chips for an AYLUX brand-only query', () => {

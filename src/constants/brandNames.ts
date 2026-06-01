@@ -31,6 +31,34 @@
 /** The legal Latin name as it appears on incorporation papers. */
 export const BRAND_LATIN_OFFICIAL = 'KARAHOCA';
 
+// ─── Product sub-brand wordmarks ──────────────────────────────────────────────
+//
+// The DIOX wordmark is rendered with a Turkish dotted capital İ — "DİOX" —
+// per brand directive. CRITICAL: this is a DISPLAY-ONLY transform. The ASCII
+// identifier "DIOX" stays the canonical key everywhere functional:
+//   • brand comparisons (`product.brand === 'DIOX'`)
+//   • URLs / routes (`/diox`, `/ar/diox`)
+//   • image directories (`/diox-images/`, `/Catalog/diox-pages/`)
+//   • the API brand param (`/api/products/DIOX`)
+//   • the SQLite `brand` column and every server keyword match
+// Only user-facing rendered text passes through `formatBrandName`.
+
+export type ProductBrandId = 'DIOX' | 'AYLUX';
+
+/** Identifier → display wordmark. AYLUX is unchanged; DIOX gains the İ. */
+export const BRAND_DISPLAY_NAMES: Record<ProductBrandId, string> = {
+  DIOX: 'DİOX',
+  AYLUX: 'AYLUX',
+};
+
+/**
+ * Render a brand identifier as its user-facing wordmark. Unknown values
+ * (e.g. 'ALL' from a wishlist filter, or 'KARAHOCA') pass through unchanged,
+ * so this is safe to call on any string.
+ */
+export const formatBrandName = (brand: string): string =>
+  (BRAND_DISPLAY_NAMES as Record<string, string>)[brand] ?? brand;
+
 /** The most common Arabic search form — the one we want to rank #1 on. */
 export const BRAND_ARABIC_PRIMARY = 'قره خوجة';
 

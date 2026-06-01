@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
 import { whatsAppProductInquiryUrl, buildProductShareUrl } from '../../utils/whatsapp';
+import { formatBrandName } from '../../constants/brandNames';
 import type { ChatProduct } from '../../hooks/useChatState';
 
 interface ProductCardInlineProps {
@@ -103,7 +104,7 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
           className="ai-chat-product-card__brand-badge"
           style={{ background: brandColor }}
         >
-          {product.brand}
+          {formatBrandName(product.brand)}
         </span>
       </Link>
 

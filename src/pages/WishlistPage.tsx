@@ -9,6 +9,7 @@ import ImageWithFallback from '../components/ImageWithFallback';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { toWebp } from '../utils/image';
 import { whatsAppShareProductUrl, buildProductShareUrl } from '../utils/whatsapp';
+import { formatBrandName } from '../constants/brandNames';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
 const L = {
@@ -17,7 +18,7 @@ const L = {
     subtitle: 'المنتجات التي أثارت اهتمامك',
     empty: 'لم تضف أي منتج إلى المفضّلة بعد',
     emptyHint: 'تصفّح منتجاتنا وانقر على القلب لحفظ ما يعجبك',
-    browseDiox: 'تصفّح DIOX',
+    browseDiox: 'تصفّح DİOX',
     browseAylux: 'تصفّح AYLUX',
     clearAll: 'مسح الكل',
     clearConfirm: 'هل تريد مسح قائمة المفضّلة كاملاً؟',
@@ -39,7 +40,7 @@ const L = {
     subtitle: 'Products you saved for later',
     empty: 'Your wishlist is empty',
     emptyHint: 'Browse our products and tap the heart icon to save them here',
-    browseDiox: 'Browse DIOX',
+    browseDiox: 'Browse DİOX',
     browseAylux: 'Browse AYLUX',
     clearAll: 'Clear all',
     clearConfirm: 'Clear your entire wishlist?',
@@ -61,7 +62,7 @@ const L = {
     subtitle: 'Kaydettiğiniz ürünler',
     empty: 'İstek listeniz boş',
     emptyHint: 'Ürünlerimize göz atın ve kaydetmek istediğinize ♥ basın',
-    browseDiox: 'DIOX\'u İncele',
+    browseDiox: 'DİOX\'u İncele',
     browseAylux: 'AYLUX\'u İncele',
     clearAll: 'Tümünü temizle',
     clearConfirm: 'Tüm istek listesi temizlensin mi?',
@@ -83,7 +84,7 @@ const L = {
     subtitle: 'Сохранённые товары',
     empty: 'Список желаний пуст',
     emptyHint: 'Просматривайте наши товары и нажимайте ♥ для сохранения',
-    browseDiox: 'Каталог DIOX',
+    browseDiox: 'Каталог DİOX',
     browseAylux: 'Каталог AYLUX',
     clearAll: 'Очистить всё',
     clearConfirm: 'Очистить список желаний?',
@@ -465,7 +466,7 @@ const WishlistPage: React.FC = () => {
               onClick={() => setFilter(b)}
               style={{ ...styles.filterBtn, ...(filter === b ? styles.filterBtnActive : {}) }}
             >
-              {b === 'ALL' ? l.filterAll : b}
+              {b === 'ALL' ? l.filterAll : formatBrandName(b)}
               <span style={{ ...styles.filterCount, background: filter === b ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
                 {b === 'ALL' ? items.length : b === 'DIOX' ? dioxCount : ayluxCount}
               </span>

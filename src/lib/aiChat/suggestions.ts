@@ -15,7 +15,11 @@ const getDiscussedTopics = (
   conversationHistory: Array<{ role: string; content: string }>,
 ): Set<string> => {
   const discussedTopics = new Set<string>();
-  const fullConversation = conversationHistory.map((m) => m.content.toLowerCase()).join(' ');
+  // Fold the Turkish dotted-İ → i and strip Latin combining marks so the
+  // "DİOX" wordmark still trips the `diox` pattern below.
+  const fullConversation = conversationHistory
+    .map((m) => m.content.replace(/İ/g, 'i').toLowerCase().replace(/[̀-ͯ]/g, ''))
+    .join(' ');
   const topicPatterns: Record<string, RegExp> = {
     company: /من نحن|من أنت|karahoca|شركة|company|about|hakkımızda|kim/,
     diox: /diox|ديوكس/,
@@ -40,7 +44,7 @@ const getDiscussedTopics = (
  * is to teach the visitor that Karo can surface real product cards: each
  * chip is phrased as a natural browse request that the server-side
  * `detectProductIntent` heuristic reliably recognises (brand keyword
- * DIOX / AYLUX, or a generic "products / catalogue" browse word), so a
+ * DİOX / AYLUX, or a generic "products / catalogue" browse word), so a
  * single tap returns inline product cards instead of a wall of text.
  *
  * Ordering rationale: the two brand-scoped prompts come first because a
@@ -52,10 +56,10 @@ const getDiscussedTopics = (
  * line on a 320 px mobile panel.
  */
 const STARTER_SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', string[]> = {
-  ar: ['اعرض منتجات DIOX', 'اعرض منتجات AYLUX', 'ما هي منتجاتكم؟'],
-  en: ['Show me DIOX products', 'Show me AYLUX products', 'What products do you offer?'],
-  tr: ['DIOX ürünlerini göster', 'AYLUX ürünlerini göster', 'Hangi ürünleriniz var?'],
-  ru: ['Покажите товары DIOX', 'Покажите товары AYLUX', 'Какие у вас товары?'],
+  ar: ['اعرض منتجات DİOX', 'اعرض منتجات AYLUX', 'ما هي منتجاتكم؟'],
+  en: ['Show me DİOX products', 'Show me AYLUX products', 'What products do you offer?'],
+  tr: ['DİOX ürünlerini göster', 'AYLUX ürünlerini göster', 'Hangi ürünleriniz var?'],
+  ru: ['Покажите товары DİOX', 'Покажите товары AYLUX', 'Какие у вас товары?'],
 };
 
 /**
@@ -72,11 +76,11 @@ type SuggestionMap = Record<string, string[]>;
 const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
   ar: {
     diox: ['منتجات AYLUX', 'الأسعار والشحن', 'طلب عرض سعر'],
-    aylux: ['منتجات DIOX', 'مقارنة المنتجات', 'معلومات التواصل'],
+    aylux: ['منتجات DİOX', 'مقارنة المنتجات', 'معلومات التواصل'],
     pricing: ['شروط الشحن EXW', 'الحد الأدنى للطلب', 'التواصل للعرض'],
     products: ['معلومات الأسعار', 'الشحن والتوصيل', 'المصنع والجودة'],
     contact: ['منتجاتنا', 'أسئلة عن الأسعار', 'معلومات الشركة'],
-    company: ['منتجات DIOX', 'منتجات AYLUX', 'طرق التواصل'],
+    company: ['منتجات DİOX', 'منتجات AYLUX', 'طرق التواصل'],
     quality: ['شهادات الجودة', 'المصنع', 'المنتجات'],
     news: ['آخر الأخبار', 'الإنتاج', 'وسائل التواصل'],
     production: ['الجودة والمصنع', 'هدفنا', 'آخر الأخبار'],
@@ -84,11 +88,11 @@ const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
   },
   en: {
     diox: ['AYLUX Products', 'Pricing & Shipping', 'Request Quote'],
-    aylux: ['DIOX Products', 'Compare Products', 'Contact Info'],
+    aylux: ['DİOX Products', 'Compare Products', 'Contact Info'],
     pricing: ['EXW Shipping Terms', 'Minimum Order', 'Contact for Quote'],
     products: ['Pricing Info', 'Shipping & Delivery', 'Factory & Quality'],
     contact: ['Our Products', 'Pricing Questions', 'Company Info'],
-    company: ['DIOX Products', 'AYLUX Products', 'Contact Methods'],
+    company: ['DİOX Products', 'AYLUX Products', 'Contact Methods'],
     quality: ['Quality Certificates', 'Factory', 'Products'],
     news: ['Latest News', 'Production', 'Contact Methods'],
     production: ['Factory & Quality', 'Our Goal', 'Latest News'],
@@ -96,11 +100,11 @@ const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
   },
   tr: {
     diox: ['AYLUX Ürünleri', 'Fiyat & Kargo', 'Teklif İste'],
-    aylux: ['DIOX Ürünleri', 'Ürün Karşılaştır', 'İletişim Bilgileri'],
+    aylux: ['DİOX Ürünleri', 'Ürün Karşılaştır', 'İletişim Bilgileri'],
     pricing: ['EXW Kargo Şartları', 'Minimum Sipariş', 'Teklif İçin İletişim'],
     products: ['Fiyat Bilgisi', 'Kargo & Teslimat', 'Fabrika & Kalite'],
     contact: ['Ürünlerimiz', 'Fiyat Soruları', 'Şirket Bilgisi'],
-    company: ['DIOX Ürünleri', 'AYLUX Ürünleri', 'İletişim Yöntemleri'],
+    company: ['DİOX Ürünleri', 'AYLUX Ürünleri', 'İletişim Yöntemleri'],
     quality: ['Kalite Sertifikaları', 'Fabrika', 'Ürünler'],
     news: ['Son Haberler', 'Üretim', 'İletişim Yöntemleri'],
     production: ['Fabrika & Kalite', 'Hedefimiz', 'Son Haberler'],
@@ -108,11 +112,11 @@ const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
   },
   ru: {
     diox: ['Продукты AYLUX', 'Цены и доставка', 'Запросить предложение'],
-    aylux: ['Продукты DIOX', 'Сравнить продукты', 'Контактная информация'],
+    aylux: ['Продукты DİOX', 'Сравнить продукты', 'Контактная информация'],
     pricing: ['Условия доставки EXW', 'Минимальный заказ', 'Связаться для предложения'],
     products: ['Информация о ценах', 'Доставка', 'Завод и качество'],
     contact: ['Наши продукты', 'Вопросы о ценах', 'Информация о компании'],
-    company: ['Продукты DIOX', 'Продукты AYLUX', 'Способы связи'],
+    company: ['Продукты DİOX', 'Продукты AYLUX', 'Способы связи'],
     quality: ['Сертификаты качества', 'Завод', 'Продукты'],
     news: ['Последние новости', 'Производство', 'Способы связи'],
     production: ['Завод и качество', 'Наша цель', 'Последние новости'],
@@ -122,7 +126,7 @@ const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
 
 const SUGGESTION_TOPIC_MAP: Record<string, string[]> = {
   // ar
-  'من نحن؟': ['company'], 'منتجاتنا': ['products'], 'منتجات DIOX': ['diox'], 'منتجات AYLUX': ['aylux'],
+  'من نحن؟': ['company'], 'منتجاتنا': ['products'], 'منتجات DİOX': ['diox'], 'منتجات AYLUX': ['aylux'],
   'الأسعار': ['pricing'], 'التواصل معنا': ['contact'], 'معلومات الأسعار': ['pricing'],
   'الشحن والتوصيل': ['shipping'], 'المصنع والجودة': ['quality'], 'طلب عرض سعر': ['pricing'],
   'معلومات التواصل': ['contact'], 'أسئلة عن الأسعار': ['pricing'], 'معلومات الشركة': ['company'],
@@ -132,7 +136,7 @@ const SUGGESTION_TOPIC_MAP: Record<string, string[]> = {
   'مقارنة المنتجات': ['diox', 'aylux'], 'شروط الشحن EXW': ['shipping'],
   'الحد الأدنى للطلب': ['pricing'], 'التواصل للعرض': ['contact', 'pricing'],
   // en
-  'About Us?': ['company'], 'Our Products': ['products'], 'DIOX Products': ['diox'],
+  'About Us?': ['company'], 'Our Products': ['products'], 'DİOX Products': ['diox'],
   'AYLUX Products': ['aylux'], 'Pricing': ['pricing'], 'Contact Us': ['contact'],
   'Pricing Info': ['pricing'], 'Shipping & Delivery': ['shipping'], 'Factory & Quality': ['quality'],
   'Request Quote': ['pricing'], 'Contact Info': ['contact'], 'Pricing Questions': ['pricing'],
@@ -142,7 +146,7 @@ const SUGGESTION_TOPIC_MAP: Record<string, string[]> = {
   'EXW Shipping Terms': ['shipping'], 'Minimum Order': ['pricing'],
   'Contact for Quote': ['contact', 'pricing'], 'Pricing & Shipping': ['pricing', 'shipping'],
   // tr
-  'Hakkımızda?': ['company'], 'Ürünlerimiz': ['products'], 'DIOX Ürünleri': ['diox'],
+  'Hakkımızda?': ['company'], 'Ürünlerimiz': ['products'], 'DİOX Ürünleri': ['diox'],
   'AYLUX Ürünleri': ['aylux'], 'Fiyatlandırma': ['pricing'], 'Bize Ulaşın': ['contact'],
   'Fiyat Bilgisi': ['pricing'], 'Kargo & Teslimat': ['shipping'], 'Fabrika & Kalite': ['quality'],
   'Teklif İste': ['pricing'], 'İletişim Bilgileri': ['contact'], 'Fiyat Soruları': ['pricing'],
@@ -153,7 +157,7 @@ const SUGGESTION_TOPIC_MAP: Record<string, string[]> = {
   'Minimum Sipariş': ['pricing'], 'Teklif İçin İletişim': ['contact', 'pricing'],
   'Fiyat & Kargo': ['pricing', 'shipping'],
   // ru
-  'О нас?': ['company'], 'Наши продукты': ['products'], 'Продукты DIOX': ['diox'],
+  'О нас?': ['company'], 'Наши продукты': ['products'], 'Продукты DİOX': ['diox'],
   'Продукты AYLUX': ['aylux'], 'Цены': ['pricing'], 'Связаться с нами': ['contact'],
   'Информация о ценах': ['pricing'], 'Доставка': ['shipping'], 'Завод и качество': ['quality'],
   'Запросить предложение': ['pricing'], 'Контактная информация': ['contact'],
@@ -166,11 +170,16 @@ const SUGGESTION_TOPIC_MAP: Record<string, string[]> = {
   'Цены и доставка': ['pricing', 'shipping'],
 };
 
-/** Normalize Arabic diacritics / punctuation for substring matching. */
+/** Normalize Arabic diacritics / punctuation for substring matching.
+ *  Also folds the Turkish dotted capital \u0130 (U+0130) to a plain "i" and
+ *  strips Latin combining marks, so a message containing the "D\u0130OX"
+ *  wordmark still matches the lowercase "diox" topic keyword below. */
 const normalizeForMatch = (value: string) =>
   value
+    .replace(/\u0130/g, 'i')
     .toLowerCase()
     .normalize('NFKC')
+    .replace(/[\u0300-\u036F]/g, '')
     .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
     .replace(/[أإآٱ]/g, 'ا')
     .replace(/[()[\]{}.,/#!$%^&*;:{}=_`~?"'|\\+-]/g, ' ')
@@ -191,7 +200,7 @@ export const generateSmartSuggestions = (
   const langSuggestions = SUGGESTIONS_BY_LANG[lang];
 
   // Topic-specific branches — exact keyword matches take priority over the
-  // default chips so a DIOX question leads straight to AYLUX / pricing suggestions.
+  // default chips so a DİOX question leads straight to AYLUX / pricing suggestions.
   if (lowerMessage.includes('diox') || lowerMessage.includes('ديوكس')) return langSuggestions.diox;
   if (lowerMessage.includes('aylux') || lowerMessage.includes('آيلوكس') || lowerMessage.includes('ايلوكس')) return langSuggestions.aylux;
   if (

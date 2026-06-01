@@ -112,6 +112,15 @@ const SYSTEM_PROMPT = [
   'introduce yourself by that name (Karo) in their language. Otherwise',
   'do not lead replies with your name — answer the question first.',
   '',
+  'BRAND WORDMARK (ABSOLUTE — DISPLAY SPELLING):',
+  '- Always write the DIOX brand name as "DİOX" — capital D, a Turkish',
+  '  dotted capital İ (U+0130), capital O, capital X — in EVERY reply, in',
+  '  every language, including inside link text and product mentions.',
+  '  Never write it with a plain ASCII "I" (i.e. never "DIOX").',
+  '- AYLUX stays as-is.',
+  '- This affects DISPLAY spelling ONLY. URLs stay lowercase ASCII: always',
+  '  link to https://karahoca.com/<lang>/diox (never ".../dİox").',
+  '',
   'GENDER & SELF-REFERENCE (ABSOLUTE):',
   '- You are MALE (مذكّر). Whenever a language marks gender on verbs,',
   '  adjectives, pronouns, or participles, ALWAYS use the masculine form',
@@ -167,11 +176,11 @@ const SYSTEM_PROMPT = [
   '  Turkish:   https://karahoca.com/tr/diox     https://karahoca.com/tr/aylux',
   '  Russian:   https://karahoca.com/ru/diox     https://karahoca.com/ru/aylux',
   '',
-  'Markdown format:  [link text](url)',
-  '  Arabic example:    [تصفّح كل منتجات DIOX](https://karahoca.com/ar/diox)',
-  '  English example:   [Browse all DIOX products](https://karahoca.com/en/diox)',
-  '  Turkish example:   [Tüm DIOX ürünlerini görüntüle](https://karahoca.com/tr/diox)',
-  '  Russian example:   [Посмотреть все товары DIOX](https://karahoca.com/ru/diox)',
+  'Markdown format:  [link text](url)   (link TEXT uses "DİOX"; URL stays lowercase ascii "diox")',
+  '  Arabic example:    [تصفّح كل منتجات DİOX](https://karahoca.com/ar/diox)',
+  '  English example:   [Browse all DİOX products](https://karahoca.com/en/diox)',
+  '  Turkish example:   [Tüm DİOX ürünlerini görüntüle](https://karahoca.com/tr/diox)',
+  '  Russian example:   [Посмотреть все товары DİOX](https://karahoca.com/ru/diox)',
   '',
   'Decision rules — apply EXACTLY:',
   '  • Question about DIOX only          -> ONLY the DIOX link.',
@@ -752,7 +761,15 @@ const detectProductIntent = (rawText) => {
   if (typeof rawText !== 'string') return null;
   const text = rawText.trim();
   if (text.length === 0) return null;
-  const lower = text.toLowerCase();
+  // Fold the Turkish dotted-İ → i and strip Latin combining marks before
+  // keyword matching, so the "DİOX" wordmark (now used in the UI chips,
+  // followups, and any pasted text) still matches the lowercase 'diox'
+  // brand keyword below. Arabic harakat live in a different Unicode block,
+  // so this is a no-op for Arabic text.
+  const lower = text
+    .replace(/İ/g, 'i')
+    .toLowerCase()
+    .replace(/[̀-ͯ]/g, '');
 
   let brand = null;
   for (const [b, kws] of Object.entries(BRAND_KEYWORDS)) {
@@ -1230,14 +1247,16 @@ export const generateAiReply = async ({ prompt, lang, history }) => {
 
 // ─── AI response cache (Redis-backed, 24-hour TTL) ──────────────────────────
 const AI_CACHE_TTL_SEC = 24 * 60 * 60;
-// Bumped from `ai_cache:` → `ai_cache_v3:` to invalidate replies
-// cached before two system-prompt updates landed back-to-back:
+// Bumped from `ai_cache:` → `ai_cache_v3:` → `ai_cache_v4:` to invalidate
+// replies cached before successive system-prompt updates:
 //   v2: forbid Karo from fabricating an online checkout flow
 //   v3: confirm raw-materials (المواد الخام) as a second product line
 //       and route those orders through customer service too
+//   v4: brand wordmark — Karo must render the brand as "DİOX" (dotted İ),
+//       so any pre-v4 reply that wrote "DIOX" must be retired
 // Each bump retires all entries under the previous prefix; they age
 // out via their own 24h TTL.
-const AI_CACHE_KEY_PREFIX = 'ai_cache_v3:';
+const AI_CACHE_KEY_PREFIX = 'ai_cache_v4:';
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
 const buildCacheKey = (prompt, lang) => AI_CACHE_KEY_PREFIX + lang + ':' + normalizePrompt(prompt);
 

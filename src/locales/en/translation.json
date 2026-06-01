@@ -3,8 +3,8 @@
     "home": {
       "seo": {
         "title": "KARAHOCA - World-Class Cleaning Products",
-        "description": "KARAHOCA is the leading manufacturer of cleaning products in Turkey. Two brands: DIOX & AYLUX. 30+ years of experience, 200+ employees, 15+ countries.",
-        "keywords": "karahoca, detergents, turkey, DIOX, AYLUX, laundry powder, general cleaner, liquid soap, world quality"
+        "description": "KARAHOCA is the leading manufacturer of cleaning products in Turkey. Two brands: DİOX & AYLUX. 30+ years of experience, 200+ employees, 15+ countries.",
+        "keywords": "karahoca, detergents, turkey, DİOX, AYLUX, laundry powder, general cleaner, liquid soap, world quality"
       }
     },
     "materials": {
@@ -18,7 +18,7 @@
       "home": "Home",
       "brands": "Our Brands",
       "brandsLong": "Our Brands",
-      "diox": "DIOX",
+      "diox": "DİOX",
       "aylux": "AYLUX",
       "about": "About Us",
       "production": "Production",
@@ -84,7 +84,7 @@
       "title": "Our Brands",
       "subtitle": "Different worlds, one quality.",
       "diox": {
-        "title": "DIOX",
+        "title": "DİOX",
         "description": "Concentrated cleaning power for homes and facilities.",
         "link": "Learn More"
       },
@@ -109,7 +109,7 @@
     },
     "about": {
       "title": "About Us",
-      "shortDescription": "A leading company in the detergent sector for over 30 years. We deliver high-quality cleaning products under the AYLUX and DIOX brands to more than 15 countries worldwide, committed to quality, innovation, and sustainability.",
+      "shortDescription": "A leading company in the detergent sector for over 30 years. We deliver high-quality cleaning products under the AYLUX and DİOX brands to more than 15 countries worldwide, committed to quality, innovation, and sustainability.",
       "learnMoreButton": "Learn More About Us",
       "imageAlt": "KARAHOCA Production Facilities",
       "subtitle": "Moving Forward with Confidence",
@@ -123,7 +123,7 @@
       },
       "vision": {
         "title": "Global Vision and Commitment to Quality",
-        "description": "The cleaning products we produce under the AYLUX and DIOX brands are exported to more than 15 countries and are preferred by consumers worldwide. By always prioritizing customer satisfaction, we continue to set new standards in the industry. According to our principles of quality, innovation and sustainability, we firmly pursue our goal of leading the cleaning products sector"
+        "description": "The cleaning products we produce under the AYLUX and DİOX brands are exported to more than 15 countries and are preferred by consumers worldwide. By always prioritizing customer satisfaction, we continue to set new standards in the industry. According to our principles of quality, innovation and sustainability, we firmly pursue our goal of leading the cleaning products sector"
       },
       "distributorLink": "Find a Distribution Partner",
       "eyebrow": "About KARAHOCA"
@@ -131,8 +131,8 @@
     "aboutPage": {
       "seo": {
         "title": "About Us - 30 Years Success Story | KARAHOCA",
-        "description": "Discover KARAHOCA's journey from 1995 to today. 30+ years experience, 15+ distribution countries, 4 main industries, 2 global brands: DIOX & AYLUX. Our values: Quality, Innovation, Sustainability.",
-        "keywords": "about KARAHOCA, company history since 1995, global vision, core values, AYLUX, DIOX, milestones achievements, 30 years experience, 15 countries distribution, Turkish detergent company, cleaning products manufacturer"
+        "description": "Discover KARAHOCA's journey from 1995 to today. 30+ years experience, 15+ distribution countries, 4 main industries, 2 global brands: DİOX & AYLUX. Our values: Quality, Innovation, Sustainability.",
+        "keywords": "about KARAHOCA, company history since 1995, global vision, core values, AYLUX, DİOX, milestones achievements, 30 years experience, 15 countries distribution, Turkish detergent company, cleaning products manufacturer"
       },
       "hero": {
         "title": "About Us",
@@ -142,7 +142,7 @@
       "history": {
         "title": "Our History and Evolution",
         "paragraph1": "Our company — KARAHOCA KIMYA (قره خوجة) — was founded 30 years ago on the principles of quality and reliability in the chemical sector. From the beginning, we focused on delivering high-quality chemical solutions to our customers, which helped us build a strong reputation in the market. Through commitment to excellence and continuous innovation, we became a trusted partner for many companies and institutions.",
-        "paragraph2": "In 2014, a major turning point occurred in our journey. In response to growing market demand, we decided to expand into the detergent sector. We began a new journey in developing and producing cleaning products under our two brands, AYLUX and DIOX. Today, we are proud to be a trusted brand in more than 15 countries around the world."
+        "paragraph2": "In 2014, a major turning point occurred in our journey. In response to growing market demand, we decided to expand into the detergent sector. We began a new journey in developing and producing cleaning products under our two brands, AYLUX and DİOX. Today, we are proud to be a trusted brand in more than 15 countries around the world."
       },
       "milestones": {
         "title": "Our Milestones and Achievements",
@@ -154,7 +154,7 @@
         "year2": {
           "year": "2014",
           "title": "Detergent Expansion",
-          "description": "Launch of AYLUX and DIOX brands in the cleaning products market"
+          "description": "Launch of AYLUX and DİOX brands in the cleaning products market"
         },
         "year3": {
           "year": "2019",
@@ -322,29 +322,29 @@
     "diox": {
       "brandNameArabic": "Diox",
       "seo": {
-        "title": "DIOX - Professional Cleaning Products | KARAHOCA",
-        "description": "DIOX brand from KARAHOCA - professional cleaning products with superior power. Laundry detergents, all-purpose cleaners, liquid soap, and stain removers.",
-        "keywords": "DIOX, Diox, cleaning products, laundry detergent, all-purpose cleaner, stain remover, liquid soap, KARAHOCA"
+        "title": "DİOX - Professional Cleaning Products | KARAHOCA",
+        "description": "DİOX brand from KARAHOCA - professional cleaning products with superior power. Laundry detergents, all-purpose cleaners, liquid soap, and stain removers.",
+        "keywords": "DİOX, Diox, cleaning products, laundry detergent, all-purpose cleaner, stain remover, liquid soap, KARAHOCA"
       },
       "hero": {
         "title": "Professional Cleaning Power",
         "description": "Professional cleaning products with superior strength and proven effectiveness",
-        "imageAlt": "DIOX Professional Cleaning Products",
+        "imageAlt": "DİOX Professional Cleaning Products",
         "badge1": "Professional Power",
         "badge2": "Proven Effectiveness",
         "badge3": "Advanced Formula"
       },
       "about": {
-        "title": "About DIOX",
+        "title": "About DİOX",
         "subtitle": "Power and Effectiveness in Every Product",
         "mainHeading": "Excellence in Professional Cleaning",
         "section1": {
           "title": "Exceptional Power"
         },
-        "content": "DIOX brand represents a comprehensive range of professional cleaning products that meet all home and facility needs with the highest standards of quality and effectiveness"
+        "content": "DİOX brand represents a comprehensive range of professional cleaning products that meet all home and facility needs with the highest standards of quality and effectiveness"
       },
       "productsSection": {
-        "title": "Complete DIOX Product Range",
+        "title": "Complete DİOX Product Range",
         "subtitle": "All the cleaning solutions you need in one place"
       },
       "categories": {
@@ -357,154 +357,154 @@
       "products": {
         "home": {
           "generalCleaner": {
-            "name": "DIOX General Cleaner",
+            "name": "DİOX General Cleaner",
             "description": "Multi-purpose cleaner for all surfaces",
-            "alt": "DIOX General Multi-Purpose Cleaner",
+            "alt": "DİOX General Multi-Purpose Cleaner",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "superGel": {
-            "name": "DIOX Super Gel",
+            "name": "DİOX Super Gel",
             "description": "Powerful gel for deep cleaning",
-            "alt": "DIOX Super Gel Powerful Cleaner",
+            "alt": "DİOX Super Gel Powerful Cleaner",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "floorFragrance": {
-            "name": "DIOX Floor Fragrance",
+            "name": "DİOX Floor Fragrance",
             "description": "Floor fragrance with refreshing scent",
-            "alt": "DIOX Floor Fragrance with Refreshing Scent",
+            "alt": "DİOX Floor Fragrance with Refreshing Scent",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "floorFragrance2": {
-            "name": "DIOX Floor Fragrance",
+            "name": "DİOX Floor Fragrance",
             "description": "Floor fragrance with special formula",
-            "alt": "DIOX Floor Fragrance with Special Formula",
+            "alt": "DİOX Floor Fragrance with Special Formula",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "glassCleaner": {
-            "name": "DIOX Glass Cleaner",
+            "name": "DİOX Glass Cleaner",
             "description": "Cleans glass and mirrors without streaks",
-            "alt": "DIOX Glass Cleaner for Mirrors and Windows",
+            "alt": "DİOX Glass Cleaner for Mirrors and Windows",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "chlorine": {
-            "name": "DIOX Chlorine (Bleach)",
+            "name": "DİOX Chlorine (Bleach)",
             "description": "Powerful bleach for disinfection and cleaning",
-            "alt": "DIOX Chlorine Bleach for Disinfection",
+            "alt": "DİOX Chlorine Bleach for Disinfection",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "ovenCleaner": {
-            "name": "DIOX Oven Cleaner",
+            "name": "DİOX Oven Cleaner",
             "description": "Easily removes burnt grease",
-            "alt": "DIOX Oven Cleaner for Burnt Grease",
+            "alt": "DİOX Oven Cleaner for Burnt Grease",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "flash": {
-            "name": "DIOX Flash Cleaner",
+            "name": "DİOX Flash Cleaner",
             "description": "Fast and effective cleaning",
-            "alt": "DIOX Flash Fast Cleaner",
+            "alt": "DİOX Flash Fast Cleaner",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "bathroomCleaner": {
-            "name": "DIOX Bathroom Cleaner",
+            "name": "DİOX Bathroom Cleaner",
             "description": "Cleans and disinfects the bathroom deeply",
-            "alt": "DIOX Bathroom Disinfecting Cleaner",
+            "alt": "DİOX Bathroom Disinfecting Cleaner",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "dishGel": {
-            "name": "DIOX Dish Washing Gel",
+            "name": "DİOX Dish Washing Gel",
             "description": "Concentrated gel for dishwashing",
-            "alt": "DIOX Concentrated Dish Washing Gel",
+            "alt": "DİOX Concentrated Dish Washing Gel",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "dishLiquid1": {
-            "name": "DIOX Dish Washing Liquid",
+            "name": "DİOX Dish Washing Liquid",
             "description": "Effective liquid for removing grease",
-            "alt": "DIOX Dish Washing Liquid for Grease Removal",
+            "alt": "DİOX Dish Washing Liquid for Grease Removal",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "dishLiquid2": {
-            "name": "DIOX Dish Washing Liquid",
+            "name": "DİOX Dish Washing Liquid",
             "description": "Gentle liquid on hands",
-            "alt": "DIOX Gentle Dish Washing Liquid",
+            "alt": "DİOX Gentle Dish Washing Liquid",
             "material": "Plastic container",
             "count": "12 pieces"
           }
         },
         "laundry": {
           "autoPowder1": {
-            "name": "DIOX Automatic Laundry Powder",
+            "name": "DİOX Automatic Laundry Powder",
             "description": "High-efficiency powder for automatic washing machines",
-            "alt": "DIOX High-Efficiency Automatic Laundry Powder",
+            "alt": "DİOX High-Efficiency Automatic Laundry Powder",
             "material": "Plastic bag",
             "count": "4 pieces"
           },
           "autoPowder2": {
-            "name": "DIOX Automatic Laundry Powder",
+            "name": "DİOX Automatic Laundry Powder",
             "description": "Special formula for automatic washing machines",
-            "alt": "DIOX Automatic Laundry Powder Special Formula",
+            "alt": "DİOX Automatic Laundry Powder Special Formula",
             "material": "Plastic bag",
             "count": "4 pieces"
           },
           "liquidDetergent": {
-            "name": "DIOX Liquid Laundry Detergent",
+            "name": "DİOX Liquid Laundry Detergent",
             "description": "Concentrated liquid detergent for all fabrics",
-            "alt": "DIOX Concentrated Liquid Laundry Detergent",
+            "alt": "DİOX Concentrated Liquid Laundry Detergent",
             "material": "Plastic container",
             "count": "4 pieces"
           },
           "fabricSoftener": {
-            "name": "DIOX Fabric Softener",
+            "name": "DİOX Fabric Softener",
             "description": "Makes clothes soft and fragrant",
-            "alt": "DIOX Fabric Softener for Soft Clothes",
+            "alt": "DİOX Fabric Softener for Soft Clothes",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "stainRemover": {
-            "name": "DIOX Stain Remover",
+            "name": "DİOX Stain Remover",
             "description": "Effectively removes the toughest stains",
-            "alt": "DIOX Effective Stain Remover",
+            "alt": "DİOX Effective Stain Remover",
             "material": "Plastic container",
             "count": "12 pieces"
           },
           "regularPowder": {
-            "name": "DIOX Regular Laundry Powder",
+            "name": "DİOX Regular Laundry Powder",
             "description": "Powder for hand and regular washing",
-            "alt": "DIOX Regular Laundry Powder for Hand Washing",
+            "alt": "DİOX Regular Laundry Powder for Hand Washing",
             "material": "Plastic bag",
             "count": "4 pieces"
           },
           "autoPowder1_2kg": {
-            "name": "DIOX Automatic Laundry Powder 1.2 kg",
+            "name": "DİOX Automatic Laundry Powder 1.2 kg",
             "description": "High-quality automatic laundry powder — available in two colours",
-            "alt": "DIOX Automatic Laundry Powder 1.2 kg in two colours"
+            "alt": "DİOX Automatic Laundry Powder 1.2 kg in two colours"
           },
           "autoPowder3kg": {
-            "name": "DIOX Automatic Laundry Powder 3 kg",
+            "name": "DİOX Automatic Laundry Powder 3 kg",
             "description": "Economy automatic laundry powder — available in four colours",
-            "alt": "DIOX Automatic Laundry Powder 3 kg in four colours"
+            "alt": "DİOX Automatic Laundry Powder 3 kg in four colours"
           },
           "autoPowder9kg": {
-            "name": "DIOX Automatic Laundry Powder 9 kg",
+            "name": "DİOX Automatic Laundry Powder 9 kg",
             "description": "Large automatic laundry powder — available in four colours",
-            "alt": "DIOX Automatic Laundry Powder 9 kg in four colours"
+            "alt": "DİOX Automatic Laundry Powder 9 kg in four colours"
           }
         },
         "personal": {
           "liquidSoap": {
-            "name": "DIOX Liquid Soap",
+            "name": "DİOX Liquid Soap",
             "description": "Gentle liquid soap for hands",
-            "alt": "DIOX Gentle Liquid Soap for Hands",
+            "alt": "DİOX Gentle Liquid Soap for Hands",
             "material": "Plastic container",
             "count": "12 pieces"
           }

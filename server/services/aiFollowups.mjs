@@ -134,16 +134,16 @@ const FOLLOWUPS = {
   },
   // Brand-specific (used when only the brand was detected, no category)
   brand_DIOX: {
-    ar: ['ما هي منتجات DIOX الأكثر طلباً؟', 'ما الفرق بين DIOX و AYLUX؟', 'هل تشحنون لبلدي؟'],
-    en: ['What are the most popular DIOX products?', 'What is the difference between DIOX and AYLUX?', 'Do you ship to my country?'],
-    tr: ['En çok satan DIOX ürünleri hangileri?', 'DIOX ile AYLUX arasındaki fark nedir?', 'Ülkeme gönderim var mı?'],
-    ru: ['Какие товары DIOX самые популярные?', 'В чём разница между DIOX и AYLUX?', 'Доставляете в мою страну?'],
+    ar: ['ما هي منتجات DİOX الأكثر طلباً؟', 'ما الفرق بين DİOX و AYLUX؟', 'هل تشحنون لبلدي؟'],
+    en: ['What are the most popular DİOX products?', 'What is the difference between DİOX and AYLUX?', 'Do you ship to my country?'],
+    tr: ['En çok satan DİOX ürünleri hangileri?', 'DİOX ile AYLUX arasındaki fark nedir?', 'Ülkeme gönderim var mı?'],
+    ru: ['Какие товары DİOX самые популярные?', 'В чём разница между DİOX и AYLUX?', 'Доставляете в мою страну?'],
   },
   brand_AYLUX: {
-    ar: ['ما هي منتجات AYLUX الأكثر طلباً؟', 'ما الفرق بين AYLUX و DIOX؟', 'هل تشحنون لبلدي؟'],
-    en: ['What are the most popular AYLUX products?', 'What is the difference between AYLUX and DIOX?', 'Do you ship to my country?'],
-    tr: ['En çok satan AYLUX ürünleri hangileri?', 'AYLUX ile DIOX arasındaki fark nedir?', 'Ülkeme gönderim var mı?'],
-    ru: ['Какие товары AYLUX самые популярные?', 'В чём разница между AYLUX и DIOX?', 'Доставляете в мою страну?'],
+    ar: ['ما هي منتجات AYLUX الأكثر طلباً؟', 'ما الفرق بين AYLUX و DİOX؟', 'هل تشحنون لبلدي؟'],
+    en: ['What are the most popular AYLUX products?', 'What is the difference between AYLUX and DİOX?', 'Do you ship to my country?'],
+    tr: ['En çok satan AYLUX ürünleri hangileri?', 'AYLUX ile DİOX arasındaki fark nedir?', 'Ülkeme gönderim var mı?'],
+    ru: ['Какие товары AYLUX самые популярные?', 'В чём разница между AYLUX и DİOX?', 'Доставляете в мою страну?'],
   },
   // Generic — when nothing else matched (greetings, capability questions, etc.)
   generic: {
@@ -172,8 +172,12 @@ const detectCategory = (text) => {
 
 const detectBrand = (text) => {
   if (typeof text !== 'string') return null;
+  // Fold the Turkish dotted-İ → i (and strip Latin combining marks) so the
+  // "DİOX" wordmark — now emitted in chips, followups, and Karo's own
+  // replies — still trips the lowercase /diox/ pattern.
+  const normalized = text.replace(/İ/g, 'i').replace(/[̀-ͯ]/g, '');
   for (const [brand, patterns] of Object.entries(BRAND_KEYWORDS)) {
-    if (patterns.some((p) => p.test(text))) return brand;
+    if (patterns.some((p) => p.test(normalized))) return brand;
   }
   return null;
 };
@@ -209,7 +213,7 @@ export const generateFollowups = ({ lastUserText, assistantReplyText, lang }) =>
     category = detectCategory(assistantReplyText);
   }
 
-  // 3. Brand-only path (e.g. "tell me about DIOX") — no category yet
+  // 3. Brand-only path (e.g. "tell me about DİOX") — no category yet
   //    but we have a brand, so steer toward brand-level questions.
   if (!category) {
     const brand = detectBrand(lastUserText) || detectBrand(assistantReplyText || '');

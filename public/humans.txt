@@ -8,7 +8,7 @@
 /* THANKS */
 
   Brand            : KARAHOCA KIMYA
-  Brands shipped   : DIOX, AYLUX
+  Brands shipped   : DİOX, AYLUX
   AI assistant     : Karo (كارو / Каро)
   Languages served : Arabic · English · Turkish · Russian
 

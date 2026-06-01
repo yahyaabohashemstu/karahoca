@@ -8,6 +8,7 @@ import {
   BRAND_ALTERNATE_NAMES,
   BRAND_ARABIC_PRIMARY,
   BRAND_ARABIC_VARIANTS,
+  formatBrandName,
 } from '../constants/brandNames';
 
 const SITE_URL = 'https://karahoca.com';
@@ -48,7 +49,7 @@ export const OrganizationSchema: React.FC = () => {
     },
     image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
     description:
-      'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DIOX and AYLUX branded products to 15+ countries since 1994.',
+      'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1994.',
     slogan: 'Quality That Cleans the World',
     foundingDate: '1994',
     numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
@@ -106,14 +107,14 @@ export const OrganizationSchema: React.FC = () => {
       },
     ],
     brand: [
-      { '@type': 'Brand', name: 'DIOX', url: `${SITE_URL}/ar/diox` },
+      { '@type': 'Brand', name: 'DİOX', url: `${SITE_URL}/ar/diox` },
       { '@type': 'Brand', name: 'AYLUX', url: `${SITE_URL}/ar/aylux` },
     ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'KARAHOCA Product Catalog',
       itemListElement: [
-        { '@type': 'OfferCatalog', name: 'DIOX — Home & Laundry Cleaning' },
+        { '@type': 'OfferCatalog', name: 'DİOX — Home & Laundry Cleaning' },
         { '@type': 'OfferCatalog', name: 'AYLUX — Premium Cleaning Line' },
       ],
     },
@@ -169,7 +170,7 @@ export const BrandPageSchema: React.FC<ProductSchemaProps> = ({ brand, descripti
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Brand',
-    name: brand,
+    name: formatBrandName(brand),
     description,
     logo: image ? `${SITE_URL}${image}` : LOGO_URL,
     // Brand pages now live at `/<lang>/<brand>`. We point at the x-default
@@ -255,7 +256,7 @@ export const AboutPageSchema: React.FC = () => {
     '@type': 'AboutPage',
     name: 'About KARAHOCA',
     url: `${SITE_URL}/ar/about`,
-    description: 'KARAHOCA is a Turkish cleaning products manufacturer with 30+ years of experience, producing DIOX and AYLUX brands for 15+ countries.',
+    description: 'KARAHOCA is a Turkish cleaning products manufacturer with 30+ years of experience, producing DİOX and AYLUX brands for 15+ countries.',
     inLanguage: ['ar', 'en', 'tr', 'ru'],
     mainEntity: {
       '@type': ['Organization', 'LocalBusiness'],
@@ -269,7 +270,7 @@ export const AboutPageSchema: React.FC = () => {
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: LOGO_URL, width: 200, height: 60 },
       image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
-      description: 'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DIOX and AYLUX branded products to 15+ countries since 1994.',
+      description: 'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1994.',
       foundingDate: '1994',
       numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
       slogan: 'Quality That Cleans the World',
@@ -306,7 +307,7 @@ export const AboutPageSchema: React.FC = () => {
         '@type': 'OfferCatalog',
         name: 'KARAHOCA Product Catalog',
         itemListElement: [
-          { '@type': 'OfferCatalog', name: 'DIOX — Home & Laundry Cleaning' },
+          { '@type': 'OfferCatalog', name: 'DİOX — Home & Laundry Cleaning' },
           { '@type': 'OfferCatalog', name: 'AYLUX — Premium Cleaning Line' },
         ],
       },
@@ -326,7 +327,7 @@ export const AboutPageSchema: React.FC = () => {
         name: 'What products does KARAHOCA manufacture?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'KARAHOCA manufactures household and industrial cleaning products under two brands: DIOX (home cleaning, laundry, personal hygiene) and AYLUX (premium cleaning line). Products include detergents, liquid soaps, fabric softeners, dish cleaners, and more.',
+          text: 'KARAHOCA manufactures household and industrial cleaning products under two brands: DİOX (home cleaning, laundry, personal hygiene) and AYLUX (premium cleaning line). Products include detergents, liquid soaps, fabric softeners, dish cleaners, and more.',
         },
       },
       {
@@ -372,7 +373,7 @@ export const AboutPageSchema: React.FC = () => {
             `يُكتب أيضاً بصيغ متعددة شائعة في البحث: ${BRAND_ARABIC_VARIANTS.join('، ')}. ` +
             'جميعها تشير إلى نفس الشركة التركية المصنّعة لمنتجات التنظيف منذ عام 1994 ' +
             '(قره خوجة كيميا — KARAHOCA KIMYA). ' +
-            'الشركة مقرّها مدينة كيليس في تركيا، وتُصدّر منتجاتها تحت علامتي ديوكس (DIOX) ' +
+            'الشركة مقرّها مدينة كيليس في تركيا، وتُصدّر منتجاتها تحت علامتي ديوكس (DİOX) ' +
             'وآيلوكس (AYLUX) إلى أكثر من 15 دولة.',
         },
       },
@@ -547,7 +548,7 @@ export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, pro
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `${brand} Products`,
+    name: `${formatBrandName(brand)} Products`,
     numberOfItems: products.length,
     itemListElement: products.map((p, i) => ({
       '@type': 'ListItem',
@@ -557,7 +558,7 @@ export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, pro
         name: p.name,
         description: p.description,
         image: p.image.startsWith('http') ? p.image : `${SITE_URL}${p.image}`,
-        brand: { '@type': 'Brand', name: brand },
+        brand: { '@type': 'Brand', name: formatBrandName(brand) },
         manufacturer: { '@type': 'Organization', name: 'KARAHOCA', url: SITE_URL },
         category: p.category,
         ...(sharedOffer ? { offers: sharedOffer } : {}),

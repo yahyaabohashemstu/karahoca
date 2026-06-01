@@ -9,8 +9,10 @@ import { getCachedAiContext } from './context';
 
 const normalizeSearchText = (value: string) =>
   value
+    .replace(/\u0130/g, 'i')
     .toLowerCase()
     .normalize('NFKC')
+    .replace(/[\u0300-\u036F]/g, '')
     .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
     .replace(/[أإآٱ]/g, 'ا')
     .replace(/[()[\]{}.,/#!$%^&*;:{}=_`~?"'|\\+-]/g, ' ')

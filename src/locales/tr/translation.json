@@ -3,8 +3,8 @@
     "home": {
       "seo": {
         "title": "KARAHOCA - Dünya Standardında Temizlik Ürünleri",
-        "description": "KARAHOCA, Türkiye'nin önde gelen temizlik ürünleri üreticisidir. İki marka: DIOX ve AYLUX. 30+ yıl deneyim, 200+ çalışan, 15+ ülke.",
-        "keywords": "karahoca, deterjan, türkiye, DIOX, AYLUX, çamaşır tozu, genel temizleyici, sıvı sabun, dünya kalitesi"
+        "description": "KARAHOCA, Türkiye'nin önde gelen temizlik ürünleri üreticisidir. İki marka: DİOX ve AYLUX. 30+ yıl deneyim, 200+ çalışan, 15+ ülke.",
+        "keywords": "karahoca, deterjan, türkiye, DİOX, AYLUX, çamaşır tozu, genel temizleyici, sıvı sabun, dünya kalitesi"
       }
     },
     "materials": {
@@ -18,7 +18,7 @@
       "home": "Ana Sayfa",
       "brands": "Markalarımız",
       "brandsLong": "Markalarımız",
-      "diox": "DIOX",
+      "diox": "DİOX",
       "aylux": "AYLUX",
       "about": "Hakkımızda",
       "production": "Üretim",
@@ -84,7 +84,7 @@
       "title": "Markalarımız",
       "subtitle": "Farklı dünyalar, tek kalite.",
       "diox": {
-        "title": "DIOX",
+        "title": "DİOX",
         "description": "Evler ve tesisler için yoğun temizlik gücü.",
         "link": "Daha Fazla Bilgi"
       },
@@ -109,7 +109,7 @@
     },
     "about": {
       "title": "Hakkımızda",
-      "shortDescription": "30 yılı aşkın süredir deterjan sektöründe lider bir şirket. AYLUX ve DIOX markaları altında dünya çapında 15'ten fazla ülkeye yüksek kaliteli temizlik ürünleri sunuyoruz, kalite, yenilikçilik ve sürdürülebilirlik taahhüdümüzle.",
+      "shortDescription": "30 yılı aşkın süredir deterjan sektöründe lider bir şirket. AYLUX ve DİOX markaları altında dünya çapında 15'ten fazla ülkeye yüksek kaliteli temizlik ürünleri sunuyoruz, kalite, yenilikçilik ve sürdürülebilirlik taahhüdümüzle.",
       "learnMoreButton": "Hakkımızda Daha Fazla Bilgi",
       "imageAlt": "KARAHOCA Üretim Tesisleri",
       "subtitle": "Güvenle Geleceğe İlerliyoruz",
@@ -123,7 +123,7 @@
       },
       "vision": {
         "title": "Küresel Vizyon ve Kalite Taahhüdü",
-        "description": "AYLUX ve DIOX markaları altında ürettiğimiz temizlik ürünleri 15'ten fazla ülkeye ihraç ediliyor ve dünya çapında tüketiciler tarafından tercih ediliyor. Müşteri memnuniyetini her zaman önceliklendirerek, sektörde yeni standartlar belirlemeye devam ediyoruz. Kalite, yenilikçilik ve sürdürülebilirlik ilkelerimize göre, temizlik ürünleri sektörüne liderlik etme hedefimizi kararlılıkla sürdürüyoruz"
+        "description": "AYLUX ve DİOX markaları altında ürettiğimiz temizlik ürünleri 15'ten fazla ülkeye ihraç ediliyor ve dünya çapında tüketiciler tarafından tercih ediliyor. Müşteri memnuniyetini her zaman önceliklendirerek, sektörde yeni standartlar belirlemeye devam ediyoruz. Kalite, yenilikçilik ve sürdürülebilirlik ilkelerimize göre, temizlik ürünleri sektörüne liderlik etme hedefimizi kararlılıkla sürdürüyoruz"
       },
       "distributorLink": "Distribütörlük Ortağı Bulun",
       "eyebrow": "KARAHOCA Hakkında"
@@ -131,8 +131,8 @@
     "aboutPage": {
       "seo": {
         "title": "Hakkımızda - 30 Yıllık Başarı Hikayesi | KARAHOCA",
-        "description": "1995'ten bugüne KARAHOCA'nın yolculuğunu keşfedin. 30+ yıl deneyim, 15+ dağıtım ülkesi, 4 ana endüstri, 2 küresel marka: DIOX ve AYLUX. Değerlerimiz: Kalite, İnovasyon, Sürdürülebilirlik.",
-        "keywords": "KARAHOCA hakkında, 1995'ten beri şirket tarihi, küresel vizyon, temel değerler, AYLUX, DIOX, kilometre taşları başarılar, 30 yıl deneyim, 15 ülke dağıtım, Türk deterjan şirketi, temizlik ürünleri üreticisi"
+        "description": "1995'ten bugüne KARAHOCA'nın yolculuğunu keşfedin. 30+ yıl deneyim, 15+ dağıtım ülkesi, 4 ana endüstri, 2 küresel marka: DİOX ve AYLUX. Değerlerimiz: Kalite, İnovasyon, Sürdürülebilirlik.",
+        "keywords": "KARAHOCA hakkında, 1995'ten beri şirket tarihi, küresel vizyon, temel değerler, AYLUX, DİOX, kilometre taşları başarılar, 30 yıl deneyim, 15 ülke dağıtım, Türk deterjan şirketi, temizlik ürünleri üreticisi"
       },
       "hero": {
         "title": "Hakkımızda",
@@ -142,7 +142,7 @@
       "history": {
         "title": "Tarihimiz ve Gelişimimiz",
         "paragraph1": "Şirketimiz — KARAHOCA KIMYA (قره خوجة) — 30 yıl önce kimya sektöründe kalite ve güvenilirlik ilkeleri üzerine kuruldu. Başlangıçtan itibaren müşterilerimize yüksek kaliteli kimyasal çözümler sunmaya odaklandık, bu da pazarda güçlü bir itibar oluşturmamıza yardımcı oldu. Mükemmellik ve sürekli yenilik taahhüdümüz sayesinde birçok şirket ve kurum için güvenilir bir ortak olduk.",
-        "paragraph2": "2014 yılında yolculuğumuzda önemli bir dönüm noktası yaşandı. Artan pazar talebine yanıt olarak deterjan sektörüne genişlemeye karar verdik. İki markamız AYLUX ve DIOX altında temizlik ürünleri geliştirme ve üretme konusunda yeni bir yolculuğa başladık. Bugün, dünya çapında 15'ten fazla ülkede güvenilir bir marka olmaktan gurur duyuyoruz."
+        "paragraph2": "2014 yılında yolculuğumuzda önemli bir dönüm noktası yaşandı. Artan pazar talebine yanıt olarak deterjan sektörüne genişlemeye karar verdik. İki markamız AYLUX ve DİOX altında temizlik ürünleri geliştirme ve üretme konusunda yeni bir yolculuğa başladık. Bugün, dünya çapında 15'ten fazla ülkede güvenilir bir marka olmaktan gurur duyuyoruz."
       },
       "milestones": {
         "title": "Dönüm Noktalarımız ve Başarılarımız",
@@ -154,7 +154,7 @@
         "year2": {
           "year": "2014",
           "title": "Deterjan Genişlemesi",
-          "description": "Temizlik ürünleri pazarında AYLUX ve DIOX markalarının lansmanı"
+          "description": "Temizlik ürünleri pazarında AYLUX ve DİOX markalarının lansmanı"
         },
         "year3": {
           "year": "2019",
@@ -322,29 +322,29 @@
     "diox": {
       "brandNameArabic": "Diox",
       "seo": {
-        "title": "DIOX - Profesyonel Temizlik Ürünleri | KARAHOCA",
-        "description": "KARAHOCA'dan DIOX markası - üstün güçle profesyonel temizlik ürünleri. Çamaşır deterjanları, genel temizleyiciler, sıvı sabun ve leke çıkarıcılar.",
-        "keywords": "DIOX, Diox, temizlik ürünleri, çamaşır deterjanı, genel temizleyici, leke çıkarıcı, sıvı sabun, KARAHOCA"
+        "title": "DİOX - Profesyonel Temizlik Ürünleri | KARAHOCA",
+        "description": "KARAHOCA'dan DİOX markası - üstün güçle profesyonel temizlik ürünleri. Çamaşır deterjanları, genel temizleyiciler, sıvı sabun ve leke çıkarıcılar.",
+        "keywords": "DİOX, Diox, temizlik ürünleri, çamaşır deterjanı, genel temizleyici, leke çıkarıcı, sıvı sabun, KARAHOCA"
       },
       "hero": {
         "title": "Temizlikte Profesyonel Güç",
         "description": "Üstün güç ve kanıtlanmış etkililikle profesyonel temizlik ürünleri",
-        "imageAlt": "DIOX Profesyonel Temizlik Ürünleri",
+        "imageAlt": "DİOX Profesyonel Temizlik Ürünleri",
         "badge1": "Profesyonel Güç",
         "badge2": "Kanıtlanmış Etkinlik",
         "badge3": "İleri Formül"
       },
       "about": {
-        "title": "DIOX Hakkında",
+        "title": "DİOX Hakkında",
         "subtitle": "Her Üründe Güç ve Etkinlik",
         "mainHeading": "Profesyonel Temizlikte Mükemmellik",
         "section1": {
           "title": "İstisna Güç"
         },
-        "content": "DIOX markası, ev ve tesis ihtiyaçlarını en yüksek kalite ve etkinlik standartlarıyla karşılayan kapsamlı bir profesyonel temizlik ürünleri yelpazesini temsil eder"
+        "content": "DİOX markası, ev ve tesis ihtiyaçlarını en yüksek kalite ve etkinlik standartlarıyla karşılayan kapsamlı bir profesyonel temizlik ürünleri yelpazesini temsil eder"
       },
       "productsSection": {
-        "title": "Tam DIOX Ürün Yelpazesi",
+        "title": "Tam DİOX Ürün Yelpazesi",
         "subtitle": "İhtiyacınız olan tüm temizlik çözümleri tek yerde"
       },
       "categories": {
@@ -357,154 +357,154 @@
       "products": {
         "home": {
           "generalCleaner": {
-            "name": "DIOX Genel Temizleyici",
+            "name": "DİOX Genel Temizleyici",
             "description": "Tüm yüzeyler için çok amaçlı temizleyici",
-            "alt": "DIOX Genel Çok Amaçlı Temizleyici",
+            "alt": "DİOX Genel Çok Amaçlı Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "superGel": {
-            "name": "DIOX Süper Jel",
+            "name": "DİOX Süper Jel",
             "description": "Derin temizlik için güçlü jel",
-            "alt": "DIOX Süper Jel Güçlü Temizleyici",
+            "alt": "DİOX Süper Jel Güçlü Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "floorFragrance": {
-            "name": "DIOX Zemin Kokusu",
+            "name": "DİOX Zemin Kokusu",
             "description": "Ferahlatıcı kokulu zemin kokusu",
-            "alt": "DIOX Ferahlatıcı Kokulu Zemin Kokusu",
+            "alt": "DİOX Ferahlatıcı Kokulu Zemin Kokusu",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "floorFragrance2": {
-            "name": "DIOX Zemin Kokusu",
+            "name": "DİOX Zemin Kokusu",
             "description": "Özel formüllü zemin kokusu",
-            "alt": "DIOX Özel Formüllü Zemin Kokusu",
+            "alt": "DİOX Özel Formüllü Zemin Kokusu",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "glassCleaner": {
-            "name": "DIOX Cam Temizleyici",
+            "name": "DİOX Cam Temizleyici",
             "description": "Cam ve aynaları çizgisiz temizler",
-            "alt": "DIOX Ayna ve Pencere Cam Temizleyici",
+            "alt": "DİOX Ayna ve Pencere Cam Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "chlorine": {
-            "name": "DIOX Klor (Ağartıcı)",
+            "name": "DİOX Klor (Ağartıcı)",
             "description": "Dezenfeksiyon ve temizlik için güçlü ağartıcı",
-            "alt": "DIOX Dezenfeksiyon Klor Ağartıcı",
+            "alt": "DİOX Dezenfeksiyon Klor Ağartıcı",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "ovenCleaner": {
-            "name": "DIOX Fırın Temizleyici",
+            "name": "DİOX Fırın Temizleyici",
             "description": "Yanmış yağları kolayca çıkarır",
-            "alt": "DIOX Yanmış Yağ için Fırın Temizleyici",
+            "alt": "DİOX Yanmış Yağ için Fırın Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "flash": {
-            "name": "DIOX Flash Temizleyici",
+            "name": "DİOX Flash Temizleyici",
             "description": "Hızlı ve etkili temizlik",
-            "alt": "DIOX Flash Hızlı Temizleyici",
+            "alt": "DİOX Flash Hızlı Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "bathroomCleaner": {
-            "name": "DIOX Banyo Temizleyici",
+            "name": "DİOX Banyo Temizleyici",
             "description": "Banyoyu derinlemesine temizler ve dezenfekte eder",
-            "alt": "DIOX Banyo Dezenfekte Edici Temizleyici",
+            "alt": "DİOX Banyo Dezenfekte Edici Temizleyici",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "dishGel": {
-            "name": "DIOX Bulaşık Yıkama Jeli",
+            "name": "DİOX Bulaşık Yıkama Jeli",
             "description": "Bulaşık yıkama için konsantre jel",
-            "alt": "DIOX Konsantre Bulaşık Yıkama Jeli",
+            "alt": "DİOX Konsantre Bulaşık Yıkama Jeli",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "dishLiquid1": {
-            "name": "DIOX Bulaşık Yıkama Sıvısı",
+            "name": "DİOX Bulaşık Yıkama Sıvısı",
             "description": "Yağ giderme için etkili sıvı",
-            "alt": "DIOX Yağ Giderme için Bulaşık Yıkama Sıvısı",
+            "alt": "DİOX Yağ Giderme için Bulaşık Yıkama Sıvısı",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "dishLiquid2": {
-            "name": "DIOX Bulaşık Yıkama Sıvısı",
+            "name": "DİOX Bulaşık Yıkama Sıvısı",
             "description": "Ellere nazik sıvı",
-            "alt": "DIOX Nazik Bulaşık Yıkama Sıvısı",
+            "alt": "DİOX Nazik Bulaşık Yıkama Sıvısı",
             "material": "Plastik kap",
             "count": "12 adet"
           }
         },
         "laundry": {
           "autoPowder1": {
-            "name": "DIOX Otomatik Çamaşır Tozu",
+            "name": "DİOX Otomatik Çamaşır Tozu",
             "description": "Otomatik çamaşır makineleri için yüksek verimli toz",
-            "alt": "DIOX Yüksek Verimli Otomatik Çamaşır Tozu",
+            "alt": "DİOX Yüksek Verimli Otomatik Çamaşır Tozu",
             "material": "Plastik torba",
             "count": "4 adet"
           },
           "autoPowder2": {
-            "name": "DIOX Otomatik Çamaşır Tozu",
+            "name": "DİOX Otomatik Çamaşır Tozu",
             "description": "Otomatik çamaşır makineleri için özel formül",
-            "alt": "DIOX Otomatik Çamaşır Tozu Özel Formül",
+            "alt": "DİOX Otomatik Çamaşır Tozu Özel Formül",
             "material": "Plastik torba",
             "count": "4 adet"
           },
           "liquidDetergent": {
-            "name": "DIOX Sıvı Çamaşır Deterjanı",
+            "name": "DİOX Sıvı Çamaşır Deterjanı",
             "description": "Tüm kumaşlar için konsantre sıvı deterjan",
-            "alt": "DIOX Konsantre Sıvı Çamaşır Deterjanı",
+            "alt": "DİOX Konsantre Sıvı Çamaşır Deterjanı",
             "material": "Plastik kap",
             "count": "4 adet"
           },
           "fabricSoftener": {
-            "name": "DIOX Yumuşatıcı",
+            "name": "DİOX Yumuşatıcı",
             "description": "Kıyafetleri yumuşak ve kokulu yapar",
-            "alt": "DIOX Yumuşak Kıyafetler için Yumuşatıcı",
+            "alt": "DİOX Yumuşak Kıyafetler için Yumuşatıcı",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "stainRemover": {
-            "name": "DIOX Leke Çıkarıcı",
+            "name": "DİOX Leke Çıkarıcı",
             "description": "En zor lekeleri etkili bir şekilde çıkarır",
-            "alt": "DIOX Etkili Leke Çıkarıcı",
+            "alt": "DİOX Etkili Leke Çıkarıcı",
             "material": "Plastik kap",
             "count": "12 adet"
           },
           "regularPowder": {
-            "name": "DIOX Normal Çamaşır Tozu",
+            "name": "DİOX Normal Çamaşır Tozu",
             "description": "El yıkama ve normal yıkama için toz",
-            "alt": "DIOX El Yıkama için Normal Çamaşır Tozu",
+            "alt": "DİOX El Yıkama için Normal Çamaşır Tozu",
             "material": "Plastik torba",
             "count": "4 adet"
           },
           "autoPowder1_2kg": {
-            "name": "DIOX Otomatik Çamaşır Tozu 1,2 kg",
+            "name": "DİOX Otomatik Çamaşır Tozu 1,2 kg",
             "description": "Yüksek kaliteli otomatik çamaşır tozu — iki renkte mevcut",
-            "alt": "DIOX Otomatik Çamaşır Tozu 1,2 kg iki renk"
+            "alt": "DİOX Otomatik Çamaşır Tozu 1,2 kg iki renk"
           },
           "autoPowder3kg": {
-            "name": "DIOX Otomatik Çamaşır Tozu 3 kg",
+            "name": "DİOX Otomatik Çamaşır Tozu 3 kg",
             "description": "Ekonomik otomatik çamaşır tozu — dört renkte mevcut",
-            "alt": "DIOX Otomatik Çamaşır Tozu 3 kg dört renk"
+            "alt": "DİOX Otomatik Çamaşır Tozu 3 kg dört renk"
           },
           "autoPowder9kg": {
-            "name": "DIOX Otomatik Çamaşır Tozu 9 kg",
+            "name": "DİOX Otomatik Çamaşır Tozu 9 kg",
             "description": "Büyük boy otomatik çamaşır tozu — dört renkte mevcut",
-            "alt": "DIOX Otomatik Çamaşır Tozu 9 kg dört renk"
+            "alt": "DİOX Otomatik Çamaşır Tozu 9 kg dört renk"
           }
         },
         "personal": {
           "liquidSoap": {
-            "name": "DIOX Sıvı Sabun",
+            "name": "DİOX Sıvı Sabun",
             "description": "Eller için nazik sıvı sabun",
-            "alt": "DIOX Eller için Nazik Sıvı Sabun",
+            "alt": "DİOX Eller için Nazik Sıvı Sabun",
             "material": "Plastik kap",
             "count": "12 adet"
           }

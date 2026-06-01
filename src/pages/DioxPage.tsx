@@ -71,7 +71,11 @@ const DioxPageContent: React.FC = () => {
   }, [currentLang, t]);
 
   const dioxData = {
-    brandName: 'DIOX',
+    // Display wordmark — the Turkish dotted-İ form. This flows into the
+    // hero H1, the catalog header, and the FlipBook chrome. All FUNCTIONAL
+    // "DIOX" identifiers below (OG image key, schema brand, API fetch,
+    // catalog paths, PDF filename) stay ASCII.
+    brandName: 'DİOX',
     brandNameArabic: t('diox.brandNameArabic'),
     heroTitle: t('diox.hero.title'),
     heroDescription: t('diox.hero.description'),

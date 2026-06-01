@@ -39,7 +39,7 @@ const STRINGS: Record<string, Record<string, string>> = {
   ar: {
     sectionLabel: 'المدوّنة',
     sectionTitle: 'نصائح وأدلّة من خبراء قره خوجة',
-    sectionSubtitle: 'مقالات عملية حول التنظيف الاحترافي، اختيار المنتجات، والاستخدام الأمثل لـ DIOX و AYLUX.',
+    sectionSubtitle: 'مقالات عملية حول التنظيف الاحترافي، اختيار المنتجات، والاستخدام الأمثل لـ DİOX و AYLUX.',
     viewAll: 'عرض كل المنشورات ←',
     minRead: 'دقائق قراءة',
     minReadSingle: 'دقيقة',
@@ -47,7 +47,7 @@ const STRINGS: Record<string, Record<string, string>> = {
   en: {
     sectionLabel: 'The Blog',
     sectionTitle: 'Tips and guides from KARAHOCA experts',
-    sectionSubtitle: 'Practical articles on professional cleaning, picking the right product, and getting the most out of DIOX and AYLUX.',
+    sectionSubtitle: 'Practical articles on professional cleaning, picking the right product, and getting the most out of DİOX and AYLUX.',
     viewAll: 'View all posts →',
     minRead: 'min read',
     minReadSingle: 'min',
@@ -55,7 +55,7 @@ const STRINGS: Record<string, Record<string, string>> = {
   tr: {
     sectionLabel: 'Blog',
     sectionTitle: 'KARAHOCA uzmanlarından ipuçları ve rehberler',
-    sectionSubtitle: 'Profesyonel temizlik, doğru ürün seçimi ve DIOX ile AYLUX\'tan maksimum verim almak üzerine pratik yazılar.',
+    sectionSubtitle: 'Profesyonel temizlik, doğru ürün seçimi ve DİOX ile AYLUX\'tan maksimum verim almak üzerine pratik yazılar.',
     viewAll: 'Tüm yazılar →',
     minRead: 'dk okuma',
     minReadSingle: 'dk',
@@ -63,7 +63,7 @@ const STRINGS: Record<string, Record<string, string>> = {
   ru: {
     sectionLabel: 'Блог',
     sectionTitle: 'Советы и руководства от экспертов KARAHOCA',
-    sectionSubtitle: 'Практические статьи о профессиональной уборке, выборе продуктов и максимальной отдаче от DIOX и AYLUX.',
+    sectionSubtitle: 'Практические статьи о профессиональной уборке, выборе продуктов и максимальной отдаче от DİOX и AYLUX.',
     viewAll: 'Все статьи →',
     minRead: 'мин чтения',
     minReadSingle: 'мин',

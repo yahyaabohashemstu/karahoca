@@ -140,6 +140,12 @@ const BRAND_COLORS = {
   KARAHOCA: { primary: '#153d7a', accent: '#3aa8d6' },
 };
 
+// Display wordmark for the brand badge / headline drawn on the share card.
+// The identifier `brand` stays ASCII "DIOX" everywhere (color key, route,
+// filename); only the rendered text gets the Turkish dotted-İ form.
+const BRAND_DISPLAY = { DIOX: 'DİOX' };
+const brandDisplay = (brand) => BRAND_DISPLAY[brand] || brand;
+
 const TAGLINES = {
   ar: 'منتجات تنظيف احترافية — صنع في تركيا',
   en: 'Professional cleaning products — Made in Türkiye',
@@ -286,7 +292,7 @@ const buildProductSvg = ({ name, description, brand, lang }) => {
           font-size="34" font-weight="800"
           letter-spacing="3"
           text-anchor="${textAnchor}">
-      ${xmlEscape(brand)}
+      ${xmlEscape(brandDisplay(brand))}
     </text>
     <text x="${brandBadgeX}" y="125"
           font-size="20" font-weight="400"
@@ -340,7 +346,7 @@ const buildBrandSvg = ({ brand, lang }) => {
   const rtl = lang === 'ar';
   const colors = BRAND_COLORS[brand] || BRAND_COLORS.KARAHOCA;
   const tagline = TAGLINES[lang] || TAGLINES.en;
-  const headline = brand;
+  const headline = brandDisplay(brand);
   const subhead = {
     ar: 'علامة تجاريّة تركيّة احترافيّة',
     en: 'Professional Turkish brand',

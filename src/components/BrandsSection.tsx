@@ -32,12 +32,12 @@ const BrandsSection: React.FC = () => {
 
       {/* ── Brand cards (DIOX + AYLUX) ───────────────────────────── */}
       <div className="container cards">
-        <Link className="card glass-card fx-up" to={lp('/diox')} aria-label="DIOX">
+        <Link className="card glass-card fx-up" to={lp('/diox')} aria-label="DİOX">
           <div className="card__media" style={{ '--card-accent': 'var(--blue)' } as React.CSSProperties}>
             <ImageWithFallback
               src="/Diox-logo.png.webp"
               fallbackSrc="/Diox-logo.png.png"
-              alt="DIOX"
+              alt="DİOX"
               style={{ height: '144px', width: '144px', objectFit: 'contain' }}
             />
             <div className="card-glow" />
