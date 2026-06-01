@@ -4125,6 +4125,17 @@ body.light-mode .news-modal__close {
 
 .bfb-header__left { flex: 1; min-width: 220px; }
 
+/* Centered variant — used by the FlipBook catalog header after the
+   "متاح الآن" / "⛶ ملء الشاشة" badges were removed and the title
+   should sit in the middle of the section instead of left-aligned
+   next to the (now-gone) badges column. */
+.bfb-header.bfb-header--centered {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+
 .bfb-eyebrow {
   display: inline-block;
   font-size: 0.72rem;
@@ -4152,6 +4163,12 @@ body.light-mode .news-modal__close {
   line-height: 1.7;
   max-width: 520px;
   margin: 0;
+}
+
+/* When the header is centred, also centre-align the subtitle's text
+   block (max-width 520px stays so long lines still wrap nicely). */
+.bfb-header--centered .bfb-subtitle {
+  margin-inline: auto;
 }
 
 .bfb-header__badges {

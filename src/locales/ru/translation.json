@@ -267,7 +267,11 @@
       "notSpecified": "Не указано",
       "gift": "Бесплатный подарок",
       "giftIncluded": "Включает подарок",
-      "shareWhatsApp": "Поделиться в WhatsApp"
+      "shareWhatsApp": "Поделиться в WhatsApp",
+      "catalogEyebrow": "Интерактивный каталог",
+      "catalogTitlePrefix": "Интерактивный каталог",
+      "catalogTitleSuffix": "",
+      "catalogSubtitle": "Просматривайте все товары с плавным цифровым чтением — листайте страницы и смотрите в полноэкранном режиме"
     },
     "products": {
       "categories": {

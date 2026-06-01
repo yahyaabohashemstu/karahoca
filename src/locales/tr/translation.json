@@ -267,7 +267,11 @@
       "notSpecified": "Belirtilmemiş",
       "gift": "Ücretsiz Hediye",
       "giftIncluded": "Hediye İçerir",
-      "shareWhatsApp": "WhatsApp'ta Paylaş"
+      "shareWhatsApp": "WhatsApp'ta Paylaş",
+      "catalogEyebrow": "İnteraktif Katalog",
+      "catalogTitlePrefix": "",
+      "catalogTitleSuffix": "İnteraktif Kataloğu",
+      "catalogSubtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda görüntüleyin"
     },
     "products": {
       "categories": {

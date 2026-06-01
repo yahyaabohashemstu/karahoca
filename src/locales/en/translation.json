@@ -267,7 +267,11 @@
       "notSpecified": "Not Specified",
       "gift": "Free Gift",
       "giftIncluded": "Includes Gift",
-      "shareWhatsApp": "Share via WhatsApp"
+      "shareWhatsApp": "Share via WhatsApp",
+      "catalogEyebrow": "Interactive Catalog",
+      "catalogTitlePrefix": "",
+      "catalogTitleSuffix": "Interactive Catalog",
+      "catalogSubtitle": "Browse every product with a smooth digital reading experience — flip pages and view in full-screen mode"
     },
     "products": {
       "categories": {

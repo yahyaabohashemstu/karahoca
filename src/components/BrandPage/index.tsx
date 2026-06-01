@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import Header from '../Header';
 import Footer from '../Footer';
@@ -96,6 +97,7 @@ const BrandPage: React.FC<BrandPageProps> = ({
   pdfUrl,
   catalogImages,
 }) => {
+  const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -179,20 +181,29 @@ const BrandPage: React.FC<BrandPageProps> = ({
           <section id="catalog" className="section bfb-section">
             <div className="section-divider"></div>
 
-            <div className="container bfb-header fx-reveal">
-              <div className="bfb-header__left">
-                <span className="bfb-eyebrow">Interactive Catalog</span>
-                <h2 className="bfb-title">
-                  كتالوج <span className="gradient-text">{brandName}</span> التفاعلي
-                </h2>
-                <p className="bfb-subtitle">
-                  تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة
-                </p>
-              </div>
-              <div className="bfb-header__badges">
-                <span className="bfb-badge"><span className="bfb-badge__dot bfb-badge__dot--green"></span>متاح الآن</span>
-                <span className="bfb-badge">⛶ ملء الشاشة</span>
-              </div>
+            {/* Centered catalog header — no inline "متاح الآن" /
+                "⛶ ملء الشاشة" badges (removed per directive). The
+                title pieces come from i18n so they swap language with
+                the rest of the page; the brand name stays unlocalised
+                because DIOX / AYLUX are Latin marks regardless of UI
+                language. The prefix/suffix split is so each language
+                can position the brand mid-sentence naturally (Arabic
+                "كتالوج DIOX التفاعلي" vs English "DIOX Interactive
+                Catalog" vs Russian "Интерактивный каталог DIOX"). */}
+            <div className="container bfb-header bfb-header--centered fx-reveal">
+              <span className="bfb-eyebrow">{t('brandPage.catalogEyebrow')}</span>
+              <h2 className="bfb-title">
+                {t('brandPage.catalogTitlePrefix') && (
+                  <>{t('brandPage.catalogTitlePrefix')} </>
+                )}
+                <span className="gradient-text">{brandName}</span>
+                {t('brandPage.catalogTitleSuffix') && (
+                  <> {t('brandPage.catalogTitleSuffix')}</>
+                )}
+              </h2>
+              <p className="bfb-subtitle">
+                {t('brandPage.catalogSubtitle')}
+              </p>
             </div>
 
             <div className="container bfb-frame-wrap fx-reveal">

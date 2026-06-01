@@ -267,7 +267,11 @@
       "notSpecified": "غير محدد",
       "gift": "هدية مجانية",
       "giftIncluded": "يشمل هدية",
-      "shareWhatsApp": "مشاركة عبر واتساب"
+      "shareWhatsApp": "مشاركة عبر واتساب",
+      "catalogEyebrow": "الكتالوج التفاعلي",
+      "catalogTitlePrefix": "كتالوج",
+      "catalogTitleSuffix": "التفاعلي",
+      "catalogSubtitle": "تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة"
     },
     "products": {
       "categories": {
