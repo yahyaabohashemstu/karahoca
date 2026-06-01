@@ -273,6 +273,38 @@
       "catalogTitleSuffix": "التفاعلي",
       "catalogSubtitle": "تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة"
     },
+    "flipbook": {
+      "chromeTitle": "الكتالوج التفاعلي",
+      "close": "إغلاق",
+      "fullscreen": "ملء الشاشة",
+      "zoomOut": "تصغير",
+      "zoomOutTitle": "تصغير (Ctrl + −)",
+      "zoomIn": "تكبير",
+      "zoomInTitle": "تكبير (Ctrl + =)",
+      "zoomLabel": "تكبير",
+      "zoomReset": "إعادة الضبط إلى 100% (Ctrl + 0)",
+      "jumpLabel": "انتقال",
+      "jumpPlaceholder": "صفحة",
+      "jumpAriaLabel": "رقم الصفحة",
+      "jumpGo": "انتقل",
+      "autoPlay": "تلقائي",
+      "autoPlayTitle": "تشغيل تلقائي",
+      "autoStop": "إيقاف",
+      "autoStopTitle": "إيقاف التشغيل التلقائي",
+      "download": "تحميل",
+      "downloadTitle": "تحميل ملف PDF الأصلي",
+      "print": "طباعة",
+      "printTitle": "فتح PDF للطباعة",
+      "loading": "جارِ تحميل الكتالوج…",
+      "errorPrefix": "تعذّر تحميل الكتالوج:",
+      "prevPage": "الصفحة السابقة",
+      "nextPage": "الصفحة التالية",
+      "cover": "الغلاف",
+      "page": "الصفحة",
+      "coverLabel": "غلاف",
+      "pagesUnit": "صفحة",
+      "jumpToAria": "الانتقال إلى"
+    },
     "products": {
       "categories": {
         "home": "تنظيف المنزل",
@@ -795,13 +827,6 @@
     },
     "a11y": {
       "skipToContent": "تخطي إلى المحتوى"
-    },
-    "flipbook": {
-      "eyebrow": "كتالوج تفاعلي",
-      "title": "كتالوج {{brand}} التفاعلي",
-      "subtitle": "تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة",
-      "available": "متاح الآن",
-      "fullscreen": "ملء الشاشة"
     }
   },
   "common": {

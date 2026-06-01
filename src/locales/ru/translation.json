@@ -273,6 +273,38 @@
       "catalogTitleSuffix": "",
       "catalogSubtitle": "Просматривайте все товары с плавным цифровым чтением — листайте страницы и смотрите в полноэкранном режиме"
     },
+    "flipbook": {
+      "chromeTitle": "Интерактивный каталог",
+      "close": "Закрыть",
+      "fullscreen": "Полный экран",
+      "zoomOut": "Уменьшить",
+      "zoomOutTitle": "Уменьшить (Ctrl + −)",
+      "zoomIn": "Увеличить",
+      "zoomInTitle": "Увеличить (Ctrl + =)",
+      "zoomLabel": "Масштаб",
+      "zoomReset": "Сбросить до 100% (Ctrl + 0)",
+      "jumpLabel": "Перейти",
+      "jumpPlaceholder": "Страница",
+      "jumpAriaLabel": "Номер страницы",
+      "jumpGo": "Перейти",
+      "autoPlay": "Авто",
+      "autoPlayTitle": "Автовоспроизведение",
+      "autoStop": "Стоп",
+      "autoStopTitle": "Остановить автовоспроизведение",
+      "download": "Скачать",
+      "downloadTitle": "Скачать оригинальный PDF",
+      "print": "Печать",
+      "printTitle": "Открыть PDF для печати",
+      "loading": "Загрузка каталога…",
+      "errorPrefix": "Не удалось загрузить каталог:",
+      "prevPage": "Предыдущая страница",
+      "nextPage": "Следующая страница",
+      "cover": "обложка",
+      "page": "страница",
+      "coverLabel": "Обложка",
+      "pagesUnit": "стр.",
+      "jumpToAria": "Перейти к"
+    },
     "products": {
       "categories": {
         "home": "Уборка дома",
@@ -795,13 +827,6 @@
     },
     "a11y": {
       "skipToContent": "Перейти к содержимому"
-    },
-    "flipbook": {
-      "eyebrow": "Интерактивный каталог",
-      "title": "Интерактивный каталог {{brand}}",
-      "subtitle": "Просматривайте полный ассортимент с плавным цифровым чтением — листайте страницы и переходите в полноэкранный режим",
-      "available": "Доступно сейчас",
-      "fullscreen": "Полный экран"
     }
   },
   "common": {

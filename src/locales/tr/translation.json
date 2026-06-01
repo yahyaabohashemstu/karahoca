@@ -273,6 +273,38 @@
       "catalogTitleSuffix": "İnteraktif Kataloğu",
       "catalogSubtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda görüntüleyin"
     },
+    "flipbook": {
+      "chromeTitle": "İnteraktif Katalog",
+      "close": "Kapat",
+      "fullscreen": "Tam ekran",
+      "zoomOut": "Uzaklaştır",
+      "zoomOutTitle": "Uzaklaştır (Ctrl + −)",
+      "zoomIn": "Yakınlaştır",
+      "zoomInTitle": "Yakınlaştır (Ctrl + =)",
+      "zoomLabel": "Yakınlaştırma",
+      "zoomReset": "%100'e sıfırla (Ctrl + 0)",
+      "jumpLabel": "Git",
+      "jumpPlaceholder": "Sayfa",
+      "jumpAriaLabel": "Sayfa numarası",
+      "jumpGo": "Git",
+      "autoPlay": "Otomatik",
+      "autoPlayTitle": "Otomatik oynat",
+      "autoStop": "Durdur",
+      "autoStopTitle": "Otomatik oynatmayı durdur",
+      "download": "İndir",
+      "downloadTitle": "Orijinal PDF dosyasını indir",
+      "print": "Yazdır",
+      "printTitle": "PDF'yi yazdırmak için aç",
+      "loading": "Katalog yükleniyor…",
+      "errorPrefix": "Katalog yüklenemedi:",
+      "prevPage": "Önceki sayfa",
+      "nextPage": "Sonraki sayfa",
+      "cover": "kapak",
+      "page": "sayfa",
+      "coverLabel": "Kapak",
+      "pagesUnit": "sayfa",
+      "jumpToAria": "Şuraya git:"
+    },
     "products": {
       "categories": {
         "home": "Ev Temizliği",
@@ -795,13 +827,6 @@
     },
     "a11y": {
       "skipToContent": "İçeriğe geç"
-    },
-    "flipbook": {
-      "eyebrow": "İnteraktif Katalog",
-      "title": "{{brand}} İnteraktif Katalog",
-      "subtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda izleyin",
-      "available": "Şimdi mevcut",
-      "fullscreen": "Tam Ekran"
     }
   },
   "common": {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createPortal, flushSync } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
 import { useIsMobile } from '../hooks/useIsMobile';
 import '../styles/flipbook.css';
@@ -99,6 +100,10 @@ interface FlipBookProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, brandName = '' }) => {
+
+  // i18n — all toolbar/chrome labels resolve through the active language.
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   // ── Page data (delegated to useFlipBookLoader) ──────────────────────────────
   // All I/O — image preloading AND PDF fallback rendering — lives in the
@@ -386,11 +391,11 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
     if (!total) return '';
     if (mode === 'mobile') {
       // One-page-per-spread: spread N → page N+1 (1-indexed for display).
-      if (spread === 0) return `غلاف — ${total} صفحة`;
+      if (spread === 0) return `${t('flipbook.coverLabel')} — ${total} ${t('flipbook.pagesUnit')}`;
       return `${spread + 1} / ${total}`;
     }
     // Two-page desktop spread.
-    if (spread === 0) return `غلاف — ${total} صفحة`;
+    if (spread === 0) return `${t('flipbook.coverLabel')} — ${total} ${t('flipbook.pagesUnit')}`;
     const lo = 2 * spread;
     const hi = Math.min(lo + 1, total - 1);
     return lo === hi ? `${lo + 1} / ${total}` : `${lo + 1}–${hi + 1} / ${total}`;
@@ -434,43 +439,43 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
       {/* ── Top chrome bar ─────────────────────────────────────────────── */}
       <div className="fb-chrome">
         <div className="fb-chrome__dots"><span /><span /><span /></div>
-        <span className="fb-chrome__title">📖 {brandName} — الكتالوج التفاعلي</span>
-        <button className="fb-chrome__btn" onClick={toggleFS} aria-label={fullscreen ? 'إغلاق' : 'ملء الشاشة'}>
+        <span className="fb-chrome__title">📖 {brandName} — {t('flipbook.chromeTitle')}</span>
+        <button className="fb-chrome__btn" onClick={toggleFS} aria-label={fullscreen ? t('flipbook.close') : t('flipbook.fullscreen')}>
           {fullscreen ? '✕' : '⛶'}
         </button>
       </div>
 
       {/* ── Toolbar ────────────────────────────────────────────────────── */}
       {!loading && !loadErr && (
-        <div className="fb-toolbar" dir="rtl">
+        <div className="fb-toolbar" dir={isRtl ? 'rtl' : 'ltr'}>
 
           {/* Group 1 — Zoom */}
           <div className="fb-tg">
-            <button className="fb-tbtn" onClick={zoomOut} disabled={zoom <= MIN_ZOOM} title="تصغير (Ctrl + −)" aria-label="تصغير">−</button>
-            <button className="fb-tbtn fb-tbtn--zoom-val" onClick={zoomReset} title="إعادة الضبط إلى 100% (Ctrl + 0)">
+            <button className="fb-tbtn" onClick={zoomOut} disabled={zoom <= MIN_ZOOM} title={t('flipbook.zoomOutTitle')} aria-label={t('flipbook.zoomOut')}>−</button>
+            <button className="fb-tbtn fb-tbtn--zoom-val" onClick={zoomReset} title={t('flipbook.zoomReset')}>
               {Math.round(zoom * 100)}%
             </button>
-            <button className="fb-tbtn" onClick={zoomIn} disabled={zoom >= MAX_ZOOM} title="تكبير (Ctrl + =)" aria-label="تكبير">+</button>
-            <span className="fb-tg-label">تكبير</span>
+            <button className="fb-tbtn" onClick={zoomIn} disabled={zoom >= MAX_ZOOM} title={t('flipbook.zoomInTitle')} aria-label={t('flipbook.zoomIn')}>+</button>
+            <span className="fb-tg-label">{t('flipbook.zoomLabel')}</span>
           </div>
 
           <div className="fb-tsep" />
 
           {/* Group 2 — Jump to page */}
           <div className="fb-tg">
-            <span className="fb-tg-label">انتقال</span>
+            <span className="fb-tg-label">{t('flipbook.jumpLabel')}</span>
             <input
               className="fb-tinput"
               type="number"
               min={1}
               max={total}
               value={jumpInput}
-              placeholder="صفحة"
-              aria-label="رقم الصفحة"
+              placeholder={t('flipbook.jumpPlaceholder')}
+              aria-label={t('flipbook.jumpAriaLabel')}
               onChange={e => setJumpInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && doJump()}
             />
-            <button className="fb-tbtn fb-tbtn--go" onClick={doJump} aria-label="انتقل">↵</button>
+            <button className="fb-tbtn fb-tbtn--go" onClick={doJump} aria-label={t('flipbook.jumpGo')}>↵</button>
           </div>
 
           <div className="fb-tsep" />
@@ -480,12 +485,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
             <button
               className={`fb-tbtn fb-tbtn--auto${autoPlay ? ' fb-tbtn--active' : ''}`}
               onClick={() => setAutoPlay(a => !a)}
-              title={autoPlay ? 'إيقاف التشغيل التلقائي' : 'تشغيل تلقائي'}
-              aria-label={autoPlay ? 'إيقاف' : 'تشغيل تلقائي'}
+              title={autoPlay ? t('flipbook.autoStopTitle') : t('flipbook.autoPlayTitle')}
+              aria-label={autoPlay ? t('flipbook.autoStop') : t('flipbook.autoPlayTitle')}
             >
               {autoPlay
-                ? <><span className="fb-tbtn__icon">⏹</span> إيقاف</>
-                : <><span className="fb-tbtn__icon">▶</span> تلقائي</>}
+                ? <><span className="fb-tbtn__icon">⏹</span> {t('flipbook.autoStop')}</>
+                : <><span className="fb-tbtn__icon">▶</span> {t('flipbook.autoPlay')}</>}
             </button>
           </div>
 
@@ -498,16 +503,16 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
                   className="fb-tbtn fb-tbtn--dl"
                   href={dlUrl}
                   download={`${brandName || 'catalog'}-katalog.pdf`}
-                  title="تحميل ملف PDF الأصلي"
+                  title={t('flipbook.downloadTitle')}
                 >
-                  <span className="fb-tbtn__icon">⬇</span> تحميل
+                  <span className="fb-tbtn__icon">⬇</span> {t('flipbook.download')}
                 </a>
                 <button
                   className="fb-tbtn"
                   onClick={() => window.open(dlUrl, '_blank')}
-                  title="فتح PDF للطباعة"
+                  title={t('flipbook.printTitle')}
                 >
-                  <span className="fb-tbtn__icon">🖨</span> طباعة
+                  <span className="fb-tbtn__icon">🖨</span> {t('flipbook.print')}
                 </button>
               </div>
             </>
@@ -520,7 +525,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
       {loading && (
         <div className="fb-loading">
           <div className="fb-loading__ring" />
-          <p>جارِ تحميل الكتالوج… {loadPct}%</p>
+          <p>{t('flipbook.loading')} {loadPct}%</p>
           <div className="fb-loading__track">
             <div className="fb-loading__fill" style={{ width: `${loadPct}%` }} />
           </div>
@@ -528,7 +533,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
       )}
 
       {/* ── Error ───────────────────────────────────────────────────────── */}
-      {loadErr && <div className="fb-error">تعذّر تحميل الكتالوج: {loadErr}</div>}
+      {loadErr && <div className="fb-error">{t('flipbook.errorPrefix')} {loadErr}</div>}
 
       {/* ── Book ────────────────────────────────────────────────────────── */}
       {!loading && !loadErr && (
@@ -538,7 +543,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
             className={`fb-nav fb-nav--l${!canPrev || flipping ? ' fb-nav--off' : ''}`}
             onClick={goPrev}
             disabled={!canPrev || flipping}
-            aria-label="الصفحة السابقة"
+            aria-label={t('flipbook.prevPage')}
           >‹</button>
 
           <div
@@ -593,7 +598,7 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
             className={`fb-nav fb-nav--r${!canNext || flipping ? ' fb-nav--off' : ''}`}
             onClick={goNext}
             disabled={!canNext || flipping}
-            aria-label="الصفحة التالية"
+            aria-label={t('flipbook.nextPage')}
           >›</button>
 
         </div>
@@ -609,12 +614,12 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
                 key={i}
                 className={`fb-dot${i === spread ? ' fb-dot--on' : ''}`}
                 onClick={() => { if (!flipping) setSpread(i); }}
-                aria-label={`الانتقال إلى ${i === 0 ? 'الغلاف' : `الصفحة ${i * 2}`}`}
+                aria-label={`${t('flipbook.jumpToAria')} ${i === 0 ? t('flipbook.cover') : `${t('flipbook.page')} ${i * 2}`}`}
               />
             ))}
           </div>
           <button className="fb-bar__fs" onClick={toggleFS}>
-            {fullscreen ? '⊡ إغلاق' : '⛶ ملء الشاشة'}
+            {fullscreen ? `⊡ ${t('flipbook.close')}` : `⛶ ${t('flipbook.fullscreen')}`}
           </button>
         </div>
       )}

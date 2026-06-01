@@ -273,6 +273,38 @@
       "catalogTitleSuffix": "Interactive Catalog",
       "catalogSubtitle": "Browse every product with a smooth digital reading experience — flip pages and view in full-screen mode"
     },
+    "flipbook": {
+      "chromeTitle": "Interactive Catalog",
+      "close": "Close",
+      "fullscreen": "Fullscreen",
+      "zoomOut": "Zoom out",
+      "zoomOutTitle": "Zoom out (Ctrl + −)",
+      "zoomIn": "Zoom in",
+      "zoomInTitle": "Zoom in (Ctrl + =)",
+      "zoomLabel": "Zoom",
+      "zoomReset": "Reset to 100% (Ctrl + 0)",
+      "jumpLabel": "Jump",
+      "jumpPlaceholder": "Page",
+      "jumpAriaLabel": "Page number",
+      "jumpGo": "Go",
+      "autoPlay": "Auto",
+      "autoPlayTitle": "Auto-play",
+      "autoStop": "Stop",
+      "autoStopTitle": "Stop auto-play",
+      "download": "Download",
+      "downloadTitle": "Download the original PDF",
+      "print": "Print",
+      "printTitle": "Open the PDF for printing",
+      "loading": "Loading catalog…",
+      "errorPrefix": "Failed to load catalog:",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "cover": "cover",
+      "page": "page",
+      "coverLabel": "Cover",
+      "pagesUnit": "pages",
+      "jumpToAria": "Jump to"
+    },
     "products": {
       "categories": {
         "home": "Home Cleaning",
@@ -795,13 +827,6 @@
     },
     "a11y": {
       "skipToContent": "Skip to content"
-    },
-    "flipbook": {
-      "eyebrow": "Interactive Catalog",
-      "title": "{{brand}} Interactive Catalog",
-      "subtitle": "Browse the full product line with a smooth digital reading experience — flip pages and view in fullscreen mode",
-      "available": "Available now",
-      "fullscreen": "Fullscreen"
     }
   },
   "common": {
