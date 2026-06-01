@@ -1060,6 +1060,18 @@ body.light-mode .ai-assistant__suggestions {
   border-color: rgba(10, 42, 94, 0.08);
 }
 
+/* Starter-chip caption ("Try asking:"). flex-basis:100% forces it onto its
+   own line so the chips wrap underneath it rather than sitting inline. Only
+   rendered for the fresh-conversation starter chips (see SuggestionChips). */
+.ai-assistant__suggestions-label {
+  flex: 0 0 100%;
+  margin: 0 0 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.6;
+  user-select: none;
+}
+
 .ai-assistant__suggestion-btn {
   padding: 0.5rem 1rem;
   border-radius: 20px;

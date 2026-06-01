@@ -9,6 +9,6 @@
 
 export type { KnowledgeSection, AiContextPayload } from './types';
 export { buildKnowledgeBase } from './knowledge';
-export { generateSmartSuggestions } from './suggestions';
+export { generateSmartSuggestions, getStarterSuggestions } from './suggestions';
 export { getAssistantWelcomeMessage } from './welcome';
 export { loadAiContext, getCachedAiContext, clearAiContextCache } from './context';

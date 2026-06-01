@@ -89,7 +89,16 @@ const ChatShellComponent: React.FC<ChatShellProps> = ({
     />
 
     {!isLoading && (
-      <SuggestionChips suggestions={suggestions} onPick={onSuggestionClick} />
+      <SuggestionChips
+        suggestions={suggestions}
+        onPick={onSuggestionClick}
+        // Caption the chips only on a fresh conversation (transcript still
+        // just the synthetic welcome bubble) — there they are the
+        // product-browse starters and the label frames them as guidance.
+        // Once a real exchange exists they're dynamic follow-ups and need
+        // no caption.
+        label={messages.every((m) => m.id === 'welcome') ? uiText.starterPrompt : undefined}
+      />
     )}
 
     {statusMessage && <div className="ai-assistant__status">{statusMessage}</div>}

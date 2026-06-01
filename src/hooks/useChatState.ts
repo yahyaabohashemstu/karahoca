@@ -14,6 +14,7 @@ import {
 import {
   buildKnowledgeBase,
   generateSmartSuggestions,
+  getStarterSuggestions,
   getAssistantWelcomeMessage,
   getCachedAiContext,
   loadAiContext,
@@ -147,6 +148,13 @@ export interface ChatUIStrings {
      */
     similarLabel: string;
   };
+  /**
+   * Tiny caption rendered above the starter chips on a brand-new
+   * conversation (e.g. "Try asking:"). Nudges the visitor to tap one of
+   * the product-browse prompts so they discover Karo can show real
+   * product cards. Only shown before the first message is sent.
+   */
+  starterPrompt: string;
   /**
    * Accessible label for the follow-up chip strip rendered below the
    * latest assistant message — invisible to sighted users (the chips
@@ -482,6 +490,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'WhatsApp ile sor',
           similarLabel: 'Benzer ürünler',
         },
+        starterPrompt: 'Şunu sormayı deneyin:',
         followupsLabel: 'Önerilen sorular',
         continueOnWhatsApp: "WhatsApp'ta devam et",
       };
@@ -522,6 +531,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'Спросить в WhatsApp',
           similarLabel: 'Похожие товары',
         },
+        starterPrompt: 'Попробуйте спросить:',
         followupsLabel: 'Возможные вопросы',
         continueOnWhatsApp: 'Продолжить в WhatsApp',
       };
@@ -562,6 +572,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'Ask on WhatsApp',
           similarLabel: 'Similar products',
         },
+        starterPrompt: 'Try asking:',
         followupsLabel: 'Suggested follow-ups',
         continueOnWhatsApp: 'Continue on WhatsApp',
       };
@@ -603,6 +614,7 @@ const getUIText = (lang: string): ChatUIStrings => {
           whatsapp: 'اسأل عبر واتساب',
           similarLabel: 'منتجات مشابهة',
         },
+        starterPrompt: 'جرّب أن تسأل:',
         followupsLabel: 'اقتراحات للمتابعة',
         continueOnWhatsApp: 'أكمل المحادثة على واتساب',
       };
@@ -1130,6 +1142,30 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
     const t = window.setTimeout(() => inputRef.current?.focus(), 100);
     return () => window.clearTimeout(t);
   }, [isOpen]);
+
+  // ── Starter chips on a fresh open ──────────────────────────────────────
+  //
+  // The moment the panel opens on a conversation that is still just the
+  // synthetic welcome bubble, seed the suggestion row with product-browse
+  // starter chips ("Show me DIOX products", …). This is the only place the
+  // visitor is *taught* that tapping a prompt makes Karo return real
+  // product cards — without it, a fresh chat shows a greeting and an empty
+  // composer with no hint that product cards even exist.
+  //
+  // Safe-to-replace invariant: while the transcript holds no real turn,
+  // any suggestions present MUST be starter chips (the dynamic topic chips
+  // only appear *after* an assistant reply, which requires a real turn).
+  // So we can unconditionally (re)seed for the current language here —
+  // this also keeps the chips correct if the visitor flips the site
+  // language while the chat is still fresh. Once a real message exists we
+  // bail out, leaving `handleSend`/`updateSuggestions` in sole control of
+  // the row.
+  useEffect(() => {
+    if (!isOpen) return;
+    const hasRealTurn = messages.some((m) => m.id !== 'welcome');
+    if (hasRealTurn) return;
+    setSuggestions(getStarterSuggestions(currentLang));
+  }, [isOpen, messages, currentLang]);
 
   // Keep the scroll anchor in view whenever messages/loading state changes.
   useEffect(() => {

@@ -34,6 +34,39 @@ const getDiscussedTopics = (
   return discussedTopics;
 };
 
+/**
+ * Starter chips shown the instant the chat panel opens on a fresh
+ * conversation — BEFORE the visitor has typed anything. Their whole job
+ * is to teach the visitor that Karo can surface real product cards: each
+ * chip is phrased as a natural browse request that the server-side
+ * `detectProductIntent` heuristic reliably recognises (brand keyword
+ * DIOX / AYLUX, or a generic "products / catalogue" browse word), so a
+ * single tap returns inline product cards instead of a wall of text.
+ *
+ * Ordering rationale: the two brand-scoped prompts come first because a
+ * brand-filtered result set is the most visually satisfying first
+ * experience (4 cards from one line), and the open-ended "all products"
+ * prompt closes the row for the visitor who doesn't yet know the brands.
+ *
+ * Kept deliberately short (3 chips) so the row never wraps to a second
+ * line on a 320 px mobile panel.
+ */
+const STARTER_SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', string[]> = {
+  ar: ['اعرض منتجات DIOX', 'اعرض منتجات AYLUX', 'ما هي منتجاتكم؟'],
+  en: ['Show me DIOX products', 'Show me AYLUX products', 'What products do you offer?'],
+  tr: ['DIOX ürünlerini göster', 'AYLUX ürünlerini göster', 'Hangi ürünleriniz var?'],
+  ru: ['Покажите товары DIOX', 'Покажите товары AYLUX', 'Какие у вас товары?'],
+};
+
+/**
+ * Returns the localised starter chips for a fresh chat. Pure lookup with
+ * an Arabic fallback so an unexpected locale still yields usable chips.
+ */
+export const getStarterSuggestions = (language: string = 'ar'): string[] => {
+  const lang = normalizeLanguageCode(language) as keyof typeof STARTER_SUGGESTIONS_BY_LANG;
+  return STARTER_SUGGESTIONS_BY_LANG[lang] ?? STARTER_SUGGESTIONS_BY_LANG.ar;
+};
+
 type SuggestionMap = Record<string, string[]>;
 
 const SUGGESTIONS_BY_LANG: Record<'ar' | 'en' | 'tr' | 'ru', SuggestionMap> = {
