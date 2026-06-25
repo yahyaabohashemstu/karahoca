@@ -34,8 +34,8 @@ const Home: React.FC = () => {
       <main>
         <Hero />
         <BrandsSection />
-        <BlogSection />
         <NewsSection />
+        <BlogSection />
         <WorkSection />
         <NumbersSection />
         <AboutSection />
