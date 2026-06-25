@@ -161,10 +161,11 @@ const NewsArticlePage: React.FC = () => {
                       alt={alt || ''}
                       loading="lazy"
                       decoding="async"
-                      // Cap inline body images well below the 800px text column
-                      // and centre them — full-width inline photos read as too
-                      // large/heavy. Stays responsive (100%) on narrow screens.
-                      style={{ display: 'block', width: '100%', maxWidth: 520, height: 'auto', borderRadius: 8, margin: '1.2rem auto' }}
+                      // Inline body images, centred. Cap is +50% over the
+                      // previous 520px (→ 780px); on the ~752px text column it
+                      // therefore fills the column width. Stays responsive
+                      // (100%) on narrow screens.
+                      style={{ display: 'block', width: '100%', maxWidth: 780, height: 'auto', borderRadius: 8, margin: '1.2rem auto' }}
                       {...rest}
                     />
                   ),

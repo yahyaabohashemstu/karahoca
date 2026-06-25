@@ -171,7 +171,7 @@ const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
                     alt={alt || ''}
                     loading="lazy"
                     decoding="async"
-                    style={{ display: 'block', width: '100%', maxWidth: 420, height: 'auto', borderRadius: 8, margin: '0.75rem auto' }}
+                    style={{ display: 'block', width: '100%', maxWidth: 630, height: 'auto', borderRadius: 8, margin: '0.75rem auto' }}
                     {...rest}
                   />
                 ),
