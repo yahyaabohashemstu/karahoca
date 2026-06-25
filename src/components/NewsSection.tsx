@@ -45,7 +45,17 @@ const NewsSection: React.FC = () => {
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
-  const marqueeItems = useMemo(() => [...newsItems, ...newsItems, ...newsItems], [newsItems]);
+  // The infinite marquee triples the list so it can scroll seamlessly — but
+  // that only looks right when ONE pass of cards already overflows the
+  // viewport. With a single news item the tripled track shows the SAME card
+  // 3× in a row. `loopEnabled` is decided by measurement (measureLoop below):
+  // when a single pass fits within the viewport we drop the duplication and
+  // the auto-scroll, and centre the cards instead.
+  const [loopEnabled, setLoopEnabled] = useState(true);
+  const marqueeItems = useMemo(
+    () => (loopEnabled ? [...newsItems, ...newsItems, ...newsItems] : newsItems),
+    [newsItems, loopEnabled],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -157,9 +167,27 @@ const NewsSection: React.FC = () => {
     }
 
     const measureLoop = () => {
-      const loopWidth = track.scrollWidth / 3;
-      loopWidthRef.current = loopWidth;
-      applyOffset(-loopWidth);
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      // Width of a SINGLE pass of cards. The track holds 3 passes while
+      // looping, 1 while static.
+      const singleSetWidth = loopEnabled ? track.scrollWidth / 3 : track.scrollWidth;
+      const overflows = singleSetWidth > viewport.clientWidth + 8;
+      if (overflows !== loopEnabled) {
+        // Toggle looping. The re-render swaps the track content (3×↔1×) and
+        // re-runs this effect (loopEnabled is in its deps) to re-measure.
+        setLoopEnabled(overflows);
+        return;
+      }
+      if (loopEnabled) {
+        loopWidthRef.current = singleSetWidth;
+        applyOffset(-singleSetWidth);
+      } else {
+        // Cards fit — no scrolling, no duplication. Clear the inline
+        // transform so CSS can centre the single pass.
+        loopWidthRef.current = 0;
+        track.style.transform = '';
+      }
     };
 
     const step = (timestamp: number) => {
@@ -196,7 +224,7 @@ const NewsSection: React.FC = () => {
       animationFrameRef.current = null;
       lastFrameTimeRef.current = null;
     };
-  }, [applyOffset, newsItems.length, currentLanguage]);
+  }, [applyOffset, newsItems.length, currentLanguage, loopEnabled]);
 
   // If neither the API nor the static fallback has any news, hide the whole
   // section from the homepage. Showing an empty marquee with just an eyebrow
@@ -221,7 +249,7 @@ const NewsSection: React.FC = () => {
       </div>
 
       <div
-        className="container news-section__carousel fx-up"
+        className={`container news-section__carousel fx-up${loopEnabled ? '' : ' news-section__carousel--static'}`}
         onMouseEnter={() => {
           isHoveringRef.current = true;
         }}
@@ -229,17 +257,22 @@ const NewsSection: React.FC = () => {
           isHoveringRef.current = false;
         }}
       >
-        <button
-          type="button"
-          className="news-section__arrow news-section__arrow--previous"
-          aria-label={arrowLabels.previous}
-          onClick={() => focusNearestCard('previous')}
-        >
-          <span aria-hidden="true">←</span>
-        </button>
+        {loopEnabled && (
+          <button
+            type="button"
+            className="news-section__arrow news-section__arrow--previous"
+            aria-label={arrowLabels.previous}
+            onClick={() => focusNearestCard('previous')}
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+        )}
 
         <div ref={viewportRef} className="news-section__viewport">
-          <div ref={trackRef} className="news-section__track">
+          <div
+            ref={trackRef}
+            className={`news-section__track${loopEnabled ? '' : ' news-section__track--static'}`}
+          >
             {marqueeItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="news-section__item">
                 <NewsCard news={item} onOpen={setActiveNews} compact />
@@ -248,14 +281,16 @@ const NewsSection: React.FC = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="news-section__arrow news-section__arrow--next"
-          aria-label={arrowLabels.next}
-          onClick={() => focusNearestCard('next')}
-        >
-          <span aria-hidden="true">→</span>
-        </button>
+        {loopEnabled && (
+          <button
+            type="button"
+            className="news-section__arrow news-section__arrow--next"
+            aria-label={arrowLabels.next}
+            onClick={() => focusNearestCard('next')}
+          >
+            <span aria-hidden="true">→</span>
+          </button>
+        )}
       </div>
 
       <NewsModal news={activeNews} onClose={() => setActiveNews(null)} />

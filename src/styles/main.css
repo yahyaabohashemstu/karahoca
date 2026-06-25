@@ -3605,6 +3605,14 @@ body.light-mode .about-page .timeline-year {
   width: min(1500px, 98vw);
 }
 
+/* Static (few cards, no marquee): the scroll arrows aren't rendered, so
+   collapse the 3-column [arrow | track | arrow] grid to a single full-width
+   column. Otherwise grid auto-placement drops the viewport into the first
+   `auto` column (content-width, start-aligned → stranded on one side). */
+.news-section__carousel--static {
+  grid-template-columns: 1fr;
+}
+
 .news-section__arrow {
   width: 52px;
   height: 52px;
@@ -3650,6 +3658,15 @@ body.light-mode .about-page .timeline-year {
   gap: var(--news-gap);
   width: max-content;
   will-change: transform;
+}
+
+/* Few cards (a single pass fits the viewport): no marquee duplication and
+   no auto-scroll — centre the cards instead of stranding them at the start
+   or repeating the same card across the tripled track. */
+.news-section__track--static {
+  width: 100%;
+  justify-content: center;
+  transform: none !important;
 }
 
 .news-section__item {
