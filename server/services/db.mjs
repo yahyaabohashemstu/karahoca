@@ -435,6 +435,7 @@ const markMigration = (name) =>
 const migrateInitialData = () => {
   migrateProducts();
   migrateNews();
+  migrateNewsSenefoodSenepack2026();
   migrateNewsletter();
   migrateBlog();
   migrateBlogBatch2();
@@ -1652,6 +1653,108 @@ const migrateNews = () => {
 
   markMigration('initial_news');
   logger.info('[db] News migration complete');
+};
+
+// ─── News: SENEFOOD & SENEPACK 2026 (Dakar, Senegal) ─────────────────────────
+// Separate sentinel from `initial_news` so this real event recap ships even on
+// databases where `initial_news` was already marked done. One row; admin can
+// edit/delete it afterwards. Body is markdown (rendered by ReactMarkdown on the
+// article page AND the homepage modal) with the three secondary booth photos
+// embedded inline; the hero photo is the `image` field. Photos live in
+// public/news/ as optimised WebP.
+const migrateNewsSenefoodSenepack2026 = () => {
+  if (hasMigration('news_senefood_senepack_2026')) return;
+
+  const item = {
+    id: 'senefood-senepack-dakar-2026',
+    slug: 'senefood-senepack-dakar-2026',
+    image: '/news/senefood-senepack-2026-booth.webp',
+    published_at: '2026-06-13',
+    category: {
+      ar: 'المعارض والفعاليات',
+      en: 'Exhibitions & events',
+      tr: 'Fuarlar ve etkinlikler',
+      ru: 'Выставки и мероприятия',
+    },
+    title: {
+      ar: 'قره خوجة تشارك في معرضَي SENEFOOD و SENEPACK 2026 في داكار',
+      en: 'KARAHOCA at SENEFOOD & SENEPACK 2026 in Dakar, Senegal',
+      tr: "KARAHOCA, Dakar'daki SENEFOOD & SENEPACK 2026 Fuarında",
+      ru: 'KARAHOCA на выставке SENEFOOD & SENEPACK 2026 в Дакаре',
+    },
+    excerpt: {
+      ar: 'شاركنا في الدورة الثالثة عشرة من معرضَي SENEFOOD و SENEPACK الدوليَّين بمركز معارض داكار ديامنيديو في السنغال (11–13 يونيو 2026)، حيث عرضنا تشكيلة DİOX و AYLUX أمام موزّعين ومشترين من غرب إفريقيا.',
+      en: 'We took part in the 13th edition of the SENEFOOD & SENEPACK international exhibitions at the Dakar Diamniadio Exhibition Centre in Senegal (11–13 June 2026), presenting our DİOX and AYLUX lines to distributors and buyers from across West Africa.',
+      tr: "Senegal'deki Dakar Diamniadio Fuar Merkezi'nde düzenlenen 13. SENEFOOD & SENEPACK uluslararası fuarlarına katıldık (11–13 Haziran 2026) ve DİOX ile AYLUX serilerimizi Batı Afrikalı distribütör ve alıcılarla buluşturduk.",
+      ru: 'Мы приняли участие в 13-й международной выставке SENEFOOD & SENEPACK в выставочном центре Дакар-Диамниадио в Сенегале (11–13 июня 2026 года), представив линейки DİOX и AYLUX дистрибьюторам и закупщикам из Западной Африки.',
+    },
+    body: {
+      ar: [
+        'شاركت قره خوجة (KARAHOCA) في الدورة الثالثة عشرة من معرضَي SENEFOOD للأغذية وتصنيعها و SENEPACK للتعبئة والتغليف، الدوليَّين، اللذين أُقيما من 11 إلى 13 يونيو 2026 في مركز معارض داكار ديامنيديو بالسنغال، ضمن الحضور التركي في المعرض.',
+        '![جناح قره خوجة ضمن الحضور التركي في معرض SENEFOOD و SENEPACK بداكار](/news/senefood-senepack-2026-turkiye-pavilion.webp)',
+        'عرضنا في جناحنا تشكيلة علامتَي DİOX و AYLUX: مساحيق الغسيل الأوتوماتيكية، والمنعّمات المركّزة، وسوائل وجِل غسيل الصحون، ومنظّفات الأسطح والحمّامات، والمبيّض المعقّم — وجميعها مصنوعة في تركيا وفق معايير جودة عالمية.',
+        '![تشكيلة منتجات DİOX و AYLUX معروضة على منصّة العرض](/news/senefood-senepack-2026-product-range.webp)',
+        'شكّلت المشاركة فرصة قيّمة للقاء موزّعين ومشترين من السنغال وعموم غرب إفريقيا، وللتعريف بعلاماتنا في سوق سريع النمو، ولاستكشاف فرص شراكة وتوزيع طويلة الأمد في المنطقة.',
+        '![منضدة الاستقبال في جناح قره خوجة مع كتيّبات المنتجات](/news/senefood-senepack-2026-welcome-desk.webp)',
+        'نشكر كل من زار جناحنا وأثرى نقاشاتنا. للاستفسار عن التوزيع أو الشراكة في غرب إفريقيا، تواصلوا مع فريق خدمة العملاء عبر [واتساب](https://wa.me/905305914990).',
+      ],
+      en: [
+        'KARAHOCA took part in the 13th edition of SENEFOOD — the international exhibition for food and food processing — and SENEPACK — the international packaging exhibition — held from 11 to 13 June 2026 at the Centre des Expositions de Dakar Diamniadio in Senegal, as part of the Turkish presence at the show.',
+        '![The KARAHOCA stand within the Turkish presence at SENEFOOD & SENEPACK in Dakar](/news/senefood-senepack-2026-turkiye-pavilion.webp)',
+        'At our stand we presented the DİOX and AYLUX ranges: automatic laundry powders, concentrated fabric softeners, dishwashing liquids and gels, surface and bathroom cleaners, and disinfectant bleach — all manufactured in Türkiye to international quality standards.',
+        '![The DİOX and AYLUX product range on display](/news/senefood-senepack-2026-product-range.webp)',
+        'The fair was a valuable opportunity to meet distributors and buyers from Senegal and across West Africa, introduce our brands to a fast-growing market, and explore long-term partnership and distribution opportunities in the region.',
+        '![The KARAHOCA welcome desk with product catalogues](/news/senefood-senepack-2026-welcome-desk.webp)',
+        'Thank you to everyone who visited our stand and enriched our conversations. For distribution or partnership inquiries in West Africa, reach our customer-service team on [WhatsApp](https://wa.me/905305914990).',
+      ],
+      tr: [
+        "KARAHOCA, 11–13 Haziran 2026 tarihlerinde Senegal'deki Dakar Diamniadio Fuar Merkezi'nde düzenlenen 13. SENEFOOD (uluslararası gıda ve gıda işleme fuarı) ve SENEPACK (uluslararası ambalaj fuarı) etkinliklerine, fuardaki Türkiye katılımı kapsamında yer aldı.",
+        "![SENEFOOD & SENEPACK Dakar'da Türkiye katılımı içinde KARAHOCA standı](/news/senefood-senepack-2026-turkiye-pavilion.webp)",
+        "Standımızda DİOX ve AYLUX serilerini sergiledik: otomatik çamaşır tozları, konsantre yumuşatıcılar, bulaşık sıvıları ve jelleri, yüzey ve banyo temizleyicileri ile dezenfekte edici çamaşır suyu — tamamı uluslararası kalite standartlarında Türkiye'de üretiliyor.",
+        '![Sergilenen DİOX ve AYLUX ürün gamı](/news/senefood-senepack-2026-product-range.webp)',
+        "Fuar; Senegal ve Batı Afrika'dan distribütör ve alıcılarla buluşmak, markalarımızı hızla büyüyen bir pazara tanıtmak ve bölgede uzun vadeli iş birliği ve dağıtım fırsatlarını değerlendirmek için değerli bir fırsat oldu.",
+        '![Ürün kataloglarının bulunduğu KARAHOCA karşılama bankosu](/news/senefood-senepack-2026-welcome-desk.webp)',
+        "Standımızı ziyaret eden ve görüşmelerimize katkı sağlayan herkese teşekkür ederiz. Batı Afrika'da dağıtım veya iş birliği talepleriniz için müşteri hizmetleri ekibimize [WhatsApp](https://wa.me/905305914990) üzerinden ulaşabilirsiniz.",
+      ],
+      ru: [
+        'KARAHOCA приняла участие в 13-й международной выставке продуктов питания и пищевой переработки SENEFOOD и международной выставке упаковки SENEPACK, которые прошли с 11 по 13 июня 2026 года в выставочном центре Дакар-Диамниадио в Сенегале, в рамках турецкого участия в мероприятии.',
+        '![Стенд KARAHOCA в составе турецкого участия на SENEFOOD и SENEPACK в Дакаре](/news/senefood-senepack-2026-turkiye-pavilion.webp)',
+        'На нашем стенде мы представили линейки DİOX и AYLUX: автоматические стиральные порошки, концентрированные кондиционеры, жидкости и гели для мытья посуды, средства для поверхностей и ванных комнат, а также дезинфицирующий отбеливатель — всё произведено в Турции по международным стандартам качества.',
+        '![Ассортимент продукции DİOX и AYLUX на витрине](/news/senefood-senepack-2026-product-range.webp)',
+        'Выставка стала ценной возможностью встретиться с дистрибьюторами и закупщиками из Сенегала и всей Западной Африки, представить наши бренды быстрорастущему рынку и изучить долгосрочные возможности партнёрства и дистрибуции в регионе.',
+        '![Стойка KARAHOCA с каталогами продукции](/news/senefood-senepack-2026-welcome-desk.webp)',
+        'Благодарим всех, кто посетил наш стенд и обогатил наши беседы. По вопросам дистрибуции или партнёрства в Западной Африке свяжитесь с нашей службой поддержки в [WhatsApp](https://wa.me/905305914990).',
+      ],
+    },
+  };
+
+  db.prepare(`
+    INSERT OR IGNORE INTO news(
+      id, slug, image, published_at, status,
+      category_ar, category_en, category_tr, category_ru,
+      title_ar, title_en, title_tr, title_ru,
+      excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
+      body_ar, body_en, body_tr, body_ru,
+      active
+    ) VALUES(
+      @id, @slug, @image, @published_at, 'published',
+      @cat_ar, @cat_en, @cat_tr, @cat_ru,
+      @title_ar, @title_en, @title_tr, @title_ru,
+      @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
+      @body_ar, @body_en, @body_tr, @body_ru,
+      1
+    )
+  `).run({
+    id: item.id, slug: item.slug, image: item.image, published_at: item.published_at,
+    cat_ar: item.category.ar, cat_en: item.category.en, cat_tr: item.category.tr, cat_ru: item.category.ru,
+    title_ar: item.title.ar, title_en: item.title.en, title_tr: item.title.tr, title_ru: item.title.ru,
+    excerpt_ar: item.excerpt.ar, excerpt_en: item.excerpt.en, excerpt_tr: item.excerpt.tr, excerpt_ru: item.excerpt.ru,
+    body_ar: JSON.stringify(item.body.ar), body_en: JSON.stringify(item.body.en),
+    body_tr: JSON.stringify(item.body.tr), body_ru: JSON.stringify(item.body.ru),
+  });
+
+  markMigration('news_senefood_senepack_2026');
+  logger.info('[db] SENEFOOD/SENEPACK 2026 news seeded');
 };
 
 // ─── Blog Migration ──────────────────────────────────────────────────────────

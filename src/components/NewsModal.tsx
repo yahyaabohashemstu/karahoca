@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { LocalizedNewsItem } from '../data/news';
 
 interface NewsModalProps {
@@ -148,9 +150,35 @@ const NewsModal: React.FC<NewsModalProps> = ({ news, onClose }) => {
           </h3>
 
           <div className="news-modal__content">
-            {news.body.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            {/* Body is markdown (same contract as the full article page):
+                plain-text paragraphs still render as <p>, and richer items
+                — inline images, links, lists — render properly instead of
+                showing raw markdown syntax. */}
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, href, ...rest }) => (
+                  <a
+                    href={href}
+                    target={href?.startsWith('http') ? '_blank' : undefined}
+                    rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    {...rest}
+                  />
+                ),
+                img: ({ node, src, alt, ...rest }) => (
+                  <img
+                    src={src}
+                    alt={alt || ''}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ maxWidth: '100%', height: 'auto', borderRadius: 8, margin: '0.75rem 0' }}
+                    {...rest}
+                  />
+                ),
+              }}
+            >
+              {news.body.join('\n\n')}
+            </ReactMarkdown>
           </div>
         </div>
       </article>
