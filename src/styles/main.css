@@ -1156,6 +1156,41 @@ body.light-mode .brand__logo {
   pointer-events: auto;
 }
 
+/* ── Keyboard accessibility ──────────────────────────────────────────────
+   The back-face controls ("view image" + wishlist) are real <button>s, so
+   they're already in the tab order even while the back is visually hidden
+   (opacity:0 / pointer-events:none don't remove an element from keyboard
+   focus). The gap was purely visual: a keyboard user would land on an
+   invisible button with no feedback.
+
+   `:focus-within` mirrors the hover/.is-flipped opacity + pointer-events
+   swap, but lives OUTSIDE the pointer media query so it fires for keyboard
+   focus on every device — the moment a back-face control is focused, the
+   card flips so the user can see what they're operating. */
+.product-card-flip-container:focus-within .product-card-front {
+  opacity: 0;
+  pointer-events: none;
+}
+.product-card-flip-container:focus-within .product-card-back {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Visible focus ring — keyboard only (`:focus-visible` / `:has(:focus-visible)`
+   so a mouse click doesn't draw it). The card gets an accent outline; the
+   back-face buttons get a double ring (white + accent) that stays visible on
+   both the dark default back and the opaque light-mode back. */
+.product-card-flip-container:has(:focus-visible) {
+  outline: 3px solid var(--orange, #f54b1a);
+  outline-offset: 3px;
+  border-radius: 20px;
+}
+.product-card-back .image-preview-btn:focus-visible,
+.product-card-back .product-wishlist-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--orange, #f54b1a);
+}
+
 /* Visual affordance: anything pointing at the card should look tappable.
    On touch devices the cursor isn't shown, but on hybrid/desktop the
    pointer makes the flip behaviour discoverable. */
