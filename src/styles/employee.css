@@ -1,4 +1,6 @@
- @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
+ /* Cairo used to be @imported here from Google Fonts — on every page,
+    render-blocking, for a font only Arabic blog articles use. It is now
+    self-hosted and loaded by BlogPostPage (@fontsource-variable/cairo). */
 
      @keyframes smokeRise {
          0% {

@@ -37,6 +37,10 @@ export const useFlipBookLoader = (
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
   // ── Image-based loading (preferred) ──────────────────────────────────────
+  // Only the cover is waited for: the viewer opens as soon as it's in.
+  // Every other page loads when its spread is (about to be) on screen —
+  // FlipBook prefetches the neighbouring spreads — instead of the whole
+  // catalog (~5 MB) up front, most of which a visitor never turns to.
   useEffect(() => {
     if (!imageUrls || imageUrls.length === 0) return;
 
@@ -46,27 +50,16 @@ export const useFlipBookLoader = (
     setPages([]);
     setLoadPct(0);
 
-    const loaded: string[] = [];
-    let count = 0;
-
-    imageUrls.forEach((url, i) => {
-      const img = new Image();
-      const onSettle = () => {
-        if (cancelled) return;
-        loaded[i] = url;
-        count += 1;
-        setLoadPct(Math.round((count / imageUrls.length) * 100));
-        if (count === imageUrls.length) {
-          setPages(loaded);
-          setLoading(false);
-        }
-      };
-      img.onload = onSettle;
-      // On failure we still include the URL — the browser will render the
-      // broken-image placeholder rather than skipping pages silently.
-      img.onerror = onSettle;
-      img.src = url;
-    });
+    const cover = new Image();
+    // On failure we still open — the browser renders the broken-image
+    // placeholder for that page rather than the viewer never appearing.
+    cover.onload = cover.onerror = () => {
+      if (cancelled) return;
+      setPages(imageUrls);
+      setLoadPct(100);
+      setLoading(false);
+    };
+    cover.src = imageUrls[0];
 
     return () => {
       cancelled = true;

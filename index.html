@@ -43,9 +43,11 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
   <!-- ═══════════════════════ Favicons & PWA ═══════════════════════ -->
-  <link rel="icon" type="image/webp" href="/cropped-karahoca-logo-s-.webp" />
-  <link rel="shortcut icon" href="/cropped-karahoca-logo-s-.webp" />
-  <link rel="apple-touch-icon" href="/cropped-karahoca-logo-s-.webp" />
+  <!-- Small icons: the 512 px mark (65 KB) was fetched on every first visit
+       just for the tab icon. 96 px = what search results ask for (a
+       multiple of 48); iOS wants a 180 px PNG. -->
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#153d7a" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0a0e17" media="(prefers-color-scheme: dark)">
@@ -221,7 +223,11 @@
   <link rel="dns-prefetch" href="https://wa.me">
   <link rel="preconnect" href="https://api.karahoca.com" crossorigin>
   <link rel="dns-prefetch" href="https://api.karahoca.com">
-  <link rel="preload" as="image" href="/KARAHOCA-1-newPhoto.webp" type="image/webp" fetchpriority="high">
+  <!-- No image preload here: this head is every page's head, and only the
+       home hero shows /KARAHOCA-1-newPhoto — elsewhere the preload competed
+       with the page's real first image. Prerendered pages carry their hero
+       <img fetchpriority="high"> in the HTML, which the browser finds just
+       as early. -->
 
   <!-- Hotjar Analytics — set VITE_HOTJAR_ID in your .env to activate -->
 </head>

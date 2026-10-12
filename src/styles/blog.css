@@ -1359,7 +1359,8 @@ body.light-mode .blog-prose {
 }
 
 .is-rtl .blog-prose {
-  font-family: 'Tajawal', 'Cairo', 'Noto Sans Arabic', 'Inter', sans-serif;
+  /* 'Cairo Variable' = the self-hosted Cairo (BlogPostPage imports it). */
+  font-family: 'Tajawal', 'Cairo Variable', 'Cairo', 'Noto Sans Arabic', 'Inter', sans-serif;
   font-size: 1.18rem;
   line-height: 1.85;
   letter-spacing: 0;

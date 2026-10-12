@@ -1,30 +1,47 @@
-import i18n from 'i18next';
+import i18n, { type BackendModule } from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 import {
   getLanguageDirection,
   normalizeLanguageCode,
   supportedLanguageCodes,
+  type SupportedLanguageCode,
 } from './utils/language';
+import { splitLocalePath } from './utils/localizedPath';
 
-import translationAR from './locales/ar/translation.json';
-import translationEN from './locales/en/translation.json';
-import translationTR from './locales/tr/translation.json';
-import translationRU from './locales/ru/translation.json';
+// Each language is its own chunk: a visitor downloads only theirs (the four
+// files together were ~190 KB of the main bundle). Switching language loads
+// the new one before i18next switches — the UI stays in the old language for
+// that moment instead of showing raw keys.
+const loadTranslation: Record<SupportedLanguageCode, () => Promise<{ translation: Record<string, unknown> }>> = {
+  ar: () => import('./locales/ar/translation.json'),
+  en: () => import('./locales/en/translation.json'),
+  tr: () => import('./locales/tr/translation.json'),
+  ru: () => import('./locales/ru/translation.json'),
+};
 
-const resources = {
-  ar: {
-    translation: translationAR.translation
+const lazyTranslations: BackendModule = {
+  type: 'backend',
+  init: () => {},
+  read: (language, _namespace, callback) => {
+    loadTranslation[normalizeLanguageCode(language)]()
+      .then((module) => callback(null, module.translation))
+      .catch((error: unknown) => callback(error instanceof Error ? error : new Error(String(error)), null));
   },
-  en: {
-    translation: translationEN.translation
-  },
-  tr: {
-    translation: translationTR.translation
-  },
-  ru: {
-    translation: translationRU.translation
-  }
+};
+
+/**
+ * The language of the first render. The URL's language prefix (/en/… → en)
+ * is the source of truth, so the very first render is already in the page's
+ * language — which is also what a prerendered page was rendered in, so
+ * hydration sees the same text. Paths without a prefix (/, /admin, legacy
+ * links about to be redirected) use <html lang> (the shell says "ar").
+ *
+ * After mount, `useLocaleSync` keeps i18n in step with the URL.
+ */
+const initialLanguage = (): SupportedLanguageCode => {
+  if (typeof window === 'undefined') return 'ar';
+  const { lang, hasPrefix } = splitLocalePath(window.location.pathname);
+  return hasPrefix ? lang : normalizeLanguageCode(document.documentElement.lang);
 };
 
 const applyDocumentLanguage = (lng?: string | null) => {
@@ -39,56 +56,28 @@ const applyDocumentLanguage = (lng?: string | null) => {
   document.documentElement.lang = normalizedLanguage;
 };
 
-// Detection order is deliberate: `htmlTag` FIRST so the `<html lang="...">`
-// value baked into the HTML shell (or a prerendered route) is authoritative
-// for the very first render. This is required for hydration safety — the
-// first client render MUST emit the same language the prerendered HTML
-// used, or React logs a hydration mismatch.
-//
-// After mount, `useLocaleSync` reconciles to the user's stored preference
-// (localStorage → navigator → fallback) by calling `i18n.changeLanguage()`,
-// which triggers a second render — by then hydration is already complete.
-void i18n
-  .use(LanguageDetector)
+/**
+ * Resolves once the first language's translations are in. main.tsx waits
+ * for it before rendering: a first render without them would show keys —
+ * and on a prerendered page, fail to hydrate.
+ */
+export const i18nReady = i18n
+  .use(lazyTranslations)
   .use(initReactI18next)
   .init({
-    resources,
-    fallbackLng: 'ar',
+    lng: initialLanguage(),
+    // No fallback language: every key exists in all four files (enforced by
+    // src/locales/locales.test.ts). A fallback would make i18next download
+    // Arabic for every English, Turkish and Russian visitor too.
+    fallbackLng: false,
     supportedLngs: [...supportedLanguageCodes],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     cleanCode: true,
-    initImmediate: false, // ensure init resolves synchronously — no async chunk race before first render
     debug: import.meta.env.DEV,
 
     interpolation: {
       escapeValue: false
-    },
-
-    detection: {
-      // Order: the URL's language prefix FIRST (/en/… → en). The URL is the
-      // source of truth, so the very first render is already in the page's
-      // language. With htmlTag first, every page started in the shell's
-      // default (lang="ar") and switched a moment later via useLocaleSync:
-      // an Arabic first frame on /en/ pages, and components that didn't
-      // re-render kept Arabic labels (the chat / WhatsApp buttons in the
-      // prerendered snapshots). Prerendered pages carry <html lang> equal
-      // to their prefix, so hydration still sees the same language.
-      // Paths without a supported prefix (/admin, /) fall through to
-      // htmlTag, then the stored / browser language.
-      //
-      // `caches: []` (empty) is INTENTIONAL — was previously
-      // `['localStorage']`, which silently wrote 'ar' to `i18nextLng` on
-      // every page load (because htmlTag detection returned 'ar' from the
-      // default prerender shell). The redirect logic at `/` then read that
-      // stale localStorage entry and routed every visitor to /ar/,
-      // regardless of their browser language. With caching off, only the
-      // LanguageSwitcher's explicit user-choice write (to a separate key,
-      // see localizedPath.detectPreferredLang) is persistent.
-      order: ['path', 'htmlTag', 'localStorage', 'navigator'],
-      lookupFromPathIndex: 0,
-      caches: [],
-      lookupLocalStorage: 'i18nextLng'
     },
 
     react: {

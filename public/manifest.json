@@ -15,58 +15,40 @@
   "categories": ["business", "shopping", "lifestyle"],
   "icons": [
     {
-      "src": "/cropped-karahoca-logo-s-.webp",
-      "sizes": "48x48",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "/cropped-karahoca-logo-s-.webp",
-      "sizes": "72x72",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "/cropped-karahoca-logo-s-.webp",
+      "src": "/favicon-96.png",
       "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/karahoca-mark-128.webp",
+      "sizes": "128x128",
       "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "/cropped-karahoca-logo-s-.webp",
-      "sizes": "144x144",
-      "type": "image/webp",
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/cropped-karahoca-logo-s-.webp",
+      "src": "/karahoca-mark-192.webp",
       "sizes": "192x192",
       "type": "image/webp",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/cropped-karahoca-logo-s-.webp",
-      "sizes": "256x256",
-      "type": "image/webp",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/cropped-karahoca-logo-s-.webp",
-      "sizes": "384x384",
-      "type": "image/webp",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/cropped-karahoca-logo-s-.webp",
       "sizes": "512x512",
       "type": "image/webp",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "screenshots": [
     {
       "src": "/KARAHOCA-1-newPhoto.webp",
-      "sizes": "1200x630",
+      "sizes": "1920x852",
       "type": "image/webp",
       "form_factor": "wide",
       "label": "KARAHOCA production facility"

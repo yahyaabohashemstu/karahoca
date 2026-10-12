@@ -1,9 +1,15 @@
-import React, { memo } from 'react';
+import React, { Suspense, lazy, memo } from 'react';
 import { useChatState } from '../../hooks/useChatState';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import ChatShell from './ChatShell';
 import ExitIntentPopup from './ExitIntentPopup';
 import '../../styles/ai-chat.css';
+
+// The open chat window renders replies as markdown (react-markdown,
+// ~150 KB). The closed widget — toggle, hints, exit intent — loads on every
+// page, so the window's code waits until the visitor heads for it: pointer
+// or focus on the toggle starts the download, opening finishes it.
+const loadChatShell = () => import('./ChatShell');
+const ChatShell = lazy(loadChatShell);
 
 interface AIChatWidgetProps {
   initiallyOpen?: boolean;
@@ -122,6 +128,8 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
           type="button"
           className="ai-assistant__toggle"
           onClick={openChat}
+          onPointerEnter={loadChatShell}
+          onFocus={loadChatShell}
           aria-expanded={false}
           aria-label={uiText.openToggleLabel}
           title={uiText.openToggleLabel}
@@ -154,26 +162,42 @@ const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) =>
       )}
 
       {isOpen && (
-        <ChatShell
-          uiText={uiText}
-          currentLang={currentLang}
-          isRtl={isRtl}
-          messages={messages}
-          inputValue={inputValue}
-          isLoading={isLoading}
-          statusMessage={statusMessage}
-          suggestions={suggestions}
-          canSubmit={canSubmit}
-          inputRef={inputRef}
-          messagesEndRef={messagesEndRef}
-          onInputChange={setInputValue}
-          onSubmit={() => { void handleSend(); }}
-          onSuggestionClick={handleSuggestionClick}
-          onFollowupPick={handleFollowupClick}
-          onContinueOnWhatsApp={handleContinueOnWhatsApp}
-          canContinueOnWhatsApp={canContinueOnWhatsApp}
-          onClose={closeChat}
-        />
+        <Suspense
+          fallback={(
+            <div className="ai-assistant__window" data-lang={currentLang} aria-busy="true">
+              <header className="ai-assistant__header">
+                <div>
+                  <p className="ai-assistant__title">{uiText.title}</p>
+                  <span className="ai-assistant__subtitle">{uiText.subtitle}</span>
+                </div>
+                <button type="button" className="ai-assistant__close" onClick={closeChat} aria-label={uiText.closeLabel}>
+                  ×
+                </button>
+              </header>
+            </div>
+          )}
+        >
+          <ChatShell
+            uiText={uiText}
+            currentLang={currentLang}
+            isRtl={isRtl}
+            messages={messages}
+            inputValue={inputValue}
+            isLoading={isLoading}
+            statusMessage={statusMessage}
+            suggestions={suggestions}
+            canSubmit={canSubmit}
+            inputRef={inputRef}
+            messagesEndRef={messagesEndRef}
+            onInputChange={setInputValue}
+            onSubmit={() => { void handleSend(); }}
+            onSuggestionClick={handleSuggestionClick}
+            onFollowupPick={handleFollowupClick}
+            onContinueOnWhatsApp={handleContinueOnWhatsApp}
+            canContinueOnWhatsApp={canContinueOnWhatsApp}
+            onClose={closeChat}
+          />
+        </Suspense>
       )}
     </div>
   );

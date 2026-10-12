@@ -42,6 +42,10 @@ const TARGET_DIRS = [
 // Extensions to convert
 const CONVERTIBLE = new Set(['.png', '.jpg', '.jpeg']);
 
+// Icons that must stay PNG (iOS home-screen icon, search-result favicon):
+// a WebP copy would never be used.
+const KEEP_AS_PNG = new Set(['apple-touch-icon.png', 'favicon-96.png']);
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 async function walkDir(dir) {
@@ -176,7 +180,7 @@ async function main() {
   // Also check root-level PNGs in public/ (logos like Aylux-logo.png)
   const rootEntries = await readdir(PUBLIC_DIR, { withFileTypes: true });
   for (const entry of rootEntries) {
-    if (entry.isFile()) {
+    if (entry.isFile() && !KEEP_AS_PNG.has(entry.name)) {
       const ext = path.extname(entry.name).toLowerCase();
       if (CONVERTIBLE.has(ext)) {
         allFiles.push(path.join(PUBLIC_DIR, entry.name));

@@ -139,13 +139,16 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   // ── Page data (delegated to useFlipBookLoader) ──────────────────────────────
   // All I/O — image preloading AND PDF fallback rendering — lives in the
   // hook. FlipBook itself only owns navigation/zoom/pan/render state.
-  // Pages load only once the page is live: the prerendered snapshot and the
-  // hydration render both show the viewer's loading state, so they match
-  // (useHydrated); loading starts right after hydration.
+  // Pages load only once the page is live (the prerendered snapshot and the
+  // hydration render both show the viewer's loading state, so they match —
+  // useHydrated) AND the viewer is close to the screen (the catalog sits
+  // far down the brand page; many visitors never scroll to it).
   const hydrated = useHydrated();
+  const [nearViewport, setNearViewport] = useState(false);
+  const active = hydrated && nearViewport;
   const { pages, loading, loadPct, loadErr } = useFlipBookLoader(
-    hydrated ? imageUrls : undefined,
-    hydrated ? pdfUrl : undefined,
+    active ? imageUrls : undefined,
+    active ? pdfUrl : undefined,
   );
 
   // ── Navigation ──────────────────────────────────────────────────────────────
@@ -259,6 +262,43 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
+
+  // Start loading when the viewer is within ~a screen of the viewport.
+  useEffect(() => {
+    if (!hydrated || nearViewport) return undefined;
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setNearViewport(true);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNearViewport(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '800px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hydrated, nearViewport]);
+
+  // Pages load on demand (useFlipBookLoader waits for the cover only):
+  // whenever a spread is shown, fetch the spreads one turn away in either
+  // direction, so a turn — button, drag, keyboard, auto-play — finds its
+  // page faces already loaded.
+  useEffect(() => {
+    if (loading || total === 0) return;
+    for (const s of [spread + 1, spread - 1]) {
+      for (const idx of getSpreadPages(s, total, mode)) {
+        if (idx === null) continue;
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = pages[idx];
+      }
+    }
+  }, [loading, spread, total, mode, pages]);
 
   // ── Navigation ───────────────────────────────────────────────────────────
   // Refuses while either form of flip is active: the button-triggered CSS

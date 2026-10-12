@@ -321,6 +321,26 @@ const snapshotScript = () => {
     }
   }
 
+  // Announce every script the page ran that the HTML doesn't name yet
+  // (Vite links route chunks itself; the language's translation chunk is a
+  // plain import()). Hydration waits for all of them; with a modulepreload
+  // the browser fetches them alongside the main bundle instead of after it
+  // has run.
+  const announced = new Set(
+    [...document.querySelectorAll('script[src], link[rel="modulepreload"]')]
+      .map((el) => new URL(el.getAttribute('src') || el.getAttribute('href'), location.href).pathname),
+  );
+  for (const entry of performance.getEntriesByType('resource')) {
+    const url = new URL(entry.name);
+    if (url.origin !== location.origin || !/^\/assets\/[^/]+\.js$/.test(url.pathname) || announced.has(url.pathname)) continue;
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.crossOrigin = '';
+    link.href = url.pathname;
+    document.head.appendChild(link);
+    announced.add(url.pathname);
+  }
+
   document.documentElement.setAttribute('data-kh-prerendered', String(boundaries));
   return '<!doctype html>\n' + document.documentElement.outerHTML;
 };

@@ -33,6 +33,9 @@ import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
 import { readPrerenderData } from '../utils/prerenderData';
 import { localizeAuthorName } from '../utils/blogAuthor';
+// Arabic article text (.is-rtl .blog-prose in blog.css). Self-hosted: only
+// the subsets the text uses download, and only on article pages.
+import '@fontsource-variable/cairo/wght.css';
 import '../styles/blog.css';
 
 interface BlogPost {

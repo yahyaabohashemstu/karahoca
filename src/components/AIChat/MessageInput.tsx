@@ -42,6 +42,10 @@ const MessageInputComponent: React.FC<MessageInputProps> = ({
     <div className="ai-assistant__composer">
       <textarea
         ref={inputRef}
+        // The chat window mounts when it opens — on a first open only once
+        // its code has loaded (AIChat/index.tsx), which can be after
+        // useChatState's focus-on-open timer. Focus on mount covers both.
+        autoFocus
         className="ai-assistant__input"
         placeholder={placeholder}
         value={value}

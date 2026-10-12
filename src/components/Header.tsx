@@ -161,8 +161,15 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
     <header className={`site-header glass-panel ${className}`}>
       <div className="container nav">
         <Link to={lp('/')} className="brand header__brand">
+          {/* Drawn 50 px tall (≈ 198 px wide; 26 px on phones): 1×/2×/3×
+              files instead of the 1280 px original. width/height give the
+              box its size before the file arrives — without them the nav
+              shifted sideways when the logo loaded. */}
           <img
-            src="/karahoca-logo-1-Photoroom.webp"
+            src="/karahoca-logo-header-200.webp"
+            srcSet="/karahoca-logo-header-200.webp 1x, /karahoca-logo-header-400.webp 2x, /karahoca-logo-header-600.webp 3x"
+            width={1280}
+            height={324}
             alt="KARAHOCA — قره خوجة"
             className="brand__logo"
             decoding="async"

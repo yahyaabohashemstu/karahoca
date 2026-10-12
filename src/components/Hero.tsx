@@ -50,8 +50,17 @@ const Hero: React.FC = () => {
                   • Mobile   → `@media (max-width: 768px) { ... object-fit: contain }`   (so the brand wordmark stays visible inside the 180-px-tall mobile crop)
                   An inline `style={{ objectFit: ... }}` would override BOTH rules
                   with the same value, killing one of the two desired behaviours. */}
+              {/* The page's LCP image. `sizes` = the width it is drawn at:
+                  the card crops it with object-fit cover, so on desktop
+                  (400 px tall card) it draws ≈ 900 px wide, on mobile
+                  (≤ 320 × 180 card) ≈ 400 px. A phone then fetches the
+                  640/1200 px file instead of the 1920 px one. */}
               <img
                 src="/KARAHOCA-1-newPhoto.webp"
+                srcSet="/KARAHOCA-1-newPhoto-640.webp 640w, /KARAHOCA-1-newPhoto-1200.webp 1200w, /KARAHOCA-1-newPhoto.webp 1920w"
+                sizes="(max-width: 768px) 400px, 900px"
+                width={1920}
+                height={852}
                 alt="KARAHOCA"
                 fetchPriority="high"
                 decoding="async"

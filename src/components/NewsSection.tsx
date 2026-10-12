@@ -1,13 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
-import NewsModal from './NewsModal';
 import type { LocalizedNewsItem } from '../data/news';
 import { useNewsItems } from '../hooks/useNewsItems';
 import { normalizeLanguageCode } from '../utils/language';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { isPrerendering } from '../utils/prerenderData';
+
+// The modal renders markdown (react-markdown, ~150 KB): load it when a news
+// card is about to be opened, not with the home page.
+const loadNewsModal = () => import('./NewsModal');
+const NewsModal = lazy(loadNewsModal);
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
 const AUTO_SCROLL_SPEED_PX_PER_MS = 0.03;
@@ -264,7 +268,13 @@ const NewsSection: React.FC = () => {
           </button>
         )}
 
-        <div ref={viewportRef} className="news-section__viewport">
+        <div
+          ref={viewportRef}
+          className="news-section__viewport"
+          // Fetch the modal's code as a card is about to be tapped/clicked.
+          onPointerEnter={loadNewsModal}
+          onFocus={loadNewsModal}
+        >
           <div
             ref={trackRef}
             className={`news-section__track${loopEnabled ? '' : ' news-section__track--static'}`}
@@ -289,7 +299,11 @@ const NewsSection: React.FC = () => {
         )}
       </div>
 
-      <NewsModal news={activeNews} onClose={() => setActiveNews(null)} />
+      {activeNews && (
+        <Suspense fallback={null}>
+          <NewsModal news={activeNews} onClose={() => setActiveNews(null)} />
+        </Suspense>
+      )}
     </section>
   );
 };

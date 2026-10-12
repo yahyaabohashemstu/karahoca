@@ -13,7 +13,7 @@ import '@fontsource/inter/400.css'
 import '@fontsource/inter/600.css'
 import '@fontsource/inter/800.css'
 import './index.css'
-import './i18n'
+import { i18nReady } from './i18n'
 import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
 import { bootstrapCsrf } from './utils/apiFetch'
@@ -127,8 +127,14 @@ const tree = (
 // script) baked content into #root, we HYDRATE on top of it. Otherwise —
 // plain CSR boot. This lets the same bundle work for prerendered and
 // non-prerendered routes in the same deploy.
-if (rootNode.hasChildNodes()) {
-  hydrateRoot(rootNode, tree);
-} else {
-  createRoot(rootNode).render(tree);
-}
+// Either way only once the page language's translations have loaded (a
+// separate chunk, see i18n.ts) — the first render must not show raw keys.
+// (If they can't load, render anyway: keys beat a blank page.)
+const render = () => {
+  if (rootNode.hasChildNodes()) {
+    hydrateRoot(rootNode, tree);
+  } else {
+    createRoot(rootNode).render(tree);
+  }
+};
+i18nReady.then(render, render);

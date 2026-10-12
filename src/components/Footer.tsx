@@ -119,8 +119,12 @@ const Footer: React.FC = () => {
       <div className="section-divider"></div>
       <div className="container footer__grid">
         <section className="footer__brand">
+          {/* 64 × 64 on screen: 2×/3× files instead of the 512 px mark. */}
           <img
-            src="/cropped-karahoca-logo-s-.webp"
+            src="/karahoca-mark-128.webp"
+            srcSet="/karahoca-mark-128.webp 2x, /karahoca-mark-192.webp 3x"
+            width={64}
+            height={64}
             alt="KARAHOCA — قره خوجة"
             className="brand__logo"
             loading="lazy"
