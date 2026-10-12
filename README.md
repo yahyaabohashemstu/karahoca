@@ -624,15 +624,26 @@ Config: `web/nginx.conf` (copied to `/etc/nginx/conf.d/default.conf`).
 
 **Edge setting (Coolify / Traefik).** HTTP → HTTPS is answered by Traefik
 before requests reach nginx, with a *temporary* redirect (302). To make it
-permanent, add these container labels to the frontend service in Coolify
-(*Service → Advanced → Container Labels*; Coolify names its middleware
-`redirect-to-https`), redeploy, and check that `curl -I http://karahoca.com/`
-answers 301:
+permanent, give the frontend its OWN redirect middleware — in Coolify,
+*Service → Advanced → Container Labels*:
 
-```
-traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
-```
+1. Add:
+   ```
+   traefik.http.middlewares.kh-https-301.redirectscheme.scheme=https
+   traefik.http.middlewares.kh-https-301.redirectscheme.permanent=true
+   ```
+2. In each existing `traefik.http.routers.http-…​.middlewares=redirect-to-https`
+   line (the `http` routers: karahoca.com and www), replace
+   `redirect-to-https` with `kh-https-301`. Keep any other entries on that
+   line (e.g. `gzip`).
+3. Redeploy; `curl -I http://karahoca.com/` must answer 301, and
+   `curl -I http://api.karahoca.com/api/health` must still redirect.
+
+⚠ Do NOT add `permanent=true` to Coolify's shared `redirect-to-https`
+middleware. Every service on the server defines it; once one definition
+differs, Traefik treats the middleware as conflicting and drops it — every
+http router using it (on all services, the API included) then answers
+`404 page not found`.
 
 (nginx already sends `Strict-Transport-Security`, so returning browsers skip
 the http hop entirely.)
