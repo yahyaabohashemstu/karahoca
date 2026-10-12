@@ -208,9 +208,23 @@ export const adminApi = {
     request<{ success: boolean }>('DELETE', `/api/admin/blog/categories/${encodeURIComponent(id)}`),
 
   // Newsletter
-  getNewsletter: (page?: number) => {
-    const q = page ? `?page=${page}` : '';
-    return request<NewsletterResponse>('GET', `/api/admin/newsletter${q}`);
+  getNewsletter: (page?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (page) params.set('page', String(page));
+    if (limit) params.set('limit', String(limit));
+    const q = params.toString();
+    return request<NewsletterResponse>('GET', `/api/admin/newsletter${q ? `?${q}` : ''}`);
+  },
+  /** Every active subscriber's e-mail (the list endpoint pages at ≤200). */
+  getAllNewsletterEmails: async (): Promise<string[]> => {
+    const emails: string[] = [];
+    for (let page = 1; page <= 500; page++) {
+      const r = await adminApi.getNewsletter(page, 200);
+      const batch = r.subscribers ?? [];
+      emails.push(...batch.map((s) => s.email));
+      if (batch.length < 200 || emails.length >= r.total) break;
+    }
+    return emails;
   },
   deleteSubscriber: (email: string) =>
     request<{ success: boolean }>('DELETE', `/api/admin/newsletter/${encodeURIComponent(email)}`),
@@ -370,8 +384,8 @@ export const adminApi = {
       'POST', `/api/admin/campaigns/${id}/send`,
       opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
     ),
-  scheduleCampaign: (id: number, scheduledAt: string) =>
-    request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt }),
+  scheduleCampaign: (id: number, scheduledAt: string, excludedEmails: string[] = []) =>
+    request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt, excludedEmails }),
   getCampaignStats: (id: number) =>
     request<{ success: boolean; campaign: Campaign; sends: CampaignSend[] }>('GET', `/api/admin/campaigns/${id}/stats`),
 
@@ -521,6 +535,8 @@ export interface Product {
   weight: string;
   material_ar: string; material_en: string; material_tr: string; material_ru: string;
   count_ar: string; count_en: string; count_tr: string; count_ru: string;
+  // Free gift shown on the card ("+ gift: …"); empty = no gift.
+  gift_ar?: string | null; gift_en?: string | null; gift_tr?: string | null; gift_ru?: string | null;
   weight_count_table?: string;  // JSON string: [{"weight":"1.2 kg","count":6}, ...]
   image_scale?: number;         // 0.3–1.5, controls product image size in card (default 0.85)
   // The product's own listing on each marketplace store (https only, on
@@ -662,6 +678,8 @@ export interface Campaign {
   image_url?: string;
   status: 'draft' | 'scheduled' | 'queued' | 'sent';
   scheduled_at?: string;
+  /** JSON array of e-mails left out of the scheduled send. */
+  excluded_emails?: string | null;
   sent_at?: string;
   recipient_count: number;
   open_count: number;

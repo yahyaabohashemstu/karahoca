@@ -51,6 +51,19 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
         sendJson(res, 400, { success: false, error: 'Invalid status. Must be draft, published, or scheduled.' }, origin);
         return;
       }
+      // Scheduled needs a parseable publish_at (from this request or already
+      // stored). The POST route checked this but the edit route didn't, so
+      // switching an article to "scheduled" without a date saved fine and
+      // the article then stayed hidden forever.
+      if (updateBody.status === 'scheduled') {
+        const publishAt = updateBody.publish_at !== undefined
+          ? updateBody.publish_at
+          : db.prepare('SELECT publish_at FROM news WHERE id=?').get(id)?.publish_at;
+        if (!publishAt || Number.isNaN(Date.parse(publishAt))) {
+          sendJson(res, 400, { success: false, error: 'publish_at is required for scheduled articles.' }, origin);
+          return;
+        }
+      }
       // Auto-set active based on status
       if (updateBody.status === 'draft') updateBody.active = 0;
       else if (updateBody.status === 'published') updateBody.active = 1;

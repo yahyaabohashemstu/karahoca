@@ -5,6 +5,7 @@ import { TranslationHelper } from '../components/TranslationHelper';
 import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
 import { ImageCropperDialog } from '../components/ImageCropperDialog';
 import { resolveAdminImage } from '../../utils/image';
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -436,11 +437,11 @@ export const AdminProductEdit: React.FC = () => {
                 <input
                   className="adm-input"
                   type="datetime-local"
-                  value={form.publish_at ? form.publish_at.slice(0, 16) : ''}
+                  value={toDatetimeLocalValue(form.publish_at)}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      publish_at: e.target.value ? new Date(e.target.value).toISOString() : '',
+                      publish_at: fromDatetimeLocalValue(e.target.value),
                     }))
                   }
                 />
@@ -724,6 +725,16 @@ export const AdminProductEdit: React.FC = () => {
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`count_${l}`] ?? ''}
                   onChange={e => set(`count_${l}` as keyof Product, e.target.value)}
+                />
+              </div>
+              <div className="adm-form-group">
+                <label className="adm-label">Free gift ({l.toUpperCase()}) — optional</label>
+                <input
+                  className="adm-input"
+                  dir={l === 'ar' ? 'rtl' : 'ltr'}
+                  placeholder={l === 'ar' ? 'مثال: معطر أرضيات آيلوكس' : 'e.g. AYLUX Floor Freshener'}
+                  value={(form as Record<string, string>)[`gift_${l}`] ?? ''}
+                  onChange={e => set(`gift_${l}` as keyof Product, e.target.value)}
                 />
               </div>
             </div>

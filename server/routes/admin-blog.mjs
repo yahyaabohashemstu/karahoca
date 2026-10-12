@@ -256,6 +256,17 @@ const handlePostById = (req, res, ctx, id) => {
       sendJson(res, 400, { success: false, error: 'Invalid status.' }, origin);
       return true;
     }
+    // Same rule as POST: a scheduled post needs a parseable publish_at
+    // (sent now or already stored), or the scheduler can never release it.
+    if (updateBody.status === 'scheduled') {
+      const publishAt = updateBody.publish_at !== undefined
+        ? updateBody.publish_at
+        : db.prepare('SELECT publish_at FROM blog_posts WHERE id=?').get(id)?.publish_at;
+      if (!publishAt || Number.isNaN(Date.parse(publishAt))) {
+        sendJson(res, 400, { success: false, error: 'publish_at is required for scheduled posts.' }, origin);
+        return true;
+      }
+    }
     if (updateBody.tags !== undefined) {
       updateBody.tags = normaliseTags(updateBody.tags);
     }

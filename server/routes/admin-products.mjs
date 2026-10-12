@@ -16,6 +16,9 @@ const PRODUCT_FIELDS = [
   'weight',
   'material_ar', 'material_en', 'material_tr', 'material_ru',
   'count_ar', 'count_en', 'count_tr', 'count_ru',
+  // Free gift shown on the product card ("+ gift: …"). Was missing here,
+  // so it could only ever be set by a DB migration, never from the admin.
+  'gift_ar', 'gift_en', 'gift_tr', 'gift_ru',
   'weight_count_table',
   'image_scale',
   // The product's own marketplace listings — validated by
@@ -101,6 +104,17 @@ const normalizeImportRow = (raw, db, lineNumber) => {
   } else {
     // Generate a fresh id so re-importing without one doesn't collide.
     data.id = `${data.brand.toLowerCase()}-${randomUUID().slice(0, 8)}`;
+  }
+  if (mode === 'update') {
+    // An update writes only the columns the file actually has. Missing
+    // columns used to be written as '' — so a trimmed or older export
+    // (e.g. without the description columns) wiped those fields on every
+    // product, a missing "active" column re-activated deleted products,
+    // and a missing "display_order" reset the curated order. An EMPTY
+    // cell in a present column still clears the field, as before.
+    for (const col of CSV_COLUMNS) {
+      if (col !== 'id' && !Object.prototype.hasOwnProperty.call(raw, col)) delete data[col];
+    }
   }
   return { ok: true, data, mode };
 };
@@ -268,29 +282,13 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         @display_order, @active, datetime('now'), datetime('now')
       )
     `);
-    // updateStmt mirrors the column order of CSV_COLUMNS so future
-    // additions only require adding the new column to CSV_COLUMNS and
-    // re-flowing both INSERT and UPDATE templates.
-    const updateStmt = db.prepare(`
-      UPDATE products SET
-        brand=@brand, category_id=@category_id,
-        name_ar=@name_ar, name_en=@name_en, name_tr=@name_tr, name_ru=@name_ru,
-        description_ar=@description_ar, description_en=@description_en,
-        description_tr=@description_tr, description_ru=@description_ru,
-        image=@image,
-        alt_ar=@alt_ar, alt_en=@alt_en, alt_tr=@alt_tr, alt_ru=@alt_ru,
-        weight=@weight,
-        material_ar=@material_ar, material_en=@material_en,
-        material_tr=@material_tr, material_ru=@material_ru,
-        count_ar=@count_ar, count_en=@count_en, count_tr=@count_tr, count_ru=@count_ru,
-        display_order=@display_order, active=@active,
-        updated_at=datetime('now')
-      WHERE id=@id
-    `);
+    // Updates go through the allow-listed updater, which writes only the
+    // keys present on the row (see normalizeImportRow) and touches
+    // updated_at.
     const tx = db.transaction((entries) => {
       for (const e of entries) {
         if (e.mode === 'insert') insertStmt.run(e.data);
-        else updateStmt.run(e.data);
+        else updateProductRow(e.data.id, e.data);
       }
     });
     tx(normalized);
@@ -475,7 +473,8 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         weight,
         material_ar, material_en, material_tr, material_ru,
         count_ar, count_en, count_tr, count_ru,
-        weight_count_table,
+        gift_ar, gift_en, gift_tr, gift_ru,
+        weight_count_table, image_scale,
         trendyol_url, hepsiburada_url,
         display_order, active, status, publish_at, created_at, updated_at
       ) VALUES(
@@ -486,9 +485,10 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         @weight,
         @mat_ar, @mat_en, @mat_tr, @mat_ru,
         @cnt_ar, @cnt_en, @cnt_tr, @cnt_ru,
-        @weight_count_table,
+        @gift_ar, @gift_en, @gift_tr, @gift_ru,
+        @weight_count_table, @image_scale,
         @trendyol_url, @hepsiburada_url,
-        @display_order, 1, @status, @publish_at, @now, @now
+        @display_order, @active, @status, @publish_at, @now, @now
       )
     `).run({
       id, brand: body.brand, category_id: body.category_id,
@@ -505,7 +505,15 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       mat_tr: body.material_tr || '', mat_ru: body.material_ru || '',
       cnt_ar: body.count_ar || '', cnt_en: body.count_en || '',
       cnt_tr: body.count_tr || '', cnt_ru: body.count_ru || '',
+      gift_ar: body.gift_ar || null, gift_en: body.gift_en || null,
+      gift_tr: body.gift_tr || null, gift_ru: body.gift_ru || null,
       weight_count_table: body.weight_count_table || null,
+      // These two were accepted by the form but not inserted: a new
+      // product always got the default 85 % image size and was always
+      // active, whatever the admin had set before the first save.
+      image_scale: Number.isFinite(Number(body.image_scale)) && body.image_scale !== '' && body.image_scale !== null
+        ? Number(body.image_scale) : 0.85,
+      active: body.active === 0 || body.active === false || body.active === '0' ? 0 : 1,
       trendyol_url: body.trendyol_url || null,
       hepsiburada_url: body.hepsiburada_url || null,
       display_order: body.display_order || 0,

@@ -469,6 +469,11 @@ const migrateInitialData = () => {
   // ── click_count column for campaign-level aggregation ─────────────────────
   try { db.exec("ALTER TABLE email_campaigns ADD COLUMN click_count INTEGER DEFAULT 0"); } catch { /* already exists */ }
 
+  // ── Recipients excluded from a SCHEDULED send (JSON array of e-mails) ─────
+  // "Send now" passes its exclusions with the request; a scheduled send runs
+  // later from the scheduler, so the list has to be stored with the campaign.
+  try { db.exec("ALTER TABLE email_campaigns ADD COLUMN excluded_emails TEXT"); } catch { /* already exists */ }
+
   // ── A/B testing framework (Phase G4) ─────────────────────────────────────
   // Two tables: experiments (one row per test) + variants (one row per
   // arm of a test). Conversion attribution happens via the existing

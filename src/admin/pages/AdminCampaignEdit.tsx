@@ -105,6 +105,11 @@ export const AdminCampaignEdit: React.FC = () => {
       adminApi.getCampaign(parseInt(id, 10))
         .then((r) => {
           setForm(r.campaign);
+          // Re-open a scheduled campaign with the exclusions it was saved with.
+          try {
+            const stored: unknown = JSON.parse(r.campaign.excluded_emails || '[]');
+            if (Array.isArray(stored)) setExcluded(new Set(stored.filter((e): e is string => typeof e === 'string')));
+          } catch { /* ignore a malformed list */ }
           const { date, time } = toDatetimeLocal(r.campaign.scheduled_at);
           setScheduleDate(date);
           setScheduleTime(time);
@@ -133,9 +138,9 @@ export const AdminCampaignEdit: React.FC = () => {
 
   useEffect(() => {
     if (isNew) return;
-    adminApi.getNewsletter(1).then((r) => {
-      setAllSubscribers((r.subscribers ?? []).map((s: { email: string }) => s.email));
-    }).catch(() => {});
+    // All pages: page 1 alone is 50 subscribers, so the picker (and the
+    // "send to N subscribers" confirmation) only ever knew the newest 50.
+    adminApi.getAllNewsletterEmails().then(setAllSubscribers).catch(() => {});
   }, [isNew]);
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
@@ -288,7 +293,10 @@ export const AdminCampaignEdit: React.FC = () => {
       if (Number.isNaN(scheduledAt.getTime())) {
         throw new Error('Invalid schedule date.');
       }
-      await adminApi.scheduleCampaign(parseInt(id, 10), scheduledAt.toISOString());
+      // Save first: scheduling/sending use the stored campaign, so edits
+      // made since the last "Save" were silently left out of the e-mail.
+      await adminApi.updateCampaign(parseInt(id, 10), form);
+      await adminApi.scheduleCampaign(parseInt(id, 10), scheduledAt.toISOString(), [...excluded]);
       await refreshCampaign();
       setSuccess('Campaign scheduled successfully!');
     } catch (e: unknown) {
@@ -305,6 +313,7 @@ export const AdminCampaignEdit: React.FC = () => {
     setError('');
     setSuccess('');
     try {
+      await adminApi.updateCampaign(parseInt(id!, 10), form);
       const response = await adminApi.sendCampaign(parseInt(id!, 10), {
         excludedEmails: excluded.size > 0 ? [...excluded] : [],
       });

@@ -355,7 +355,13 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
 
   // Detect if A/B test is configured (subject_b_ar must be filled)
   const hasAbTest = !!(campaign.subject_b_ar || campaign.subject_b_en);
-  const lang = 'ar'; // default — future: store subscriber preferred language
+  // Subscribers have no stored language yet, so one language is sent to
+  // everyone: Arabic when it has a body, otherwise the first language that
+  // does. It used to be hard-wired to Arabic, so a campaign written in
+  // English only (which is what applying a template leaves: English filled,
+  // the others cleared for re-translation) went out as an EMPTY right-to-
+  // left e-mail with the bare title as its subject.
+  const lang = ['ar', 'en', 'tr', 'ru'].find((l) => String(campaign[`body_${l}`] || '').trim()) || 'ar';
 
   let sent = 0;
   const errors = [];
@@ -401,9 +407,9 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   // the previous behaviour exactly.
   for (const { email, variant, subscriberKey, sendId } of sendQueue) {
     const subject = variant === 'b'
-      ? (campaign[`subject_b_${lang}`] || campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title)
-      : (campaign[`subject_${lang}`] || campaign.subject_ar || campaign.title);
-    const body = campaign[`body_${lang}`] || campaign.body_ar || '';
+      ? (campaign[`subject_b_${lang}`] || campaign[`subject_${lang}`] || campaign.title)
+      : (campaign[`subject_${lang}`] || campaign.title);
+    const body = campaign[`body_${lang}`] || '';
 
     try {
       const emailContent = buildEmailContent({
@@ -461,6 +467,17 @@ export const queueCampaignDispatch = async (campaignId, options = {}) => {
   }
 
   const nextStatus = campaign.status === 'scheduled' ? 'scheduled' : 'draft';
+  // Explicit list from "Send now"; otherwise (the scheduler) the list that
+  // was saved when the campaign was scheduled.
+  let excludedEmails = Array.isArray(options.excludedEmails) ? options.excludedEmails : null;
+  if (!excludedEmails) {
+    try {
+      const stored = JSON.parse(db.prepare('SELECT excluded_emails FROM email_campaigns WHERE id=?').get(campaignId)?.excluded_emails || '[]');
+      excludedEmails = Array.isArray(stored) ? stored : [];
+    } catch {
+      excludedEmails = [];
+    }
+  }
   const queued = db.prepare(`
     UPDATE email_campaigns
     SET status='queued', updated_at=datetime('now')
@@ -474,7 +491,7 @@ export const queueCampaignDispatch = async (campaignId, options = {}) => {
   await enqueueQueueItem(CAMPAIGN_DISPATCH_QUEUE, JSON.stringify({
     campaignId,
     requestHostOrigin: typeof options.requestHostOrigin === 'string' ? options.requestHostOrigin : '',
-    excludedEmails: Array.isArray(options.excludedEmails) ? options.excludedEmails : [],
+    excludedEmails,
     fallbackStatus: nextStatus,
   }));
 
@@ -695,8 +712,11 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
         sendJson(res, 409, { error: `Campaign is ${current.status}; only drafts can be scheduled.` }, origin);
         return;
       }
-      db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, updated_at=datetime('now') WHERE id=?")
-        .run(normalizedScheduledAt, id);
+      const excludedEmails = Array.isArray(body.excludedEmails)
+        ? body.excludedEmails.filter((e) => typeof e === 'string' && e.length <= 254).slice(0, 100000)
+        : [];
+      db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, excluded_emails=?, updated_at=datetime('now') WHERE id=?")
+        .run(normalizedScheduledAt, JSON.stringify(excludedEmails), id);
       sendJson(res, 200, { success: true }, origin);
       return;
     }

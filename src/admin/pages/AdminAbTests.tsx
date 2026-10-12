@@ -240,11 +240,19 @@ export const AdminAbTests: React.FC = () => {
                     </thead>
                     <tbody>
                       {details.variants.map((v) => (
-                        <tr key={v.variant_key}>
+                        // Keyed by experiment too: experiments share variant
+                        // keys ("control", "variant_b"), so switching tests
+                        // reused the uncontrolled inputs — they kept showing
+                        // the previous test's weights, and blurring one wrote
+                        // that stale weight into the newly selected test.
+                        <tr key={`${details.experiment.id}:${v.variant_key}`}>
                           <td><code>{v.variant_key}</code></td>
                           <td>{v.label || '—'}</td>
                           <td>
                             <input
+                              // Remount on a server-side change so the field
+                              // shows the saved value.
+                              key={v.weight}
                               type="number"
                               className="adm-input adm-input-sm"
                               defaultValue={v.weight}

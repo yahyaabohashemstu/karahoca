@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type BlogPostItem, type BlogCategoryItem } from '../utils/adminApi';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -73,16 +74,11 @@ export const AdminBlogEdit: React.FC = () => {
       const base64 = result.split(',')[1];
       setUploading(true);
       try {
-        const res = await fetch('/api/admin/upload-image', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.cookie.match(/karahoca_admin_csrf=([^;]+)/)?.[1] || '',
-          },
-          body: JSON.stringify({ imageBase64: base64, fileName: file.name }),
-        });
-        const data = await res.json();
+        // Through adminApi, not a bare fetch('/api/…'): a relative URL hit
+        // the web origin (nginx) instead of the API host in production, so
+        // blog image uploads always failed — and silently, since a non-OK
+        // response was never reported.
+        const data = await adminApi.uploadImage(base64, file.name);
         if (data?.url) setField(which, data.url);
       } catch (err) {
         alert('Upload failed: ' + (err instanceof Error ? err.message : err));
@@ -243,8 +239,8 @@ export const AdminBlogEdit: React.FC = () => {
                 <input
                   type="datetime-local"
                   className="adm-input"
-                  value={form.publish_at?.slice(0, 16) || ''}
-                  onChange={(e) => setField('publish_at', new Date(e.target.value).toISOString())}
+                  value={toDatetimeLocalValue(form.publish_at)}
+                  onChange={(e) => setField('publish_at', fromDatetimeLocalValue(e.target.value) || null)}
                 />
               </>
             )}
@@ -254,7 +250,12 @@ export const AdminBlogEdit: React.FC = () => {
               type="date"
               className="adm-input"
               value={form.published_at?.slice(0, 10) || ''}
-              onChange={(e) => setField('published_at', new Date(e.target.value).toISOString())}
+              // Clearing the field gave new Date('') → toISOString() threw
+              // a RangeError and blanked the editor (unsaved work lost).
+              onChange={(e) => {
+                const date = new Date(e.target.value);
+                if (!Number.isNaN(date.getTime())) setField('published_at', date.toISOString());
+              }}
             />
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, cursor: 'pointer' }}>

@@ -4,6 +4,7 @@ import { adminApi, type NewsItem } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -225,8 +226,8 @@ export const AdminNewsEdit: React.FC = () => {
                 <input
                   className="adm-input"
                   type="datetime-local"
-                  value={form.publish_at ? form.publish_at.slice(0, 16) : ''}
-                  onChange={e => setStr('publish_at', e.target.value ? new Date(e.target.value).toISOString() : '')}
+                  value={toDatetimeLocalValue(form.publish_at)}
+                  onChange={e => setStr('publish_at', fromDatetimeLocalValue(e.target.value))}
                 />
                 <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
                   Article will be published automatically at this time.

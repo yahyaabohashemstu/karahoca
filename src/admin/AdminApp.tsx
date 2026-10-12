@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useLayoutEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLogin } from './AdminLogin';
@@ -35,7 +35,30 @@ const wrap = (C: React.ComponentType) => (
   <Suspense fallback={<Fallback />}><C /></Suspense>
 );
 
-export const AdminApp: React.FC = () => (
+// The admin UI is English, but it lives on the same document as the public
+// site, whose <html> starts as lang="ar" dir="rtl" (and /admin has no
+// language prefix to change that). The whole panel — labels, inputs,
+// tables, sidebar, dialogs — therefore rendered mirrored right-to-left.
+// Arabic content fields keep their own dir="rtl".
+const useAdminDocumentDirection = () => {
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const previous = { dir: html.dir, lang: html.lang };
+    html.dir = 'ltr';
+    html.lang = 'en';
+    return () => {
+      html.dir = previous.dir;
+      html.lang = previous.lang;
+    };
+  }, []);
+};
+
+export const AdminApp: React.FC = () => {
+  useAdminDocumentDirection();
+  return <AdminRoutes />;
+};
+
+const AdminRoutes: React.FC = () => (
   <Routes>
     <Route index element={<AdminLogin />} />
     <Route path="login" element={<AdminLogin />} />
