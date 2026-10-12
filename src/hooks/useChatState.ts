@@ -12,12 +12,9 @@ import {
   type SupportedLanguageCode,
 } from '../utils/language';
 import {
-  buildKnowledgeBase,
   generateSmartSuggestions,
   getStarterSuggestions,
   getAssistantWelcomeMessage,
-  getCachedAiContext,
-  loadAiContext,
 } from '../lib/aiChat';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -380,17 +377,12 @@ const formatTimestamp = (lang: string) =>
 const sanitizeInput = (value: string) =>
   value.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000);
 
-// ─── Language detection (for the LLM prompt) ──────────────────────────────
+// ─── Language detection (reply language: suggestions, timestamps, cache) ──
+// The model's own language hint is worked out on the server, with the rest
+// of the prompt (server/services/aiPrompt.mjs).
 
 const ARABIC_SCRIPT_PATTERN = /[\u0600-\u06FF]/u;
 const CYRILLIC_SCRIPT_PATTERN = /[\u0400-\u04FF]/u;
-const DEVANAGARI_SCRIPT_PATTERN = /[\u0900-\u097F]/u;
-const GREEK_SCRIPT_PATTERN = /[\u0370-\u03FF]/u;
-const HEBREW_SCRIPT_PATTERN = /[\u0590-\u05FF]/u;
-const THAI_SCRIPT_PATTERN = /[\u0E00-\u0E7F]/u;
-const HANGUL_SCRIPT_PATTERN = /[\uAC00-\uD7AF]/u;
-const HIRAGANA_KATAKANA_PATTERN = /[\u3040-\u30FF]/u;
-const HAN_SCRIPT_PATTERN = /[\u4E00-\u9FFF]/u;
 // Turkish dictionary — covers common short words AND product-related vocab.
 // Matches happen on word boundaries; the special-character class catches any
 // truly-Turkish text (Latin letters with diacritics absent from English).
@@ -400,16 +392,6 @@ const GERMAN_LANGUAGE_PATTERN =
   /[äöüßÄÖÜ]|\b(hallo|danke|bitte|preis|preise|produkt|produkte|nachricht|neuigkeit|lieferung|unternehmen|kontakt|wie|was|und|über)\b/iu;
 const ENGLISH_LANGUAGE_PATTERN =
   /\b(hello|hi|hey|what|how|why|when|where|who|price|prices|product|products|news|contact|company|about|shipping|delivery|factory|quality|quote|thanks|please|the|and|with|for|from|are|you|your|our|order|sample|samples)\b/iu;
-
-const getLanguageLabel = (lang: SupportedLanguageCode) => {
-  switch (lang) {
-    case 'en': return 'English';
-    case 'tr': return 'Turkish';
-    case 'ru': return 'Russian';
-    case 'ar':
-    default:   return 'Arabic';
-  }
-};
 
 /**
  * Pick the most likely supported language for the customer's message. The
@@ -433,21 +415,6 @@ const detectSupportedQuestionLanguage = (question: string): SupportedLanguageCod
   return null;
 };
 
-const inferQuestionLanguageHint = (question: string) => {
-  if (ARABIC_SCRIPT_PATTERN.test(question)) return 'Arabic';
-  if (CYRILLIC_SCRIPT_PATTERN.test(question)) return 'Russian or another Cyrillic language';
-  if (DEVANAGARI_SCRIPT_PATTERN.test(question)) return 'Hindi';
-  if (GERMAN_LANGUAGE_PATTERN.test(question)) return 'German';
-  if (TURKISH_LANGUAGE_PATTERN.test(question)) return 'Turkish';
-  if (GREEK_SCRIPT_PATTERN.test(question)) return 'Greek';
-  if (HEBREW_SCRIPT_PATTERN.test(question)) return 'Hebrew';
-  if (THAI_SCRIPT_PATTERN.test(question)) return 'Thai';
-  if (HANGUL_SCRIPT_PATTERN.test(question)) return 'Korean';
-  if (HIRAGANA_KATAKANA_PATTERN.test(question)) return 'Japanese';
-  if (HAN_SCRIPT_PATTERN.test(question)) return 'Chinese';
-  if (ENGLISH_LANGUAGE_PATTERN.test(question)) return 'English';
-  return 'the customer\u2019s exact language';
-};
 
 // ─── UI strings per language ──────────────────────────────────────────────
 
@@ -759,66 +726,6 @@ const withWhatsAppLinks = (content: string, lang: string) => {
   return out;
 };
 
-// ─── Prompt construction ──────────────────────────────────────────────────
-
-const mapKnowledgeToPrompt = (
-  question: string,
-  history: ChatMessage[],
-  knowledgeSections: ReturnType<typeof buildKnowledgeBase>,
-  websiteLanguage: SupportedLanguageCode,
-  questionLanguageHint: string,
-  toneGuidelines: string,
-) => {
-  const knowledgeSummary = knowledgeSections
-    .map((section, index) => `${index + 1}. ${section.title}: ${section.content}`)
-    .join('\n');
-  const historySnippet = history
-    .slice(-6)
-    .map((m) => `${m.role === 'user' ? 'Customer' : 'Assistant'}: ${m.content}`)
-    .join('\n');
-
-  return `SYSTEM INSTRUCTIONS (HIGHEST PRIORITY):
-You are Karo (Arabic: كارو, Russian: Каро) — the AI customer-service
-assistant for KARAHOCA, the Turkish cleaning-products manufacturer
-behind the DİOX and AYLUX brands. Always introduce yourself as Karo
-when the customer asks who you are. Speak warmly and professionally,
-like a knowledgeable sales-and-support representative.
-Always write the DİOX brand name with a Turkish dotted capital İ —
-"DİOX", never "DIOX" — in every language, including link text. URLs
-stay lowercase ascii (.../diox).
-
-CRITICAL LANGUAGE RULE:
-1. Detect the language of the customer's question first
-2. Respond in the exact same language
-3. Do not mix languages in a single answer
-4. The website interface language is currently ${getLanguageLabel(websiteLanguage)}, but you MUST ignore it when choosing your reply language
-5. The customer appears to be writing in ${questionLanguageHint}
-6. You are NOT limited to the website languages; if the question is in German, Hindi, or any other language, reply in that same language
-
-Assistant Tone Guidelines:
-${toneGuidelines}
-
-Website Knowledge Rules:
-- The knowledge base below is built from the actual KARAHOCA website content, including products, company pages, production, goals, dryer information, news, and contact details
-- The sections are already ranked so the most relevant context for this question appears first
-- If the customer asks about products, variants, sizes, materials, counts, or comparisons, answer from the website catalog first
-- If the customer asks about company history, milestones, values, production, goals, dryer capability, news, newsletter, or contact details, answer from the matching site sections below
-- Do not say information is unavailable if it already appears in the website knowledge below
-- If the customer asks for broad comparisons or broad site summaries, provide the concrete facts already present in the knowledge base before asking a follow-up question
-- Do not reply with a generic list of topics unless the customer explicitly asks what you can help with
-- Answer like an experienced human sales and support representative for KARAHOCA
-
-Knowledge Base (translate when needed):
-${knowledgeSummary}
-
-Recent Conversation History:
-${historySnippet || 'No previous conversation.'}
-
-Customer Question: ${question}
-
-Respond using only the knowledge base above and match the customer's language exactly.`;
-};
-
 const createWelcomeMessage = (lang: string): ChatMessage => ({
   id: 'welcome',
   role: 'assistant',
@@ -908,7 +815,6 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isRtl = getLanguageDirection(currentLang) === 'rtl';
   const uiText = useMemo(() => getUIText(currentLang), [currentLang]);
-  const fixedT = useMemo(() => i18n.getFixedT(currentLang), [i18n, currentLang]);
 
   // Hint sequencing — replaces the single-shot "welcome hint" with a four-
   // stage rotation: initial → productSearch → contactTeam (time-based) plus
@@ -952,13 +858,6 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const sessionIdRef = useRef<string>(`sess-${Date.now()}`);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
   const sendLockRef = useRef(false);
-
-  // Preload the AI context (DB-backed base sections + tone guidelines) on
-  // first mount so the first send has it already cached. Failure is a no-op
-  // thanks to `loadAiContext`'s internal fallback.
-  useEffect(() => {
-    void loadAiContext();
-  }, []);
 
   // ── Chat-log queue drainer ─────────────────────────────────────────────
   //
@@ -1211,7 +1110,6 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       trackChatMessage();
 
       const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleaned);
-      const questionLanguageHint = inferQuestionLanguageHint(cleaned);
       // The effective reply language: question language if we detected one,
       // otherwise fall back to the UI language. Used for the AI prompt, the
       // cache key, and the suggestion chips so all three stay in lock-step.
@@ -1252,34 +1150,19 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       let streamSlotText = '';
 
       try {
-        // Ensure AI context is ready; falls back to in-memory cache / inline
-        // defaults if the network is down.
-        const aiContext = await loadAiContext();
-        const knowledgeSections = buildKnowledgeBase(fixedT, cleaned, currentLang);
-        // History sent to the AI excludes the synthetic 'welcome' bubble —
-        // it's a multi-lingual UI greeting, NOT a real exchange, and would
-        // bias the model towards the UI language even when the customer
-        // typed in a different one.
-        const historyForAi = [...messages, userMessage].filter((m) => m.id !== 'welcome');
-        const prompt = mapKnowledgeToPrompt(
-          cleaned,
-          historyForAi,
-          knowledgeSections,
-          currentLang,
-          questionLanguageHint,
-          aiContext.toneGuidelines,
-        );
-
-        // Send the previous turns as a real role-tagged history so the
-        // model treats them as a multi-turn conversation rather than a
-        // flat text dump inside the user prompt. We exclude:
-        //   - the synthetic 'welcome' bubble (UI greeting, not a real turn)
+        // The prompt — Karo's instructions, the website knowledge ranked
+        // for this question, the catalogue — is built on the server
+        // (server/services/aiPrompt.mjs). We send only the conversation.
+        //
+        // History = the previous turns, role-tagged. We exclude:
+        //   - the synthetic 'welcome' bubble — a multi-lingual UI greeting,
+        //     NOT a real exchange; it would bias the model towards the UI
+        //     language even when the customer typed in a different one
         //   - the user message we're currently sending (`userMessage`) —
-        //     the backend de-duplicates this on its side anyway, but
-        //     skipping it here keeps the network payload tighter.
+        //     it goes as `question`
         // Capped to 6 turns at the source AND again on the backend; this
         // covers typical KARAHOCA exchanges (~3-5 turns) with a safety
-        // margin and keeps the OpenRouter token cost predictable.
+        // margin and keeps the model's token cost predictable.
         const historyForApi = messages
           .filter((m) => m.id !== 'welcome' && m.id !== userMessage.id)
           .slice(-6)
@@ -1300,9 +1183,10 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
               Accept: 'text/event-stream',
             },
             body: JSON.stringify({
-              prompt,
-              lang: replyLang,
+              question: cleaned,
               history: historyForApi,
+              lang: replyLang,
+              uiLang: currentLang,
             }),
             signal: controller.signal,
           });
@@ -1657,7 +1541,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         window.setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    [currentLang, fixedT, inputValue, isLoading, messages, uiText, updateSuggestions],
+    [currentLang, inputValue, isLoading, messages, uiText, updateSuggestions],
   );
 
   const handleSuggestionClick = useCallback(
@@ -1843,10 +1727,6 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
   const dismissExitIntent = useCallback(() => {
     setShowExitIntent(false);
   }, []);
-
-  // getCachedAiContext() is invoked inside buildKnowledgeBase; keep the
-  // import live here so tree-shaking doesn't drop the module.
-  void getCachedAiContext;
 
   return {
     currentLang,

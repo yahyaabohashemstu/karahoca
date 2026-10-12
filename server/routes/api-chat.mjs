@@ -6,9 +6,9 @@ import {
   streamAiReply,
   getCachedReply,
   setCachedReply,
-  tryPreflightProductSearch,
-  extractLastUserUtterance,
+  preflightProductSearch,
 } from '../services/aiChat.mjs';
+import { parseChatRequest, buildChatMessages, chatCacheKey } from '../services/aiPrompt.mjs';
 import { generateFollowups } from '../services/aiFollowups.mjs';
 import { buildReturningVisitorWelcome } from '../services/visitorHistory.mjs';
 import { logUserQuestion } from './admin-ai-knowledge.mjs';
@@ -224,9 +224,14 @@ export const __testInternals = { stripModelContactFooter };
  *
  * Either way: Redis cache is checked first; on miss, OpenRouter is called
  * and the full text is cached for 24 h once the stream completes.
+ *
+ * Request body: { question, history?, lang?, uiLang? } — the visitor's
+ * words, up to 6 previous turns, the reply language and the UI language.
+ * The prompt itself is built here (services/aiPrompt.mjs); a client can no
+ * longer supply instructions or "knowledge". (Clients built before that
+ * change send { prompt, lang, history }: only the prompt's
+ * "Customer Question:" line is read.)
  */
-const MAX_PROMPT_CHARS = 120_000;
-
 export const handleAiChat = async (request, response, { origin }) => {
   const clientIp = getClientIp(request);
   if (await isChatRateLimited(clientIp)) {
@@ -234,32 +239,28 @@ export const handleAiChat = async (request, response, { origin }) => {
     return;
   }
 
-  const body = await readRequestBody(request);
-
-  // The prompt (knowledge base + history + question, assembled in the
-  // browser) goes to a paid model. Legitimate ones are a few tens of KB;
-  // the only limit used to be the 512 KB body cap, which let anyone use the
-  // endpoint as a free LLM proxy at ~10× the normal cost per request.
-  if (typeof body?.prompt === 'string' && body.prompt.length > MAX_PROMPT_CHARS) {
-    sendJson(response, 413, { success: false, error: 'Message too long.' }, origin);
+  const turn = parseChatRequest(await readRequestBody(request));
+  if (turn.error) {
+    sendJson(response, turn.status, { success: false, error: turn.error }, origin);
     return;
   }
 
-  // Fire-and-forget: silently log the last user line for knowledge-base mining.
-  if (typeof body?.prompt === 'string') {
-    const lastLine = body.prompt.split('\n').filter((l) => l.startsWith('User:')).pop();
-    if (lastLine) {
-      const q = lastLine.replace(/^User:\s*/, '').trim().slice(0, 500);
-      logUserQuestion(q, body.lang || 'ar', null);
-    }
-  }
+  // Fire-and-forget: the question goes to the admin's "visitor questions"
+  // list (knowledge-base mining). It used to be looked for as a "User:"
+  // line in the client's prompt — a format the client never wrote.
+  logUserQuestion(turn.question.slice(0, 500), turn.replyLang, null);
 
-  const wantStream = wantsStream(request);
+  // Product cards for this turn (server-side intent), then the messages —
+  // whose system part tells the model about those cards — and the cache
+  // key over everything the reply depends on.
+  const products = preflightProductSearch(turn.question, turn.replyLang).products;
+  const messages = buildChatMessages({ ...turn, products });
+  const chat = { ...turn, products, messages, cacheKey: chatCacheKey(messages, turn.replyLang) };
 
-  if (wantStream) {
-    return handleAiChatStream(response, body, origin);
+  if (wantsStream(request)) {
+    return handleAiChatStream(response, chat, origin);
   }
-  return handleAiChatJson(response, body, origin);
+  return handleAiChatJson(response, chat, origin);
 };
 
 /**
@@ -268,9 +269,9 @@ export const handleAiChat = async (request, response, { origin }) => {
  * footer is appended OUTSIDE the cache so format updates take effect
  * immediately without invalidating warm entries.
  */
-const handleAiChatJson = async (response, body, origin) => {
-  const lang = body.lang || 'ar';
-  const cachedReply = await getCachedReply(body.prompt, lang);
+const handleAiChatJson = async (response, chat, origin) => {
+  const lang = chat.replyLang;
+  const cachedReply = await getCachedReply(chat.cacheKey);
   if (cachedReply) {
     // Strip any model-emitted footer in case the cache was warmed
     // before the stripper landed (old entries can be poisoned with
@@ -283,7 +284,7 @@ const handleAiChatJson = async (response, body, origin) => {
         success: true,
         reply: cleanCached + buildContactBlock(lang),
         followups: generateFollowups({
-          lastUserText: extractLastUserUtterance(body.prompt),
+          lastUserText: chat.question,
           assistantReplyText: cleanCached,
           lang,
         }),
@@ -294,24 +295,22 @@ const handleAiChatJson = async (response, body, origin) => {
   }
 
   try {
-    const promptLen = (body.prompt || '').length;
-    const historyLen = Array.isArray(body.history) ? body.history.length : 0;
-    logger.info(`[ai-chat] prompt length: ${promptLen} chars, history turns: ${historyLen} (json)`);
+    logger.info(`[ai-chat] question: ${chat.question.length} chars, history turns: ${chat.history.length} (json)`);
     const result = await generateAiReply({
-      prompt: body.prompt,
+      messages: chat.messages,
+      products: chat.products,
       lang,
-      history: body.history,
     });
     // Strip the model's accidental footer BEFORE caching so future
     // cache hits don't inherit a poisoned entry.
     const cleanReply = result?.reply ? stripModelContactFooter(result.reply) : result?.reply;
-    if (cleanReply) await setCachedReply(body.prompt, lang, cleanReply);
+    if (cleanReply) await setCachedReply(chat.cacheKey, cleanReply);
     const payload = cleanReply
       ? {
           ...result,
           reply: cleanReply + buildContactBlock(lang),
           followups: generateFollowups({
-            lastUserText: extractLastUserUtterance(body.prompt),
+            lastUserText: chat.question,
             assistantReplyText: cleanReply,
             lang,
           }),
@@ -342,7 +341,7 @@ const handleAiChatJson = async (response, body, origin) => {
  * commit its optimistic UI (empty assistant bubble appears immediately)
  * regardless of how slow the first model token is.
  */
-const handleAiChatStream = async (response, body, origin) => {
+const handleAiChatStream = async (response, chat, origin) => {
   response.writeHead(200, createSseHeaders(origin));
 
   const sendEvent = (eventName, data) => {
@@ -371,25 +370,19 @@ const handleAiChatStream = async (response, body, origin) => {
     //
     // The cache stores ONLY the text reply, not the product attachments.
     // To keep the cached path visually consistent with a fresh stream,
-    // we re-run the server-side preflight intent detection against the
-    // current prompt and emit a `products` event if the question still
-    // shows product intent. Two benefits:
+    // we emit this turn's server-side preflight cards (computed from the
+    // live catalogue in handleAiChat). Two benefits:
     //   1. Cached visitors still see interactive cards, not just text.
     //   2. The cards reflect the LIVE catalogue — if a product was
     //      renamed / discontinued since the text was cached, the cards
     //      stay accurate even though the prose may drift slightly.
-    const cachedReply = await getCachedReply(body.prompt, body.lang || 'ar');
+    const cachedReply = await getCachedReply(chat.cacheKey);
     if (cachedReply) {
-      const cachedLang = body.lang || 'ar';
+      const cachedLang = chat.replyLang;
       let cachedAttachments = {};
-      try {
-        const preflight = tryPreflightProductSearch(body.prompt, cachedLang);
-        if (preflight.products.length > 0) {
-          cachedAttachments = { products: preflight.products };
-          sendEvent('products', { products: preflight.products });
-        }
-      } catch (preflightErr) {
-        logger.error('[ai-chat] cache-hit preflight failed:', preflightErr.message || preflightErr);
+      if (chat.products.length > 0) {
+        cachedAttachments = { products: chat.products };
+        sendEvent('products', { products: chat.products });
       }
       // Strip any model-emitted contact footer in case this cache
       // entry was warmed before the stripper landed. Otherwise the
@@ -407,7 +400,7 @@ const handleAiChatStream = async (response, body, origin) => {
       // suggestion strip stays contextually accurate even on a
       // 24-hour-old cache entry.
       const cachedFollowups = generateFollowups({
-        lastUserText: extractLastUserUtterance(body.prompt),
+        lastUserText: chat.question,
         assistantReplyText: cleanCached,
         lang: cachedLang,
       });
@@ -421,9 +414,7 @@ const handleAiChatStream = async (response, body, origin) => {
       return;
     }
 
-    const promptLen = (body.prompt || '').length;
-    const historyLen = Array.isArray(body.history) ? body.history.length : 0;
-    logger.info(`[ai-chat] prompt length: ${promptLen} chars, history turns: ${historyLen} (stream)`);
+    logger.info(`[ai-chat] question: ${chat.question.length} chars, history turns: ${chat.history.length} (stream)`);
 
     // Live chunk buffer + footer-detection.
     //
@@ -454,9 +445,9 @@ const handleAiChatStream = async (response, body, origin) => {
 
     const result = await streamAiReply({
       signal: abortController.signal,
-      prompt: body.prompt,
-      lang: body.lang || 'ar',
-      history: body.history,
+      messages: chat.messages,
+      products: chat.products,
+      lang: chat.replyLang,
       onChunk: (chunk) => {
         if (aborted) return;
         if (inFooterMode) {
@@ -510,13 +501,13 @@ const handleAiChatStream = async (response, body, origin) => {
       // stores the model output only; the contact footer is appended
       // on the way OUT every request so format changes propagate
       // without invalidating warm entries.
-      await setCachedReply(body.prompt, body.lang || 'ar', cleanReply);
+      await setCachedReply(chat.cacheKey, cleanReply);
 
       // Auto-append the contact footer. Streamed as a final chunk so
       // the visitor sees it slide in at the end of the bubble, and
       // included in `done.reply` so the client's terminal
       // reconciliation matches what was streamed.
-      const liveLang = body.lang || 'ar';
+      const liveLang = chat.replyLang;
       const contactBlock = buildContactBlock(liveLang);
       sendEvent('chunk', { text: contactBlock });
 
@@ -525,7 +516,7 @@ const handleAiChatStream = async (response, body, origin) => {
       // cache-hit path so the chip strip looks identical regardless
       // of cache state.
       const liveFollowups = generateFollowups({
-        lastUserText: extractLastUserUtterance(body.prompt),
+        lastUserText: chat.question,
         assistantReplyText: cleanReply,
         lang: liveLang,
       });

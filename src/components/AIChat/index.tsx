@@ -35,8 +35,10 @@ interface AIChatWidgetProps {
  *     MessageList.tsx    (transcript + loading dots)
  *     MessageInput.tsx   (textarea + send)
  *     SuggestionChips.tsx (quick-reply chips)
- *   hooks/useChatState.ts (all state machine + effects + prompt build)
- *   lib/aiChat/          (knowledge, suggestions, welcome, context)
+ *   hooks/useChatState.ts (all state machine + effects + the API call)
+ *   lib/aiChat/          (suggestions, welcome)
+ * The prompt and its knowledge base are built by the API
+ * (server/services/aiPrompt.mjs).
  */
 const AIChatWidget: React.FC<AIChatWidgetProps> = ({ initiallyOpen = false }) => {
   const state = useChatState({ initiallyOpen });

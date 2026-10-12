@@ -185,7 +185,9 @@ export const handlePublicNews = async (req, res, { sendJson, origin }) => {
 
   const localeMap = { ar: 'ar', en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' };
   const locale = localeMap[l] || 'ar';
-  const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  // The company's zone, not the server's (UTC): an article published just
+  // after midnight in Türkiye showed the previous day.
+  const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Istanbul' });
   // One article with an empty / malformed published_at made format() throw
   // a RangeError, which took down the whole news list (500) for everyone.
   const formatDateLabel = (value) => {

@@ -74,7 +74,7 @@ Four languages with **URL-prefixed routing** (`/ar/...`, `/en/...`, `/tr/...`, `
        │  middlewares/  cors · csrf · bodyParser · security │
        │                publicCsrf · adminAuth · errorHandler│
        │                                                  │
-       │  routes/      api-chat · api-ai-context · api-health│
+       │  routes/      api-chat · api-health                │
        │                api-newsletter · api-misc · sitemap │
        │                static-spa · public-data           │
        │                admin-*                            │
@@ -189,7 +189,7 @@ karahoca-react-vite/
 │   │   └── (other leaf components)
 │   │
 │   ├── hooks/
-│   │   ├── useChatState.ts           # Chat state machine + side effects + prompt build
+│   │   ├── useChatState.ts           # Chat state machine + side effects + API call
 │   │   ├── useFlipBookLoader.ts      # Image + PDF loading for FlipBook
 │   │   ├── useLocalizedPath.ts       # lp('/about') → '/ar/about'
 │   │   ├── useLocaleSync.ts          # Syncs i18n to :lang URL param
@@ -198,12 +198,9 @@ karahoca-react-vite/
 │   │   └── useAnimations.ts
 │   │
 │   ├── lib/
-│   │   └── aiChat/                   # AI knowledge / suggestions / prompt helpers
-│   │       ├── knowledge.ts              # buildKnowledgeBase + ranking
+│   │   └── aiChat/                   # Chat UI helpers (the prompt is built by the API)
 │   │       ├── suggestions.ts            # generateSmartSuggestions
-│   │       ├── welcome.ts                # Bilingual welcome messages
-│   │       ├── context.ts                # /api/ai/context fetcher + fallback
-│   │       └── types.ts
+│   │       └── welcome.ts                # Bilingual welcome messages
 │   │
 │   ├── pages/                        # Route-level components
 │   │   ├── Home.tsx · AboutPage.tsx · NewsPage.tsx · NewsArticlePage.tsx
@@ -255,8 +252,7 @@ karahoca-react-vite/
 │   │   └── requestContext.mjs            # AsyncLocalStorage reqId + child logger
 │   │
 │   ├── routes/
-│   │   ├── api-chat.mjs                  # POST /api/ai/chat (public, CSRF'd)
-│   │   ├── api-ai-context.mjs            # GET /api/ai/context (DB-backed knowledge)
+│   │   ├── api-chat.mjs                  # POST /api/ai/chat (public, rate-limited)
 │   │   ├── api-health.mjs                # GET /api/health (fail-closed on DB loss)
 │   │   ├── api-newsletter.mjs            # subscribe / unsubscribe
 │   │   ├── api-misc.mjs                  # log-error, uploads, email open/click
@@ -270,7 +266,8 @@ karahoca-react-vite/
 │   │   ├── db.mjs                        # SQLite init, schema, migrations, seeds
 │   │   ├── safeUpdate.mjs                # Validated UPDATE builder (zero dynamic SQL)
 │   │   ├── publicCache.mjs               # Namespaced Redis cache + bust helpers
-│   │   ├── aiChat.mjs                    # OpenRouter call + reply cache
+│   │   ├── aiPrompt.mjs                  # Chat request validation + prompt / knowledge base
+│   │   ├── aiChat.mjs                    # Model call (provider chain) + product intent + reply cache
 │   │   ├── newsletter.mjs                # Subscribe / unsubscribe state machine
 │   │   └── (others)
 │   │
@@ -448,8 +445,7 @@ All endpoints under `/api/*`. The public HTML response sets a `karahoca_csrf` co
 | Method | Endpoint | CSRF | Description |
 |---|---|---|---|
 | `GET` | `/api/health` | — | Liveness + readiness probe. **503** when DB is unreachable. |
-| `GET` | `/api/ai/context` | — | AI knowledge base + tone guidelines (DB-backed, 1h cached). |
-| `POST` | `/api/ai/chat` | ✓ | Send message to AI assistant (rate-limited 30/min per IP). |
+| `POST` | `/api/ai/chat` | — | Ask the AI assistant: `{ question, history?, lang?, uiLang? }` (question ≤ 2000 chars, ≤ 6 history turns). The API builds the prompt and knowledge base; SSE stream or JSON. Rate-limited 30/min per IP. |
 | `POST` | `/api/newsletter/subscribe` | ✓ | Subscribe email (3/hr per IP). |
 | `POST` | `/api/newsletter/unsubscribe` | — | One-click unsubscribe via signed token (exempt by design). |
 | `POST` | `/api/log-error` | ✓ | Client-side error report. |
@@ -546,7 +542,7 @@ Four languages with **URL-prefixed routing** for proper SEO:
 - `<html lang dir>` is applied to the actual `<html>` element via Helmet — native browser RTL behaviour works correctly for form controls and scrollbars.
 - Every page emits `<link rel="alternate" hreflang>` for all four languages + `x-default`.
 - Translation files: `src/locales/{ar,en,tr,ru}/translation.json`.
-- The AI chat base knowledge and tone guidelines are stored in SQLite (`ai_knowledge_sections`, `ai_assistant_config`) and exposed via `GET /api/ai/context` — admins can edit without a redeploy.
+- The AI chat's prompt is built by the API (`server/services/aiPrompt.mjs`) from the base knowledge and tone guidelines in SQLite (`ai_knowledge_sections`, `ai_assistant_config` — admins edit them without a redeploy), the site's own texts in `src/locales`, the live catalogue and the published news. The browser sends only the visitor's question and recent turns.
 
 ---
 

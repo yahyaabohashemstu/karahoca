@@ -62,7 +62,6 @@ import {
   handleBlogViewIncrement,
 } from './routes/blog-public.mjs';
 import { handleHealth } from './routes/api-health.mjs';
-import { handleAiContext } from './routes/api-ai-context.mjs';
 
 // Schedulers
 import { startNewsScheduler } from './schedulers/news.mjs';
@@ -187,10 +186,6 @@ const handleRequest = async (request, response) => {
     // So we exempt it: every visitor gets to chat, no cookie dance needed.
     if (request.method === 'POST' && url === '/api/ai/chat') {
       await handleAiChat(request, response, ctx);
-      return;
-    }
-    if (request.method === 'GET' && url === '/api/ai/context') {
-      handleAiContext(request, response, ctx);
       return;
     }
     // Returning-visitor recognition. Read-only, soft-authenticated by

@@ -1,14 +1,10 @@
 /**
  * Public entrypoint for the AI chat module.
  *
- * Previously: `src/data/aiKnowledge.ts` was a 1,125-line file that mixed
- * static knowledge data, ranking logic, and suggestion heuristics. Phase 3
- * split it into five focused files and moved the static data to SQLite.
- * Consumers import from here; internal modules import each other directly.
+ * What's left on the client: the welcome bubble and the suggestion chips.
+ * The knowledge base and the whole prompt are built on the server
+ * (server/services/aiPrompt.mjs) — the chat sends only the conversation.
  */
 
-export type { KnowledgeSection, AiContextPayload } from './types';
-export { buildKnowledgeBase } from './knowledge';
 export { generateSmartSuggestions, getStarterSuggestions } from './suggestions';
 export { getAssistantWelcomeMessage } from './welcome';
-export { loadAiContext, getCachedAiContext, clearAiContextCache } from './context';
