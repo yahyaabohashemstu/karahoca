@@ -75,7 +75,7 @@ export interface TrackEventInput {
 const FLUSH_INTERVAL_MS = 3_000;
 const FLUSH_THRESHOLD = 20;
 
-let queue: TrackEventInput[] = [];
+const queue: TrackEventInput[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let listenersInstalled = false;
 

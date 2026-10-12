@@ -51,7 +51,9 @@ const postWithBackoff = async (
         headers,
         // `keepalive: true` lets the request survive the tab closing mid-flight.
         keepalive: true,
-        credentials: 'same-origin',
+        // The API is cross-origin (api.karahoca.com): 'same-origin' never
+        // sent the CSRF cookie, so every report was rejected with a 403.
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
       if (response.ok) return;

@@ -136,8 +136,6 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     });
   }, [imgDims, aspect]);
 
-  if (!open) return null;
-
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
@@ -188,7 +186,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     if (!drag.mode || !box) return;
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
-    let next: Box = { ...drag.startBox };
+    const next: Box = { ...drag.startBox };
     if (drag.mode === 'move') {
       next.x = drag.startBox.x + dx;
       next.y = drag.startBox.y + dy;
@@ -289,6 +287,12 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
       se: { left: box.x + box.width - 6, top: box.y + box.height - 6 },
     } as const;
   }, [box]);
+
+  // Early exit only AFTER every hook has run: returning before `useMemo`
+  // above made the closed → open render call one more hook than the
+  // previous one, which React rejects ("Rendered more hooks than during
+  // the previous render") — the "Crop & upload" button crashed the page.
+  if (!open) return null;
 
   return (
     <div

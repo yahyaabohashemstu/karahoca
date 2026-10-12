@@ -5,9 +5,11 @@ import NewsCard from './NewsCard';
 import { NewsListSchema } from './SchemaOrg';
 import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
 const NewsPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { lp } = useLocalizedPath();
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
   const featuredNews = newsItems[0];
@@ -53,7 +55,7 @@ const NewsPageContent: React.FC = () => {
 
             {featuredNews && (
               <Link
-                to={`/news/${featuredNews.slug}`}
+                to={lp(`/news/${featuredNews.slug}`)}
                 className="btn btn--primary news-page__heroButton"
               >
                 {t('newsPage.readMore')}

@@ -500,6 +500,11 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      // Only while the catalog is in use (fullscreen, or focus inside the
+      // viewer — it is focusable). Window-wide, these shortcuts hijacked
+      // PageUp/PageDown/arrows on the whole brand page and blocked the
+      // browser's own Ctrl +/−/0 zoom, which low-vision visitors rely on.
+      if (!fullscreen && !wrapRef.current?.contains(document.activeElement)) return;
       if      (e.key === 'ArrowRight' || e.key === 'PageDown') goNext();
       else if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   goPrev();
       else if (e.key === 'Escape' && fullscreen) setFullscreen(false);
@@ -695,7 +700,15 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   // `<body>` is the new parent in the DOM, regardless of where the
   // component appears in the React tree.
   const viewer = (
-    <div ref={wrapRef} className={`fb${fullscreen ? ' fb--fs' : ''}`}>
+    <div
+      ref={wrapRef}
+      className={`fb${fullscreen ? ' fb--fs' : ''}`}
+      // Focusable region: clicking or tabbing into the catalog enables its
+      // keyboard shortcuts (see the keydown effect).
+      tabIndex={0}
+      role="region"
+      aria-label={`${brandName} — ${t('flipbook.chromeTitle')}`}
+    >
 
       {/* ── Top chrome bar ─────────────────────────────────────────────── */}
       <div className="fb-chrome">

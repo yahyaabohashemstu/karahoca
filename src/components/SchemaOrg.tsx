@@ -160,6 +160,12 @@ export const WebsiteSchema: React.FC = () => {
   );
 };
 
+/** Absolute URL for a site path; already-absolute URLs (e.g. admin uploads
+ *  on api.karahoca.com) pass through instead of becoming
+ *  "https://karahoca.comhttps://…". */
+const absoluteUrl = (pathOrUrl: string): string =>
+  /^https?:\/\//i.test(pathOrUrl) ? pathOrUrl : `${SITE_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
+
 // ── Product Brand Page (DIOX or AYLUX) ───────────────────────────────────────
 interface ProductSchemaProps {
   brand: 'DIOX' | 'AYLUX';
@@ -172,7 +178,7 @@ export const BrandPageSchema: React.FC<ProductSchemaProps> = ({ brand, descripti
     '@type': 'Brand',
     name: formatBrandName(brand),
     description,
-    logo: image ? `${SITE_URL}${image}` : LOGO_URL,
+    logo: image ? absoluteUrl(image) : LOGO_URL,
     // Brand pages now live at `/<lang>/<brand>`. We point at the x-default
     // (Arabic) variant here because schema.org URLs must be absolute and
     // language-specific — the per-language <link rel="alternate"> is
@@ -199,16 +205,18 @@ interface ArticleSchemaProps {
   datePublished: string;
   dateModified?: string;
   lang?: string;
+  /** The article's own page (path or absolute URL) — its mainEntityOfPage. */
+  url?: string;
 }
 export const ArticleSchema: React.FC<ArticleSchemaProps> = ({
-  headline, description, image, datePublished, dateModified, lang = 'ar',
+  headline, description, image, datePublished, dateModified, lang = 'ar', url,
 }) => {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline,
     description,
-    image: image ? `${SITE_URL}${image}` : LOGO_URL,
+    image: image ? absoluteUrl(image) : LOGO_URL,
     datePublished,
     dateModified: dateModified || datePublished,
     inLanguage: lang,
@@ -218,7 +226,8 @@ export const ArticleSchema: React.FC<ArticleSchemaProps> = ({
       logo: { '@type': 'ImageObject', url: LOGO_URL },
     },
     author: { '@type': 'Organization', name: 'KARAHOCA' },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/${lang}/news` },
+    // The article's own URL; the news index is only a fallback.
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url ? absoluteUrl(url) : `${SITE_URL}/${lang}/news` },
   };
   return (
     <Helmet>
@@ -285,8 +294,9 @@ export const AboutPageSchema: React.FC = () => {
       address: {
         '@type': 'PostalAddress',
         addressCountry: 'TR',
-        addressLocality: 'Istanbul',
-        addressRegion: 'Istanbul',
+        // Same as OrganizationSchema (same @id): the company is in Kilis.
+        addressLocality: 'Kilis',
+        addressRegion: 'Kilis',
       },
       contactPoint: [
         {

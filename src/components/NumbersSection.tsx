@@ -3,6 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { loadSanitizedSvgIntoContainer } from '../utils/safeSvg';
 
+/** Counter text for an animation frame `value` of a stat counting to `target`. */
+const formatCount = (value: number, target: number, suffix: string): string => {
+  const rounded = Math.floor(value);
+  if (target === 15) {
+    return `${rounded}+`;
+  }
+  if (target === 30) {
+    return `${rounded} ${suffix}`.trim();
+  }
+  if (target === 99) {
+    return `${rounded}%`;
+  }
+  if (target === 200) {
+    return `${rounded}+ ${suffix}`.trim();
+  }
+  return `${rounded} ${suffix}`.trim();
+};
+
 const NumbersSection: React.FC = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile(768);
@@ -10,25 +28,22 @@ const NumbersSection: React.FC = () => {
   const countRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const experienceSvgRef = useRef<HTMLDivElement | null>(null);
 
+  // Counters write their text (number + translated suffix, e.g. "200+ موظف")
+  // straight into the DOM, so React's re-render after an in-app language
+  // switch never touches it and the previous language's words stayed on
+  // screen. After every commit, finished counters are re-synced to the
+  // current suffix — a no-op (string compare) when nothing changed.
+  useEffect(() => {
+    countRefs.current.forEach((ref) => {
+      if (!ref || ref.dataset.counted !== '1') return;
+      const target = parseInt(ref.getAttribute('data-count') || '0');
+      const text = formatCount(target, target, ref.getAttribute('data-suffix') || '');
+      if (ref.textContent !== text) ref.textContent = text;
+    });
+  });
+
   useEffect(() => {
     const activeAnimations = new Map<HTMLSpanElement, number>();
-
-    const formatValue = (value: number, target: number, suffix: string) => {
-      const rounded = Math.floor(value);
-      if (target === 15) {
-        return `${rounded}+`;
-      }
-      if (target === 30) {
-        return `${rounded} ${suffix}`.trim();
-      }
-      if (target === 99) {
-        return `${rounded}%`;
-      }
-      if (target === 200) {
-        return `${rounded}+ ${suffix}`.trim();
-      }
-      return `${rounded} ${suffix}`.trim();
-    };
 
     const animateCount = (element: HTMLSpanElement, target: number) => {
       const suffix = element.getAttribute('data-suffix') || '';
@@ -43,13 +58,14 @@ const NumbersSection: React.FC = () => {
 
         const progress = Math.min((timestamp - startTime) / duration, 1);
         const currentValue = progress * target;
-        element.textContent = formatValue(currentValue, target, suffix);
+        element.textContent = formatCount(currentValue, target, suffix);
 
         if (progress < 1) {
           const frameId = requestAnimationFrame(step);
           activeAnimations.set(element, frameId);
         } else {
           activeAnimations.delete(element);
+          element.dataset.counted = '1';
         }
       };
 

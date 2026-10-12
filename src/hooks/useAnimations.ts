@@ -89,7 +89,10 @@ export const useScrollAnimations = () => {
 export const useThemeToggle = () => {
   useEffect(() => {
     // الوضع الفاتح هو الافتراضي — لا يُزال إلا إذا اختار المستخدم الداكن
-    const savedTheme = localStorage.getItem('theme');
+    // localStorage throws (SecurityError) when the visitor blocks site
+    // data; unguarded, that took the whole site down to the error screen.
+    let savedTheme: string | null = null;
+    try { savedTheme = localStorage.getItem('theme'); } catch { /* storage blocked → default theme */ }
     if (savedTheme === 'dark') {
       document.body.classList.remove('light-mode');
     } else {
@@ -101,8 +104,8 @@ export const useThemeToggle = () => {
     const body = document.body;
     const isLight = body.classList.toggle('light-mode');
     
-    // حفظ التفضيل
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    // حفظ التفضيل (best-effort: blocked storage just means it isn't remembered)
+    try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch { /* noop */ }
     
     // تأثير الانتقال
     body.classList.add('theme-transitioning');

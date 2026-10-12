@@ -653,7 +653,7 @@ const loadStoredMessages = (): ChatMessage[] => {
 const persistMessagesLocally = (messages: ChatMessage[]) => {
   if (typeof window === 'undefined') return;
   if (messages.length === 0) {
-    window.localStorage.removeItem(CHAT_STORAGE_KEY);
+    try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* storage blocked */ }
     return;
   }
   try {

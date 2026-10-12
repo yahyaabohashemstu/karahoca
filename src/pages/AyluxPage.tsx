@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import SEO, { brandOgImageUrl } from '../components/SEO';
+import SEO from '../components/SEO';
+import { brandOgImageUrl } from '../utils/ogImageUrls';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
 import {

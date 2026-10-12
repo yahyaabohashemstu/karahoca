@@ -21,6 +21,8 @@ export const setCookieConsent = (value: ConsentValue): void => {
     return;
   }
 
-  window.localStorage.setItem(COOKIE_CONSENT_KEY, value);
+  // Blocked storage (SecurityError) must not stop the choice from taking
+  // effect for this visit — it just won't be remembered.
+  try { window.localStorage.setItem(COOKIE_CONSENT_KEY, value); } catch { /* storage blocked */ }
   window.dispatchEvent(new CustomEvent<ConsentValue>(COOKIE_CONSENT_EVENT, { detail: value }));
 };

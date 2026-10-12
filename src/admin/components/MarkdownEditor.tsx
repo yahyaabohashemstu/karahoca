@@ -66,7 +66,7 @@ const TOOLBAR: ToolbarButton[] = [
  * return the new value + new selection range. Pure function so
  * it's trivial to unit-test (no DOM dependency at all).
  */
-export const applyMarkdownAction = (
+const applyMarkdownAction = (
   value: string,
   start: number,
   end: number,

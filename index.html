@@ -19,12 +19,19 @@
   bots all read the static HTML BEFORE any JavaScript runs. React Helmet
   rewrites these tags after hydration (per-page), but the static fallback
   here ensures any visitor who lands on `/` (which immediately redirects
-  to `/<lang>/`) AND any non-JS scraper still sees a complete OG card,
-  the brand JSON-LD, and the canonical hreflang graph.
+  to `/<lang>/`) AND any non-JS scraper still sees a complete OG card
+  and the brand JSON-LD.
 
-  React Helmet on real pages OVERWRITES the matching tags by name during
-  hydration, so duplicating them here is safe — the hydrated values win
-  in the live browser.
+  Every route serves THIS file as-is (the production web image does not
+  prerender), so anything here applies to every page until React runs:
+    • Tags that SEO.tsx re-emits per page carry `data-rh="true"`. React
+      Helmet only manages tags with that attribute, so it REPLACES these
+      defaults after load instead of adding a second, conflicting copy
+      (without it every page ended up with two descriptions, two og:urls,
+      and on noindex pages both "index" and "noindex" robots tags).
+    • No static canonical / hreflang: a fixed value here would claim
+      every URL is the Arabic home page. SEO.tsx emits the correct
+      per-page canonical and hreflang cluster.
 -->
 <html lang="ar" dir="rtl">
 
@@ -52,22 +59,22 @@
        very heavily for relevance — putting both forms here is the
        single biggest lever for ranking the Arabic search cluster. -->
   <title>KARAHOCA · قره خوجة — منظفات بجودة عالمية | DİOX & AYLUX</title>
-  <meta name="description" content="قره خوجة (KARAHOCA KIMYA) — مصنع تركي رائد للمنظفات المنزلية والصناعية منذ 1994. علامتا DİOX و AYLUX. تصدير لأكثر من 15 دولة. ابتكار، نقاء، وأداء خارق.">
+  <meta data-rh="true" name="description" content="قره خوجة (KARAHOCA KIMYA) — مصنع تركي رائد للمنظفات المنزلية والصناعية منذ 1994. علامتا DİOX و AYLUX. تصدير لأكثر من 15 دولة. ابتكار، نقاء، وأداء خارق.">
   <!-- Keywords: every common Arabic transliteration is listed once.
        Bing / Yandex still consult this; Google ignores it but the
        text contributes a tiny relevance signal regardless. -->
-  <meta name="keywords" content="قره خوجة، قرة خوجة، قره خوجه، قرا خوجة، قرا هوجا، كرا هوجا، KARAHOCA، KARAHOCA KIMYA، Karahoca، Kara Hoca، Karahoja، منظفات، مصنع منظفات، تركيا، DİOX، AYLUX، ديوكس، آيلوكس، منظف غسيل، منظف أرضيات، منتجات تنظيف، detergent, cleaning products, Turkish manufacturer">
-  <meta name="author" content="KARAHOCA KIMYA">
-  <meta name="copyright" content="© KARAHOCA KIMYA">
+  <meta data-rh="true" name="keywords" content="قره خوجة، قرة خوجة، قره خوجه، قرا خوجة، قرا هوجا، كرا هوجا، KARAHOCA، KARAHOCA KIMYA، Karahoca، Kara Hoca، Karahoja، منظفات، مصنع منظفات، تركيا، DİOX، AYLUX، ديوكس، آيلوكس، منظف غسيل، منظف أرضيات، منتجات تنظيف، detergent, cleaning products, Turkish manufacturer">
+  <meta data-rh="true" name="author" content="KARAHOCA KIMYA">
+  <meta data-rh="true" name="copyright" content="© KARAHOCA KIMYA">
   <meta name="generator" content="React + Vite">
   <meta name="rating" content="general">
   <meta name="revisit-after" content="7 days">
   <meta name="distribution" content="global">
 
   <!-- Crawler hints -->
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
-  <meta name="bingbot" content="index, follow">
+  <meta data-rh="true" name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta data-rh="true" name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta data-rh="true" name="bingbot" content="index, follow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="format-detection" content="telephone=no">
 
@@ -80,45 +87,37 @@
   <!-- Geo tags (helps Google Business / Maps association) -->
   <meta name="geo.region" content="TR">
   <meta name="geo.placename" content="Türkiye">
-  <meta name="ICBM" content="38.96389, 37.30056">
+  <meta name="ICBM" content="36.71, 37.115">
 
-  <!-- ═══════════════════════ Canonical & hreflang ═══════════════════════ -->
-  <!-- Static defaults. React Helmet rewrites both the canonical AND the
-       full hreflang cluster per-page after hydration, but this baseline
-       protects the root URL and any non-JS bot. -->
-  <link rel="canonical" href="https://karahoca.com/ar/" />
-  <link rel="alternate" hreflang="ar" href="https://karahoca.com/ar/" />
-  <link rel="alternate" hreflang="en" href="https://karahoca.com/en/" />
-  <link rel="alternate" hreflang="tr" href="https://karahoca.com/tr/" />
-  <link rel="alternate" hreflang="ru" href="https://karahoca.com/ru/" />
-  <link rel="alternate" hreflang="x-default" href="https://karahoca.com/ar/" />
+  <!-- Canonical & hreflang: intentionally NOT here — see the note at the
+       top of this file. SEO.tsx emits them per page. -->
 
   <!-- ═══════════════════════ Open Graph (Facebook, WhatsApp, LinkedIn, iMessage) ═══════════════════════ -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="KARAHOCA">
-  <meta property="og:url" content="https://karahoca.com/">
-  <meta property="og:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية | DİOX & AYLUX">
-  <meta property="og:description" content="قره خوجة — مصنع تركي رائد للمنظفات منذ 1994. علامتا DİOX و AYLUX. تصدير لأكثر من 15 دولة.">
-  <meta property="og:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
-  <meta property="og:image:secure_url" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
-  <meta property="og:image:type" content="image/webp">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="KARAHOCA — Turkish cleaning products manufacturer">
-  <meta property="og:locale" content="ar_TR">
-  <meta property="og:locale:alternate" content="en_US">
-  <meta property="og:locale:alternate" content="tr_TR">
-  <meta property="og:locale:alternate" content="ru_RU">
+  <meta data-rh="true" property="og:type" content="website">
+  <meta data-rh="true" property="og:site_name" content="KARAHOCA">
+  <meta data-rh="true" property="og:url" content="https://karahoca.com/">
+  <meta data-rh="true" property="og:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية | DİOX & AYLUX">
+  <meta data-rh="true" property="og:description" content="قره خوجة — مصنع تركي رائد للمنظفات منذ 1994. علامتا DİOX و AYLUX. تصدير لأكثر من 15 دولة.">
+  <meta data-rh="true" property="og:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta data-rh="true" property="og:image:secure_url" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta data-rh="true" property="og:image:type" content="image/webp">
+  <meta data-rh="true" property="og:image:width" content="1200">
+  <meta data-rh="true" property="og:image:height" content="630">
+  <meta data-rh="true" property="og:image:alt" content="KARAHOCA — Turkish cleaning products manufacturer">
+  <meta data-rh="true" property="og:locale" content="ar_TR">
+  <meta data-rh="true" property="og:locale:alternate" content="en_US">
+  <meta data-rh="true" property="og:locale:alternate" content="tr_TR">
+  <meta data-rh="true" property="og:locale:alternate" content="ru_RU">
 
   <!-- ═══════════════════════ Twitter Card ═══════════════════════ -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@karahoca">
-  <meta name="twitter:creator" content="@karahoca">
-  <meta name="twitter:url" content="https://karahoca.com/">
-  <meta name="twitter:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية">
-  <meta name="twitter:description" content="قره خوجة — مصنع تركي رائد للمنظفات منذ 1994. علامتا DİOX و AYLUX.">
-  <meta name="twitter:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
-  <meta name="twitter:image:alt" content="KARAHOCA · قره خوجة — Turkish cleaning products manufacturer">
+  <meta data-rh="true" name="twitter:card" content="summary_large_image">
+  <meta data-rh="true" name="twitter:site" content="@karahoca">
+  <meta data-rh="true" name="twitter:creator" content="@karahoca">
+  <meta data-rh="true" name="twitter:url" content="https://karahoca.com/">
+  <meta data-rh="true" name="twitter:title" content="KARAHOCA · قره خوجة — منظفات بجودة عالمية">
+  <meta data-rh="true" name="twitter:description" content="قره خوجة — مصنع تركي رائد للمنظفات منذ 1994. علامتا DİOX و AYLUX.">
+  <meta data-rh="true" name="twitter:image" content="https://karahoca.com/karahoca-logo-1-Photoroom.webp">
+  <meta data-rh="true" name="twitter:image:alt" content="KARAHOCA · قره خوجة — Turkish cleaning products manufacturer">
 
   <!-- ═══════════════════════ JSON-LD: Organization (static baseline) ═══════════════════════ -->
   <!-- Even before React mounts, search bots can ingest the company's

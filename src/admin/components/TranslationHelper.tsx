@@ -81,7 +81,6 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
       // no actual translations is the regression the user reported.
       // If we got nothing usable, surface a real error instead.
       if (translatedFields === 0) {
-        // eslint-disable-next-line no-console
         console.warn('[translate] empty translations payload', { raw });
         throw new Error('الترجمة عادت فارغة — حاول مجدداً.');
       }
@@ -89,7 +88,6 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
       // Diagnostic log (kept lightweight so production console isn't
       // noisy). Helpful when an admin says "it didn't work" and we
       // need to see what came back without re-running the request.
-      // eslint-disable-next-line no-console
       console.info(
         `[translate] ok — ${translatedLangs} langs, ${translatedFields} field values`,
       );

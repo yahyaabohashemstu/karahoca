@@ -155,6 +155,11 @@ export const bootstrapCsrf = (): Promise<void> => {
     } catch {
       /* offline / network error — surface lazily on the first POST */
     }
+    // No cookie after the attempt (network blip, API restarting): forget
+    // this promise so the next mutation retries the bootstrap instead of
+    // awaiting the same failed one — otherwise every POST kept 403-ing
+    // until a full page reload.
+    if (!readCsrfToken()) csrfBootstrapPromise = null;
   })();
   return csrfBootstrapPromise;
 };

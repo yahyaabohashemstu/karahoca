@@ -19,6 +19,12 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // `({ node, ...rest }) => <p {...rest} />` is how react-markdown
+      // renderers keep the AST `node` prop off DOM elements: `node` is
+      // destructured only to be omitted from `rest`.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
   },
 ])
 

@@ -47,6 +47,12 @@ const NewsArticlePage: React.FC = () => {
   if (!article) {
     return (
       <>
+        {/* A missing/unpublished slug must never be indexed as content. */}
+        <SEO
+          title={`${t('newsPage.notFound', 'Article not found')} | KARAHOCA`}
+          description={t('newsPage.notFound', 'Article not found')}
+          noindex
+        />
         <Header />
         <main style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1.5rem', textAlign: 'center' }}>
           <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{t('newsPage.notFound', 'Article not found')}</h1>
@@ -72,6 +78,7 @@ const NewsArticlePage: React.FC = () => {
         image={article.image}
         datePublished={article.publishedAt}
         lang={currentLang}
+        url={lp(`/news/${article.slug}`)}
       />
       <BreadcrumbSchema items={[
         { name: t('nav.home'), url: lp('/') },

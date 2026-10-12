@@ -33,38 +33,8 @@ import { splitLocalePath } from '../utils/localizedPath';
 const SITE_URL = 'https://karahoca.com';
 const DEFAULT_LANG: SupportedLanguageCode = 'ar';
 
-/**
- * Resolve the API origin where the runtime OG image generator lives.
- * Build-time env wins (VITE_BACKEND_URL); at runtime in production the
- * generator is at api.karahoca.com. For local dev we strip the path and
- * default to the same origin, which the Vite proxy forwards. The
- * `og:image` URL must be ABSOLUTE — social-platform crawlers don't
- * resolve relative URLs against the document.
- */
-const API_ORIGIN = (() => {
-  try {
-    const fromEnv = (import.meta as { env?: { VITE_BACKEND_URL?: string } }).env?.VITE_BACKEND_URL;
-    if (fromEnv) return fromEnv.replace(/\/+$/, '');
-  } catch { /* */ }
-  return 'https://api.karahoca.com';
-})();
-
-/**
- * Build the URL of the dynamic per-product OG image. The generator lives
- * on the API and emits a 1200×630 PNG per (product, lang). Callers
- * forward this to <SEO ogImage={…}> so the page-level og:image meta tag
- * points at a card customised for the visitor's current language —
- * which is what crawlers (WhatsApp, Facebook, Twitter, LinkedIn) sample
- * when the URL is shared.
- */
-export const productOgImageUrl = (productId: string, lang: SupportedLanguageCode): string =>
-  `${API_ORIGIN}/og/product/${encodeURIComponent(productId)}-${lang}.png`;
-
-/**
- * Build the URL of the per-brand OG image. Used by DioxPage / AyluxPage.
- */
-export const brandOgImageUrl = (brand: 'DIOX' | 'AYLUX' | 'KARAHOCA', lang: SupportedLanguageCode): string =>
-  `${API_ORIGIN}/og/brand/${brand}-${lang}.png`;
+// OG card URL builders (productOgImageUrl / brandOgImageUrl) live in
+// utils/ogImageUrls.ts — this file exports only the component.
 
 const OG_LOCALE_MAP: Record<SupportedLanguageCode, string> = {
   ar: 'ar_TR',
@@ -79,13 +49,16 @@ const OG_LOCALE_MAP: Record<SupportedLanguageCode, string> = {
  * as `canonicalUrl` so hreflang generation is consistent.
  */
 const toLanguageAgnosticPath = (input: string | undefined, fallback: string): string => {
-  if (!input) return fallback;
+  // The fallback (the current pathname, used when a page passes no
+  // canonicalUrl) carries the language prefix too, so it goes through the
+  // same stripping — returning it raw produced "/en/en/wishlist".
+  const raw = input || fallback;
   try {
-    const url = input.startsWith('http') ? new URL(input) : new URL(input, SITE_URL);
+    const url = raw.startsWith('http') ? new URL(raw) : new URL(raw, SITE_URL);
     const { rest } = splitLocalePath(url.pathname || '/');
     return rest || '/';
   } catch {
-    return fallback;
+    return '/';
   }
 };
 
@@ -196,12 +169,14 @@ const SEO: React.FC<SEOProps> = ({
       <meta name="twitter:image" content={fullImageUrl} />
       <meta name="twitter:image:alt" content={title} />
 
-      {/* Additional */}
+      {/* Additional. `viewport` and `theme-color` deliberately live only in
+          index.html: a per-page viewport here (it lacked
+          `viewport-fit=cover`) became the last one and so the effective
+          one, zeroing iPhone safe-area insets; the static theme-color
+          tags are light/dark aware. */}
       <meta name="author" content="KARAHOCA" />
       <meta name="copyright" content="KARAHOCA" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta httpEquiv="Content-Language" content={language} />
-      <meta name="theme-color" content="#153d7a" />
     </Helmet>
   );
 };

@@ -344,9 +344,9 @@ const BlogPostPage: React.FC = () => {
         canonicalUrl={`https://karahoca.com/blog/${post.slug}`}
       />
       <BreadcrumbSchema items={[
-        { name: 'KARAHOCA', url: '/' },
-        { name: 'Blog', url: '/blog' },
-        { name: post.title, url: `/blog/${post.slug}` },
+        { name: 'KARAHOCA', url: lp('/') },
+        { name: 'Blog', url: lp('/blog') },
+        { name: post.title, url: lp(`/blog/${post.slug}`) },
       ]} />
       <ArticleSchema
         headline={post.title}
@@ -354,6 +354,7 @@ const BlogPostPage: React.FC = () => {
         image={heroImage}
         datePublished={post.publishedAt}
         lang={lang}
+        url={lp(`/blog/${post.slug}`)}
       />
 
       {/* Reading-progress bar */}
