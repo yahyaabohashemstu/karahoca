@@ -283,7 +283,9 @@ const handleRequest = async (request, response) => {
     }
 
     // ── SEO ──────────────────────────────────────────────────────────────
-    if (request.method === 'GET' && url === '/sitemap.xml') {
+    // HEAD too: crawlers and uptime checks probe it, and it answered 404.
+    // (Node drops the body of a HEAD response by itself.)
+    if ((request.method === 'GET' || request.method === 'HEAD') && url === '/sitemap.xml') {
       handleSitemap(request, response);
       return;
     }

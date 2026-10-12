@@ -1,42 +1,44 @@
 <!doctype html>
-<!--
-  ╔═══════════════════════════════════════════════════════════════════╗
-  ║                                                                   ║
-  ║   K A R A H O C A   K I M Y A   ·   karahoca.com                  ║
-  ║                                                                   ║
-  ║   Designed & developed by  :  Yahya Abo Hashem                    ║
-  ║                              ( يحيى أبو هاشم )                     ║
-  ║   GitHub                   :  github.com/yahyaabohashemstu        ║
-  ║                                                                   ║
-  ║   Want the full credits? Open /humans.txt                         ║
-  ║                                                                   ║
-  ╚═══════════════════════════════════════════════════════════════════╝
-
-  KARAHOCA — index.html
-
-  This is the CRAWLER BASELINE. Social-media scrapers (Facebook, WhatsApp,
-  Twitter, LinkedIn, iMessage), bookmarklet preview tools, and weak SEO
-  bots all read the static HTML BEFORE any JavaScript runs. React Helmet
-  rewrites these tags after hydration (per-page), but the static fallback
-  here ensures any visitor who lands on `/` (which immediately redirects
-  to `/<lang>/`) AND any non-JS scraper still sees a complete OG card
-  and the brand JSON-LD.
-
-  Every route serves THIS file as-is (the production web image does not
-  prerender), so anything here applies to every page until React runs:
-    • Tags that SEO.tsx re-emits per page carry `data-rh="true"`. React
-      Helmet only manages tags with that attribute, so it REPLACES these
-      defaults after load instead of adding a second, conflicting copy
-      (without it every page ended up with two descriptions, two og:urls,
-      and on noindex pages both "index" and "noindex" robots tags).
-    • No static canonical / hreflang: a fixed value here would claim
-      every URL is the Arabic home page. SEO.tsx emits the correct
-      per-page canonical and hreflang cluster.
--->
 <html lang="ar" dir="rtl">
 
 <head>
+  <!-- charset first: browsers only look for it in the first 1024 bytes,
+       and the credits banner below is ~1.8 KB. -->
   <meta charset="UTF-8" />
+  <!--
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                                                                   ║
+    ║   K A R A H O C A   K I M Y A   ·   karahoca.com                  ║
+    ║                                                                   ║
+    ║   Designed & developed by  :  Yahya Abo Hashem                    ║
+    ║                              ( يحيى أبو هاشم )                     ║
+    ║   GitHub                   :  github.com/yahyaabohashemstu        ║
+    ║                                                                   ║
+    ║   Want the full credits? Open /humans.txt                         ║
+    ║                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════╝
+
+    KARAHOCA — index.html
+
+    This is the CRAWLER BASELINE. Social-media scrapers (Facebook, WhatsApp,
+    Twitter, LinkedIn, iMessage), bookmarklet preview tools, and weak SEO
+    bots all read the static HTML BEFORE any JavaScript runs. React Helmet
+    rewrites these tags after hydration (per-page), but the static fallback
+    here ensures any visitor who lands on `/` (which immediately redirects
+    to `/<lang>/`) AND any non-JS scraper still sees a complete OG card
+    and the brand JSON-LD.
+
+    Every route serves THIS file as-is (the production web image does not
+    prerender), so anything here applies to every page until React runs:
+      • Tags that SEO.tsx re-emits per page carry `data-rh="true"`. React
+        Helmet only manages tags with that attribute, so it REPLACES these
+        defaults after load instead of adding a second, conflicting copy
+        (without it every page ended up with two descriptions, two og:urls,
+        and on noindex pages both "index" and "noindex" robots tags).
+      • No static canonical / hreflang: a fixed value here would claim
+        every URL is the Arabic home page. SEO.tsx emits the correct
+        per-page canonical and hreflang cluster.
+  -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
@@ -121,9 +123,9 @@
 
   <!-- ═══════════════════════ JSON-LD: Organization (static baseline) ═══════════════════════ -->
   <!-- Even before React mounts, search bots can ingest the company's
-       core identity from this static block. React Helmet can layer
-       page-specific schema on top via Helmet, both will be picked up. -->
-  <script type="application/ld+json">
+       core identity from this static block. data-rh: React Helmet
+       replaces it with the per-page copy once the app runs. -->
+  <script data-rh="true" type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -179,7 +181,6 @@
         "@type": "ContactPoint",
         "telephone": "+90-530-591-4990",
         "contactType": "sales",
-        "contactOption": "TollFree",
         "availableLanguage": ["Arabic", "English", "Turkish"],
         "areaServed": ["TR", "SA", "AE", "EG", "DZ", "MA", "JO", "IQ"]
       },
@@ -200,9 +201,8 @@
   }
   </script>
 
-  <!-- ═══════════════════════ JSON-LD: WebSite + SearchAction ═══════════════════════ -->
-  <!-- Lets Google show a sitelinks search box under the brand result. -->
-  <script type="application/ld+json">
+  <!-- ═══════════════════════ JSON-LD: WebSite ═══════════════════════ -->
+  <script data-rh="true" type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -210,15 +210,7 @@
     "name": "KARAHOCA",
     "url": "https://karahoca.com",
     "publisher": { "@id": "https://karahoca.com/#organization" },
-    "inLanguage": ["ar", "en", "tr", "ru"],
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://karahoca.com/ar/news?q={search_term_string}"
-      },
-      "query-input": "required name=search_term_string"
-    }
+    "inLanguage": ["ar", "en", "tr", "ru"]
   }
   </script>
 

@@ -113,10 +113,14 @@ const NewsArticlePage: React.FC = () => {
 
             {/* Image */}
             <figure style={{ margin: '0 0 2rem', borderRadius: 16, overflow: 'hidden' }}>
+              {/* The article's main image (its LCP element): eager + high
+                  priority. It was lazy-loaded, so the browser only started
+                  fetching it after layout. */}
               <img
                 src={article.image}
                 alt={article.alt}
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
                 decoding="async"
                 style={{ width: '100%', height: 'auto', display: 'block' }}
               />

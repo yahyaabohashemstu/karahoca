@@ -62,8 +62,11 @@ const escapeXml = (str) =>
     .replace(/'/g, '&apos;');
 
 /** `/about` (language-agnostic slug) + `ar` → `https://karahoca.com/ar/about`. */
+// Home is `/ar/` WITH the trailing slash — the form the pages declare as
+// canonical and in hreflang. The sitemap used to list `/ar`, a second URL
+// for the same page.
 const localizedLoc = (pageSlug, lang) => {
-  const normalizedSlug = pageSlug === '/' ? '' : pageSlug.replace(/^\/+/, '/');
+  const normalizedSlug = pageSlug === '/' ? '/' : pageSlug.replace(/^\/+/, '/');
   return `${SITE_URL}/${lang}${normalizedSlug}`;
 };
 
@@ -89,11 +92,19 @@ const resolveImageUrl = (raw) => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith('data:')) return null;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith('/api/uploads/')) return `${API_PUBLIC_URL}${trimmed}`;
+  // File names contain spaces and Arabic letters; a sitemap needs them
+  // percent-encoded (decode first so an already-encoded URL isn't doubled).
+  const encode = (url) => { try { return encodeURI(decodeURI(url)); } catch { return url; } };
+  if (/^https?:\/\//i.test(trimmed)) return encode(trimmed);
+  // Admin uploads are multi-MB originals; point at the 1280 px WebP copy
+  // the API serves (services/uploadVariants.mjs).
+  if (trimmed.startsWith('/api/uploads/')) {
+    const resizable = /\.(png|jpe?g|webp)$/i.test(trimmed);
+    return encode(`${API_PUBLIC_URL}${trimmed}${resizable ? '?w=1280' : ''}`);
+  }
   if (trimmed.startsWith('/')) {
     const webpised = trimmed.replace(/\.(png|jpe?g)$/i, '.webp');
-    return `${SITE_URL}${webpised}`;
+    return encode(`${SITE_URL}${webpised}`);
   }
   return null;
 };

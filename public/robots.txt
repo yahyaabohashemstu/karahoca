@@ -2,6 +2,7 @@
 # KARAHOCA — robots.txt
 #
 # Search engines: full-access to public pages, blocked from utility/admin
+# (page URLs are language-prefixed — /ar/wishlist — hence the /*/ rules)
 # AI answer engines (cite-back): allowed — they put the brand into the
 #   generated answers users see, which is now a major B2B discovery path.
 # AI training crawlers (silent ingest, no citations): blocked — letting
@@ -12,67 +13,85 @@
 User-agent: *
 Allow: /
 
-Disallow: /admin/
+Disallow: /admin
 Disallow: /private/
 Disallow: /api/
 Disallow: /wishlist
+Disallow: /*/wishlist
 Disallow: /unsubscribe
+Disallow: /*/unsubscribe
 
 # ─── Major search engines ──────────────────────────────────────────────────
 User-agent: Googlebot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /private/
 Disallow: /api/
 Disallow: /wishlist
+Disallow: /*/wishlist
 Disallow: /unsubscribe
+Disallow: /*/unsubscribe
 
 User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 Disallow: /wishlist
+Disallow: /*/wishlist
 Disallow: /unsubscribe
+Disallow: /*/unsubscribe
 
 User-agent: DuckDuckBot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 Disallow: /wishlist
+Disallow: /*/wishlist
 
 User-agent: YandexBot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 Disallow: /wishlist
+Disallow: /*/wishlist
 
 # ─── Answer engines / LLM search (allowed — they cite sources) ────────────
 User-agent: PerplexityBot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 
 User-agent: OAI-SearchBot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 
 User-agent: ChatGPT-User
 Allow: /
-Disallow: /admin/
+Disallow: /admin
+Disallow: /api/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /admin
 Disallow: /api/
 
 User-agent: Claude-Web
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 
 User-agent: Applebot
 Allow: /
-Disallow: /admin/
+Disallow: /admin
 Disallow: /api/
 
 # ─── AI TRAINING crawlers (blocked — silent ingest, no attribution) ───────

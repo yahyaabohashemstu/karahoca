@@ -10,6 +10,8 @@ import {
   BRAND_ARABIC_VARIANTS,
   formatBrandName,
 } from '../constants/brandNames';
+import { useLocalizedPath } from '../hooks/useLocalizedPath';
+import { toWebp } from '../utils/image';
 
 const SITE_URL = 'https://karahoca.com';
 const LOGO_URL = `${SITE_URL}/karahoca-logo-1-Photoroom.webp`;
@@ -140,18 +142,8 @@ export const WebsiteSchema: React.FC = () => {
     url: SITE_URL,
     inLanguage: ['ar', 'en', 'tr', 'ru'],
     publisher: { '@id': `${SITE_URL}/#organization` },
-    // Tells Google we have on-site search and where to forward the query.
-    // The user lands on the news page with `?q=...`; even if the page
-    // doesn't yet handle that param, Google still renders the search box
-    // under the brand result — the param is harmless to ignore.
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/ar/news?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
+    // No SearchAction: Google retired the sitelinks search box (2024) and
+    // the news page never handled ?q= anyway.
   };
   return (
     <Helmet>
@@ -165,6 +157,15 @@ export const WebsiteSchema: React.FC = () => {
  *  "https://karahoca.comhttps://…". */
 const absoluteUrl = (pathOrUrl: string): string =>
   /^https?:\/\//i.test(pathOrUrl) ? pathOrUrl : `${SITE_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
+
+// Image URL as the browser actually fetches it: static .png/.jpg paths are
+// served as their .webp sibling (the build deletes the originals, so the
+// .png URLs in the product/news JSON-LD were 404s), and file names with
+// spaces / Arabic letters are percent-encoded.
+const imageUrl = (pathOrUrl: string): string => {
+  const abs = absoluteUrl(toWebp(pathOrUrl));
+  try { return encodeURI(decodeURI(abs)); } catch { return abs; }
+};
 
 // ── Product Brand Page (DIOX or AYLUX) ───────────────────────────────────────
 interface ProductSchemaProps {
@@ -241,6 +242,10 @@ interface BreadcrumbProps {
   items: Array<{ name: string; url: string }>;
 }
 export const BreadcrumbSchema: React.FC<BreadcrumbProps> = ({ items }) => {
+  // Most pages pass bare paths ('/', '/about'); without the language prefix
+  // every breadcrumb pointed at a URL that only redirects. lp() leaves a
+  // path that already carries the current prefix unchanged.
+  const { lp } = useLocalizedPath();
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -248,7 +253,7 @@ export const BreadcrumbSchema: React.FC<BreadcrumbProps> = ({ items }) => {
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: item.url.startsWith('http') ? item.url : `${SITE_URL}${item.url}`,
+      item: item.url.startsWith('http') ? item.url : `${SITE_URL}${lp(item.url)}`,
     })),
   };
   return (
@@ -448,7 +453,7 @@ export const NewsListSchema: React.FC<NewsListSchemaProps> = ({ items, lang = 'a
         '@id': `${SITE_URL}/${lang}/news/${item.slug}`,
         headline: item.title,
         description: item.excerpt,
-        image: item.image.startsWith('http') ? item.image : `${SITE_URL}${item.image}`,
+        image: imageUrl(item.image),
         datePublished: item.publishedAt,
         articleSection: item.category,
         inLanguage: lang,
@@ -567,7 +572,7 @@ export const ProductListSchema: React.FC<ProductListSchemaProps> = ({ brand, pro
         '@type': 'Product',
         name: p.name,
         description: p.description,
-        image: p.image.startsWith('http') ? p.image : `${SITE_URL}${p.image}`,
+        image: imageUrl(p.image),
         brand: { '@type': 'Brand', name: formatBrandName(brand) },
         manufacturer: { '@type': 'Organization', name: 'KARAHOCA', url: SITE_URL },
         category: p.category,
