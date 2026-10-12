@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import SEO from '../components/SEO';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
-import { toWebp } from '../utils/image';
+import { responsiveImageProps } from '../utils/image';
 import { whatsAppShareProductUrl, buildProductShareUrl } from '../utils/whatsapp';
 import { formatBrandName } from '../constants/brandNames';
 
@@ -179,8 +179,7 @@ const WishlistPopup: React.FC<PopupProps> = ({ item, l, lang, onClose, onRemove 
         {/* ── Image ── */}
         <div style={ps.imageWrap}>
           <ImageWithFallback
-            src={toWebp(item.image)}
-            fallbackSrc={item.image}
+            {...responsiveImageProps(item.image, 420, '(max-width: 600px) 90vw, 420px')}
             alt={item.alt || item.name}
             style={ps.image}
             onError={e => { (e.target as HTMLImageElement).style.opacity = '0'; }}
@@ -331,8 +330,7 @@ const WishCard: React.FC<CardProps> = ({ item, l, onRemove, onView }) => {
         aria-label={`${l.view}: ${item.name}`}
       >
         <ImageWithFallback
-          src={toWebp(item.image)}
-          fallbackSrc={item.image}
+          {...responsiveImageProps(item.image, 220)}
           alt={item.alt || item.name}
           style={{ maxHeight: 160, maxWidth: '100%', objectFit: 'contain' }}
           loading="lazy"

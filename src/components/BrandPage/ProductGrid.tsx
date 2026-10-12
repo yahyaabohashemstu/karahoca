@@ -2,7 +2,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
 import { useWishlist } from '../../hooks/useWishlist';
-import { toWebp } from '../../utils/image';
+import { responsiveImageProps } from '../../utils/image';
 import { toBrandId } from '../../constants/brandNames';
 import type { CategoryData, ProductInfo } from './types';
 
@@ -158,8 +158,7 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                     )}
                     <div className="product-card-front">
                       <ImageWithFallback
-                        src={toWebp(product.image)}
-                        fallbackSrc={product.image}
+                        {...responsiveImageProps(product.image, 300, '(max-width: 600px) 45vw, 300px')}
                         alt={product.alt}
                         className="product-mini-image"
                         loading="lazy"

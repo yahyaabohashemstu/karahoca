@@ -56,3 +56,42 @@ export function resolveAdminImage(src: string | undefined | null): string {
   if (src.startsWith('/api/uploads/')) return buildApiUrl(src);
   return toWebp(src);
 }
+
+// ─── Admin uploads: resized variants ─────────────────────────────────────
+// Product photos uploaded through the admin are stored as-is (2–8 MB PNGs of
+// ~2800 px) and were downloaded at full size for ~250 px cards — ~23 MB on
+// the AYLUX page. The API serves resized WebP copies at these widths
+// (`/api/uploads/<file>?w=640`, server/services/uploadVariants.mjs); keep the
+// list in sync with UPLOAD_VARIANT_WIDTHS there.
+const UPLOAD_VARIANT_WIDTHS = [160, 320, 480, 640, 960, 1280] as const;
+const RESIZABLE_UPLOAD_RE = /\/api\/uploads\/[^/?#]+\.(png|jpe?g|webp)$/i;
+
+export const isResizableUpload = (src: string | undefined | null): src is string =>
+  !!src && RESIZABLE_UPLOAD_RE.test(src);
+
+const nearestVariantWidth = (width: number) =>
+  UPLOAD_VARIANT_WIDTHS.find((w) => w >= width) ?? UPLOAD_VARIANT_WIDTHS[UPLOAD_VARIANT_WIDTHS.length - 1];
+
+/**
+ * Props for <ImageWithFallback> showing `src` at roughly `displayWidth` CSS
+ * px (the `sizes` hint). Uploads get a srcset of resized WebP variants — 1×
+ * and 2× the display width — with the untouched original as the fallback
+ * if a variant fails; static assets keep the existing `.webp` rewrite.
+ */
+export const responsiveImageProps = (
+  src: string | undefined | null,
+  displayWidth: number,
+  sizes = `${displayWidth}px`,
+) => {
+  const original = src ?? '';
+  if (!isResizableUpload(original)) {
+    return { src: toWebp(original), fallbackSrc: original };
+  }
+  const widths = [...new Set([nearestVariantWidth(displayWidth), nearestVariantWidth(displayWidth * 2)])];
+  return {
+    src: `${original}?w=${widths[widths.length - 1]}`,
+    fallbackSrc: original,
+    srcSet: widths.map((width) => ({ src: `${original}?w=${width}`, width })),
+    sizes,
+  };
+};

@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import ImageWithFallback from '../ImageWithFallback';
-import { toWebp } from '../../utils/image';
+import { responsiveImageProps } from '../../utils/image';
 import { whatsAppProductInquiryUrl, buildProductShareUrl } from '../../utils/whatsapp';
 import { formatBrandName } from '../../constants/brandNames';
 import type { ChatProduct } from '../../hooks/useChatState';
@@ -84,8 +84,7 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
           // is genuinely missing (e.g. dev environment that hasn't run
           // the optimise step yet).
           <ImageWithFallback
-            src={toWebp(product.image)}
-            fallbackSrc={product.image}
+            {...responsiveImageProps(product.image, 160)}
             alt={product.name}
             loading="lazy"
             decoding="async"

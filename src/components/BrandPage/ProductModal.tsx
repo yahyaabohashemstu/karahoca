@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
-import { toWebp } from '../../utils/image';
+import { responsiveImageProps } from '../../utils/image';
 import { whatsAppShareProductUrl, buildProductShareUrl } from '../../utils/whatsapp';
 import { normalizeLanguageCode } from '../../utils/language';
 import MarketplaceLinks from './MarketplaceLinks';
@@ -160,8 +160,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
           <div className="popup-image-section">
             <div className="popup-main-image-wrap">
               <ImageWithFallback
-                src={toWebp(allPopupImages[galleryIndex])}
-                fallbackSrc={allPopupImages[galleryIndex]}
+                {...responsiveImageProps(allPopupImages[galleryIndex], 560, '(max-width: 768px) 90vw, 560px')}
                 alt={product.alt}
                 className="image-popup-img"
                 width={900}
@@ -193,8 +192,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
                       aria-label={`Image ${idx + 1}`}
                     >
                       <ImageWithFallback
-                        src={toWebp(img)}
-                        fallbackSrc={img}
+                        {...responsiveImageProps(img, 96)}
                         alt={`${product.alt} ${idx + 1}`}
                         width={96}
                         height={96}

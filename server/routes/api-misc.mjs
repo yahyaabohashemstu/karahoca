@@ -10,6 +10,7 @@ import { getClientIp, isLogErrorRateLimited } from '../middlewares/security.mjs'
 import { STATIC_MIME } from '../utils/mime.mjs';
 import { handleEmailOpen, handleEmailClick } from './admin-campaigns.mjs';
 import { logger } from '../utils/logger.mjs';
+import { getUploadVariant } from '../services/uploadVariants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,16 +73,26 @@ export const handleLogError = async (request, response, { origin }) => {
 };
 
 /**
- * GET /api/uploads/:fileName
+ * GET /api/uploads/:fileName[?w=<width>]
  * Serves admin-uploaded image assets. No auth — these are intentionally
- * publicly reachable (used by email clients etc).
+ * publicly reachable (used by email clients etc). With ?w= (one of
+ * UPLOAD_VARIANT_WIDTHS) an image is served as a resized WebP instead —
+ * see services/uploadVariants.mjs.
  */
 export const handleUpload = async (request, response, { origin, url }) => {
   const fileName = path.basename(url.replace('/api/uploads/', ''));
-  const filePath = path.join(uploadsDir, fileName);
+  let filePath = path.join(uploadsDir, fileName);
   try {
-    const s = await stat(filePath);
+    let s = await stat(filePath);
     if (!s.isFile()) throw new Error('not a file');
+    const width = Number.parseInt(new URL(request.url, 'http://localhost').searchParams.get('w') || '', 10);
+    if (Number.isFinite(width)) {
+      const variant = await getUploadVariant(uploadsDir, fileName, width);
+      if (variant) {
+        filePath = variant;
+        s = await stat(filePath);
+      }
+    }
     const ext = path.extname(filePath).toLowerCase();
     const mime = STATIC_MIME[ext] ?? 'application/octet-stream';
     response.writeHead(200, {
