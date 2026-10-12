@@ -5,6 +5,7 @@ import { invalidateProductsCache } from '../services/publicCache.mjs';
 import { invalidateProductOgCache } from '../services/ogImage.mjs';
 import { parseCsvObjects, stringifyCsv } from '../services/csv.mjs';
 import { generateProductDescriptions } from '../services/aiDescriptionWriter.mjs';
+import { normalizeMarketplaceUrlFields } from '../services/marketplaceLinks.mjs';
 
 const PRODUCT_FIELDS = [
   'brand', 'category_id',
@@ -17,6 +18,9 @@ const PRODUCT_FIELDS = [
   'count_ar', 'count_en', 'count_tr', 'count_ru',
   'weight_count_table',
   'image_scale',
+  // The product's own marketplace listings — validated by
+  // normalizeMarketplaceUrlFields() before every write.
+  'trendyol_url', 'hepsiburada_url',
   'display_order', 'active',
   // D5 publishing fields — status is enum-checked at the route layer,
   // publish_at is an ISO-8601 string (validated by the admin form's
@@ -372,6 +376,9 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         if (body.status !== 'scheduled') body.publish_at = null;
       }
 
+      const urlError = normalizeMarketplaceUrlFields(body);
+      if (urlError) { sendJson(res, 400, { success: false, error: urlError }, origin); return; }
+
       const result = updateProductRow(id, body);
       if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
 
@@ -453,6 +460,9 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
     }
     if (status !== 'scheduled') publishAt = null;
 
+    const urlError = normalizeMarketplaceUrlFields(body);
+    if (urlError) { sendJson(res, 400, { success: false, error: urlError }, origin); return; }
+
     const id = body.id || `${body.brand.toLowerCase()}-${randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
 
@@ -466,6 +476,7 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         material_ar, material_en, material_tr, material_ru,
         count_ar, count_en, count_tr, count_ru,
         weight_count_table,
+        trendyol_url, hepsiburada_url,
         display_order, active, status, publish_at, created_at, updated_at
       ) VALUES(
         @id, @brand, @category_id,
@@ -476,6 +487,7 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
         @mat_ar, @mat_en, @mat_tr, @mat_ru,
         @cnt_ar, @cnt_en, @cnt_tr, @cnt_ru,
         @weight_count_table,
+        @trendyol_url, @hepsiburada_url,
         @display_order, 1, @status, @publish_at, @now, @now
       )
     `).run({
@@ -494,6 +506,8 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       cnt_ar: body.count_ar || '', cnt_en: body.count_en || '',
       cnt_tr: body.count_tr || '', cnt_ru: body.count_ru || '',
       weight_count_table: body.weight_count_table || null,
+      trendyol_url: body.trendyol_url || null,
+      hepsiburada_url: body.hepsiburada_url || null,
       display_order: body.display_order || 0,
       status,
       publish_at: publishAt,

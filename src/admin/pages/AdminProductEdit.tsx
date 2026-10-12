@@ -24,6 +24,22 @@ const EMPTY: Partial<Product> = {
   publish_at: null,
 };
 
+// The product's own listing on each marketplace store. The public site's
+// "buy online" buttons open these (falling back to the store's main page
+// when empty); the server only accepts https links on the right domain.
+const MARKETPLACE_URL_FIELDS = [
+  {
+    key: 'trendyol_url',
+    label: 'Trendyol listing',
+    placeholder: 'https://www.trendyol.com/aylux/...-p-123456789?merchantId=1277496',
+  },
+  {
+    key: 'hepsiburada_url',
+    label: 'Hepsiburada listing',
+    placeholder: 'https://www.hepsiburada.com/...-pm-HBC0000XXXXXX?magaza=AYLUX',
+  },
+] as const;
+
 const hasWeightCountRows = (rawTable: string | null | undefined) => {
   if (!rawTable) {
     return false;
@@ -576,6 +592,48 @@ export const AdminProductEdit: React.FC = () => {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* Marketplace listings (optional) */}
+          <div className="adm-card">
+            <div className="adm-card-title">Online Store Listings</div>
+            <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '4px 0 12px' }}>
+              This product's own page on the brand's store. The site's "buy online"
+              buttons in the product window open it — currently shown to Turkish
+              visitors of AYLUX. Leave empty to send buyers to the store's main page.
+            </p>
+            {MARKETPLACE_URL_FIELDS.map(({ key, label, placeholder }) => {
+              const value = form[key] ?? '';
+              return (
+                <div key={key} className="adm-form-group">
+                  <label className="adm-label">{label}</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      className="adm-input"
+                      type="url"
+                      inputMode="url"
+                      dir="ltr"
+                      value={value}
+                      onChange={e => set(key, e.target.value)}
+                      placeholder={placeholder}
+                      style={{ flex: 1 }}
+                    />
+                    {/^https:\/\//i.test(value) && (
+                      <a
+                        className="adm-btn adm-btn-ghost adm-btn-sm"
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ whiteSpace: 'nowrap' }}
+                        title="Open the listing in a new tab to check it"
+                      >
+                        ↗ Open
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

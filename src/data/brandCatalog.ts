@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import { apiFetch } from "../utils/apiFetch";
 import type { SupportedLanguageCode } from "../utils/language";
+import type { MarketplaceProductLinks } from "../constants/marketplaces";
 
 export interface BrandProductDetails {
   weight?: string;
@@ -30,6 +31,8 @@ export interface BrandProductInfo {
   gallery?: string[];
   /** Per-product image scale (0.3–1.5), controls size inside card */
   imageScale?: number;
+  /** The product's own Trendyol / Hepsiburada listings (API only). */
+  marketplaceLinks?: MarketplaceProductLinks;
 }
 
 export interface BrandCategoryData {
@@ -611,6 +614,7 @@ interface PublicApiProduct {
   gallery?: string[];
   weightCountTable?: Array<{ weight: string; count: number }>;
   imageScale?: number;
+  marketplaceLinks?: MarketplaceProductLinks;
 }
 
 interface PublicApiCategory {
@@ -637,6 +641,7 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
     },
     gallery: p.gallery && p.gallery.length > 0 ? p.gallery : undefined,
     imageScale: p.imageScale ?? undefined,
+    marketplaceLinks: p.marketplaceLinks,
   })),
 });
 

@@ -1,6 +1,10 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { MarketplaceStore } from '../../constants/marketplaces';
+import {
+  productListingUrl,
+  type MarketplaceProductLinks,
+  type MarketplaceStore,
+} from '../../constants/marketplaces';
 import { toBrandId } from '../../constants/brandNames';
 import { trackMarketplaceClick, type MarketplacePlacement } from '../../utils/analytics';
 import { MarketplaceLogo } from './MarketplaceLogos';
@@ -21,11 +25,14 @@ interface MarketplaceLinkProps {
   size?: 'md' | 'lg';
   /** Set when the link sits inside a product's details, for analytics. */
   product?: { id?: string; name: string };
+  /** The product's own listing on this store — opened instead of the store page. */
+  listingUrl?: string;
 }
 
 /**
  * One storefront button — the whole badge is a single link: the store's
  * official logo over a short caption ("Resmi mağaza"), plus an arrow.
+ * It opens the product's own listing when one is known, else the store.
  *
  * The logo is decorative; the full phrase a screen reader announces lives
  * in `aria-label` and starts with the store name the logo shows, so
@@ -37,14 +44,17 @@ export const MarketplaceLink: React.FC<MarketplaceLinkProps> = ({
   placement,
   size = 'md',
   product,
+  listingUrl,
 }) => {
   const { t } = useTranslation();
   const storeDescription = t('brandPage.marketplace.officialBrandStore', { brand: brandName });
-  const track = () => trackMarketplaceClick(store.id, toBrandId(brandName), placement, product);
+  const track = () => trackMarketplaceClick(
+    store.id, toBrandId(brandName), placement, listingUrl ? 'listing' : 'store', product,
+  );
 
   return (
     <a
-      href={store.url}
+      href={listingUrl ?? store.url}
       target="_blank"
       // `noopener` only, deliberately NOT `noreferrer`: the marketplace
       // still sees the karahoca.com origin, so storefront traffic from the
@@ -94,6 +104,8 @@ interface MarketplaceLinksProps {
   /** Short heading above the buttons, e.g. "Online satın alın". */
   label: string;
   product?: { id?: string; name: string };
+  /** The product's own listings, when this row sits in a product's details. */
+  productLinks?: MarketplaceProductLinks;
   className?: string;
 }
 
@@ -109,6 +121,7 @@ const MarketplaceLinks: React.FC<MarketplaceLinksProps> = ({
   placement,
   label,
   product,
+  productLinks,
   className,
 }) => {
   const labelId = useId();
@@ -125,6 +138,7 @@ const MarketplaceLinks: React.FC<MarketplaceLinksProps> = ({
               brandName={brandName}
               placement={placement}
               product={product}
+              listingUrl={productListingUrl(store.id, productLinks)}
             />
           </li>
         ))}

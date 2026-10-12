@@ -14,6 +14,10 @@
  * adding a store, changing a URL, or opening a store to another locale
  * is a one-line edit here — no component changes.
  *
+ * Individual products can also link straight to their own listing: those
+ * URLs live in the database (admin product form → `marketplaceLinks` in
+ * the public API) and replace the store URL inside that product's modal.
+ *
  * Brand keys are the ASCII functional identifiers ('AYLUX', 'DIOX'), never
  * the display wordmarks (see constants/brandNames.ts for the DİOX rule).
  */
@@ -52,6 +56,38 @@ const BRAND_MARKETPLACES: Readonly<Record<string, BrandMarketplaces>> = {
       },
     ],
   },
+};
+
+/** A product's own listing on each marketplace, as served by the API. */
+export type MarketplaceProductLinks = Partial<Record<MarketplaceId, string>>;
+
+const MARKETPLACE_HOSTS: Record<MarketplaceId, string> = {
+  trendyol: 'trendyol.com',
+  hepsiburada: 'hepsiburada.com',
+};
+
+/**
+ * The product's listing URL on `id`'s marketplace, if it is a usable one.
+ * The API already only serves https URLs on the marketplace's domain
+ * (server/services/marketplaceLinks.mjs); this re-check keeps anything
+ * else from ever becoming an href, whatever the data source.
+ */
+export const productListingUrl = (
+  id: MarketplaceId,
+  links: MarketplaceProductLinks | undefined,
+): string | undefined => {
+  const raw = links?.[id];
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase();
+    const allowed = MARKETPLACE_HOSTS[id];
+    return url.protocol === 'https:' && (host === allowed || host.endsWith(`.${allowed}`))
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 // Shared empty result. Returning the SAME reference for every "no stores"

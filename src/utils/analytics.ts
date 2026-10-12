@@ -48,14 +48,18 @@ export const trackWhatsAppClick = (source: 'floating_button' | 'footer' | 'inlin
 /** Where on the brand page a marketplace button was clicked. */
 export type MarketplacePlacement = 'hero' | 'product_modal' | 'section';
 
-/** Marketplace storefront button clicked (Trendyol, Hepsiburada…) */
+/**
+ * Marketplace button clicked (Trendyol, Hepsiburada…). `target` says
+ * whether it opened the product's own listing or the store page.
+ */
 export const trackMarketplaceClick = (
   marketplace: string,
   brand: string,
   placement: MarketplacePlacement,
+  target: 'listing' | 'store',
   product?: { id?: string; name: string },
 ): void => {
-  trackEvent('Marketplace', 'Click', `${marketplace} — ${brand} — ${placement}`);
+  trackEvent('Marketplace', 'Click', `${marketplace} — ${brand} — ${placement} — ${target}`);
   track({
     event_type: 'marketplace_click',
     product_id: product?.id,
@@ -63,6 +67,7 @@ export const trackMarketplaceClick = (
       marketplace,
       brand,
       placement,
+      target,
       ...(product ? { product_name: product.name } : {}),
     },
   });

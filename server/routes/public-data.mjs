@@ -1,5 +1,6 @@
 import { getDb, incrementStat, normalizeWeight } from '../db.mjs';
 import { getPublicCached, setPublicCached } from '../services/publicCache.mjs';
+import { publicMarketplaceLinks } from '../services/marketplaceLinks.mjs';
 import { createJsonHeaders } from '../middlewares/cors.mjs';
 import { logger } from '../utils/logger.mjs';
 
@@ -72,7 +73,9 @@ export const handlePublicProducts = async (req, res, { sendJson, origin, url }) 
       p.count_${l} as count,
       p.gift_${l} as gift,
       p.weight_count_table,
-      p.image_scale
+      p.image_scale,
+      p.trendyol_url,
+      p.hepsiburada_url
     FROM products p
     INNER JOIN product_categories c ON c.id = p.category_id
     WHERE c.brand = ?
@@ -122,6 +125,9 @@ export const handlePublicProducts = async (req, res, { sendJson, origin, url }) 
       })(),
       imageScale: product.image_scale ?? 0.85,
     };
+    // The product's own Trendyol / Hepsiburada listings, when set.
+    const marketplaceLinks = publicMarketplaceLinks(product);
+    if (marketplaceLinks) normalizedProduct.marketplaceLinks = marketplaceLinks;
 
     const bucket = productsByCategory.get(product.category_id) || [];
     bucket.push(normalizedProduct);

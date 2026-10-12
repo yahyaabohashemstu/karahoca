@@ -287,15 +287,16 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
               </div>
             )}
 
-            {/* Storefront-level links: only the brand's store URLs are
-                configured (no per-listing links), so these open the store
-                and the visitor picks the product there. */}
+            {/* Each button opens this product's own listing on that store
+                when the admin has set one (product.marketplaceLinks), and
+                the brand's store page otherwise. */}
             <MarketplaceLinks
               stores={marketplaces}
               brandName={brandName}
               placement="product_modal"
               label={t('brandPage.marketplace.modalLabel')}
               product={{ id: product.id, name: product.name }}
+              productLinks={product.marketplaceLinks}
             />
 
             <a

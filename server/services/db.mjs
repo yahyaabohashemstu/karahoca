@@ -575,6 +575,10 @@ const migrateInitialData = () => {
   // ── Per-product image scale (0.3–1.5, default 0.85 = 85%) ──────────────
   try { db.exec("ALTER TABLE products ADD COLUMN image_scale REAL DEFAULT 0.85"); } catch { /* already exists */ }
 
+  // ── Per-product marketplace listing URLs (services/marketplaceLinks.mjs) ─
+  try { db.exec("ALTER TABLE products ADD COLUMN trendyol_url TEXT"); } catch { /* already exists */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN hepsiburada_url TEXT"); } catch { /* already exists */ }
+
   // ── Performance indexes ─────────────────────────────────────────────────
   // Each wrapped in try/catch so an index that fails on a corrupt row (very
   // rare) doesn't prevent the server from booting — we'd rather run slow
@@ -614,6 +618,9 @@ const migrateInitialData = () => {
   migrateAiKnowledgeSeed();
   migrateToneGuidelinesMaleGender();
   migrateToneGuidelinesProductLinks();
+  // Must run after the ALTER TABLE block above adds trendyol_url /
+  // hepsiburada_url.
+  migrateAyluxMarketplaceLinks();
 };
 
 /**
@@ -1084,6 +1091,109 @@ const migrateAutoPowder1Gift = () => {
 
   markMigration('aylux_auto_powder1_gift_2026');
   logger.info('[db] AYLUX auto powder 1 gift field set');
+};
+
+/**
+ * Seed each AYLUX product's own Trendyol / Hepsiburada listing.
+ *
+ * Matched by hand on 2026-10-12 against the AYLUX seller stores
+ * (trendyol.com/sr?mid=1277496, hepsiburada.com/magaza/aylux): product
+ * type + size from the listing title, confirmed by comparing the listing
+ * photo with the product photo on the site. Where a store sells a product
+ * only as a multi-pack (e.g. bleach 6×900 ML on Hepsiburada) the pack is
+ * linked; scent variants link the scent pictured on the site (air
+ * freshener → Royal, liquid soap → Zeytinyağlı, both stores alike).
+ * Products with no listing are left empty and keep the store-page link:
+ * super gel, dish gel, the 3 KG powder box, the manual-machine powder,
+ * plus glass cleaner on Hepsiburada and Flash on Trendyol (only sold
+ * there inside gift sets).
+ *
+ * `?merchantId=` / `?magaza=` pin the AYLUX seller's offer when other
+ * sellers list the same product. One-shot, and only fills empty fields,
+ * so links edited in the admin are never overwritten.
+ */
+const migrateAyluxMarketplaceLinks = () => {
+  if (hasMigration('aylux_marketplace_links_2026_10')) return;
+
+  const ty = (path) => `https://www.trendyol.com${path}?merchantId=1277496`;
+  const hb = (path) => `https://www.hepsiburada.com${path}?magaza=AYLUX`;
+  const links = {
+    'aylux-general-cleaner': {
+      trendyol: ty('/aylux/ultra-guclu-cok-amacli-genel-temizleyici-kumas-perde-hali-mobilya-arac-banyo-mutfak-700-ml-p-1180825959'),
+      hepsiburada: hb('/ultra-guclu-cok-amacli-genel-temizleyici-kumas-perde-hali-mobilya-arac-banyo-mutfak-700-ml-pm-HBC0000IZQNXH'),
+    },
+    'aylux-air-freshener': {
+      trendyol: ty('/aylux/royal-oda-parfumu-sprey-hava-ferahlatici-koku-giderici-400ml-p-1189345421'),
+      hepsiburada: hb('/aylux-royal-oda-parfumu-sprey-hava-ferahlatici-koku-giderici-400ml-pm-HBC0000HW94W2'),
+    },
+    'aylux-floor-fragrance': {
+      trendyol: ty('/aylux/yuzey-temizleyici-multi-purpose-600-ml-p-877434237'),
+      hepsiburada: hb('/aylux-cok-amacli-ultra-yuzey-temizleyici-pm-HBC0000HWFZAV'),
+    },
+    'aylux-glass-cleaner': {
+      trendyol: ty('/aylux/cam-temizleyici-750-ml-p-1171990307'),
+    },
+    'aylux-chlorine': {
+      trendyol: ty('/aylux/camasir-suyu-900-ml-mikroplari-oldurur-kotu-koku-karsiti-p-1171986311'),
+      hepsiburada: hb('/camasir-suyu-900-ml-active-bleanch-pm-HBC0000GL08HD'),
+    },
+    'aylux-oven-cleaner': {
+      trendyol: ty('/aylux/yag-ve-kir-cozucu-700-ml-ultra-guc-etkili-formul-p-1171967532'),
+      hepsiburada: hb('/yag-ve-kir-cozucu-700-ml-pm-HBC0000GGZ6YV'),
+    },
+    'aylux-flash': {
+      hepsiburada: hb('/flashlux-sermanik-temizleyici-pm-HBC0000GL04J8'),
+    },
+    'aylux-bathroom-cleaner': {
+      trendyol: ty('/aylux/banyo-ve-tuvalet-temizleyici-700-ml-p-1171983678'),
+      hepsiburada: hb('/cok-amacli-banyo-ve-wc-temizleyici-sprey-kirec-cozucu-su-lekesi-sabun-artigi-armatur-dusakabin-fayans-lavabo-700-ml-pm-HBC0000IZRCZZ'),
+    },
+    'aylux-dish-liquid2': {
+      trendyol: ty('/aylux/elde-yikama-sivi-bulasik-deterjani-4x700ml-2-kat-daha-guclu-formul-limon-p-1185684879'),
+      hepsiburada: hb('/bulasik-deterjani-700ml-limon-kokulu-pm-HBC0000GEYWJW'),
+    },
+    'aylux-235a612a': {
+      trendyol: ty('/aylux/toz-deterjan-4-kg-27-sik-yikananlar-5in1-ultra-yogun-etkili-formul-renkiler-p-1176342795'),
+      hepsiburada: hb('/toz-deterjani-4-kg-27-sik-yikananlar-ultra-yogun-etkili-formul-pm-HBC0000GU362L'),
+    },
+    'aylux-liquid-detergent': {
+      trendyol: ty('/aylux/sivi-camasir-deterjani-3l-50-yikama-beyazlar-renkliler-yesil-p-871047685'),
+      hepsiburada: hb('/aylux-camasir-detarjani-sivi-yesi-l-3-lt-pm-HBC0000780Z1U'),
+    },
+    'aylux-fabric-softener': {
+      trendyol: ty('/aylux/extra-konsantre-camasir-yumusatici-4x1500ml-yogun-kivam-kalici-koku-p-1179444283'),
+      hepsiburada: hb('/camasir-yumusaticisi-1-5-l-60-yikama-pm-HBC0000GGN6QG'),
+    },
+    'aylux-stain-remover': {
+      trendyol: ty('/aylux/stain-remover-ultra-guclu-cok-amacli-leke-cozucu-renkli-camasirlar-kumas-hali-koltuk-ve-doseme-temizleyici-900-ml-p-1171989068'),
+      hepsiburada: hb('/leke-cozucu-900-ml-renkli-camasirlar-halilar-kumaslar-pm-HBC0000GL0QZG'),
+    },
+    'aylux-72441c85': { // AYLUX peçete (200) — created in the admin panel
+      trendyol: ty('/aylux/pecete-kagit-havlu-12-paket-2400-adet-200-lu-v-katlama-3-katli-p-1202512509'),
+      hepsiburada: hb('/pecete-3-katli-v-katlama-200-adet-x-6-pm-HBC0000HTDHP7'),
+    },
+    'aylux-liquid-soap1': {
+      trendyol: ty('/aylux/sivi-el-sabunu-3-kg-zeytinyagli-p-1213999471'),
+      hepsiburada: hb('/sivi-el-sabunu-3-kg-zeytinyagli-pm-HBC0000MASAC2'),
+    },
+  };
+
+  const setTrendyol = db.prepare(
+    "UPDATE products SET trendyol_url = ? WHERE id = ? AND COALESCE(trendyol_url, '') = ''",
+  );
+  const setHepsiburada = db.prepare(
+    "UPDATE products SET hepsiburada_url = ? WHERE id = ? AND COALESCE(hepsiburada_url, '') = ''",
+  );
+  let filled = 0;
+  db.transaction(() => {
+    for (const [id, { trendyol, hepsiburada }] of Object.entries(links)) {
+      if (trendyol) filled += setTrendyol.run(trendyol, id).changes;
+      if (hepsiburada) filled += setHepsiburada.run(hepsiburada, id).changes;
+    }
+  })();
+
+  markMigration('aylux_marketplace_links_2026_10');
+  logger.info({ filled }, '[db] AYLUX marketplace listing links seeded');
 };
 
 // ─── Products Migration ──────────────────────────────────────────────────────
