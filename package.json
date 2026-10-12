@@ -31,7 +31,7 @@
     "i18next-browser-languagedetector": "^8.2.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
-    "pdfjs-dist": "^5.6.205",
+    "pdfjs-dist": "^6.4.299",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "react": "18.3.1",
@@ -43,7 +43,7 @@
     "react-router-dom": "^7.9.3",
     "remark-gfm": "^4.0.1",
     "resend": "^6.9.4",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
