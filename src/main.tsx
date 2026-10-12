@@ -18,6 +18,7 @@ import App from './App.tsx'
 import { getClientSessionId } from './utils/clientSession'
 import { bootstrapCsrf } from './utils/apiFetch'
 import { installVisitorIdentityListener } from './utils/visitorIdentity'
+import { syncLangCookie } from './utils/localizedPath'
 
 // Seed the public CSRF cookie from the API. Required because the SPA shell
 // is now served by nginx (no inline cookie injection); the backend issues
@@ -110,6 +111,10 @@ if (sentryDsn && typeof window !== 'undefined') {
       console.warn('[sentry] failed to initialize', err);
     });
 }
+
+// The server redirects "/" and old language-less links using this cookie
+// (see utils/localizedPath.ts); keep it in step with the saved choice.
+syncLangCookie();
 
 const rootNode = document.getElementById('root')!;
 const tree = (

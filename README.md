@@ -609,9 +609,35 @@ Current deployment: **two services on [Coolify](https://coolify.io)**.
 
 ### Service 1 — Frontend (nginx)
 
-- Serves `dist/` as static files
-- SPA fallback to `index.html` for unknown paths
-- Proxies `/api/*` to the backend service
+Config: `web/nginx.conf` (copied to `/etc/nginx/conf.d/default.conf`).
+
+- Serves `dist/` as static files; each known route gets its prerendered
+  HTML when the build has one, otherwise the SPA shell
+- Unknown paths answer **404** with the SPA shell (the app shows its
+  Not-Found page; crawlers get a real 404)
+- `/xx/page/` → **301** `/xx/page`; `/xx` → **301** `/xx/`
+- `/` and pre-i18n links (`/aylux`, `/news/<slug>` …) → **302** to the
+  visitor's language (`kh_lang` cookie set by the language switcher, then
+  `Accept-Language`, then Arabic)
+- `www.karahoca.com` → **301** `karahoca.com` (keep the www domain attached
+  to this service in Coolify so the redirect can answer)
+- Proxies `/sitemap.xml`, `/share/*` and `/og/*` to the API; `/api/*` is 404
+- Health probe: `GET /healthz`
+
+**Edge setting (Coolify / Traefik).** HTTP → HTTPS is answered by Traefik
+before requests reach nginx, with a *temporary* redirect (302). To make it
+permanent, add these container labels to the frontend service in Coolify
+(*Service → Advanced → Container Labels*; Coolify names its middleware
+`redirect-to-https`), redeploy, and check that `curl -I http://karahoca.com/`
+answers 301:
+
+```
+traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+```
+
+(nginx already sends `Strict-Transport-Security`, so returning browsers skip
+the http hop entirely.)
 
 ### Service 2 — Backend (Node.js)
 

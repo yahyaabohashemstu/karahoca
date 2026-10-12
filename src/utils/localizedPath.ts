@@ -103,6 +103,40 @@ export const languageRootPath = (lang: string | null | undefined): string =>
 const USER_LANG_CHOICE_KEY = 'karahoca_lang_choice';
 
 /**
+ * Cookie mirror of the saved language choice. The web server redirects
+ * language-less URLs ("/", old links like "/aylux") itself now — it can't
+ * read localStorage, so the choice is also kept in this small first-party
+ * cookie (just the 2-letter code, 1 year, SameSite=Lax). Without it a
+ * returning visitor who picked Turkish on an Arabic browser would land on
+ * /ar/ when typing karahoca.com.
+ */
+const LANG_COOKIE = 'kh_lang';
+
+const writeLangCookie = (lang: string): void => {
+  try {
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${LANG_COOKIE}=${lang}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+  } catch {
+    /* cookies disabled — the server falls back to Accept-Language */
+  }
+};
+
+/**
+ * One-time startup sync for visitors who saved a choice before the cookie
+ * existed (or whose cookie expired): copy localStorage → cookie.
+ */
+export const syncLangCookie = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const base = extractBaseLanguageTag(window.localStorage.getItem(USER_LANG_CHOICE_KEY));
+    if (!base || !SUPPORTED.includes(base)) return;
+    if (!document.cookie.split('; ').includes(`${LANG_COOKIE}=${base}`)) writeLangCookie(base);
+  } catch {
+    /* storage blocked */
+  }
+};
+
+/**
  * Extract the base language tag from a BCP-47-ish locale string WITHOUT
  * `normalizeLanguageCode`'s "fallback to 'ar' on anything unrecognised"
  * bias. Returns the lowercased base code (e.g. `'fr-FR'` → `'fr'`) when
@@ -210,6 +244,7 @@ export const rememberUserLangChoice = (lang: string): void => {
     // drop the write — better than corrupting the user-choice slot.
     const base = extractBaseLanguageTag(lang);
     if (!base || !SUPPORTED.includes(base)) return;
+    writeLangCookie(base);
     window.localStorage.setItem(USER_LANG_CHOICE_KEY, base);
   } catch {
     /* private-mode storage rejection — ignore */

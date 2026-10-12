@@ -110,8 +110,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-# Health probe — Coolify / K8s / Docker can use this directly.
+# Health probe — Coolify / K8s / Docker can use this directly. A dedicated
+# endpoint: "/" now answers with a language redirect (see nginx.conf).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost/healthz || exit 1
 
 # nginx:alpine's default CMD already runs nginx in the foreground.
