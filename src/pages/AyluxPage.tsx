@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next';
 import SEO, { brandOgImageUrl } from '../components/SEO';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
-import { getAyluxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
+import {
+  getAyluxCategories,
+  fetchBrandCatalogFromApi,
+  mergeApiWithStaticCatalog,
+  type BrandCategoryData,
+} from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
 import { getBrandMarketplaces } from '../constants/marketplaces';
 
@@ -44,23 +49,9 @@ const AyluxPageContent: React.FC = () => {
     const staticCats = getAyluxCategories(t);
     fetchBrandCatalogFromApi('AYLUX', currentLang).then(apiCats => {
       if (cancelled) return;
-      if (apiCats && apiCats.length > 0) {
-        // Merge: preserve gift & static fields missing from API
-        const merged = apiCats.map((apiCat, ci) => ({
-          ...apiCat,
-          products: apiCat.products.map((apiProd, pi) => {
-            const staticProd = staticCats[ci]?.products[pi];
-            const gift = apiProd.details?.gift ?? staticProd?.details?.gift;
-            return {
-              ...apiProd,
-              details: { ...apiProd.details, ...(gift ? { gift } : {}) },
-            };
-          }),
-        }));
-        setCategories(merged);
-      } else {
-        setCategories(staticCats);
-      }
+      setCategories(
+        apiCats && apiCats.length > 0 ? mergeApiWithStaticCatalog(apiCats, staticCats) : staticCats,
+      );
     });
     return () => { cancelled = true; };
   }, [currentLang, t]);

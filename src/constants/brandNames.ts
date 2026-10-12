@@ -59,6 +59,18 @@ export const BRAND_DISPLAY_NAMES: Record<ProductBrandId, string> = {
 export const formatBrandName = (brand: string): string =>
   (BRAND_DISPLAY_NAMES as Record<string, string>)[brand] ?? brand;
 
+const BRAND_IDS_BY_DISPLAY_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(BRAND_DISPLAY_NAMES).map(([id, display]) => [display, id]),
+);
+
+/**
+ * Inverse of `formatBrandName`: wordmark → functional identifier
+ * ('DİOX' → 'DIOX'). For components that only receive the display name
+ * (BrandPage's `brandName`) but must store or compare the identifier.
+ * Identifiers and unknown values pass through unchanged.
+ */
+export const toBrandId = (brand: string): string => BRAND_IDS_BY_DISPLAY_NAME[brand] ?? brand;
+
 /** The most common Arabic search form — the one we want to rank #1 on. */
 export const BRAND_ARABIC_PRIMARY = 'قره خوجة';
 

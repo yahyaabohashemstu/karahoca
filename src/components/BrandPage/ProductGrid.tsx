@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
 import { useWishlist } from '../../hooks/useWishlist';
 import { toWebp } from '../../utils/image';
+import { toBrandId } from '../../constants/brandNames';
 import type { CategoryData, ProductInfo } from './types';
 
 interface ProductGridProps {
@@ -119,25 +120,35 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
         <p className="section-subtitle">{productsSubtitle}</p>
       </div>
 
-      {categories.map((category) => (
+      {categories.map((category, categoryIndex) => (
         <div key={category.title} className="container">
           <h3 className="category-title gradient-heading">{category.title}</h3>
           <div className="products-grid-compact">
-            {category.products.map((product) => {
-              const wishlistId = `${brandName}-${product.name}`;
+            {category.products.map((product, productIndex) => {
+              // Card identity = the product id, which is the same in the
+              // static fallback and the API catalog and in every language.
+              // NOT the name: size/formula variants share one (the 3 L and
+              // 400 ML liquid soaps), which collided React keys, the flip /
+              // reveal state and the wishlist entry. The positional fallback
+              // only applies to a product with no id (none today).
+              const cardId =
+                product.id ?? `${brandName}-${product.name}-${categoryIndex}-${productIndex}`;
+              // A wishlist id must survive reloads, so no positions in it:
+              // id-less products keep the legacy name-based form.
+              const wishlistId = product.id ?? `${brandName}-${product.name}`;
               const inWishlist = isInWishlist(wishlistId);
 
-              const isFlipped = flippedId === wishlistId;
-              const isRevealed = revealedIds.has(wishlistId);
+              const isFlipped = flippedId === cardId;
+              const isRevealed = revealedIds.has(cardId);
 
               return (
                 <div
-                  key={product.name}
-                  data-reveal-id={wishlistId}
+                  key={cardId}
+                  data-reveal-id={cardId}
                   className={`product-card-flip-container product-auto-reveal${
                     isRevealed ? ' product-auto-reveal--visible' : ''
                   }${isFlipped ? ' is-flipped' : ''}`}
-                  onClick={(event) => handleCardActivate(event, wishlistId)}
+                  onClick={(event) => handleCardActivate(event, cardId)}
                 >
                   <div className="product-card-mini glass-card">
                     {product.details?.gift && (
@@ -206,7 +217,9 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                                 description: product.description,
                                 image: product.image,
                                 alt: product.alt,
-                                brand: brandName,
+                                // Stored identifier ('DIOX'), not the
+                                // 'DİOX' wordmark — WishlistPage compares it.
+                                brand: toBrandId(brandName),
                                 details: product.details,
                               });
                             }}

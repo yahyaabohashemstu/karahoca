@@ -1,6 +1,7 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MarketplaceStore } from '../../constants/marketplaces';
+import { toBrandId } from '../../constants/brandNames';
 import { trackMarketplaceClick, type MarketplacePlacement } from '../../utils/analytics';
 import '../../styles/marketplaces.css';
 
@@ -45,7 +46,7 @@ export const MarketplaceLink: React.FC<MarketplaceLinkProps> = ({
 }) => {
   const { t } = useTranslation();
   const storeDescription = t('brandPage.marketplace.officialBrandStore', { brand: brandName });
-  const track = () => trackMarketplaceClick(store.id, brandName, placement, product);
+  const track = () => trackMarketplaceClick(store.id, toBrandId(brandName), placement, product);
 
   return (
     <a

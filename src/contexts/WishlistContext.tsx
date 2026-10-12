@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { WishlistContext, type WishlistItem } from './wishlist-store';
+import { hasUnresolvedWishlistItems, migrateWishlistItems } from './wishlistMigration';
 
 const STORAGE_KEY = 'karahoca_wishlist';
 
@@ -15,7 +16,13 @@ const load = (): WishlistItem[] => {
   }
 
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]') as WishlistItem[];
+    const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+    // Upgrade v1 entries to product-id keys (see wishlistMigration.ts).
+    // Entries that need the static catalog are finished asynchronously by
+    // the provider below.
+    const items = migrateWishlistItems(stored);
+    if (items !== stored) save(items);
+    return items;
   } catch (error) {
     logStorageError('load', error);
     return [];
@@ -36,6 +43,29 @@ const save = (items: WishlistItem[]) => {
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<WishlistItem[]>(load);
+
+  // Old entries without a product id are resolved by image against the
+  // static catalog. That chunk is lazy (brand pages only), so it is fetched
+  // here only when such an entry actually exists — normally never. Entries
+  // it can't resolve stay as they are, and the effect doesn't re-run for
+  // them because `hasUnresolved` stays true.
+  const hasUnresolved = hasUnresolvedWishlistItems(items);
+  useEffect(() => {
+    if (!hasUnresolved) return;
+    let cancelled = false;
+    import('../data/brandCatalog')
+      .then(({ getStaticProductIdsByImage }) => {
+        if (cancelled) return;
+        const productIdsByImage = getStaticProductIdsByImage();
+        setItems(prev => {
+          const next = migrateWishlistItems(prev, productIdsByImage);
+          if (next !== prev) save(next);
+          return next;
+        });
+      })
+      .catch(() => { /* offline / chunk error — entries keep working as-is */ });
+    return () => { cancelled = true; };
+  }, [hasUnresolved]);
 
   const isInWishlist = useCallback((id: string) => items.some(i => i.id === id), [items]);
 

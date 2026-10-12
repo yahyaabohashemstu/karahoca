@@ -12,7 +12,14 @@ export interface BrandProductDetails {
 }
 
 export interface BrandProductInfo {
-  /** DB product ID — available when loaded from API; used for deep-link hash */
+  /**
+   * DB product ID (`aylux-liquid-soap1`) — language-independent and unique.
+   * The static catalog below carries the SAME ids as the database, so a
+   * product keeps one identity when the API response replaces the static
+   * fallback: React keys, the `#hash` deep link and wishlist entries all
+   * use it. Several products share a display name (size / formula variants
+   * such as the 3 L and 400 ML liquid soaps), so names are never identity.
+   */
   id?: string;
   name: string;
   description: string;
@@ -46,6 +53,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
       title: t("diox.categories.homeCleaning"),
       products: [
         {
+          id: "diox-general-cleaner",
           name: t("diox.products.home.generalCleaner.name"),
           description: t("diox.products.home.generalCleaner.description"),
           image: "/diox-images/ديوكس منظف عام.png",
@@ -57,6 +65,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-super-gel",
           name: t("diox.products.home.superGel.name"),
           description: t("diox.products.home.superGel.description"),
           image: "/diox-images/ديوكس سوبر جل.png",
@@ -68,6 +77,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-floor-fragrance",
           name: t("diox.products.home.floorFragrance.name"),
           description: t("diox.products.home.floorFragrance.description"),
           image: "/diox-images/ديوكس معطر أرضيات.png",
@@ -79,6 +89,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-floor-fragrance2",
           name: t("diox.products.home.floorFragrance2.name"),
           description: t("diox.products.home.floorFragrance2.description"),
           image: "/diox-images/ديوكس معطر الأرضيات.png",
@@ -90,6 +101,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-glass-cleaner",
           name: t("diox.products.home.glassCleaner.name"),
           description: t("diox.products.home.glassCleaner.description"),
           image: "/diox-images/ديوكس منظف الزجاج.png",
@@ -101,6 +113,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-chlorine",
           name: t("diox.products.home.chlorine.name"),
           description: t("diox.products.home.chlorine.description"),
           image: "/diox-images/ديوكس كلور.png",
@@ -112,6 +125,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-oven-cleaner",
           name: t("diox.products.home.ovenCleaner.name"),
           description: t("diox.products.home.ovenCleaner.description"),
           image: "/diox-images/ديوكس منظف الأفران.png",
@@ -123,6 +137,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-flash",
           name: t("diox.products.home.flash.name"),
           description: t("diox.products.home.flash.description"),
           image: "/diox-images/ديوكس فلاش.png",
@@ -134,6 +149,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-bathroom-cleaner",
           name: t("diox.products.home.bathroomCleaner.name"),
           description: t("diox.products.home.bathroomCleaner.description"),
           image: "/diox-images/ديوكس منظف الحمام.png",
@@ -145,6 +161,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-dish-gel",
           name: t("diox.products.home.dishGel.name"),
           description: t("diox.products.home.dishGel.description"),
           image: "/diox-images/ديوكس جل غسيل الصحون.png",
@@ -156,6 +173,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-dish-liquid1",
           name: t("diox.products.home.dishLiquid1.name"),
           description: t("diox.products.home.dishLiquid1.description"),
           image: "/diox-images/ديوكس سائل غسيل الصحون (1).png",
@@ -167,6 +185,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-dish-liquid2",
           name: t("diox.products.home.dishLiquid2.name"),
           description: t("diox.products.home.dishLiquid2.description"),
           image: "/diox-images/ديوكس سائل غسيل الصحون (2).png",
@@ -183,6 +202,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
       title: t("diox.categories.laundryCleaning"),
       products: [
         {
+          id: "diox-auto-powder1",
           name: t("diox.products.laundry.autoPowder1.name"),
           description: t("diox.products.laundry.autoPowder1.description"),
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك (1).png",
@@ -194,6 +214,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-auto-powder2",
           name: t("diox.products.laundry.autoPowder2.name"),
           description: t("diox.products.laundry.autoPowder2.description"),
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك (2).png",
@@ -205,6 +226,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-liquid-detergent",
           name: t("diox.products.laundry.liquidDetergent.name"),
           description: t("diox.products.laundry.liquidDetergent.description"),
           image: "/diox-images/ديوكس سائل غسيل (1).png",
@@ -216,6 +238,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-fabric-softener",
           name: t("diox.products.laundry.fabricSoftener.name"),
           description: t("diox.products.laundry.fabricSoftener.description"),
           image: "/diox-images/ديوكس مطري الغسيل.png",
@@ -227,6 +250,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-stain-remover",
           name: t("diox.products.laundry.stainRemover.name"),
           description: t("diox.products.laundry.stainRemover.description"),
           image: "/diox-images/ديوكس مزيل البقع.png",
@@ -238,6 +262,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           },
         },
         {
+          id: "diox-regular-powder",
           name: t("diox.products.laundry.regularPowder.name"),
           description: t("diox.products.laundry.regularPowder.description"),
           image: "/diox-images/ديوكس مسحوق غسيل عادي.png",
@@ -264,6 +289,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           ],
         },
         {
+          id: "diox-auto-powder-3kg",
           name: t("diox.products.laundry.autoPowder3kg.name"),
           description: t("diox.products.laundry.autoPowder3kg.description"),
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 3 كيلو.png",
@@ -281,6 +307,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           ],
         },
         {
+          id: "diox-auto-powder-9kg",
           name: t("diox.products.laundry.autoPowder9kg.name"),
           description: t("diox.products.laundry.autoPowder9kg.description"),
           image: "/diox-images/ديوكس مسحوق غسيل أوتوماتيك 9 كيلو.png",
@@ -303,6 +330,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
       title: t("diox.categories.personalHygiene"),
       products: [
         {
+          id: "diox-liquid-soap",
           name: t("diox.products.personal.liquidSoap.name"),
           description: t("diox.products.personal.liquidSoap.description"),
           image: "/diox-images/ديوكس صابون سائل.png",
@@ -323,6 +351,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
     title: t("aylux.categories.homeCleaning"),
     products: [
       {
+        id: "aylux-general-cleaner",
         name: t("aylux.products.home.generalCleaner.name"),
         description: t("aylux.products.home.generalCleaner.description"),
         image: "/aylux-images/آيلوكس منظف عام.png",
@@ -334,6 +363,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-air-freshener",
         name: t("aylux.products.home.airFreshener.name"),
         description: t("aylux.products.home.airFreshener.description"),
         image: "/aylux-images/آيلوكس معطر الهواء.png",
@@ -345,6 +375,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-super-gel",
         name: t("aylux.products.home.superGel.name"),
         description: t("aylux.products.home.superGel.description"),
         image: "/aylux-images/آيلوكس سوبر جل.png",
@@ -356,6 +387,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-floor-fragrance",
         name: t("aylux.products.home.floorFragrance.name"),
         description: t("aylux.products.home.floorFragrance.description"),
         image: "/aylux-images/آيلوكس معطر الأرضيات.png",
@@ -367,6 +399,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-glass-cleaner",
         name: t("aylux.products.home.glassCleaner.name"),
         description: t("aylux.products.home.glassCleaner.description"),
         image: "/aylux-images/آيلوكس منظف الزجاج.png",
@@ -378,6 +411,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-chlorine",
         name: t("aylux.products.home.chlorine.name"),
         description: t("aylux.products.home.chlorine.description"),
         image: "/aylux-images/آيلوكس كلور (مبيض).png",
@@ -389,6 +423,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-oven-cleaner",
         name: t("aylux.products.home.ovenCleaner.name"),
         description: t("aylux.products.home.ovenCleaner.description"),
         image: "/aylux-images/آيلوكس منظف الفرن.png",
@@ -400,6 +435,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-flash",
         name: t("aylux.products.home.flash.name"),
         description: t("aylux.products.home.flash.description"),
         image: "/aylux-images/آيلوكس فلاش المنظف.png",
@@ -411,6 +447,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-bathroom-cleaner",
         name: t("aylux.products.home.bathroomCleaner.name"),
         description: t("aylux.products.home.bathroomCleaner.description"),
         image: "/aylux-images/آيلوكس منظف الحمام.png",
@@ -422,6 +459,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-dish-gel",
         name: t("aylux.products.home.dishGel.name"),
         description: t("aylux.products.home.dishGel.description"),
         image: "/aylux-images/آيلوكس جل غسيل الصحون.png",
@@ -433,6 +471,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-dish-liquid2",
         name: t("aylux.products.home.dishLiquid2.name"),
         description: t("aylux.products.home.dishLiquid2.description"),
         image: "/aylux-images/آيلوكس سائل غسيل الصحون (2).png",
@@ -449,6 +488,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
     title: t("aylux.categories.laundryCleaning"),
     products: [
       {
+        id: "aylux-auto-powder1",
         name: t("aylux.products.laundry.autoPowder1.name"),
         description: t("aylux.products.laundry.autoPowder1.description"),
         image: "/aylux-images/آيلوكس مسحوق غسيل أوتوماتيك (1).png",
@@ -461,6 +501,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-liquid-detergent",
         name: t("aylux.products.laundry.liquidDetergent.name"),
         description: t("aylux.products.laundry.liquidDetergent.description"),
         image: "/aylux-images/آيلوكس مسحوق الغسيل السائل.png",
@@ -472,6 +513,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-fabric-softener",
         name: t("aylux.products.laundry.fabricSoftener.name"),
         description: t("aylux.products.laundry.fabricSoftener.description"),
         image: "/aylux-images/آيلوكس مطري الغسيل.png",
@@ -483,6 +525,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-stain-remover",
         name: t("aylux.products.laundry.stainRemover.name"),
         description: t("aylux.products.laundry.stainRemover.description"),
         image: "/aylux-images/آيلوكس مزيل البقع.png",
@@ -494,6 +537,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-regular-powder",
         name: t("aylux.products.laundry.regularPowder.name"),
         description: t("aylux.products.laundry.regularPowder.description"),
         image: "/aylux-images/آيلوكس مسحوق الغسيل اليدوي.png",
@@ -510,6 +554,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
     title: t("aylux.categories.personalHygiene"),
     products: [
       {
+        id: "aylux-liquid-soap1",
         name: t("aylux.products.personal.liquidSoap1.name"),
         description: t("aylux.products.personal.liquidSoap1.description"),
         image: "/aylux-images/آيلوكس صابون سائل (1).png",
@@ -521,6 +566,7 @@ export const getAyluxCategories = (t: TFunction): BrandCategoryData[] => [
         },
       },
       {
+        id: "aylux-liquid-soap2",
         name: t("aylux.products.personal.liquidSoap2.name"),
         description: t("aylux.products.personal.liquidSoap2.description"),
         image: "/aylux-images/آيلوكس صابون سائل (2).png",
@@ -560,6 +606,7 @@ interface PublicApiProduct {
     weight?: string;
     material?: string;
     count?: string;
+    gift?: string;
   };
   gallery?: string[];
   weightCountTable?: Array<{ weight: string; count: number }>;
@@ -585,12 +632,65 @@ const mapPublicCategory = (cat: PublicApiCategory): BrandCategoryData => ({
       weight: p.details?.weight || undefined,
       material: p.details?.material || undefined,
       count: p.details?.count || undefined,
+      gift: p.details?.gift || undefined,
       weightCountTable: p.weightCountTable || undefined,
     },
     gallery: p.gallery && p.gallery.length > 0 ? p.gallery : undefined,
     imageScale: p.imageScale ?? undefined,
   })),
 });
+
+/**
+ * Layer the API catalog over the static fallback.
+ *
+ * The API is authoritative for WHICH products exist and in WHAT order — the
+ * admin panel adds, removes and reorders them — so static entries are
+ * matched by product id, never by array position (positions drifted as soon
+ * as the first product was added in the admin). Only `gift` is back-filled:
+ * the static gift shows when the API record carries none.
+ */
+export const mergeApiWithStaticCatalog = (
+  apiCategories: BrandCategoryData[],
+  staticCategories: BrandCategoryData[],
+): BrandCategoryData[] => {
+  const staticGiftById = new Map<string, string>();
+  for (const category of staticCategories) {
+    for (const product of category.products) {
+      if (product.id && product.details?.gift) staticGiftById.set(product.id, product.details.gift);
+    }
+  }
+
+  return apiCategories.map((category) => ({
+    ...category,
+    products: category.products.map((product) => {
+      const gift = product.details?.gift ?? (product.id ? staticGiftById.get(product.id) : undefined);
+      return gift ? { ...product, details: { ...product.details, gift } } : product;
+    }),
+  }));
+};
+
+/**
+ * Static product image → product id, for resolving wishlist entries saved
+ * before products carried ids (see contexts/wishlistMigration.ts). Images
+ * are language-independent, so the translation function is never needed.
+ */
+export const getStaticProductIdsByImage = (): Map<string, string> => {
+  const identity = ((key: string) => key) as unknown as TFunction;
+  const ids = new Map<string, string>();
+  const ambiguous = new Set<string>();
+  for (const { categories } of getBrandCatalogs(identity)) {
+    for (const category of categories) {
+      for (const product of category.products) {
+        if (!product.id) continue;
+        if (ids.has(product.image) && ids.get(product.image) !== product.id) ambiguous.add(product.image);
+        ids.set(product.image, product.id);
+      }
+    }
+  }
+  // An image shared by two products can't tell them apart — never guess.
+  for (const image of ambiguous) ids.delete(image);
+  return ids;
+};
 
 export const fetchBrandCatalogFromApi = async (
   brand: "DIOX" | "AYLUX",
