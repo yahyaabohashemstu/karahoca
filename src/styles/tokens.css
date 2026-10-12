@@ -60,11 +60,15 @@
 
   /* ── THIRD-PARTY MARKETPLACES ──────────────────────────────────────── */
   /* Identity accents for the "buy online" storefront buttons (see
-     constants/marketplaces.ts). Decorative only — icon tiles, hover
-     borders, focus rings — never used as a text colour, since neither
+     constants/marketplaces.ts) — the exact oranges of the official
+     logos in components/BrandPage/MarketplaceLogos.tsx. Decorative only
+     (logo artwork, hover borders, focus rings), never body text: neither
      orange reaches WCAG AA contrast on white. */
-  --color-trendyol:    #f27a1a;
-  --color-hepsiburada: #ff6000;
+  --color-trendyol:    #ff671b;
+  --color-hepsiburada: #f5921d;
+  /* The logos' dark lettering, used as-is on the light theme only. */
+  --color-trendyol-ink:    #231f20;
+  --color-hepsiburada-ink: #5c5e5f;
 
   /* ── GLASS / SURFACES (dark-mode defaults) ────────────────────────── */
   --surface-glass-ghost:   rgba(255, 255, 255, 0.02);

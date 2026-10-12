@@ -15,8 +15,9 @@
    queries), not to the viewport: the hero column, the modal's info
    column and the full-width band are all different sizes on the same
    screen. Each store's identity colour arrives as `--mkt-color` and is
-   used only for decoration (icon tile, hover border, focus ring), never
-   for text — see the contrast note in tokens.css.
+   used only for its logo and decoration (hover border, focus ring),
+   never for text — see the contrast note in tokens.css. The logos
+   themselves are inline SVG (components/BrandPage/MarketplaceLogos.tsx).
    ══════════════════════════════════════════════════════════════════════ */
 
 .mkt {
@@ -107,62 +108,63 @@ body.light-mode .mkt {
 .mkt-btn--trendyol    { --mkt-color: var(--color-trendyol); }
 .mkt-btn--hepsiburada { --mkt-color: var(--color-hepsiburada); }
 
-.mkt-btn__tile {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  color: var(--color-white);
-  background: var(--mkt-color); /* fallback where color-mix() is unsupported */
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--mkt-color) 72%, white) 0%,
-    var(--mkt-color) 70%
-  );
-  box-shadow:
-    0 6px 14px -6px color-mix(in srgb, var(--mkt-color) 80%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.mkt-btn__tile svg {
-  width: 20px;
-  height: 20px;
-}
-
 .mkt-btn__text {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   line-height: 1.2;
 }
 
-.mkt-btn__eyebrow {
+/* ── Logo ────────────────────────────────────────────────────────────
+   Both logos sit in a box of one height, bottom-aligned, so the captions
+   under them line up across a row. Inside it they are sized so their
+   lowercase letters match (≈ 42% of Trendyol's height is x-height vs
+   ≈ 58% of Hepsiburada's): Trendyol fills the box, Hepsiburada takes 71%.
+   max-width lets a logo shrink in a narrow badge instead of overflowing;
+   preserveAspectRatio="xMinYMax" keeps it start- and bottom-aligned. */
+.mkt-btn__logo {
+  display: flex;
+  align-items: flex-end;
+  height: 28px;
+}
+
+.mkt-logo {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+}
+
+.mkt-logo--trendyol    { aspect-ratio: 620 / 211; }
+.mkt-logo--hepsiburada { aspect-ratio: 590 / 67; height: 71%; }
+
+/* Logo colours. The oranges are the exact logo colours (tokens.css) and
+   never change; the dark lettering turns light on the dark theme, as in
+   the stores' own reversed logos, so it stays readable on glass. */
+.mkt {
+  --mkt-logo-ink-trendyol: var(--color-white);
+  --mkt-logo-ink-hepsiburada: var(--color-ink-300);
+}
+
+body.light-mode .mkt {
+  --mkt-logo-ink-trendyol: var(--color-trendyol-ink);
+  --mkt-logo-ink-hepsiburada: var(--color-hepsiburada-ink);
+}
+
+.mkt-logo__brand    { fill: var(--mkt-color); }
+.mkt-logo__knockout { fill: var(--color-white); }
+.mkt-logo--trendyol .mkt-logo__ink    { fill: var(--mkt-logo-ink-trendyol); }
+.mkt-logo--hepsiburada .mkt-logo__ink { fill: var(--mkt-logo-ink-hepsiburada); }
+
+.mkt-btn__caption {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-muted);
-}
-
-.mkt-btn__name,
-.mkt-btn__desc {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.mkt-btn__name {
-  font-size: 1.08rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.mkt-btn__desc {
-  font-size: 0.9rem;
-  color: var(--text-muted);
 }
 
 /* Trailing affordance: round arrow chip (md) / "Mağazaya git ↗" pill (lg). */
@@ -209,23 +211,17 @@ body.light-mode .mkt {
   border-radius: var(--radius-xl);
 }
 
-.mkt-btn--lg .mkt-btn__tile {
-  width: 58px;
-  height: 58px;
-  border-radius: var(--radius-lg);
-}
-
-.mkt-btn--lg .mkt-btn__tile svg {
-  width: 26px;
-  height: 26px;
-}
-
 .mkt-btn--lg .mkt-btn__text {
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
-.mkt-btn--lg .mkt-btn__name {
-  font-size: 1.4rem;
+.mkt-btn--lg .mkt-btn__logo {
+  height: 40px;
+}
+
+.mkt-btn--lg .mkt-btn__caption {
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .mkt-btn__cta {
@@ -240,9 +236,9 @@ body.light-mode .mkt {
   white-space: nowrap;
 }
 
-/* Narrow card (phones): the pill collapses to its arrow so the store
-   name never has to truncate. The label is aria-hidden duplication of
-   the link's accessible name, so hiding it loses nothing. */
+/* Narrow card (phones): the pill collapses to its arrow so the logo
+   keeps its full size. The label only repeats what the link's
+   aria-label already says, so hiding it loses nothing. */
 @container mkt-item (max-width: 400px) {
   .mkt-btn__cta {
     width: 40px;
@@ -290,8 +286,10 @@ body.light-mode .mkt {
 }
 
 /* ── Placements ─────────────────────────────────────────────────────── */
+/* 500px = two badges whose content (≈180px each) fits the full-size
+   Hepsiburada wordmark (20px tall ≈ 176px wide) beside the arrow. */
 .mkt--hero {
-  max-width: 480px;
+  max-width: 500px;
   margin-bottom: var(--space-6);
 }
 

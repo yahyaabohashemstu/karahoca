@@ -3,15 +3,8 @@ import { useTranslation } from 'react-i18next';
 import type { MarketplaceStore } from '../../constants/marketplaces';
 import { toBrandId } from '../../constants/brandNames';
 import { trackMarketplaceClick, type MarketplacePlacement } from '../../utils/analytics';
+import { MarketplaceLogo } from './MarketplaceLogos';
 import '../../styles/marketplaces.css';
-
-const BagIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-    <path d="M3 6h18" />
-    <path d="M16 10a4 4 0 0 1-8 0" />
-  </svg>
-);
 
 const ExternalArrowIcon: React.FC = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
@@ -31,11 +24,12 @@ interface MarketplaceLinkProps {
 }
 
 /**
- * One storefront button — the whole badge is a single link.
+ * One storefront button — the whole badge is a single link: the store's
+ * official logo over a short caption ("Resmi mağaza"), plus an arrow.
  *
- * Visible text stays short ("Resmi mağaza / Trendyol"); the full phrase a
- * screen reader announces lives in `aria-label` and still starts with the
- * store name, so voice-control users can say what they see.
+ * The logo is decorative; the full phrase a screen reader announces lives
+ * in `aria-label` and starts with the store name the logo shows, so
+ * voice-control users can say what they see.
  */
 export const MarketplaceLink: React.FC<MarketplaceLinkProps> = ({
   store,
@@ -64,16 +58,13 @@ export const MarketplaceLink: React.FC<MarketplaceLinkProps> = ({
       // in some browsers — ignored, it isn't a visit.)
       onAuxClick={(event) => { if (event.button === 1) track(); }}
     >
-      <span className="mkt-btn__tile">
-        <BagIcon />
-      </span>
-
       <span className="mkt-btn__text">
-        {size === 'md' && (
-          <span className="mkt-btn__eyebrow">{t('brandPage.marketplace.officialStore')}</span>
-        )}
-        <span className="mkt-btn__name">{store.name}</span>
-        {size === 'lg' && <span className="mkt-btn__desc">{storeDescription}</span>}
+        <span className="mkt-btn__logo">
+          <MarketplaceLogo id={store.id} />
+        </span>
+        <span className="mkt-btn__caption">
+          {size === 'lg' ? storeDescription : t('brandPage.marketplace.officialStore')}
+        </span>
       </span>
 
       {size === 'lg' ? (
