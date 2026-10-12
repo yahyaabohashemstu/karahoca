@@ -38,7 +38,7 @@ export const OrganizationSchema: React.FC = () => {
     // "كاراهوكا") so Arabic-language searches land here instead of
     // bouncing to the unrelated Syrian Aleppo competitor.
     alternateName: BRAND_ALTERNATE_NAMES,
-    legalName: 'KARAHOCA KIMYA',
+    legalName: 'KARAHOCA KİMYA',
     url: SITE_URL,
     logo: {
       '@type': 'ImageObject',
@@ -51,9 +51,9 @@ export const OrganizationSchema: React.FC = () => {
     },
     image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
     description:
-      'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1994.',
+      'KARAHOCA KİMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1995.',
     slogan: 'Quality That Cleans the World',
-    foundingDate: '1994',
+    foundingDate: '1995',
     numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
     knowsAbout: [
       'Household Cleaning Products',
@@ -275,7 +275,7 @@ export const AboutPageSchema: React.FC = () => {
     mainEntity: {
       '@type': ['Organization', 'LocalBusiness'],
       '@id': `${SITE_URL}/#organization`,
-      name: 'KARAHOCA KIMYA',
+      name: 'KARAHOCA KİMYA',
       // Same comprehensive variant list used in OrganizationSchema —
       // imported from constants/brandNames so search engines see the
       // identical alternateName cluster on every page that mentions
@@ -284,8 +284,8 @@ export const AboutPageSchema: React.FC = () => {
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: LOGO_URL, width: 200, height: 60 },
       image: `${SITE_URL}/KARAHOCA-1-newPhoto.webp`,
-      description: 'KARAHOCA KIMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1994.',
-      foundingDate: '1994',
+      description: 'KARAHOCA KİMYA is a leading Turkish manufacturer of household and industrial cleaning products, exporting DİOX and AYLUX branded products to 15+ countries since 1995.',
+      foundingDate: '1995',
       numberOfEmployees: { '@type': 'QuantitativeValue', value: 200 },
       slogan: 'Quality That Cleans the World',
       knowsAbout: [
@@ -386,8 +386,8 @@ export const AboutPageSchema: React.FC = () => {
           text:
             `الاسم العربي لشركة KARAHOCA هو "${BRAND_ARABIC_PRIMARY}". ` +
             `يُكتب أيضاً بصيغ متعددة شائعة في البحث: ${BRAND_ARABIC_VARIANTS.join('، ')}. ` +
-            'جميعها تشير إلى نفس الشركة التركية المصنّعة لمنتجات التنظيف منذ عام 1994 ' +
-            '(قره خوجة كيميا — KARAHOCA KIMYA). ' +
+            'جميعها تشير إلى نفس الشركة التركية المصنّعة لمنتجات التنظيف منذ عام 1995 ' +
+            '(قره خوجة كيميا — KARAHOCA KİMYA). ' +
             'الشركة مقرّها مدينة كيليس في تركيا، وتُصدّر منتجاتها تحت علامتي ديوكس (DİOX) ' +
             'وآيلوكس (AYLUX) إلى أكثر من 15 دولة.',
         },
@@ -399,7 +399,7 @@ export const AboutPageSchema: React.FC = () => {
           '@type': 'Answer',
           text:
             `نعم. "قره خوجة" هي التهجئة العربية الأشهر لاسم KARAHOCA التركي. ` +
-            'الشركة سجلّت قانونياً باسم KARAHOCA KIMYA في تركيا، ولها موقع رسمي واحد على ' +
+            'الشركة سجلّت قانونياً باسم KARAHOCA KİMYA في تركيا، ولها موقع رسمي واحد على ' +
             'الإنترنت: karahoca.com. أي صياغة عربية أخرى مثل "قرا هوجا" أو "كرا هوجا" ' +
             'أو "قرة خوجة" تشير لنفس الشركة. ' +
             'ملاحظة: هناك شركة سورية مختلفة في حلب تحمل اسماً مشابهاً — KARAHOCA الحقيقية ' +

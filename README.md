@@ -646,7 +646,7 @@ Current deployment: **two services on [Coolify](https://coolify.io)**.
 
 <div align="center">
 
-**Karahoca Kimya** · Istanbul, Turkey
+**Karahoca Kimya** · Kilis, Türkiye
 © 2025 Karahoca. All rights reserved.
 
 </div>

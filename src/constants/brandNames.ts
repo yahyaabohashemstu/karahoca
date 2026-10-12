@@ -101,7 +101,8 @@ export const BRAND_ARABIC_VARIANTS = [
  */
 export const BRAND_LATIN_VARIANTS = [
   'KARAHOCA',           // ★ official
-  'KARAHOCA KIMYA',     // legal entity
+  'KARAHOCA KİMYA',     // legal entity
+  'KARAHOCA KIMYA',     // same, typed without the Turkish dotted İ
   'Karahoca',
   'Kara Hoca',
   'Karahoja',

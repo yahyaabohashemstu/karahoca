@@ -631,6 +631,7 @@ const migrateInitialData = () => {
   // Last: runs after every content seed above, so a fresh database ends up
   // with the same spelling as a migrated one.
   migrateDioxDottedI();
+  migrateKimyaDottedI();
 };
 
 /**
@@ -643,8 +644,12 @@ const migrateInitialData = () => {
  * Display text only: `brand` / `id` key columns and image paths are not
  * touched (paths use lowercase "diox", and REPLACE is case-sensitive).
  */
-const migrateDioxDottedI = () => {
-  if (hasMigration('diox_dotted_i_content_2026_10')) return;
+/**
+ * Replace `from` with `to` in the visitor-facing text columns (products,
+ * news, blog, AI knowledge / Q&A, AI tone guidelines). Key columns and image
+ * paths are never touched. Returns the number of fields changed.
+ */
+const replaceInDisplayText = (from, to) => {
   const L = ['ar', 'en', 'tr', 'ru'];
   const per = (...prefixes) => prefixes.flatMap((p) => L.map((l) => `${p}_${l}`));
   const targets = [
@@ -655,28 +660,48 @@ const migrateDioxDottedI = () => {
     ['ai_custom_qa', per('question', 'answer')],
   ];
   let total = 0;
-  db.transaction(() => {
-    for (const [table, wanted] of targets) {
-      const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
-      for (const col of wanted.filter((c) => existing.has(c))) {
-        // Column names come from the fixed list above, never from input.
-        total += db.prepare(
-          `UPDATE ${table} SET ${col} = REPLACE(${col}, 'DIOX', 'DİOX') WHERE instr(${col}, 'DIOX') > 0`,
-        ).run().changes;
-      }
+  for (const [table, wanted] of targets) {
+    const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const col of wanted.filter((c) => existing.has(c))) {
+      // Column names come from the fixed list above, never from input.
+      total += db.prepare(
+        `UPDATE ${table} SET ${col} = REPLACE(${col}, ?, ?) WHERE instr(${col}, ?) > 0`,
+      ).run(from, to, from).changes;
     }
+  }
+  // Only the tone guidelines are prose; other config values are settings.
+  total += db.prepare(
+    "UPDATE ai_assistant_config SET value = REPLACE(value, ?, ?) WHERE key = 'tone_guidelines' AND instr(value, ?) > 0",
+  ).run(from, to, from).changes;
+  return total;
+};
+
+const migrateDioxDottedI = () => {
+  if (hasMigration('diox_dotted_i_content_2026_10')) return;
+  let total = 0;
+  db.transaction(() => {
+    total = replaceInDisplayText('DIOX', 'DİOX');
     // Product rows: bump updated_at so the cached share images (keyed by
     // it) are re-rendered with the new name.
     db.prepare(
       "UPDATE products SET updated_at = datetime('now') WHERE instr(name_en, 'DİOX') > 0 OR instr(alt_en, 'DİOX') > 0",
     ).run();
-    // Only the tone guidelines are prose; other config values are settings.
-    total += db.prepare(
-      "UPDATE ai_assistant_config SET value = REPLACE(value, 'DIOX', 'DİOX') WHERE key = 'tone_guidelines' AND instr(value, 'DIOX') > 0",
-    ).run().changes;
   })();
   markMigration('diox_dotted_i_content_2026_10');
   if (total) logger.info(`[db] DIOX → DİOX in ${total} content field(s)`);
+};
+
+/**
+ * One-shot: the legal name is "KARAHOCA KİMYA" (Turkish dotted capital İ,
+ * confirmed by the owner, 2026-10). Seeded content — e.g. the AI
+ * assistant's company-profile knowledge section — said "KARAHOCA KIMYA".
+ */
+const migrateKimyaDottedI = () => {
+  if (hasMigration('kimya_dotted_i_content_2026_10')) return;
+  let total = 0;
+  db.transaction(() => { total = replaceInDisplayText('KARAHOCA KIMYA', 'KARAHOCA KİMYA'); })();
+  markMigration('kimya_dotted_i_content_2026_10');
+  if (total) logger.info(`[db] KARAHOCA KIMYA → KİMYA in ${total} content field(s)`);
 };
 
 /**
@@ -722,7 +747,7 @@ const migrateAiKnowledgeSeed = () => {
       id: 'company-identity',
       title: 'هوية الشركة',
       content:
-        'KARAHOCA KIMYA شركة تركية تعمل في تصنيع منتجات التنظيف المنزلية والصناعية مع التركيز على الجودة العالية والتقنيات الحديثة. تقع خطوط الإنتاج في تركيا مع شبكة توزيع تغطي السوق المحلي وأسواق التصدير.',
+        'KARAHOCA KİMYA شركة تركية تعمل في تصنيع منتجات التنظيف المنزلية والصناعية مع التركيز على الجودة العالية والتقنيات الحديثة. تقع خطوط الإنتاج في تركيا مع شبكة توزيع تغطي السوق المحلي وأسواق التصدير.',
       tags: 'company,identity',
       display_order: 10,
     },
