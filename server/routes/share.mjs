@@ -51,6 +51,7 @@
 
 import { getDb } from '../db.mjs';
 import { logger } from '../utils/logger.mjs';
+import { publicProductWhere } from '../services/productVisibility.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'https://karahoca.com').replace(/\/+$/, '');
 const API_URL = (process.env.API_PUBLIC_URL || 'https://api.karahoca.com').replace(/\/+$/, '');
@@ -127,7 +128,7 @@ const buildShareHtml = ({ product, lang }) => {
      and a clickable link covers the truly-no-JS case (e.g. lynx). -->
 <meta http-equiv="refresh" content="0; url=${htmlEscape(deepLink)}">
 <link rel="canonical" href="${htmlEscape(deepLink)}">
-<script>window.location.replace(${JSON.stringify(deepLink)});</script>
+<script>window.location.replace(${JSON.stringify(deepLink).replace(/</g, '\u003c')});</script>
 
 <style>
   body {
@@ -159,7 +160,10 @@ export const handleShareProduct = (req, res, ctx) => {
     return;
   }
 
-  const id = decodeURIComponent(match[1]);
+  // A malformed escape ("/share/product/%E0") made decodeURIComponent
+  // throw → 500. Treat it like an unknown product.
+  let id = '';
+  try { id = decodeURIComponent(match[1]); } catch { /* falls through to the not-found redirect */ }
   const urlObj = new URL(req.url, 'http://localhost');
   const rawLang = (urlObj.searchParams.get('lang') || 'ar').toLowerCase();
   const lang = SUPPORTED_LANGS.includes(rawLang) ? rawLang : 'ar';
@@ -175,7 +179,7 @@ export const handleShareProduct = (req, res, ctx) => {
       description_en      AS description_en,
       image
     FROM products
-    WHERE id = ? AND active = 1
+    WHERE id = ? AND ${publicProductWhere()}
   `).get(id);
 
   if (!product) {

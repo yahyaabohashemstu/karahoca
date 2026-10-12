@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -88,7 +89,15 @@ export const handleUpload = async (request, response, { origin, url }) => {
       'Content-Length': String(s.size),
       'Cache-Control': 'public, max-age=31536000, immutable',
     });
-    createReadStream(filePath).pipe(response);
+    // pipeline(), not .pipe(): a read error after the headers went out
+    // (file replaced/deleted mid-request, disk error) was an unhandled
+    // 'error' event — an uncaught exception that could take the API down.
+    // It also destroys the file handle when the client disconnects early.
+    pipeline(createReadStream(filePath), response).catch((err) => {
+      if (err?.code !== 'ERR_STREAM_PREMATURE_CLOSE') {
+        logger.warn({ err, fileName }, '[uploads] stream failed');
+      }
+    });
   } catch {
     sendJson(response, 404, { error: 'Not found' }, origin);
   }

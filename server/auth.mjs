@@ -153,8 +153,12 @@ export const verifyLogin = (username, password) => {
     return false;
   }
 
-  if (username !== expectedUsername) return false;
-  return bcrypt.compareSync(password, expectedHash);
+  if (typeof username !== 'string' || typeof password !== 'string') return false;
+  // Always pay for the bcrypt compare: returning early on a wrong username
+  // answered in ~0 ms vs ~70 ms for a wrong password, which told an
+  // attacker when they had guessed the username.
+  const passwordOk = bcrypt.compareSync(password, expectedHash);
+  return passwordOk && username === expectedUsername;
 };
 
 export const signToken = (payload) => {

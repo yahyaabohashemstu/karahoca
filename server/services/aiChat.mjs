@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { cacheGet, cacheSet } from '../redisClient.mjs';
 import { buildProductContext, buildCustomQAContext } from '../routes/admin-ai-knowledge.mjs';
 import { logger } from '../utils/logger.mjs';
@@ -627,12 +628,18 @@ const synthesizeProductIntro = (lang) => {
  * the anchor isn't present (defensive — future prompt template
  * changes won't break intent detection).
  */
+const MAX_UTTERANCE_CHARS = 500;
+
 export const extractLastUserUtterance = (prompt) => {
   if (typeof prompt !== 'string') return '';
   const match = prompt.match(/^Customer Question:\s*(.+)$/m);
-  if (match && match[1]) return match[1].trim();
+  // Capped: the utterance feeds a battery of intent regexes, and the
+  // prompt is visitor-controlled up to the body limit (~512 KB). A real
+  // question is never this long; an unbounded one made some patterns
+  // super-linear and could stall the event loop for tens of seconds.
+  if (match && match[1]) return match[1].trim().slice(0, MAX_UTTERANCE_CHARS);
   const lines = prompt.split('\n').map((l) => l.trim()).filter(Boolean);
-  return lines.length > 0 ? lines[lines.length - 1] : '';
+  return lines.length > 0 ? lines[lines.length - 1].slice(0, MAX_UTTERANCE_CHARS) : '';
 };
 
 /**
@@ -759,7 +766,7 @@ const BROWSE_PATTERNS = [
  */
 const detectProductIntent = (rawText) => {
   if (typeof rawText !== 'string') return null;
-  const text = rawText.trim();
+  const text = rawText.trim().slice(0, MAX_UTTERANCE_CHARS);
   if (text.length === 0) return null;
   // Fold the Turkish dotted-İ → i and strip Latin combining marks before
   // keyword matching, so the "DİOX" wordmark (now used in the UI chips,
@@ -841,7 +848,8 @@ const detectProductIntent = (rawText) => {
     /\babout\s+(karahoca|the\s+company|the\s+brand)\b/i,
     /\bwho\s+(is|founded|owns)\b/i,
     /\bcompany\s+history\b/i,
-    /\bwhen\s+(was\s+|did\s+).*\b(founded|established|started)\b/i,
+    // Bounded gap (was `.*`, quadratic on long input).
+    /\bwhen\s+(was\s+|did\s+)[^\n.?!]{0,80}?\b(founded|established|started)\b/i,
     /(عن|من|أين)\s+(الشركة|كاراهوكا|كاراخوكا|قره\s*خوجة)/u,
     /(تاريخ|قصة|متى\s+تأسس(?:ت)?)\s/u,
     /كم\s+(عمر|سنة)/u,
@@ -1258,7 +1266,11 @@ const AI_CACHE_TTL_SEC = 24 * 60 * 60;
 // out via their own 24h TTL.
 const AI_CACHE_KEY_PREFIX = 'ai_cache_v4:';
 const normalizePrompt = (text) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-const buildCacheKey = (prompt, lang) => AI_CACHE_KEY_PREFIX + lang + ':' + normalizePrompt(prompt);
+// Hashed: the prompt (system context + question, visitor-controlled up to
+// the body limit) used to BE the key, so every distinct prompt stored up to
+// ~512 KB of key in Redis — or in the Node heap when Redis is down.
+const buildCacheKey = (prompt, lang) =>
+  AI_CACHE_KEY_PREFIX + lang + ':' + createHash('sha256').update(normalizePrompt(prompt)).digest('hex');
 
 export const getCachedReply = async (prompt, lang) => cacheGet(buildCacheKey(prompt, lang));
 

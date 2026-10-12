@@ -185,6 +185,13 @@ export const handlePublicNews = async (req, res, { sendJson, origin }) => {
 
   const localeMap = { ar: 'ar', en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' };
   const locale = localeMap[l] || 'ar';
+  const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  // One article with an empty / malformed published_at made format() throw
+  // a RangeError, which took down the whole news list (500) for everyone.
+  const formatDateLabel = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? dateFormat.format(date) : '';
+  };
 
   const formatted = items.map(item => {
     let body = [];
@@ -195,8 +202,7 @@ export const handlePublicNews = async (req, res, { sendJson, origin }) => {
       slug: item.slug,
       image: normalizeLegacyAssetPath(item.image),
       publishedAt: item.published_at,
-      dateLabel: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' })
-        .format(new Date(item.published_at)),
+      dateLabel: formatDateLabel(item.published_at),
       category: item.category,
       title: item.title,
       excerpt: item.excerpt,
@@ -219,14 +225,25 @@ export const handlePublicNews = async (req, res, { sendJson, origin }) => {
 export const handleChatLog = (req, res, { body, sendJson, origin }) => {
   const db = getDb();
 
-  const { userId, sessionId, messages, language } = body;
-  if (!userId || !Array.isArray(messages) || messages.length === 0) {
+  const { userId, sessionId, language } = body;
+  if (typeof userId !== 'string' || !userId || userId.length > 100
+      || !Array.isArray(body.messages) || body.messages.length === 0) {
     sendJson(res, 400, { success: false, error: 'userId and messages required.' }, origin);
     return;
   }
+  // Public, unauthenticated endpoint: bound what one request can write.
+  // The widget sends a handful of messages per flush; 50 is generous.
+  const messages = body.messages.slice(0, 50);
 
   const now = new Date().toISOString();
-  const safeLang = language || 'ar';
+  const safeLang = ['ar', 'en', 'tr', 'ru'].includes(language) ? language : 'ar';
+  const safeSessionId = typeof sessionId === 'string' && sessionId ? sessionId.slice(0, 100) : null;
+  // Client timestamps are stored and sorted on in the admin panel; keep
+  // only well-formed ones.
+  const safeTimestamp = (value) => {
+    if (typeof value !== 'string' || value.length > 40) return now;
+    return Number.isNaN(Date.parse(value)) ? now : value;
+  };
 
   // Upsert user (Hot path — wrapped in try/catch so a single weird value
   // can't drop the request and lose the messages we're about to insert).
@@ -260,7 +277,7 @@ export const handleChatLog = (req, res, { body, sendJson, origin }) => {
   let inserted = 0;
   let skipped = 0;
   for (const msg of messages) {
-    if (!msg.role || !msg.content) { skipped++; continue; }
+    if (!msg || typeof msg !== 'object' || !msg.role || !msg.content) { skipped++; continue; }
     // Normalise role — some clients have shipped 'bot'/'system'/'AI'.
     // Map known variants; reject everything else explicitly so the
     // CHECK constraint never blows up at INSERT time.
@@ -270,11 +287,11 @@ export const handleChatLog = (req, res, { body, sendJson, origin }) => {
     try {
       insertMsg.run({
         user_id: userId,
-        session_id: sessionId || null,
+        session_id: safeSessionId,
         role,
         content: String(msg.content).slice(0, 8000), // hard ceiling — guards against pathological 2 MB pastes
         language: safeLang,
-        created_at: msg.timestamp || now,
+        created_at: safeTimestamp(msg.timestamp),
       });
       inserted++;
     } catch (err) {

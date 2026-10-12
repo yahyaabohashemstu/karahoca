@@ -1,5 +1,5 @@
 import { getDb } from '../services/db.mjs';
-import { invalidateProductsCache } from '../services/publicCache.mjs';
+import { invalidateBlogCache, invalidateNewsCache, invalidateProductsCache } from '../services/publicCache.mjs';
 import { logger } from '../utils/logger.mjs';
 
 const INTERVAL_MS = 60 * 1000;
@@ -17,6 +17,9 @@ const publishDueNewsArticles = () => {
     `).run();
     if (result.changes > 0) {
       logger.info(`[news-scheduler] Published ${result.changes} scheduled article(s).`);
+      // Without this the cached /api/news JSON kept serving the old list
+      // until its TTL ran out.
+      void invalidateNewsCache();
     }
   } catch (e) {
     logger.error('[news-scheduler] error:', e.message);
@@ -69,9 +72,36 @@ const publishDueProducts = () => {
   }
 };
 
+/**
+ * Blog posts saved as 'scheduled' were never promoted: the public blog
+ * queries only show status='published', and nothing flipped the status,
+ * so a scheduled post stayed invisible forever. published_at takes the
+ * scheduled time so the post sorts as new rather than by its draft date.
+ */
+const publishDueBlogPosts = () => {
+  try {
+    const db = getDb();
+    const result = db.prepare(`
+      UPDATE blog_posts
+      SET status='published', published_at=publish_at, updated_at=datetime('now')
+      WHERE status='scheduled'
+        AND publish_at IS NOT NULL
+        AND datetime(publish_at) <= datetime('now')
+        AND active=1
+    `).run();
+    if (result.changes > 0) {
+      logger.info(`[blog-scheduler] Published ${result.changes} scheduled post(s).`);
+      void invalidateBlogCache();
+    }
+  } catch (e) {
+    logger.error('[blog-scheduler] error:', e.message);
+  }
+};
+
 const tick = () => {
   publishDueNewsArticles();
   publishDueProducts();
+  publishDueBlogPosts();
 };
 
 /**

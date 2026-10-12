@@ -450,9 +450,12 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
 export const queueCampaignDispatch = async (campaignId, options = {}) => {
   const db = getDb();
   const campaign = db.prepare('SELECT id, title, status FROM email_campaigns WHERE id=?').get(campaignId);
-  if (!campaign) throw new Error('Campaign not found');
-  if (campaign.status === 'sent') throw new Error('Campaign already sent');
-  if (campaign.status === 'sending') throw new Error('Campaign is already being dispatched');
+  // statusCode → the admin sees this message instead of a generic
+  // "Server error" (the error handler only forwards 4xx messages).
+  const fail = (statusCode, message) => Object.assign(new Error(message), { statusCode });
+  if (!campaign) throw fail(404, 'Campaign not found');
+  if (campaign.status === 'sent') throw fail(409, 'Campaign already sent');
+  if (campaign.status === 'sending') throw fail(409, 'Campaign is already being dispatched');
   if (campaign.status === 'queued') {
     return { queued: true, alreadyQueued: true };
   }
@@ -543,10 +546,34 @@ export const recoverQueuedCampaignDispatches = async () => {
 };
 
 // ── Click tracking redirect ───────────────────────────────────────────────────
+const siteHostname = (() => {
+  try {
+    return new URL(SITE_URL).hostname.replace(/^www\./i, '').toLowerCase();
+  } catch {
+    return '';
+  }
+})();
+
+const isOwnSiteUrl = (value) => {
+  if (!value || !siteHostname) return false;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    return parsed.hostname.replace(/^www\./i, '').toLowerCase() === siteHostname;
+  } catch {
+    return false;
+  }
+};
+
 export const handleEmailClick = (req, res) => {
   const u = new URL(req.url, 'http://localhost');
   const sendId = parseInt(u.searchParams.get('id') || '0', 10);
-  const targetUrl = u.searchParams.get('url') || '';
+  const requestedUrl = u.searchParams.get('url') || '';
+  // Only our own site is a valid destination (the one link we wrap is the
+  // CTA to SITE_URL). Accepting any http(s) URL made
+  // /api/email/click?url=https://phish.example an open redirect that
+  // borrowed karahoca.com's reputation for phishing links.
+  const targetUrl = isOwnSiteUrl(requestedUrl) ? requestedUrl : '';
 
   if (sendId > 0 && targetUrl) {
     try {
@@ -562,9 +589,7 @@ export const handleEmailClick = (req, res) => {
     } catch { /* non-fatal */ }
   }
 
-  // Validate URL before redirecting (allow only http/https)
-  const safe = /^https?:\/\//i.test(targetUrl) ? targetUrl : '/';
-  res.writeHead(302, { Location: safe, 'Cache-Control': 'no-store' });
+  res.writeHead(302, { Location: targetUrl || SITE_URL, 'Cache-Control': 'no-store' });
   res.end();
 };
 
@@ -573,14 +598,22 @@ export const handleEmailOpen = (req, res) => {
   const url   = new URL(req.url, 'http://localhost');
   const sendId = parseInt(url.searchParams.get('id') || '0', 10);
   if (sendId > 0) {
-    const db = getDb();
-    const send = db.prepare('SELECT id, opened FROM email_sends WHERE id=?').get(sendId);
-    if (send && !send.opened) {
-      db.prepare('UPDATE email_sends SET opened=1, opened_at=datetime("now") WHERE id=?').run(sendId);
-      // Increment campaign open count
-      const camp = db.prepare('SELECT campaign_id FROM email_sends WHERE id=?').get(sendId);
-      if (camp) db.prepare('UPDATE email_campaigns SET open_count=open_count+1 WHERE id=?').run(camp.campaign_id);
-    }
+    try {
+      const db = getDb();
+      // `datetime('now')` — the double-quoted "now" this used to have is an
+      // identifier, not a string, under better-sqlite3 (built with
+      // SQLITE_DQS=0): every open threw "no such column", so no open was
+      // ever recorded and the pixel answered 500 instead of a GIF.
+      // `AND opened=0` makes the check-and-set atomic, so two loads of the
+      // same e-mail can't both increment the campaign counter.
+      const updated = db
+        .prepare("UPDATE email_sends SET opened=1, opened_at=datetime('now') WHERE id=? AND opened=0")
+        .run(sendId);
+      if (updated.changes > 0) {
+        const camp = db.prepare('SELECT campaign_id FROM email_sends WHERE id=?').get(sendId);
+        if (camp) db.prepare('UPDATE email_campaigns SET open_count=open_count+1 WHERE id=?').run(camp.campaign_id);
+      }
+    } catch { /* non-fatal: always answer with the pixel */ }
   }
   // Return transparent 1x1 GIF
   const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -651,6 +684,15 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
       const normalizedScheduledAt = db.prepare('SELECT datetime(?) as value').get(scheduledAt)?.value;
       if (!normalizedScheduledAt) {
         sendJson(res, 400, { error: 'Invalid scheduledAt value' }, origin);
+        return;
+      }
+      // Only drafts (or re-timing an already-scheduled one). Scheduling a
+      // sent / sending / queued campaign flipped it back to 'scheduled' and
+      // the scheduler then mailed every subscriber a second time.
+      const current = db.prepare('SELECT status FROM email_campaigns WHERE id=?').get(id);
+      if (!current) { sendJson(res, 404, { error: 'Not found' }, origin); return; }
+      if (current.status !== 'draft' && current.status !== 'scheduled') {
+        sendJson(res, 409, { error: `Campaign is ${current.status}; only drafts can be scheduled.` }, origin);
         return;
       }
       db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, updated_at=datetime('now') WHERE id=?")

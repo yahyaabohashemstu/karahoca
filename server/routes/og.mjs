@@ -27,6 +27,7 @@ import {
   OG_SUPPORTED_LANGS,
 } from '../services/ogImage.mjs';
 import { logger } from '../utils/logger.mjs';
+import { publicProductWhere } from '../services/productVisibility.mjs';
 
 const PNG_HEADERS = (cacheKey) => ({
   'Content-Type': 'image/png',
@@ -135,7 +136,7 @@ export const handleProductOg = async (req, res, ctx) => {
         image,
         updated_at
       FROM products
-      WHERE id = ? AND active = 1
+      WHERE id = ? AND ${publicProductWhere()}
     `)
     .get(parsed.id);
 
@@ -225,16 +226,10 @@ export const handleProductOg = async (req, res, ctx) => {
       res.end(png);
     } catch (fallbackErr) {
       logger.error({ err: fallbackErr }, '[og] emergency fallback also failed');
-      // Give up — return the error message in the JSON so the admin
-      // testing this URL in a browser sees what went wrong.
+      // Give up. The details (message, code, image path) are in the
+      // log line above — not echoed to an anonymous caller.
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: false,
-        error: 'OG image render failed.',
-        details: err?.message || 'unknown',
-        code: err?.code || null,
-        imagePath: row.image || null,
-      }));
+      res.end(JSON.stringify({ success: false, error: 'OG image render failed.' }));
     }
   }
 };
@@ -271,7 +266,7 @@ export const handleProductOgDebug = async (req, res, ctx) => {
       name_en                    AS name_en,
       description_${parsed.lang} AS description,
       image, updated_at, active
-    FROM products WHERE id = ?
+    FROM products WHERE id = ? AND ${publicProductWhere()}
   `).get(parsed.id);
 
   if (!row) {

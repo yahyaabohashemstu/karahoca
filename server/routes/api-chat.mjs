@@ -178,21 +178,29 @@ const buildContactBlock = (lang) => {
  *   - "WhatsApp +90 530 591 49 90 is also fine." (no leading \n\n)
  *   - Empty / null / undefined input → returned unchanged
  */
-const CONTACT_FOOTER_TRAILING = /\n+(?:[^\n]*(?:info@karahoca\.com|530[\s ]*591[\s ]*49[\s ]*90|905305914990)[^\n]*\n?)+\s*$/i;
+// Matches ONE line that carries the contact details. Deliberately flat (no
+// nested quantifiers): the previous whole-reply pattern
+// `\n+(?:[^\n]*(?:...)[^\n]*\n?)+\s*$` backtracked exponentially, so a reply
+// with the email repeated on one line (which a visitor can prompt the model
+// into) froze the event loop - and with it the whole API - for minutes.
+const CONTACT_LINE = /info@karahoca\.com|530[\s ]*591[\s ]*49[\s ]*90|905305914990/i;
 
 const stripModelContactFooter = (text) => {
   if (typeof text !== 'string' || !text) return text;
-  // Loop in case the model emitted TWO consecutive footers (rare but
-  // observed when the prompt asks "how do I reach you" and the model
-  // gets enthusiastic). One iteration handles the common single case;
-  // the loop guard breaks at the first no-op replace.
-  let out = text;
-  for (let i = 0; i < 3; i++) {
-    const next = out.replace(CONTACT_FOOTER_TRAILING, '').trimEnd();
-    if (next === out) break;
-    out = next;
+  const lines = text.replace(/\s+$/, '').split('\n');
+  let end = lines.length;
+  // Up to three stacked footer blocks (rare, but observed when the prompt
+  // asks "how do I reach you" and the model gets enthusiastic). Each pass
+  // drops the trailing contact lines, then the blank lines above them.
+  // Line 0 is never dropped: a footer must follow some body text, as the
+  // old pattern required a newline before it.
+  for (let pass = 0; pass < 3; pass++) {
+    const blockEnd = end;
+    while (end > 1 && CONTACT_LINE.test(lines[end - 1])) end--;
+    if (end === blockEnd) break;
+    while (end > 1 && lines[end - 1].trim() === '') end--;
   }
-  return out;
+  return end === lines.length ? text : lines.slice(0, end).join('\n').trimEnd();
 };
 
 export const __testInternals = { stripModelContactFooter };

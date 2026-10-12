@@ -5,6 +5,7 @@
  */
 import { getDb, logAudit } from '../db.mjs';
 import { buildUpdater } from '../services/safeUpdate.mjs';
+import { publicProductWhere } from '../services/productVisibility.mjs';
 
 const AI_QA_UPDATE_FIELDS = [
   'question_ar', 'question_en', 'question_tr', 'question_ru',
@@ -23,7 +24,9 @@ export const buildProductContext = (lang = 'ar') => {
   ).all();
 
   const products = db.prepare(
-    `SELECT * FROM products WHERE active=1 ORDER BY brand, category_id, display_order`
+    // Public visibility, not just active=1: this text is the AI assistant's
+    // catalogue, and drafts must not be described to visitors.
+    `SELECT * FROM products WHERE ${publicProductWhere()} ORDER BY brand, category_id, display_order`
   ).all();
 
   if (!products.length) return '';

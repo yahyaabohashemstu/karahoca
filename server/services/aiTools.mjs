@@ -32,6 +32,7 @@
  */
 import { getDb } from './db.mjs';
 import { logger } from '../utils/logger.mjs';
+import { publicProductWhere } from './productVisibility.mjs';
 
 const SUPPORTED_LANGS = new Set(['ar', 'en', 'tr', 'ru']);
 const normaliseLang = (lang) => (SUPPORTED_LANGS.has(lang) ? lang : 'ar');
@@ -292,7 +293,7 @@ const buildProductNameBlob = () => {
     const db = getDb();
     const rows = db
       .prepare(
-        'SELECT name_ar, name_en, name_tr, name_ru FROM products WHERE active = 1',
+        `SELECT name_ar, name_en, name_tr, name_ru FROM products WHERE ${publicProductWhere()}`,
       )
       .all();
     return normalizeArabic(
@@ -444,7 +445,7 @@ const searchProducts = ({ query, brand, limit }, lang) => {
             c.title_en AS cat_title_en
           FROM products p
           LEFT JOIN product_categories c ON c.id = p.category_id
-          WHERE p.active = 1 ${brandClause}
+          WHERE ${publicProductWhere('p')} ${brandClause}
         `,
         )
         .all(...params);
@@ -540,7 +541,7 @@ const searchProducts = ({ query, brand, limit }, lang) => {
           SELECT * FROM (
             SELECT p.*, 1 AS rank
               FROM products p
-             WHERE p.active = 1 ${brandClause}
+             WHERE ${publicProductWhere('p')} ${brandClause}
                AND (p.name_${l} LIKE @like ESCAPE '\\'
                  OR p.name_en LIKE @like ESCAPE '\\')
 
@@ -548,7 +549,7 @@ const searchProducts = ({ query, brand, limit }, lang) => {
 
             SELECT p.*, 2 AS rank
               FROM products p
-             WHERE p.active = 1 ${brandClause}
+             WHERE ${publicProductWhere('p')} ${brandClause}
                AND (p.description_${l} LIKE @like ESCAPE '\\'
                  OR p.description_en LIKE @like ESCAPE '\\')
                AND NOT (p.name_${l} LIKE @like ESCAPE '\\'
@@ -559,7 +560,7 @@ const searchProducts = ({ query, brand, limit }, lang) => {
             SELECT p.*, 3 AS rank
               FROM products p
               JOIN product_categories c ON c.id = p.category_id
-             WHERE p.active = 1 ${brandClause}
+             WHERE ${publicProductWhere('p')} ${brandClause}
                AND (c.title_${l} LIKE @like ESCAPE '\\'
                  OR c.title_en LIKE @like ESCAPE '\\')
                AND NOT (p.name_${l} LIKE @like ESCAPE '\\'
@@ -575,7 +576,9 @@ const searchProducts = ({ query, brand, limit }, lang) => {
     } else {
       // Empty query: just list active products from the chosen brand
       // (or both if none specified), ordered by curated display_order.
-      const brandClause = safeBrand ? `WHERE active = 1 AND brand = ?` : `WHERE active = 1`;
+      const brandClause = safeBrand
+        ? `WHERE ${publicProductWhere()} AND brand = ?`
+        : `WHERE ${publicProductWhere()}`;
       const params = safeBrand ? [safeBrand, safeLimit] : [safeLimit];
       rows = db
         .prepare(`SELECT * FROM products ${brandClause} ORDER BY brand, display_order LIMIT ?`)
