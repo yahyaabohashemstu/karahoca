@@ -148,7 +148,10 @@ const installLifecycleListeners = (): void => {
 export const track = (event: TrackEventInput): void => {
   if (!isBrowser() || !shouldTrack()) return;
   installLifecycleListeners();
-  queue.push(event);
+  // Default page + language: most helpers don't pass them, and the admin
+  // funnel/insights filter by language — events without one were dropped
+  // from every per-language view.
+  queue.push({ page_path: currentPath(), lang: currentLang(), ...event });
   if (queue.length >= FLUSH_THRESHOLD) {
     void flushNow(false);
   } else {

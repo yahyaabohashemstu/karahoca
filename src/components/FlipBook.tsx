@@ -215,6 +215,23 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   const canNext = spread < maxSpr;
   const canPrev = spread > 0;
 
+  // Crossing the 768 px breakpoint (tablet rotation, window resize) changes
+  // what a spread index means — one page per spread on mobile, cover + pairs
+  // on desktop. The index used to be kept as-is: mobile page 14 became
+  // desktop spread 14 > maxSpr 9 → two blank pages and "next" disabled.
+  // Re-map it so the same page stays in view.
+  const previousModeRef = useRef(mode);
+  useEffect(() => {
+    const from = previousModeRef.current;
+    previousModeRef.current = mode;
+    if (from === mode) return;
+    setSpread((s) => {
+      const firstPage = from === 'mobile' ? s : (s === 0 ? 0 : 2 * s - 1);
+      const next = mode === 'mobile' ? firstPage : Math.floor((firstPage + 1) / 2);
+      return Math.min(Math.max(0, next), maxSpr);
+    });
+  }, [mode, maxSpr]);
+
   canNextRef.current  = canNext;
   canPrevRef.current  = canPrev;
   maxSprRef.current   = maxSpr;

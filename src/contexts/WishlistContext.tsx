@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { WishlistContext, type WishlistItem } from './wishlist-store';
 import { hasUnresolvedWishlistItems, migrateWishlistItems } from './wishlistMigration';
+import { track } from '../utils/track';
 
 const STORAGE_KEY = 'karahoca_wishlist';
 
@@ -69,7 +70,18 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isInWishlist = useCallback((id: string) => items.some(i => i.id === id), [items]);
 
+  // Read outside the state updater (updaters must stay pure — StrictMode
+  // runs them twice), so the add/remove event is sent exactly once.
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
   const toggle = useCallback((item: WishlistItem) => {
+    const adding = !itemsRef.current.some(i => i.id === item.id);
+    track({
+      event_type: adding ? 'wishlist_add' : 'wishlist_remove',
+      product_id: item.productDbId ?? item.id,
+      payload: { brand: item.brand, product_name: item.name },
+    });
     setItems(prev => {
       const next = prev.some(i => i.id === item.id)
         ? prev.filter(i => i.id !== item.id)

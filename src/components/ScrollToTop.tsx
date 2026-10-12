@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
 /**
@@ -64,11 +64,26 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 const ScrollToTop: React.FC = () => {
   const { pathname, hash } = useLocation();
   const navigationType = useNavigationType();
+  const previousPathRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const samePage = previousPathRef.current === pathname;
+    previousPathRef.current = pathname;
+
     // Browser back / forward — let the platform restore the previous
     // scroll position. Forcing scroll-to-top here would feel broken.
     if (navigationType === 'POP') return;
+
+    // Hash-only change on the page we're already on (rule 3 above). `hash`
+    // is in the deps, so this used to fall through to the code below and
+    // jump to the TOP whenever no element matched — which is exactly what
+    // happens when a product popup opens from a chat link (#productId) or
+    // closes (the hash is removed). Scroll to a real anchor if there is
+    // one; otherwise stay where the visitor is.
+    if (samePage) {
+      if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
 
     if (hash) {
       // Hash present — try to scroll to the target element. The new

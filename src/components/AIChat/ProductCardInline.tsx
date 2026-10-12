@@ -5,6 +5,7 @@ import { responsiveImageProps } from '../../utils/image';
 import { whatsAppProductInquiryUrl, buildProductShareUrl } from '../../utils/whatsapp';
 import { formatBrandName } from '../../constants/brandNames';
 import type { ChatProduct } from '../../hooks/useChatState';
+import { trackWhatsAppClickInternal } from '../../utils/track';
 
 interface ProductCardInlineProps {
   product: ChatProduct;
@@ -138,6 +139,9 @@ const ProductCardInlineComponent: React.FC<ProductCardInlineProps> = ({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
+            // A product inquiry to our number — counts as the funnel's
+            // "Clicked WhatsApp" step like the floating button does.
+            onClick={() => trackWhatsAppClickInternal('chat_card', { product_id: product.id })}
             className="ai-chat-product-card__cta ai-chat-product-card__cta--secondary"
           >
             {whatsappLabel}

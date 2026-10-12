@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackEvent } from '../utils/analytics';
+import { track } from '../utils/track';
 import { normalizeLanguageCode, supportedLanguageCodes } from '../utils/language';
 import { splitLocalePath, rememberUserLangChoice } from '../utils/localizedPath';
 import './LanguageSwitcher.css';
@@ -91,6 +92,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ inline = false }) =
     // logical page under the new language prefix — react-router's param
     // change cascades through `useLocaleSync`, which calls `i18n.changeLanguage`
     // inside a `startTransition` so the tree re-renders smoothly.
+    track({ event_type: 'language_switch', payload: { from: currentLanguageCode, to: nextCode } });
     const { rest } = splitLocalePath(location.pathname);
     const targetPath = `/${nextCode}${rest === '/' ? '/' : rest}`;
     navigate(`${targetPath}${location.search}${location.hash}`);

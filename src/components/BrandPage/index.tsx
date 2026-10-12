@@ -11,6 +11,7 @@ import ProductModal from './ProductModal';
 import MarketplaceSection from './MarketplaceSection';
 import type { MarketplaceStore } from '../../constants/marketplaces';
 import type { CategoryData, ProductInfo } from './types';
+import { trackProductView } from '../../utils/analytics';
 
 // ─── React.memo structural equality helpers ──────────────────────────────
 // Same strategy as the previous `BrandPageTemplate` — cheap primitive /
@@ -149,6 +150,16 @@ const BrandPage: React.FC<BrandPageProps> = ({
   const handleProductOpen = useCallback((product: ProductInfo) => {
     setSelectedProduct(product);
   }, []);
+
+  // Funnel step "Viewed a product": was never sent, so the admin funnel
+  // showed 0 for it. Fires once per opened product, whichever way it was
+  // opened (card, chat link, shared #deep-link).
+  const viewedProductId = selectedProduct ? selectedProduct.id ?? selectedProduct.name : null;
+  useEffect(() => {
+    if (!selectedProduct) return;
+    trackProductView(selectedProduct.name, brandName, selectedProduct.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per product, not per re-render
+  }, [viewedProductId]);
 
   const handleModalClose = useCallback(() => {
     setSelectedProduct(null);

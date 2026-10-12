@@ -73,6 +73,8 @@ interface TocEntry {
   id: string;
   text: string;
   level: 2 | 3;
+  /** 1-based line of the heading in the markdown source. */
+  line: number;
 }
 
 const STRINGS: Record<string, Record<string, string>> = {
@@ -213,21 +215,35 @@ const slugifyHeading = (raw: string): string =>
  * We deliberately ONLY pull H2/H3 — H1 is the article title (already
  * shown in the hero), and H4+ is too deep to surface in a TOC.
  */
+// Inline markdown → the text a reader sees: "[Link](url)" → "Link",
+// "**bold**" → "bold".
+const markdownInlineToText = (value: string): string =>
+  value
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_`~]/g, '')
+    .trim();
+
 const extractToc = (markdown: string): TocEntry[] => {
   if (!markdown) return [];
   const out: TocEntry[] = [];
+  const seen = new Map<string, number>();
   const lines = markdown.split('\n');
   let inCodeFence = false;
-  for (const line of lines) {
-    if (line.startsWith('```')) { inCodeFence = !inCodeFence; continue; }
-    if (inCodeFence) continue;
+  lines.forEach((line, index) => {
+    if (line.startsWith('```')) { inCodeFence = !inCodeFence; return; }
+    if (inCodeFence) return;
     const m = /^(#{2,3})\s+(.+?)\s*$/.exec(line);
-    if (!m) continue;
+    if (!m) return;
     const level = (m[1].length === 2 ? 2 : 3) as 2 | 3;
-    const text = m[2].replace(/[*_`]/g, '').trim();
-    if (!text) continue;
-    out.push({ id: slugifyHeading(text), text, level });
-  }
+    const text = markdownInlineToText(m[2]);
+    if (!text) return;
+    // Repeated headings ("Tips" twice) get -2, -3… so every anchor and
+    // React key is unique.
+    const base = slugifyHeading(text) || 'section';
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    out.push({ id: n === 1 ? base : `${base}-${n}`, text, level, line: index + 1 });
+  });
   return out;
 };
 
@@ -301,6 +317,11 @@ const BlogPostPage: React.FC = () => {
   }, [post]);
 
   const toc = useMemo(() => extractToc(post?.body || ''), [post?.body]);
+  // Heading ids by source line: the renderer looks its heading up by
+  // position instead of re-deriving the id from the rendered children —
+  // String(children) gave "…,[object Object]" for a heading with bold, code
+  // or a link, so those TOC links pointed nowhere.
+  const headingIdByLine = useMemo(() => new Map(toc.map((e) => [e.line, e.id])), [toc]);
 
   const handleCopyLink = async () => {
     try {
@@ -545,15 +566,13 @@ const BlogPostPage: React.FC = () => {
                   // Assign deterministic ids to H2/H3 so the sticky TOC
                   // anchors land on the right heading. Matches the
                   // slugifyHeading() pre-pass in extractToc().
-                  h2: ({ children, ...props }) => {
-                    const text = String(children).replace(/[*_`]/g, '');
-                    return <h2 id={slugifyHeading(text)} {...props}>{children}</h2>;
-                  },
-                  h3: ({ children, ...props }) => {
-                    const text = String(children).replace(/[*_`]/g, '');
-                    return <h3 id={slugifyHeading(text)} {...props}>{children}</h3>;
-                  },
-                  a: ({ href, children, ...props }) => {
+                  h2: ({ node, children, ...props }) => (
+                    <h2 id={headingIdByLine.get(node?.position?.start.line ?? -1)} {...props}>{children}</h2>
+                  ),
+                  h3: ({ node, children, ...props }) => (
+                    <h3 id={headingIdByLine.get(node?.position?.start.line ?? -1)} {...props}>{children}</h3>
+                  ),
+                  a: ({ node, href, children, ...props }) => {
                     if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
                       return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
                     }
@@ -571,7 +590,7 @@ const BlogPostPage: React.FC = () => {
                   // Wrap tables in a horizontally-scrollable container
                   // so wide tables on phones become swipable instead of
                   // overflowing the viewport.
-                  table: ({ children, ...props }) => (
+                  table: ({ node, children, ...props }) => (
                     <div className="blog-table-wrap">
                       <table {...props}>{children}</table>
                     </div>

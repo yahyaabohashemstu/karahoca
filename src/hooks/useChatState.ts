@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../utils/apiFetch';
-import { trackChatOpen, trackChatClose } from '../utils/analytics';
+import { trackChatOpen, trackChatClose, trackChatMessage } from '../utils/analytics';
 import { track } from '../utils/track';
 import { getVisitorId } from '../utils/visitorIdentity';
 import { whatsAppContinueChatUrl } from '../utils/whatsapp';
@@ -643,7 +643,13 @@ const loadStoredMessages = (): ChatMessage[] => {
       window.localStorage.removeItem(CHAT_STORAGE_KEY);
       return [];
     }
-    return parsed.filter(isStoredChatMessage);
+    // A bubble saved mid-stream (tab closed while Karo was typing) must not
+    // come back with a blinking cursor forever: keep its text as a normal
+    // message, drop it if it never got any.
+    return parsed
+      .filter(isStoredChatMessage)
+      .filter((m: ChatMessage) => !(m.streaming && !m.content.trim()))
+      .map((m: ChatMessage) => (m.streaming ? { ...m, streaming: false } : m));
   } catch {
     try { window.localStorage.removeItem(CHAT_STORAGE_KEY); } catch { /* noop */ }
     return [];
@@ -1200,6 +1206,9 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       const cleaned = sanitizeInput(directMessage || inputValue);
       if (!cleaned || isLoading || sendLockRef.current) return;
       sendLockRef.current = true;
+      // Funnel step "Sent a chat message" — the helper existed but was
+      // never called.
+      trackChatMessage();
 
       const detectedQuestionLanguage = detectSupportedQuestionLanguage(cleaned);
       const questionLanguageHint = inferQuestionLanguageHint(cleaned);
@@ -1236,6 +1245,11 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         [userMessage],
         replyLang,
       );
+
+      // The streaming bubble, if one was opened — the catch block below needs
+      // it to finish or remove the bubble when the stream fails midway.
+      let streamSlotId: string | null = null;
+      let streamSlotText = '';
 
       try {
         // Ensure AI context is ready; falls back to in-memory cache / inline
@@ -1334,6 +1348,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
         const commitAssistantSlot = () => {
           if (assistantCommitted) return;
           assistantCommitted = true;
+          streamSlotId = assistantMessageId;
           setIsLoading(false); // hand off from "dots" → streaming bubble
           setMessages((prev) => [
             ...prev,
@@ -1349,6 +1364,7 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
 
         const appendDelta = (delta: string) => {
           streamedText += delta;
+          streamSlotText = streamedText;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId
@@ -1392,9 +1408,25 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           );
         };
 
+        // The 120 s request timer above is cleared once headers arrive, so a
+        // stream that stalls afterwards used to hang reader.read() forever —
+        // and with it sendLockRef, silently blocking every later message.
+        const STREAM_IDLE_MS = 90_000;
+        const readWithIdleTimeout = () =>
+          new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+            const idle = setTimeout(() => {
+              controller.abort();
+              reject(new DOMException('AI stream stalled', 'AbortError'));
+            }, STREAM_IDLE_MS);
+            reader.read().then(
+              (r) => { clearTimeout(idle); resolve(r); },
+              (e) => { clearTimeout(idle); reject(e); },
+            );
+          });
+
         try {
           while (true) {
-            const { value, done } = await reader.read();
+            const { value, done } = await readWithIdleTimeout();
             if (done) break;
             buffer += decoder.decode(value, { stream: true });
 
@@ -1501,7 +1533,9 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
           throw new Error(receivedError);
         }
 
-        const assistantReply = finalReply.trim();
+        // No 'done' (connection closed early): keep the text the visitor has
+        // already watched arrive instead of replacing it with "no answer".
+        const assistantReply = (finalReply || streamedText).trim();
 
         if (!assistantReply) {
           // Stream completed with no content (cache miss + empty model
@@ -1578,6 +1612,19 @@ export const useChatState = ({ initiallyOpen = false }: UseChatStateOptions = {}
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('AI chat request failed:', getErrorMessage(error));
+        }
+        // The stream failed after its bubble opened: keep any partial text as
+        // a finished message, or remove the empty bubble. Left alone it kept
+        // `streaming: true` — an endless typing cursor that was also saved
+        // to localStorage and came back on every reload.
+        if (streamSlotId) {
+          const slotId = streamSlotId;
+          const partial = streamSlotText.trim();
+          setMessages((prev) =>
+            partial
+              ? prev.map((m) => (m.id === slotId ? { ...m, content: partial, streaming: false } : m))
+              : prev.filter((m) => m.id !== slotId),
+          );
         }
         const errMsg =
           error instanceof Error && error.name === 'AbortError'

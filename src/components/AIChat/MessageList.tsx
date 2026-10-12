@@ -88,7 +88,7 @@ const MessageListComponent: React.FC<MessageListProps> = ({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                p: ({ children, ...props }) => {
+                p: ({ node, children, ...props }) => {
                   const text = String(children);
                   const hasArabic = /[\u0600-\u06FF]/.test(text);
                   return (
@@ -101,7 +101,7 @@ const MessageListComponent: React.FC<MessageListProps> = ({
                     </p>
                   );
                 },
-                a: ({ ...props }) => (
+                a: ({ node, ...props }) => (
                   <a
                     {...props}
                     target="_blank"
