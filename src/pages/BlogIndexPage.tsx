@@ -29,6 +29,7 @@ import { BreadcrumbSchema } from '../components/SchemaOrg';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
+import { localizeAuthorName } from '../utils/blogAuthor';
 import '../styles/blog.css';
 
 interface BlogCategory {
@@ -289,7 +290,7 @@ const BlogIndexPage: React.FC = () => {
               <h2 className="blog-section-title">{t.featured}</h2>
               <div className="blog-featured__grid">
                 {featuredPosts.map((post) => (
-                  <FeaturedCard key={post.id} post={post} t={t} lp={lp} />
+                  <FeaturedCard key={post.id} post={post} t={t} lp={lp} lang={lang} />
                 ))}
               </div>
             </div>
@@ -308,11 +309,11 @@ const BlogIndexPage: React.FC = () => {
               <>
                 <div className="blog-grid">
                   {posts.map((post) => (
-                    <PostCard key={post.id} post={post} t={t} lp={lp} />
+                    <PostCard key={post.id} post={post} t={t} lp={lp} lang={lang} />
                   ))}
                 </div>
                 {totalPages > 1 && (
-                  <nav className="blog-pagination" aria-label="Pagination">
+                  <nav className="blog-pagination" aria-label={i18n.t('a11y.pagination')}>
                     <button
                       type="button"
                       onClick={() => handlePage(page - 1)}
@@ -349,9 +350,10 @@ interface CardProps {
   post: BlogPostSummary;
   t: Record<string, string>;
   lp: (path: string) => string;
+  lang: string;
 }
 
-const FeaturedCard: React.FC<CardProps> = ({ post, t, lp }) => (
+const FeaturedCard: React.FC<CardProps> = ({ post, t, lp, lang }) => (
   <Link to={lp(`/blog/${post.slug}`)} className="blog-featured-card">
     {post.heroImage && (
       <div className="blog-featured-card__media">
@@ -371,7 +373,7 @@ const FeaturedCard: React.FC<CardProps> = ({ post, t, lp }) => (
       <p className="blog-featured-card__excerpt">{post.excerpt}</p>
       <div className="blog-card__meta">
         <span>⏱ {post.readingTime} {post.readingTime === 1 ? t.minReadSingle : t.minRead}</span>
-        {post.authorName && <span>· {post.authorName}</span>}
+        {post.authorName && <span>· {localizeAuthorName(post.authorName, lang)}</span>}
       </div>
     </div>
   </Link>

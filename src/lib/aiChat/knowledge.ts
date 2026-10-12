@@ -94,6 +94,10 @@ const buildCatalogLine = (
 
 const stripBrandTokens = (value: string) =>
   value
+    // Fold the Turkish dotted İ first: product names are written "DİOX",
+    // which \b(diox)\b never matched, so DİOX products were never grouped
+    // with their AYLUX equivalents in the catalog comparison.
+    .replace(/İ/g, 'I')
     .replace(/\b(diox|aylux|karahoca)\b/gi, ' ')
     .replace(/ديوكس|آيلوكس|ايلوكس|كراهوكا/gu, ' ')
     .replace(/\b[12]\b/g, ' ')

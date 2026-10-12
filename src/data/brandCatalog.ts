@@ -48,8 +48,8 @@ export interface BrandCatalogData {
 export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
   const plasticBottle = t("materials.plasticBottle");
   const plasticBag = t("materials.plasticBag");
-  const pieces = t("materials.pieces");
-  const piecesPlural = t("materials.pieces_plural");
+  // i18next plural forms: "12 pieces", "4 штуки", "12 штук", "4 قطع".
+  const pieceCount = (n: number) => t("materials.pieceCount", { count: n });
 
   return [
     {
@@ -64,7 +64,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "750 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -76,7 +76,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "450 ML / 900 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -88,7 +88,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "600 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -100,7 +100,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "600 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -112,7 +112,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "750 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -124,7 +124,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "900 ML / 5 L",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -136,7 +136,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "750 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -148,7 +148,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "900 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -160,7 +160,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "750 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -172,7 +172,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "1.5 KG",
             material: plasticBottle,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
         },
         {
@@ -184,7 +184,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "700 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -196,7 +196,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "3 L",
             material: plasticBottle,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
         },
       ],
@@ -213,7 +213,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "2.5 KG / 4.5 KG",
             material: plasticBag,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
         },
         {
@@ -225,7 +225,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "2.5 KG / 4.5 KG",
             material: plasticBag,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
         },
         {
@@ -237,7 +237,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "900 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -249,7 +249,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "900 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -261,7 +261,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "900 ML",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
         {
@@ -273,7 +273,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "150 G / 1.2 KG / 3.5 KG / 9 KG",
             material: plasticBag,
-            count: `6 ${piecesPlural}`,
+            count: pieceCount(6),
           },
         },
         {
@@ -284,7 +284,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "1.2 KG",
             material: plasticBag,
-            count: `6 ${piecesPlural}`,
+            count: pieceCount(6),
           },
           gallery: [
             "/diox-images/web site - diox - 1.2kg photos/web site - diox - 1.2kg - أزرق.png",
@@ -300,7 +300,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "3 KG",
             material: plasticBag,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
           gallery: [
             "/diox-images/web site - diox - 3kg photos/web site - diox - 3kg - أزرق.png",
@@ -318,7 +318,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "9 KG",
             material: plasticBag,
-            count: `4 ${piecesPlural}`,
+            count: pieceCount(4),
           },
           gallery: [
             "/diox-images/web site - diox - 9kg photos/web site - diox - 9kg - أزرق.png",
@@ -341,7 +341,7 @@ export const getDioxCategories = (t: TFunction): BrandCategoryData[] => {
           details: {
             weight: "400 ML / 3 L",
             material: plasticBottle,
-            count: `12 ${pieces}`,
+            count: pieceCount(12),
           },
         },
       ],

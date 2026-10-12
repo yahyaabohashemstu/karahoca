@@ -12,6 +12,27 @@ import { whatsAppShareProductUrl, buildProductShareUrl } from '../utils/whatsapp
 import { formatBrandName } from '../constants/brandNames';
 
 /* ─── translations ───────────────────────────────────────────────────────── */
+// "N saved items" with the noun AND the participle agreeing with N —
+// "2 منتجات محفوظ" / "21 товаров" were wrong before.
+const arPlural = new Intl.PluralRules('ar');
+const AR_SAVED_ITEMS: Record<Intl.LDMLPluralRule, (n: number) => string> = {
+  zero: () => 'لا منتجات محفوظة',
+  one: () => 'منتج واحد محفوظ',
+  two: () => 'منتجان محفوظان',
+  few: (n) => `${n} منتجات محفوظة`,
+  many: (n) => `${n} منتجًا محفوظًا`,
+  other: (n) => `${n} منتج محفوظ`,
+};
+const ruPlural = new Intl.PluralRules('ru');
+const RU_SAVED_ITEMS: Record<Intl.LDMLPluralRule, (n: number) => string> = {
+  zero: (n) => `${n} товаров сохранено`,
+  one: (n) => `${n} товар сохранён`,
+  two: (n) => `${n} товара сохранено`,
+  few: (n) => `${n} товара сохранено`,
+  many: (n) => `${n} товаров сохранено`,
+  other: (n) => `${n} товара сохранено`,
+};
+
 const L = {
   ar: {
     title: 'المنتجات المفضّلة',
@@ -24,7 +45,6 @@ const L = {
     clearConfirm: 'هل تريد مسح قائمة المفضّلة كاملاً؟',
     remove: 'إزالة',
     filterAll: 'الكل',
-    saved: 'محفوظ',
     weight: 'الوزن',
     material: 'العبوة',
     count: 'العدد',
@@ -33,7 +53,8 @@ const L = {
     countPerBox: 'العدد / الصندوق',
     shareWa: 'مشاركة عبر واتساب',
     removeWishlist: 'إزالة من المفضّلة',
-    items: (n: number) => n === 1 ? 'منتج واحد' : `${n} منتجات`,
+    close: 'إغلاق',
+    items: (n: number) => AR_SAVED_ITEMS[arPlural.select(n)](n),
   },
   en: {
     title: 'My Wishlist',
@@ -46,7 +67,6 @@ const L = {
     clearConfirm: 'Clear your entire wishlist?',
     remove: 'Remove',
     filterAll: 'All',
-    saved: 'saved',
     weight: 'Weight',
     material: 'Packaging',
     count: 'Count',
@@ -55,7 +75,8 @@ const L = {
     countPerBox: 'Per Box',
     shareWa: 'Share via WhatsApp',
     removeWishlist: 'Remove from Wishlist',
-    items: (n: number) => `${n} item${n !== 1 ? 's' : ''}`,
+    close: 'Close',
+    items: (n: number) => `${n} item${n !== 1 ? 's' : ''} saved`,
   },
   tr: {
     title: 'İstek Listesi',
@@ -68,7 +89,6 @@ const L = {
     clearConfirm: 'Tüm istek listesi temizlensin mi?',
     remove: 'Kaldır',
     filterAll: 'Tümü',
-    saved: 'kaydedildi',
     weight: 'Ağırlık',
     material: 'Ambalaj',
     count: 'Adet',
@@ -77,7 +97,8 @@ const L = {
     countPerBox: 'Kutu Adedi',
     shareWa: 'WhatsApp\'ta Paylaş',
     removeWishlist: 'İstek Listesinden Kaldır',
-    items: (n: number) => `${n} ürün`,
+    close: 'Kapat',
+    items: (n: number) => `${n} ürün kaydedildi`,
   },
   ru: {
     title: 'Список желаний',
@@ -90,7 +111,6 @@ const L = {
     clearConfirm: 'Очистить список желаний?',
     remove: 'Удалить',
     filterAll: 'Все',
-    saved: 'сохранено',
     weight: 'Вес',
     material: 'Упаковка',
     count: 'Количество',
@@ -99,7 +119,8 @@ const L = {
     countPerBox: 'Кол-во в коробке',
     shareWa: 'Поделиться в WhatsApp',
     removeWishlist: 'Удалить из списка',
-    items: (n: number) => `${n} товар${n === 1 ? '' : n < 5 ? 'а' : 'ов'}`,
+    close: 'Закрыть',
+    items: (n: number) => RU_SAVED_ITEMS[ruPlural.select(n)](n),
   },
 };
 
@@ -153,7 +174,7 @@ const WishlistPopup: React.FC<PopupProps> = ({ item, l, lang, onClose, onRemove 
       <div style={ps.dialog} onClick={e => e.stopPropagation()}>
 
         {/* ── Close ── */}
-        <button style={ps.closeBtn} onClick={onClose} aria-label="Close">✕</button>
+        <button style={ps.closeBtn} onClick={onClose} aria-label={l.close}>✕</button>
 
         {/* ── Image ── */}
         <div style={ps.imageWrap}>
@@ -449,7 +470,7 @@ const WishlistPage: React.FC = () => {
             </div>
             <div>
               <h1 style={styles.heroTitle}>{l.title}</h1>
-              <p style={styles.heroSub}>{l.items(items.length)} {l.saved}</p>
+              <p style={styles.heroSub}>{l.items(items.length)}</p>
             </div>
           </div>
           <button onClick={handleClear} style={styles.clearBtn}>

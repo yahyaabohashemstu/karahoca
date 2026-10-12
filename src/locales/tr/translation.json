@@ -11,8 +11,8 @@
       "plasticBottle": "Plastik Şişe",
       "plasticBag": "Plastik Torba",
       "cardboardBox": "Karton Kutu",
-      "pieces": "adet",
-      "pieces_plural": "adet"
+      "pieceCount_one": "{{count}} adet",
+      "pieceCount_other": "{{count}} adet"
     },
     "nav": {
       "home": "Ana Sayfa",
@@ -29,7 +29,8 @@
       "closeMenu": "Menüyü kapat",
       "changeLanguage": "Dili değiştir",
       "news": "Haberler",
-      "blog": "Blog"
+      "blog": "Blog",
+      "wishlist": "İstek Listesi"
     },
     "errorBoundary": {
       "title": "Üzgünüz, beklenmeyen bir hata oluştu",
@@ -41,7 +42,7 @@
       "contact": "bizimle iletişime geçin"
     },
     "themeToggle": {
-      "label": "Temayi degistir"
+      "label": "Temayı değiştir"
     },
     "hero": {
       "title": "Dünya Çapında Temizlikte Yeni Bir Standart Oluşturuyoruz",
@@ -52,8 +53,8 @@
       },
       "badges": {
         "quality": "ISO 9001",
-        "experience": "Eco Aware",
-        "countries": "Made in TR",
+        "experience": "Çevreye Duyarlı",
+        "countries": "Türkiye'de Üretildi",
         "satisfaction": "Müşteri Memnuniyeti"
       },
       "eyebrow": "Premium Temizlik Üreticisi"
@@ -109,7 +110,7 @@
     },
     "about": {
       "title": "Hakkımızda",
-      "shortDescription": "30 yılı aşkın süredir deterjan sektöründe lider bir şirket. AYLUX ve DİOX markaları altında dünya çapında 15'ten fazla ülkeye yüksek kaliteli temizlik ürünleri sunuyoruz, kalite, yenilikçilik ve sürdürülebilirlik taahhüdümüzle.",
+      "shortDescription": "30 yılı aşkın süredir deterjan sektöründe lider bir şirketiz. AYLUX ve DİOX markalarıyla dünya çapında 15'ten fazla ülkeye yüksek kaliteli temizlik ürünleri sunuyor; kaliteye, yenilikçiliğe ve sürdürülebilirliğe bağlı kalıyoruz.",
       "learnMoreButton": "Hakkımızda Daha Fazla Bilgi",
       "imageAlt": "KARAHOCA Üretim Tesisleri",
       "subtitle": "Güvenle Geleceğe İlerliyoruz",
@@ -230,7 +231,8 @@
           "required": "Lütfen e-posta adresinizi girin",
           "invalid": "Lütfen geçerli bir e-posta adresi girin",
           "failed": "Bir hata oluştu. Lütfen tekrar deneyin"
-        }
+        },
+        "emailLabel": "E-posta adresi"
       },
       "links": {
         "title": "Bağlantılar",
@@ -242,7 +244,7 @@
       },
       "contact": {
         "title": "İletişim",
-        "address": "Türkiye, Kilis",
+        "address": "Kilis, Türkiye",
         "phone": "+90 850 228 35 34",
         "email": "info@karahoca.com"
       },
@@ -259,9 +261,9 @@
       "requestQuote": "Teklif İsteyin",
       "productsAlt": "Ürünler",
       "viewImage": "Resmi Görüntüle",
-      "viewImageAria": "Resmini görüntüle",
+      "viewImageAria": "{{name}} resmini görüntüle",
       "weight": "Ağırlık",
-      "material": "Hammadde",
+      "material": "Ambalaj",
       "count": "Kutu Başına Adet",
       "notSpecified": "Belirtilmemiş",
       "gift": "Ücretsiz Hediye",
@@ -285,7 +287,13 @@
         "sectionEyebrow": "Online Mağazalar",
         "sectionTitle": "{{brand}} Ürünlerini Online Satın Alın",
         "sectionSubtitle": "Beğendiğiniz ürünleri, Türkiye'nin önde gelen alışveriş platformlarındaki resmi mağazalarımızdan kolayca sipariş edin."
-      }
+      },
+      "addWishlist": "İstek Listesine Ekle",
+      "removeWishlist": "İstek Listesinden Kaldır",
+      "closeImage": "Kapat",
+      "productDetails": "Ürün ayrıntıları",
+      "previousImage": "Önceki görsel",
+      "nextImage": "Sonraki görsel"
     },
     "flipbook": {
       "chromeTitle": "İnteraktif Katalog",
@@ -334,7 +342,7 @@
       }
     },
     "diox": {
-      "brandNameArabic": "Diox",
+      "brandNameArabic": "DİOX",
       "seo": {
         "title": "DİOX - Profesyonel Temizlik Ürünleri | KARAHOCA",
         "description": "KARAHOCA'dan DİOX markası - üstün güçle profesyonel temizlik ürünleri. Çamaşır deterjanları, genel temizleyiciler, sıvı sabun ve leke çıkarıcılar.",
@@ -353,7 +361,7 @@
         "subtitle": "Her Üründe Güç ve Etkinlik",
         "mainHeading": "Profesyonel Temizlikte Mükemmellik",
         "section1": {
-          "title": "İstisna Güç"
+          "title": "Olağanüstü Güç"
         },
         "content": "DİOX markası, ev ve tesis ihtiyaçlarını en yüksek kalite ve etkinlik standartlarıyla karşılayan kapsamlı bir profesyonel temizlik ürünleri yelpazesini temsil eder"
       },
@@ -526,15 +534,15 @@
       }
     },
     "aylux": {
-      "brandNameArabic": "Aylux",
+      "brandNameArabic": "AYLUX",
       "seo": {
         "title": "AYLUX - Premium Bakım Ürünleri | KARAHOCA",
-        "description": "KARAHOCA'dan AYLUX markası - zarif sofistikeyle premium bakım ürünleri. Jel temizleyiciler, sıvı temizleyiciler, sıvı sabun ve kokular.",
+        "description": "KARAHOCA'dan AYLUX markası - zarif ve sofistike premium bakım ürünleri. Jel temizleyiciler, sıvı temizleyiciler, sıvı sabun ve kokular.",
         "keywords": "AYLUX, Aylux, bakım ürünleri, jel temizleyici, cam temizleyici, hava ferahlatıcı, premium sıvı sabun, KARAHOCA"
       },
       "hero": {
         "title": "Bakımda Lüks Zarafet",
-        "description": "Tüm ev ve kişisel bakım ihtiyaçları için zarif sofistike ve kanıtlanmış etkinlikle premium bakım ürünleri",
+        "description": "Tüm ev ve kişisel bakım ihtiyaçları için zarif, sofistike ve etkinliği kanıtlanmış premium bakım ürünleri",
         "imageAlt": "AYLUX Premium Bakım Ürünleri",
         "badge1": "Lüks Zarafet",
         "badge2": "Kanıtlanmış Kalite",
@@ -542,10 +550,10 @@
       },
       "about": {
         "title": "AYLUX Hakkında",
-        "subtitle": "Her Üründe Zarafet ve Sofistike",
+        "subtitle": "Her Üründe Zarafet ve İncelik",
         "mainHeading": "Premium Bakımda Mükemmellik",
         "section1": {
-          "title": "İstisnai Zarafet"
+          "title": "Olağanüstü Zarafet"
         },
         "content": "AYLUX markası, tüm ev ve kişisel bakım ihtiyaçlarını en yüksek kalite ve zarafet standartlarıyla karşılayan kapsamlı bir premium bakım ürünleri yelpazesini temsil eder"
       },
@@ -739,7 +747,7 @@
       },
       "heroTitle": "Kurutucumuz",
       "heroDescription": "Kurutucu, yalnızca yüksek kaliteli deterjanlar üretmek için değil, aynı zamanda sistem içinde doğrudan hammadde üretme kabiliyetine sahip olacak şekilde tasarlanmıştır. Bu entegre yaklaşım verimliliği artırır ve tutarlı kaliteyi garanti eder. Yüksek kapasiteli tesisimiz, büyük siparişleri karşılama yeteneği sağlarken, belirli pazar ihtiyaçlarını karşılamak üzere formülasyonları özelleştirmede esneklik sunar.",
-      "heroImageAlt": "KARAHOCA Hedefi",
+      "heroImageAlt": "KARAHOCA Kurutucusu",
       "sections": {
         "pillars": {
           "title": "Temel Avantajlar",
@@ -790,7 +798,7 @@
             "description": "Yeni pazarlarda üretim kapasitesini artırma ve distribütörlük ortaklıkları."
           },
           "quality": {
-            "title": "Taviz Vermeyen Kalite",
+            "title": "Tavizsiz Kalite",
             "description": "Her partide sıkı üretim standartları ve kapsamlı performans testleri."
           }
         },
@@ -805,22 +813,22 @@
     },
     "newsPage": {
       "seo": {
-        "title": "Haberler ve Guncellemeler | KARAHOCA",
-        "description": "KARAHOCA hakkinda yeni urun lansmanlari, dagitim anlasmalari, fuarlar ve operasyonel gelismelerden haberdar olun.",
-        "keywords": "KARAHOCA haberler, urun lansmani, fuar katilimi, dagitim anlasmasi, sirket guncellemeleri"
+        "title": "Haberler ve Güncellemeler | KARAHOCA",
+        "description": "KARAHOCA hakkında yeni ürün lansmanları, dağıtım anlaşmaları, fuarlar ve operasyonel gelişmelerden haberdar olun.",
+        "keywords": "KARAHOCA haberleri, ürün lansmanı, fuar katılımı, dağıtım anlaşması, şirket güncellemeleri"
       },
-      "eyebrow": "Son gelismeler",
+      "eyebrow": "Son gelişmeler",
       "sectionTitle": "Haberler",
-      "sectionSubtitle": "Yeni lansmanlar, is birlikleri ve markalarimizi tasidigimiz fuarlar burada.",
+      "sectionSubtitle": "Yeni lansmanlar, iş birlikleri ve markalarımızı taşıdığımız fuarlar burada.",
       "pageTitle": "KARAHOCA Haberleri",
-      "pageDescription": "En yeni lansmanlarimizi, ticari genislememizi, fuar katilimlarimizi ve KARAHOCA buyumesini sekillendiren guncellemeleri takip edin.",
-      "featuredLabel": "One cikan haber",
-      "latestLabel": "Tum haberler",
-      "readMore": "Devamini oku",
-      "viewAll": "Tum haberler",
+      "pageDescription": "En yeni lansmanlarımızı, ticari genişlememizi, fuar katılımlarımızı ve KARAHOCA'nın büyümesini şekillendiren güncellemeleri takip edin.",
+      "featuredLabel": "Öne çıkan haber",
+      "latestLabel": "Tüm haberler",
+      "readMore": "Devamını oku",
+      "viewAll": "Tüm haberler",
       "modalClose": "Haberi kapat",
-      "backToNews": "Haberlere Don",
-      "notFound": "Haber bulunamadi"
+      "backToNews": "Haberlere Dön",
+      "notFound": "Haber bulunamadı"
     },
     "cookie": {
       "title": "Çerez kullanıyoruz",
@@ -840,10 +848,17 @@
       "printDate": "Katalog Tarihi"
     },
     "a11y": {
-      "skipToContent": "İçeriğe geç"
+      "skipToContent": "İçeriğe geç",
+      "loading": "Yükleniyor",
+      "pagination": "Sayfalama",
+      "breadcrumb": "Sayfa yolu",
+      "close": "Kapat"
+    },
+    "aiWidget": {
+      "openToggleLabel": "Yapay zekâ asistanını aç"
     }
   },
   "common": {
-    "imageLoadFailed": "Resim yuklenemedi"
+    "imageLoadFailed": "Resim yüklenemedi"
   }
 }

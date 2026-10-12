@@ -20,12 +20,12 @@ const ARROW_LABELS = {
     next: 'Move news to the left'
   },
   tr: {
-    previous: 'Haberleri saga kaydir',
-    next: 'Haberleri sola kaydir'
+    previous: 'Haberleri sağa kaydır',
+    next: 'Haberleri sola kaydır'
   },
   ru: {
-    previous: 'Sdvinit novosti vpravo',
-    next: 'Sdvinit novosti vlevo'
+    previous: 'Сдвинуть новости вправо',
+    next: 'Сдвинуть новости влево'
   }
 } as const;
 

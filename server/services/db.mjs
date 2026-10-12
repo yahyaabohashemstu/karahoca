@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
 import { logger } from '../utils/logger.mjs';
 import { BLOG_BATCH_2 as BLOG_BATCH_2_SEED } from './blogSeedBatch2.mjs';
+import { correctedPieceCount, pieceCountLabel } from './pieceCount.mjs';
 
 const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3');
@@ -626,6 +627,80 @@ const migrateInitialData = () => {
   // Must run after the ALTER TABLE block above adds trendyol_url /
   // hepsiburada_url.
   migrateAyluxMarketplaceLinks();
+  migratePieceCountPlurals();
+  // Last: runs after every content seed above, so a fresh database ends up
+  // with the same spelling as a migrated one.
+  migrateDioxDottedI();
+};
+
+/**
+ * One-shot: the brand is written "DİOX" (dotted capital İ) everywhere in the
+ * code and locale files since commit 51f1e77, but none of the database
+ * content was updated — product names and alt text (EN/TR/RU), news, blog
+ * posts and the AI assistant's guidelines/knowledge still said "DIOX", so
+ * both spellings appeared side by side on the same page.
+ *
+ * Display text only: `brand` / `id` key columns and image paths are not
+ * touched (paths use lowercase "diox", and REPLACE is case-sensitive).
+ */
+const migrateDioxDottedI = () => {
+  if (hasMigration('diox_dotted_i_content_2026_10')) return;
+  const L = ['ar', 'en', 'tr', 'ru'];
+  const per = (...prefixes) => prefixes.flatMap((p) => L.map((l) => `${p}_${l}`));
+  const targets = [
+    ['products', per('name', 'alt', 'description')],
+    ['news', per('title', 'excerpt', 'body', 'category')],
+    ['blog_posts', per('title', 'excerpt', 'body', 'meta_title', 'meta_description')],
+    ['ai_knowledge_sections', ['title', 'content']],
+    ['ai_custom_qa', per('question', 'answer')],
+  ];
+  let total = 0;
+  db.transaction(() => {
+    for (const [table, wanted] of targets) {
+      const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+      for (const col of wanted.filter((c) => existing.has(c))) {
+        // Column names come from the fixed list above, never from input.
+        total += db.prepare(
+          `UPDATE ${table} SET ${col} = REPLACE(${col}, 'DIOX', 'DİOX') WHERE instr(${col}, 'DIOX') > 0`,
+        ).run().changes;
+      }
+    }
+    // Product rows: bump updated_at so the cached share images (keyed by
+    // it) are re-rendered with the new name.
+    db.prepare(
+      "UPDATE products SET updated_at = datetime('now') WHERE instr(name_en, 'DİOX') > 0 OR instr(alt_en, 'DİOX') > 0",
+    ).run();
+    // Only the tone guidelines are prose; other config values are settings.
+    total += db.prepare(
+      "UPDATE ai_assistant_config SET value = REPLACE(value, 'DIOX', 'DİOX') WHERE key = 'tone_guidelines' AND instr(value, 'DIOX') > 0",
+    ).run().changes;
+  })();
+  markMigration('diox_dotted_i_content_2026_10');
+  if (total) logger.info(`[db] DIOX → DİOX in ${total} content field(s)`);
+};
+
+/**
+ * One-shot: the product seed wrote pack counts with a hand-picked word, so
+ * live cards read "12 piece" (EN) and "12 штука" / "4 штук" (RU). Rewrites
+ * only values that are exactly a generated "<n> <piece word>" label, so any
+ * custom text an admin typed is left as is.
+ */
+const migratePieceCountPlurals = () => {
+  if (hasMigration('piece_count_plurals_2026_10')) return;
+  const rows = db.prepare('SELECT id, count_en, count_ru FROM products').all();
+  const update = db.prepare('UPDATE products SET count_en=@count_en, count_ru=@count_ru WHERE id=@id');
+  let changed = 0;
+  db.transaction(() => {
+    for (const row of rows) {
+      const en = correctedPieceCount('en', row.count_en);
+      const ru = correctedPieceCount('ru', row.count_ru);
+      if (!en && !ru) continue;
+      update.run({ id: row.id, count_en: en ?? row.count_en, count_ru: ru ?? row.count_ru });
+      changed++;
+    }
+  })();
+  markMigration('piece_count_plurals_2026_10');
+  if (changed) logger.info(`[db] Fixed piece-count plurals on ${changed} product(s)`);
 };
 
 /**
@@ -1241,8 +1316,8 @@ const migrateProducts = () => {
   // ── DIOX Products ─────────────────────────────────────────────────────────
   // For DIOX, material and count use the materials.* keys
   const dioxMat = (lang, mat) => t(lang, `materials.${mat}`);
-  const dioxCount = (lang, n, plural = false) =>
-    `${n} ${t(lang, plural ? 'materials.pieces_plural' : 'materials.pieces')}`;
+  // Inflected for the number ("12 pieces", "4 штуки") — see pieceCount.mjs.
+  const dioxCount = (lang, n) => pieceCountLabel(lang, n);
 
   const dioxProducts = [
     // Home
@@ -1390,8 +1465,8 @@ const migrateProducts = () => {
       weight: p.weight,
       mat_ar: dioxMat('ar', p.mat), mat_en: dioxMat('en', p.mat),
       mat_tr: dioxMat('tr', p.mat), mat_ru: dioxMat('ru', p.mat),
-      cnt_ar: dioxCount('ar', p.count, p.plural), cnt_en: dioxCount('en', p.count, p.plural),
-      cnt_tr: dioxCount('tr', p.count, p.plural), cnt_ru: dioxCount('ru', p.count, p.plural),
+      cnt_ar: dioxCount('ar', p.count), cnt_en: dioxCount('en', p.count),
+      cnt_tr: dioxCount('tr', p.count), cnt_ru: dioxCount('ru', p.count),
       display_order: p.order,
     });
   }

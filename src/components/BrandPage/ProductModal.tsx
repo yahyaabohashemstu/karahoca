@@ -134,7 +134,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
   // just render a placeholder inside when there's no product. Memoised
   // render trick below keeps the contents cheap in the closed state.
   if (!product) {
-    return <dialog ref={dialogRef} className="image-popup-overlay" aria-label="Product details" />;
+    return <dialog ref={dialogRef} className="image-popup-overlay" aria-label={t('brandPage.productDetails')} />;
   }
 
   const allPopupImages = [product.image, ...(product.gallery ?? [])];
@@ -151,7 +151,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
           type="button"
           className="image-popup-close"
           onClick={handleCloseClick}
-          aria-label={t('brandPage.closeImage', 'Close')}
+          aria-label={t('brandPage.closeImage')}
         >
           ✕
         </button>
@@ -180,7 +180,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
                   onClick={() =>
                     setGalleryIndex((i) => (i - 1 + allPopupImages.length) % allPopupImages.length)
                   }
-                  aria-label="Previous"
+                  aria-label={t('brandPage.previousImage')}
                 >‹</button>
 
                 <div className="popup-thumbnails">
@@ -211,7 +211,7 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({
                   onClick={() =>
                     setGalleryIndex((i) => (i + 1) % allPopupImages.length)
                   }
-                  aria-label="Next"
+                  aria-label={t('brandPage.nextImage')}
                 >›</button>
               </div>
             )}

@@ -11,8 +11,8 @@
       "plasticBottle": "Plastic Bottle",
       "plasticBag": "Plastic Bag",
       "cardboardBox": "Cardboard Box",
-      "pieces": "piece",
-      "pieces_plural": "pieces"
+      "pieceCount_one": "{{count}} piece",
+      "pieceCount_other": "{{count}} pieces"
     },
     "nav": {
       "home": "Home",
@@ -29,7 +29,8 @@
       "closeMenu": "Close menu",
       "changeLanguage": "Change language",
       "news": "News",
-      "blog": "Blog"
+      "blog": "Blog",
+      "wishlist": "Wishlist"
     },
     "errorBoundary": {
       "title": "Sorry, something went wrong",
@@ -230,7 +231,8 @@
           "required": "Please enter your email",
           "invalid": "Please enter a valid email",
           "failed": "An error occurred. Please try again"
-        }
+        },
+        "emailLabel": "Email address"
       },
       "links": {
         "title": "Links",
@@ -242,7 +244,7 @@
       },
       "contact": {
         "title": "Contact",
-        "address": "Turkey, Kilis",
+        "address": "Kilis, Türkiye",
         "phone": "+90 850 228 35 34",
         "email": "info@karahoca.com"
       },
@@ -259,9 +261,9 @@
       "requestQuote": "Request a Quote",
       "productsAlt": "Products",
       "viewImage": "View Image",
-      "viewImageAria": "View image of",
+      "viewImageAria": "View image of {{name}}",
       "weight": "Weight",
-      "material": "Material",
+      "material": "Packaging",
       "count": "Count per Box",
       "notSpecified": "Not Specified",
       "gift": "Free Gift",
@@ -285,7 +287,13 @@
         "sectionEyebrow": "Online Stores",
         "sectionTitle": "Buy {{brand}} Products Online",
         "sectionSubtitle": "Order the products you love from our official stores on Turkey's leading shopping platforms."
-      }
+      },
+      "addWishlist": "Add to Wishlist",
+      "removeWishlist": "Remove from Wishlist",
+      "closeImage": "Close",
+      "productDetails": "Product details",
+      "previousImage": "Previous image",
+      "nextImage": "Next image"
     },
     "flipbook": {
       "chromeTitle": "Interactive Catalog",
@@ -334,7 +342,7 @@
       }
     },
     "diox": {
-      "brandNameArabic": "Diox",
+      "brandNameArabic": "DİOX",
       "seo": {
         "title": "DİOX - Professional Cleaning Products | KARAHOCA",
         "description": "DİOX brand from KARAHOCA - professional cleaning products with superior power. Laundry detergents, all-purpose cleaners, liquid soap, and stain removers.",
@@ -526,7 +534,7 @@
       }
     },
     "aylux": {
-      "brandNameArabic": "Aylux",
+      "brandNameArabic": "AYLUX",
       "seo": {
         "title": "AYLUX - Premium Care Products | KARAHOCA",
         "description": "AYLUX brand from KARAHOCA - premium care products with elegant sophistication. Gel cleaners, liquid cleaners, liquid soap, and fragrances.",
@@ -738,8 +746,8 @@
         "keywords": "detergent dryer, raw material production, manufacturing technology, industrial production, concentrated detergents"
       },
       "heroTitle": "Our Dryer",
-      "heroDescription": "The dryer is designed not only to produce high-quality detergents but also has the capability to manufacture raw materials directly within the system. This integrated approach enhances efficiency and ensures consistent quality. Our high-capacity facility provides the ability to meet large orders while also offering flexibility in customizing formulations to meet specific market needs.",
-      "heroImageAlt": "KARAHOCA Goal",
+      "heroDescription": "The dryer is designed not only to produce high-quality detergents but also to manufacture raw materials directly within the system. This integrated approach enhances efficiency and ensures consistent quality. Our high-capacity facility provides the ability to meet large orders while also offering flexibility in customizing formulations to meet specific market needs.",
+      "heroImageAlt": "KARAHOCA dryer",
       "sections": {
         "pillars": {
           "title": "Key Advantages",
@@ -840,7 +848,14 @@
       "printDate": "Catalog Date"
     },
     "a11y": {
-      "skipToContent": "Skip to content"
+      "skipToContent": "Skip to content",
+      "loading": "Loading",
+      "pagination": "Pagination",
+      "breadcrumb": "Breadcrumb",
+      "close": "Close"
+    },
+    "aiWidget": {
+      "openToggleLabel": "Open AI assistant"
     }
   },
   "common": {

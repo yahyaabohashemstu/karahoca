@@ -203,7 +203,7 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                             className="image-preview-btn"
                             style={{ flex: 1 }}
                             onClick={() => onProductOpen(product)}
-                            aria-label={`${t('brandPage.viewImageAria')} ${product.name}`}
+                            aria-label={t('brandPage.viewImageAria', { name: product.name })}
                           >
                             {t('brandPage.viewImage')}
                           </button>
@@ -225,10 +225,10 @@ const ProductGridComponent: React.FC<ProductGridProps> = ({
                             }}
                             title={
                               inWishlist
-                                ? t('brandPage.removeWishlist', 'Remove from Wishlist')
-                                : t('brandPage.addWishlist', 'Add to Wishlist')
+                                ? t('brandPage.removeWishlist')
+                                : t('brandPage.addWishlist')
                             }
-                            aria-label={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                            aria-label={inWishlist ? t('brandPage.removeWishlist') : t('brandPage.addWishlist')}
                           >
                             {inWishlist ? '♥' : '♡'}
                           </button>

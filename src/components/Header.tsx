@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   // navigation and the hash scroll missed because the home tree wasn't
   // mounted yet (user-visible symptom: page just "refreshed").
   const contactHref = '#contact';
-  const wishlistLabel = t('nav.wishlist', { defaultValue: 'Wishlist' });
+  const wishlistLabel = t('nav.wishlist');
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

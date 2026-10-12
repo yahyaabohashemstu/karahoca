@@ -188,7 +188,7 @@ const Footer: React.FC = () => {
             />
             <div className="newsletter__input-wrapper">
               <label htmlFor={newsletterInputId} className="sr-only">
-                {t('footer.newsletter.emailLabel', { defaultValue: 'Email address' })}
+                {t('footer.newsletter.emailLabel')}
               </label>
               <input
                 id={newsletterInputId}
@@ -203,7 +203,7 @@ const Footer: React.FC = () => {
                 autoComplete="email"
                 aria-invalid={!!emailError}
                 aria-describedby={emailError ? newsletterErrorId : undefined}
-                aria-label={t('footer.newsletter.emailLabel', { defaultValue: 'Email address' })}
+                aria-label={t('footer.newsletter.emailLabel')}
               />
               {emailError && (
                 <span id={newsletterErrorId} className="newsletter__error" role="alert">

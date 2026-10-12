@@ -30,7 +30,7 @@ const AUTO_LOAD_DELAY_MS = 1500;
 const LazyAIChatWidget: React.FC = () => {
   const { t } = useTranslation();
   const [shouldLoadWidget, setShouldLoadWidget] = useState(false);
-  const openToggleLabel = t('aiWidget.openToggleLabel', { defaultValue: 'Open AI assistant' });
+  const openToggleLabel = t('aiWidget.openToggleLabel');
 
   useEffect(() => {
     // requestIdleCallback would be ideal here but Safari still doesn't

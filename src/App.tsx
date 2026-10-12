@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WishlistProvider } from './contexts/WishlistContext';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -53,14 +54,17 @@ const AdminApp = lazy(() => import('./admin/AdminApp').then(m => ({ default: m.A
 
 // Minimal inline fallback — avoids pulling the PageLoader skeleton bundle
 // onto the critical path for every route transition.
-const RouteFallback = () => (
-  <div
-    className="route-fallback"
-    role="status"
-    aria-live="polite"
-    aria-label="Loading"
-  />
-);
+const RouteFallback = () => {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="route-fallback"
+      role="status"
+      aria-live="polite"
+      aria-label={t('a11y.loading')}
+    />
+  );
+};
 
 // ─── Locale routing helpers ────────────────────────────────────────────────
 

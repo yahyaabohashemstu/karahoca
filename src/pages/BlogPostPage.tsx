@@ -31,6 +31,7 @@ import { BreadcrumbSchema, ArticleSchema } from '../components/SchemaOrg';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
+import { localizeAuthorName } from '../utils/blogAuthor';
 import '../styles/blog.css';
 
 interface BlogPost {
@@ -132,7 +133,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     copied: 'Kopyalandı ✓',
     notFound: 'Yazı bulunamadı',
     notFoundBack: 'Bloga geri dön',
-    by: 'tarafından',
+    by: 'Yazar:',
     views: 'görüntüleme',
   },
   ru: {
@@ -155,6 +156,17 @@ const STRINGS: Record<string, Record<string, string>> = {
     by: 'автор',
     views: 'просмотров',
   },
+};
+
+// "1 просмотр / 3 просмотра / 5 просмотров", "4 مشاهدات" — a fixed word
+// gave "1 просмотров".
+const ruPlural = new Intl.PluralRules('ru');
+const arPlural = new Intl.PluralRules('ar');
+const viewsWord = (n: number, lang: string): string => {
+  if (lang === 'ru') return { one: 'просмотр', few: 'просмотра', many: 'просмотров' }[ruPlural.select(n) as string] ?? 'просмотра';
+  if (lang === 'ar') return arPlural.select(n) === 'few' ? 'مشاهدات' : 'مشاهدة';
+  if (lang === 'tr') return 'görüntüleme';
+  return n === 1 ? 'view' : 'views';
 };
 
 const formatDate = (iso: string, lang: string): string => {
@@ -387,7 +399,7 @@ const BlogPostPage: React.FC = () => {
 
           <div className="container blog-hero-v3__inner">
             {/* Breadcrumb */}
-            <nav className="blog-hero-v3__breadcrumb" aria-label="Breadcrumb">
+            <nav className="blog-hero-v3__breadcrumb" aria-label={i18n.t('a11y.breadcrumb')}>
               <Link to={lp('/')}>{t.home}</Link>
               <span aria-hidden="true">/</span>
               <Link to={lp('/blog')}>{t.blog}</Link>
@@ -423,7 +435,7 @@ const BlogPostPage: React.FC = () => {
                   {post.authorName && (
                     <span className="blog-hero-v3__meta-item">
                       <span aria-hidden="true">✍️</span>
-                      {t.by} <strong>{post.authorName}</strong>
+                      {t.by} <strong>{localizeAuthorName(post.authorName, lang)}</strong>
                     </span>
                   )}
                   <span className="blog-hero-v3__meta-item">
@@ -437,7 +449,7 @@ const BlogPostPage: React.FC = () => {
                   {post.viewCount > 0 && (
                     <span className="blog-hero-v3__meta-item">
                       <span aria-hidden="true">👁️</span>
-                      {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')} {t.views}
+                      {post.viewCount.toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')} {viewsWord(post.viewCount, lang)}
                     </span>
                   )}
                 </div>
