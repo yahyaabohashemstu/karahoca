@@ -56,6 +56,10 @@ const ALLOWED_EVENT_TYPES = new Set([
   'wishlist_remove',
   // Outbound conversions
   'whatsapp_click',
+  // Click-through to a brand's marketplace storefront (Trendyol,
+  // Hepsiburada…). Payload: { marketplace, brand, placement,
+  // product_name? }.
+  'marketplace_click',
   'email_click',
   'phone_click',
   // Chat

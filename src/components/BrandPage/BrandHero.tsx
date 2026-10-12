@@ -1,6 +1,8 @@
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageWithFallback from '../ImageWithFallback';
+import MarketplaceLinks from './MarketplaceLinks';
+import type { MarketplaceStore } from '../../constants/marketplaces';
 
 interface BrandHeroProps {
   brandName: string;
@@ -16,6 +18,8 @@ interface BrandHeroProps {
   aboutMainHeading: string;
   aboutSections: Array<{ title: string; content: string }>;
   aboutId: string;
+  /** Storefronts for the visitor's language; empty hides the "buy online" row. */
+  marketplaces: readonly MarketplaceStore[];
 }
 
 /**
@@ -38,6 +42,7 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
   aboutMainHeading,
   aboutSections,
   aboutId,
+  marketplaces,
 }) => {
   const { t } = useTranslation();
 
@@ -58,6 +63,13 @@ const BrandHeroComponent: React.FC<BrandHeroProps> = ({
               <a href="#products" className="btn btn--primary btn-hover-effect">{t('brandPage.exploreProducts')}</a>
               <a href="#contact" className="btn btn--ghost btn-hover-effect">{t('brandPage.requestQuote')}</a>
             </div>
+            <MarketplaceLinks
+              stores={marketplaces}
+              brandName={brandName}
+              placement="hero"
+              label={t('brandPage.marketplace.heroLabel')}
+              className="fx-reveal"
+            />
             <ul className="hero__badges">
               {badges.map((badge) => (
                 <li key={badge} className="chip glass-chip">{badge}</li>

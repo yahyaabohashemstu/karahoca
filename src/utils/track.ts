@@ -50,6 +50,7 @@ export type EventType =
   | 'wishlist_add'
   | 'wishlist_remove'
   | 'whatsapp_click'
+  | 'marketplace_click'
   | 'email_click'
   | 'phone_click'
   | 'chat_open'

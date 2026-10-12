@@ -45,6 +45,29 @@ export const trackWhatsAppClick = (source: 'floating_button' | 'footer' | 'inlin
   track({ event_type: 'whatsapp_click', payload: { source } });
 };
 
+/** Where on the brand page a marketplace button was clicked. */
+export type MarketplacePlacement = 'hero' | 'product_modal' | 'section';
+
+/** Marketplace storefront button clicked (Trendyol, Hepsiburada…) */
+export const trackMarketplaceClick = (
+  marketplace: string,
+  brand: string,
+  placement: MarketplacePlacement,
+  product?: { id?: string; name: string },
+): void => {
+  trackEvent('Marketplace', 'Click', `${marketplace} — ${brand} — ${placement}`);
+  track({
+    event_type: 'marketplace_click',
+    product_id: product?.id,
+    payload: {
+      marketplace,
+      brand,
+      placement,
+      ...(product ? { product_name: product.name } : {}),
+    },
+  });
+};
+
 /** AI chat widget opened */
 export const trackChatOpen = (): void => {
   trackEvent('Engagement', 'Chat Open', 'AI Assistant');

@@ -4,11 +4,16 @@ import ImageWithFallback from '../ImageWithFallback';
 import { toWebp } from '../../utils/image';
 import { whatsAppShareProductUrl, buildProductShareUrl } from '../../utils/whatsapp';
 import { normalizeLanguageCode } from '../../utils/language';
+import MarketplaceLinks from './MarketplaceLinks';
+import type { MarketplaceStore } from '../../constants/marketplaces';
 import type { ProductInfo } from './types';
 
 interface ProductModalProps {
   product: ProductInfo | null;
   onClose: () => void;
+  brandName: string;
+  /** Storefronts for the visitor's language; empty hides the "buy online" row. */
+  marketplaces: readonly MarketplaceStore[];
 }
 
 /**
@@ -65,7 +70,12 @@ const buildWhatsAppUrl = (
  * `close` event (fired by Escape / form method=dialog) to the `onClose`
  * callback so the parent's state stays consistent.
  */
-const ProductModalComponent: React.FC<ProductModalProps> = ({ product, onClose }) => {
+const ProductModalComponent: React.FC<ProductModalProps> = ({
+  product,
+  onClose,
+  brandName,
+  marketplaces,
+}) => {
   const { t, i18n } = useTranslation();
   const lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -276,6 +286,17 @@ const ProductModalComponent: React.FC<ProductModalProps> = ({ product, onClose }
                 )}
               </div>
             )}
+
+            {/* Storefront-level links: only the brand's store URLs are
+                configured (no per-listing links), so these open the store
+                and the visitor picks the product there. */}
+            <MarketplaceLinks
+              stores={marketplaces}
+              brandName={brandName}
+              placement="product_modal"
+              label={t('brandPage.marketplace.modalLabel')}
+              product={{ id: product.id, name: product.name }}
+            />
 
             <a
               href={buildWhatsAppUrl(

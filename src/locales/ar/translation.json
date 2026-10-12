@@ -270,7 +270,22 @@
       "catalogEyebrow": "الكتالوج التفاعلي",
       "catalogTitlePrefix": "كتالوج",
       "catalogTitleSuffix": "التفاعلي",
-      "catalogSubtitle": "تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة"
+      "catalogSubtitle": "تصفّح جميع المنتجات بتجربة قراءة رقمية سلسة — قلّب الصفحات وشاهد بوضع ملء الشاشة",
+      "marketplace": {
+        "heroLabel": "اشترِ عبر الإنترنت",
+        "modalLabel": "اشترِ هذا المنتج عبر الإنترنت",
+        "officialStore": "المتجر الرسمي",
+        "officialBrandStore": "متجر {{brand}} الرسمي",
+        "opensInNewTab": "يُفتح في علامة تبويب جديدة",
+        "buyOn": {
+          "trendyol": "اشترِ من Trendyol",
+          "hepsiburada": "اشترِ من Hepsiburada"
+        },
+        "visitStore": "زيارة المتجر",
+        "sectionEyebrow": "المتاجر الإلكترونية",
+        "sectionTitle": "اشترِ منتجات {{brand}} عبر الإنترنت",
+        "sectionSubtitle": "اطلب المنتجات التي تعجبك بسهولة من متاجرنا الرسمية على أبرز منصّات التسوّق في تركيا."
+      }
     },
     "flipbook": {
       "chromeTitle": "الكتالوج التفاعلي",

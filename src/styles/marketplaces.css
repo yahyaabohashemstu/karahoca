@@ -1,0 +1,351 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Marketplace storefront links — the "buy online" buttons
+   ─────────────────────────────────────────────────────────────────────────
+   Rendered by components/BrandPage/MarketplaceLinks.tsx (brand hero +
+   product modal) and MarketplaceSection.tsx (closing band). WHICH stores
+   appear, and for which UI language, is decided in
+   constants/marketplaces.ts — this file is presentation only.
+
+   One badge design, three placements:
+     .mkt--hero     labelled row under the hero CTAs
+     .mkt--modal    labelled row inside the product details column
+     .mkt--section  large cards in the closing band
+
+   Columns adapt to the width each placement actually gets (container
+   queries), not to the viewport: the hero column, the modal's info
+   column and the full-width band are all different sizes on the same
+   screen. Each store's identity colour arrives as `--mkt-color` and is
+   used only for decoration (icon tile, hover border, focus ring), never
+   for text — see the contrast note in tokens.css.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.mkt {
+  --mkt-surface: var(--surface-glass-lite);
+  --mkt-surface-hover: var(--surface-glass-medium);
+  --mkt-border: var(--surface-border-glass);
+  --mkt-shadow: 0 10px 26px -18px rgba(0, 0, 0, 0.75);
+  --mkt-chip: var(--surface-glass-medium);
+  container: mkt / inline-size;
+}
+
+body.light-mode .mkt {
+  --mkt-surface: var(--color-white);
+  --mkt-surface-hover: var(--color-white);
+  --mkt-border: var(--surface-brand-tint-15);
+  --mkt-shadow: 0 10px 24px -16px rgba(21, 61, 122, 0.4);
+  --mkt-chip: var(--surface-brand-tint-08);
+}
+
+/* ── Group label: "Online satın alın ──────────" ─────────────────────── */
+.mkt__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+.mkt__label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.25;
+}
+
+/* ── Grid: one badge per row by default, two side by side when the
+      placement is wide enough for both at full size. ───────────────── */
+.mkt__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container mkt (min-width: 420px) {
+  .mkt__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mkt__item {
+  container: mkt-item / inline-size;
+  display: flex; /* badge stretches to the row height */
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────── */
+.mkt-btn {
+  --mkt-color: var(--color-brand-accent);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 62px;
+  padding-block: 10px;
+  padding-inline: 10px 12px;
+  border: 1px solid var(--mkt-border);
+  border-radius: var(--radius-lg);
+  background: var(--mkt-surface);
+  box-shadow: var(--mkt-shadow);
+  color: var(--text);
+  text-align: start;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--motion-base) var(--easing-standard),
+    border-color var(--motion-base) var(--easing-standard),
+    box-shadow var(--motion-base) var(--easing-standard),
+    background-color var(--motion-base) var(--easing-standard);
+}
+
+.mkt-btn--trendyol    { --mkt-color: var(--color-trendyol); }
+.mkt-btn--hepsiburada { --mkt-color: var(--color-hepsiburada); }
+
+.mkt-btn__tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  color: var(--color-white);
+  background: var(--mkt-color); /* fallback where color-mix() is unsupported */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--mkt-color) 72%, white) 0%,
+    var(--mkt-color) 70%
+  );
+  box-shadow:
+    0 6px 14px -6px color-mix(in srgb, var(--mkt-color) 80%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.mkt-btn__tile svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mkt-btn__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.mkt-btn__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mkt-btn__name,
+.mkt-btn__desc {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mkt-btn__name {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.mkt-btn__desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Trailing affordance: round arrow chip (md) / "Mağazaya git ↗" pill (lg). */
+.mkt-btn__arrow,
+.mkt-btn__cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--mkt-chip);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  transition:
+    transform var(--motion-base) var(--easing-standard),
+    color var(--motion-base) var(--easing-standard),
+    background-color var(--motion-base) var(--easing-standard),
+    border-color var(--motion-base) var(--easing-standard);
+}
+
+.mkt-btn__arrow {
+  width: 30px;
+  height: 30px;
+}
+
+.mkt-btn__arrow svg,
+.mkt-btn__cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Arrow points "out" towards the inline end — mirror it in RTL. */
+[dir="rtl"] .mkt-btn__arrow svg,
+[dir="rtl"] .mkt-btn__cta svg {
+  transform: scaleX(-1);
+}
+
+/* ── Large card (closing band) ──────────────────────────────────────── */
+.mkt-btn--lg {
+  gap: var(--space-4);
+  min-height: 100px;
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4) var(--space-5);
+  border-radius: var(--radius-xl);
+}
+
+.mkt-btn--lg .mkt-btn__tile {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-lg);
+}
+
+.mkt-btn--lg .mkt-btn__tile svg {
+  width: 26px;
+  height: 26px;
+}
+
+.mkt-btn--lg .mkt-btn__text {
+  gap: var(--space-1);
+}
+
+.mkt-btn--lg .mkt-btn__name {
+  font-size: 1.4rem;
+}
+
+.mkt-btn__cta {
+  gap: var(--space-2);
+  min-height: 40px;
+  padding-inline: var(--space-4);
+  border-color: var(--mkt-border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Narrow card (phones): the pill collapses to its arrow so the store
+   name never has to truncate. The label is aria-hidden duplication of
+   the link's accessible name, so hiding it loses nothing. */
+@container mkt-item (max-width: 400px) {
+  .mkt-btn__cta {
+    width: 40px;
+    padding-inline: 0;
+  }
+
+  .mkt-btn__cta-label {
+    display: none;
+  }
+}
+
+/* ── Interaction ────────────────────────────────────────────────────── */
+/* Hover lift only for real pointers, so it can't stick after a tap. */
+@media (hover: hover) and (pointer: fine) {
+  .mkt-btn:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--mkt-color) 55%, transparent);
+    background-color: var(--mkt-surface-hover);
+    box-shadow: 0 18px 34px -20px color-mix(in srgb, var(--mkt-color) 85%, transparent);
+  }
+
+  .mkt-btn:hover .mkt-btn__arrow {
+    color: var(--color-white);
+    background: var(--mkt-color);
+    transform: translate(2px, -2px);
+  }
+
+  [dir="rtl"] .mkt-btn:hover .mkt-btn__arrow {
+    transform: translate(-2px, -2px);
+  }
+
+  .mkt-btn--lg:hover .mkt-btn__cta {
+    border-color: color-mix(in srgb, var(--mkt-color) 55%, transparent);
+    background: color-mix(in srgb, var(--mkt-color) 14%, transparent);
+  }
+}
+
+.mkt-btn:active {
+  transform: scale(0.985);
+}
+
+.mkt-btn:focus-visible {
+  outline: 2px solid var(--mkt-color);
+  outline-offset: 3px;
+}
+
+/* ── Placements ─────────────────────────────────────────────────────── */
+.mkt--hero {
+  max-width: 480px;
+  margin-bottom: var(--space-6);
+}
+
+.mkt--modal {
+  margin-top: var(--space-5);
+}
+
+.mkt--section {
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+/* Even line lengths when the band's title wraps on phones, instead of
+   one word stranded on the second line. */
+.mkt-section .section-title {
+  text-wrap: balance;
+}
+
+.mkt-section .section-subtitle {
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+/* The band's cards need far more room than the compact badges before a
+   second column fits, so it stays one-up until the band is wide. */
+@container mkt (max-width: 659px) {
+  .mkt--section .mkt__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container mkt (min-width: 660px) {
+  .mkt--section .mkt__list {
+    gap: var(--space-5);
+  }
+}
+
+/* Phones: the hero copy is centred here (main.css), so centre the block
+   and draw the label's rule on both sides. Badge text stays start-aligned. */
+@media (max-width: 480px) {
+  .mkt--hero {
+    margin-inline: auto;
+    margin-bottom: var(--space-3);
+  }
+
+  .mkt--hero .mkt__label::before {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.25;
+  }
+
+  .mkt-btn {
+    min-height: 56px;
+  }
+}

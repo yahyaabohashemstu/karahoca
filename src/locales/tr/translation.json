@@ -270,7 +270,22 @@
       "catalogEyebrow": "İnteraktif Katalog",
       "catalogTitlePrefix": "",
       "catalogTitleSuffix": "İnteraktif Kataloğu",
-      "catalogSubtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda görüntüleyin"
+      "catalogSubtitle": "Tüm ürünleri akıcı bir dijital okuma deneyimiyle inceleyin — sayfaları çevirin ve tam ekran modunda görüntüleyin",
+      "marketplace": {
+        "heroLabel": "Online satın alın",
+        "modalLabel": "Bu ürünü online satın alın",
+        "officialStore": "Resmi mağaza",
+        "officialBrandStore": "Resmi {{brand}} mağazası",
+        "opensInNewTab": "yeni sekmede açılır",
+        "buyOn": {
+          "trendyol": "Trendyol'dan satın al",
+          "hepsiburada": "Hepsiburada'dan satın al"
+        },
+        "visitStore": "Mağazaya git",
+        "sectionEyebrow": "Online Mağazalar",
+        "sectionTitle": "{{brand}} Ürünlerini Online Satın Alın",
+        "sectionSubtitle": "Beğendiğiniz ürünleri, Türkiye'nin önde gelen alışveriş platformlarındaki resmi mağazalarımızdan kolayca sipariş edin."
+      }
     },
     "flipbook": {
       "chromeTitle": "İnteraktif Katalog",

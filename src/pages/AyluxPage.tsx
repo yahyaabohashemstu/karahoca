@@ -5,6 +5,7 @@ import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
 import { getAyluxCategories, fetchBrandCatalogFromApi, type BrandCategoryData } from '../data/brandCatalog';
 import { normalizeLanguageCode } from '../utils/language';
+import { getBrandMarketplaces } from '../constants/marketplaces';
 
 const AYLUX_LOGO_SRC = '/Aylux-logo.png.webp';
 const AYLUX_LOGO_FALLBACK = '/Aylux-logo.png';
@@ -86,7 +87,10 @@ const AyluxPageContent: React.FC = () => {
     productsSubtitle: t('aylux.productsSection.subtitle'),
     categories,
     pageClass: 'aylux-page',
-    aboutId: 'about-aylux'
+    aboutId: 'about-aylux',
+    // Trendyol + Hepsiburada storefronts — sold in Turkey only, so this is
+    // non-empty for the Turkish UI alone (see constants/marketplaces.ts).
+    marketplaces: getBrandMarketplaces('AYLUX', currentLang)
   };
 
   const allProducts = categories.flatMap(c =>

@@ -8,6 +8,8 @@ import FlipBook from '../FlipBook';
 import BrandHero from './BrandHero';
 import ProductGrid from './ProductGrid';
 import ProductModal from './ProductModal';
+import MarketplaceSection from './MarketplaceSection';
+import type { MarketplaceStore } from '../../constants/marketplaces';
 import type { CategoryData, ProductInfo } from './types';
 
 // ─── React.memo structural equality helpers ──────────────────────────────
@@ -52,7 +54,16 @@ export interface BrandPageProps {
   aboutId: string;
   pdfUrl?: string;
   catalogImages?: string[];
+  /**
+   * Online storefronts for the visitor's language, from
+   * `getBrandMarketplaces()`. Omitted / empty → no "buy online" UI at all
+   * (hero row, product-modal row and closing band all disappear).
+   */
+  marketplaces?: readonly MarketplaceStore[];
 }
+
+// Stable default so memoised children don't see a fresh `[]` every render.
+const NO_MARKETPLACES: readonly MarketplaceStore[] = [];
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────
 
@@ -67,6 +78,8 @@ export interface BrandPageProps {
  *     BrandHero.tsx     (hero + about sections)
  *     ProductGrid.tsx   (categorised product cards)
  *     ProductModal.tsx  (native <dialog> details + gallery + share)
+ *     MarketplaceLinks.tsx   (storefront "buy online" badges: hero + modal)
+ *     MarketplaceSection.tsx (closing "online stores" band)
  *     types.ts          (ProductInfo, CategoryData)
  *
  * Responsibilities retained here:
@@ -96,6 +109,7 @@ const BrandPage: React.FC<BrandPageProps> = ({
   aboutId,
   pdfUrl,
   catalogImages,
+  marketplaces = NO_MARKETPLACES,
 }) => {
   const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<ProductInfo | null>(null);
@@ -172,6 +186,7 @@ const BrandPage: React.FC<BrandPageProps> = ({
           aboutMainHeading={aboutMainHeading}
           aboutSections={aboutSections}
           aboutId={aboutId}
+          marketplaces={marketplaces}
         />
 
         {/* Flipbook catalog band — only rendered when there's actually a
@@ -223,9 +238,16 @@ const BrandPage: React.FC<BrandPageProps> = ({
           categories={categories}
           onProductOpen={handleProductOpen}
         />
+
+        <MarketplaceSection stores={marketplaces} brandName={brandName} />
       </main>
 
-      <ProductModal product={selectedProduct} onClose={handleModalClose} />
+      <ProductModal
+        product={selectedProduct}
+        onClose={handleModalClose}
+        brandName={brandName}
+        marketplaces={marketplaces}
+      />
 
       <Footer />
     </div>
@@ -256,6 +278,9 @@ const propsAreEqual = (prev: BrandPageProps, next: BrandPageProps): boolean => {
 
   if (!arrayOfPrimitivesEqual(prev.badges, next.badges)) return false;
   if (!arrayOfPrimitivesEqual(prev.catalogImages, next.catalogImages)) return false;
+  // Store objects are module-level constants (constants/marketplaces.ts),
+  // so element-wise reference equality is exact here.
+  if (!arrayOfPrimitivesEqual(prev.marketplaces, next.marketplaces)) return false;
   if (!deepValueEqual(prev.aboutSections, next.aboutSections)) return false;
   if (!deepValueEqual(prev.categories, next.categories)) return false;
 

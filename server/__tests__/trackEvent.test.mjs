@@ -89,7 +89,7 @@ describe('normaliseEvent — full vocabulary', () => {
   const vocab = [
     'page_view', 'language_switch', 'product_view', 'product_modal_open',
     'product_share_whatsapp', 'wishlist_add', 'wishlist_remove',
-    'whatsapp_click', 'email_click', 'phone_click',
+    'whatsapp_click', 'marketplace_click', 'email_click', 'phone_click',
     'chat_open', 'chat_close', 'chat_message_sent',
     'chat_followup_chip_used', 'chat_continue_whatsapp',
     'search_query', 'newsletter_subscribe',

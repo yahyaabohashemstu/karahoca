@@ -58,6 +58,14 @@
   --color-chrome-red:    #ff5f57;
   --color-chrome-green:  #28c840;
 
+  /* ── THIRD-PARTY MARKETPLACES ──────────────────────────────────────── */
+  /* Identity accents for the "buy online" storefront buttons (see
+     constants/marketplaces.ts). Decorative only — icon tiles, hover
+     borders, focus rings — never used as a text colour, since neither
+     orange reaches WCAG AA contrast on white. */
+  --color-trendyol:    #f27a1a;
+  --color-hepsiburada: #ff6000;
+
   /* ── GLASS / SURFACES (dark-mode defaults) ────────────────────────── */
   --surface-glass-ghost:   rgba(255, 255, 255, 0.02);
   --surface-glass-subtle:  rgba(255, 255, 255, 0.04);
