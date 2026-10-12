@@ -599,8 +599,8 @@ export const AdminProductEdit: React.FC = () => {
             <div className="adm-card-title">Online Store Listings</div>
             <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '4px 0 12px' }}>
               This product's own page on the brand's store. The site's "buy online"
-              buttons in the product window open it — currently shown to Turkish
-              visitors of AYLUX. Leave empty to send buyers to the store's main page.
+              buttons in the product window open it — currently shown on the Turkish
+              and Arabic AYLUX pages. Leave empty to send buyers to the store's main page.
             </p>
             {MARKETPLACE_URL_FIELDS.map(({ key, label, placeholder }) => {
               const value = form[key] ?? '';

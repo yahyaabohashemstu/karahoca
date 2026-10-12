@@ -79,8 +79,9 @@ const AyluxPageContent: React.FC = () => {
     categories,
     pageClass: 'aylux-page',
     aboutId: 'about-aylux',
-    // Trendyol + Hepsiburada storefronts — sold in Turkey only, so this is
-    // non-empty for the Turkish UI alone (see constants/marketplaces.ts).
+    // Trendyol + Hepsiburada storefronts — they deliver in Turkey only, so
+    // this is non-empty for the Turkish and Arabic UIs alone (see
+    // constants/marketplaces.ts).
     marketplaces: getBrandMarketplaces('AYLUX', currentLang)
   };
 

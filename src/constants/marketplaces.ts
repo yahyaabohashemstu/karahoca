@@ -3,11 +3,13 @@
  *
  * Some sub-brands are sold directly to consumers through third-party
  * marketplaces. Those storefronts only ship inside one country, so the
- * "buy online" UI is gated per locale: a visitor browsing in a language
- * whose market the store does not serve never sees a button that would
- * lead to a shop they cannot order from.
+ * "buy online" UI is gated per locale: it is shown only in the languages
+ * of the people who live in that market.
  *
- *   AYLUX → Trendyol + Hepsiburada, Turkey only → shown on `/tr/aylux`.
+ *   AYLUX → Trendyol + Hepsiburada, delivering in Turkey only →
+ *   shown on `/tr/aylux` and `/ar/aylux` (Turkey's large Arabic-speaking
+ *   community). Arabic readers may also be browsing from abroad, so the
+ *   Arabic copy says "داخل تركيا" / "للمقيمين في تركيا" outright.
  *
  * Every surface that renders these links (brand hero, product modal,
  * closing "online stores" band) reads from `getBrandMarketplaces()`, so
@@ -42,7 +44,7 @@ interface BrandMarketplaces {
 
 const BRAND_MARKETPLACES: Readonly<Record<string, BrandMarketplaces>> = {
   AYLUX: {
-    locales: ['tr'],
+    locales: ['tr', 'ar'],
     stores: [
       {
         id: 'trendyol',
