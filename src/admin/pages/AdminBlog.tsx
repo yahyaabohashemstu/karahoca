@@ -165,7 +165,7 @@ export const AdminBlog: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        <StatusBadge status={item.status} />
+                        <StatusBadge status={item.status} active={item.active} />
                       </td>
                       <td>{item.view_count}</td>
                       <td>{item.reading_time} min</td>
@@ -199,13 +199,18 @@ export const AdminBlog: React.FC = () => {
   );
 };
 
-const StatusBadge: React.FC<{ status: BlogPostItem['status'] }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: BlogPostItem['status']; active?: number | boolean }> = ({ status, active }) => {
   const cfg: Record<string, { bg: string; label: string }> = {
     published: { bg: '#10b981', label: '✅ Live' },
     draft:     { bg: '#6b7280', label: '📝 Draft' },
     scheduled: { bg: '#f59e0b', label: '🕐 Scheduled' },
+    deleted:   { bg: '#ef4444', label: '🗑 Deleted' },
   };
-  const c = cfg[status] || cfg.draft;
+  // Delete only sets active=0 (drafts are active=0 too). A deleted post kept
+  // showing "Live", so it looked as if Delete had done nothing — and
+  // re-saving it from the editor quietly republished it.
+  const isDeleted = !active && status !== 'draft';
+  const c = isDeleted ? cfg.deleted : cfg[status] || cfg.draft;
   return (
     <span style={{ background: c.bg, color: '#fff', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600 }}>
       {c.label}

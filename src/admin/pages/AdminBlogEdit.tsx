@@ -143,6 +143,11 @@ export const AdminBlogEdit: React.FC = () => {
       </div>
 
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {!isNew && !form.active && form.status !== 'draft' && (
+        <div className="adm-alert adm-alert-info">
+          🗑 This post was deleted and is hidden from the site. Saving it with this status will publish it again.
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20 }}>
         {/* Main column */}
