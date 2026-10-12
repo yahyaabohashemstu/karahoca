@@ -173,13 +173,15 @@ const Footer: React.FC = () => {
             onSubmit={handleSubscribe}
             noValidate
           >
-            {/* Honeypot: invisible to users, visible to bots */}
+            {/* Honeypot: invisible to users, visible to bots. Hidden by
+                clipping (.form-honeypot), never by an off-screen offset,
+                which would widen RTL pages. */}
             <input
               type="text"
               name="_honey"
               value={honeyValue}
               onChange={e => setHoneyValue(e.target.value)}
-              style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0, overflow: 'hidden' }}
+              className="form-honeypot"
               tabIndex={-1}
               autoComplete="off"
               aria-hidden="true"

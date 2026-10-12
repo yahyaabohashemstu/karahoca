@@ -318,6 +318,29 @@ body {
   border: 0;
 }
 
+/* Spam-trap field (the newsletter's `_honey` input): kept in the DOM and
+   fillable, so bots that fill every input give themselves away, but
+   invisible and out of reach for people — the input itself also carries
+   tabindex="-1" and aria-hidden="true".
+   Clipped where it stands rather than pushed off-screen: the former
+   inline `left: -9999px` made every RTL (Arabic) page ~10,000px wider,
+   because in a right-to-left document a negative `left` extends the
+   scrollable area. No offset → no overflow in either direction. */
+.form-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .gradient-text {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
