@@ -377,10 +377,14 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       const urlError = normalizeMarketplaceUrlFields(body);
       if (urlError) { sendJson(res, 400, { success: false, error: urlError }, origin); return; }
 
+      const previousBrand = db.prepare('SELECT brand FROM products WHERE id=?').get(id)?.brand;
       const result = updateProductRow(id, body);
       if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
 
       const updated = db.prepare('SELECT * FROM products WHERE id=?').get(id);
+      // Moved to the other brand: the old brand's cached catalogue still
+      // listed it (only the new brand was invalidated).
+      if (previousBrand && previousBrand !== updated?.brand) void invalidateProductsCache(previousBrand);
       logAudit({ action: 'UPDATE', entityType: 'product', entityId: id, entityName: body.name_ar || body.name_en || id, adminUser });
       void invalidateProductsCache(updated?.brand);
       // Purge cached OG images for this product across all 4 languages.

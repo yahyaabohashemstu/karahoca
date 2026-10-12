@@ -123,12 +123,18 @@ const handleRequest = async (request, response) => {
   const requestOrigin = getRequestOrigin(request);
   const requestHostOrigin = getRequestHostOrigin(request);
   const originAllowed = isOriginAllowed(requestOrigin, requestHostOrigin);
+  // Echo the Origin back (Access-Control-Allow-Origin + Allow-Credentials)
+  // only for allowed origins. It used to be reflected for ANY origin on
+  // GET — only writes were origin-checked — so another site under the
+  // same registrable domain (a *.karahoca.com subdomain, a preview
+  // deployment) could read credentialed admin GET responses.
+  const corsOrigin = originAllowed ? requestOrigin : '';
   const url = request.url.split('?')[0];
   // Existing admin route handlers (admin-auth.mjs, admin-*.mjs) destructure
   // `sendJson` from ctx — keep it there so they continue to work without a
   // call-site sweep. Importing sendJson from middlewares/cors.mjs directly
   // is the new preferred style.
-  const ctx = { origin: requestOrigin, url, sendJson };
+  const ctx = { origin: corsOrigin, url, sendJson };
 
   // CORS preflight
   if (request.method === 'OPTIONS') {
@@ -136,7 +142,7 @@ const handleRequest = async (request, response) => {
       sendJson(response, 403, { success: false, error: 'Origin is not allowed.' });
       return;
     }
-    response.writeHead(204, createJsonHeaders(requestOrigin));
+    response.writeHead(204, createJsonHeaders(corsOrigin));
     response.end();
     return;
   }
@@ -146,7 +152,7 @@ const handleRequest = async (request, response) => {
     (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE') &&
     !originAllowed
   ) {
-    sendJson(response, 403, { success: false, error: 'Origin is not allowed.' }, requestOrigin);
+    sendJson(response, 403, { success: false, error: 'Origin is not allowed.' }, corsOrigin);
     return;
   }
 
@@ -195,7 +201,7 @@ const handleRequest = async (request, response) => {
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/subscribe') {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       await handleNewsletterSubscribe(request, response, ctx);
       return;
     }
@@ -208,12 +214,12 @@ const handleRequest = async (request, response) => {
       return;
     }
     if (request.method === 'POST' && url === '/api/log-error') {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       await handleLogError(request, response, ctx);
       return;
     }
     if (request.method === 'POST' && url === '/api/chat/log') {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       await handleChatLogRoute(request, response, ctx);
       return;
     }
@@ -222,7 +228,7 @@ const handleRequest = async (request, response) => {
     // beacons (e.g. last-event-before-unload via sendBeacon). CSRF
     // required: same defence-in-depth as the chat log.
     if (request.method === 'POST' && (url === '/api/track/event' || url === '/api/track/events')) {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       await handleTrackEvent(request, response, ctx);
       return;
     }
@@ -252,7 +258,7 @@ const handleRequest = async (request, response) => {
     // most-specific routes first so /api/blog/posts/:slug/view doesn't
     // collide with /api/blog/posts/:slug.
     if (request.method === 'POST' && /^\/api\/blog\/posts\/[^/]+\/view$/.test(url)) {
-      if (!requirePublicCsrfToken(request, response, requestOrigin)) return;
+      if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       handleBlogViewIncrement(request, response, ctx);
       return;
     }
@@ -321,16 +327,16 @@ const handleRequest = async (request, response) => {
     // by a separate nginx image. The SPA hits this on boot (with
     // credentials:'include') so that its first POST has a token to echo.
     if (request.method === 'GET' && url === '/api/csrf') {
-      const baseHeaders = createJsonHeaders(requestOrigin);
+      const baseHeaders = createJsonHeaders(corsOrigin);
       const { token, headers } = ensurePublicCsrfCookie(request, baseHeaders);
       response.writeHead(200, headers);
       response.end(JSON.stringify({ success: true, token }));
       return;
     }
 
-    sendJson(response, 404, { success: false, error: 'Route not found.' }, requestOrigin);
+    sendJson(response, 404, { success: false, error: 'Route not found.' }, corsOrigin);
   } catch (error) {
-    handleServerError(request, response, error, requestOrigin);
+    handleServerError(request, response, error, corsOrigin);
   }
 };
 

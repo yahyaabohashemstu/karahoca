@@ -310,8 +310,9 @@ const buildHistoryMessages = (history, currentPrompt) => {
         typeof item.content === 'string' &&
         item.content.trim().length > 0,
     )
-    .map((item) => ({ role: item.role, content: item.content }))
-    .slice(-6);
+    .slice(-6)
+    // Per-turn cap: history is client-supplied and goes to the model as-is.
+    .map((item) => ({ role: item.role, content: item.content.slice(0, 4000) }));
 
   // De-duplicate: if the last history entry is a user turn whose content
   // is contained inside the current prompt, drop it. (The current prompt

@@ -225,6 +225,8 @@ export const __testInternals = { stripModelContactFooter };
  * Either way: Redis cache is checked first; on miss, OpenRouter is called
  * and the full text is cached for 24 h once the stream completes.
  */
+const MAX_PROMPT_CHARS = 120_000;
+
 export const handleAiChat = async (request, response, { origin }) => {
   const clientIp = getClientIp(request);
   if (await isChatRateLimited(clientIp)) {
@@ -233,6 +235,15 @@ export const handleAiChat = async (request, response, { origin }) => {
   }
 
   const body = await readRequestBody(request);
+
+  // The prompt (knowledge base + history + question, assembled in the
+  // browser) goes to a paid model. Legitimate ones are a few tens of KB;
+  // the only limit used to be the 512 KB body cap, which let anyone use the
+  // endpoint as a free LLM proxy at ~10× the normal cost per request.
+  if (typeof body?.prompt === 'string' && body.prompt.length > MAX_PROMPT_CHARS) {
+    sendJson(response, 413, { success: false, error: 'Message too long.' }, origin);
+    return;
+  }
 
   // Fire-and-forget: silently log the last user line for knowledge-base mining.
   if (typeof body?.prompt === 'string') {
@@ -345,7 +356,10 @@ const handleAiChatStream = async (response, body, origin) => {
   };
 
   let aborted = false;
-  const onClose = () => { aborted = true; };
+  // Cancel the model call when the visitor goes away (tab closed,
+  // navigation): generation used to run — and bill tokens — to the end.
+  const abortController = new AbortController();
+  const onClose = () => { aborted = true; abortController.abort(); };
   response.on('close', onClose);
 
   try {
@@ -439,6 +453,7 @@ const handleAiChatStream = async (response, body, origin) => {
     let inFooterMode = false;
 
     const result = await streamAiReply({
+      signal: abortController.signal,
       prompt: body.prompt,
       lang: body.lang || 'ar',
       history: body.history,
@@ -528,6 +543,7 @@ const handleAiChatStream = async (response, body, origin) => {
 
     response.end();
   } catch (aiErr) {
+    if (aborted) return; // visitor left — nothing to report or send
     logger.error('[ai-chat] streamAiReply failed:', aiErr.message || aiErr);
     if (!response.destroyed) {
       sendEvent('error', {
