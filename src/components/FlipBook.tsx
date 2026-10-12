@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFlipBookLoader } from '../hooks/useFlipBookLoader';
 import { useIsMobile } from '../hooks/useIsMobile';
 import '../styles/flipbook.css';
+import { useHydrated } from '../hooks/useHydrated';
 
 // Reference-safe comparator for the `imageUrls?: string[]` prop. Pages are
 // stored as a flat string array in brandCatalog — a new literal with the
@@ -138,7 +139,14 @@ const FlipBook: React.FC<FlipBookProps> = ({ imageUrls, pdfUrl, downloadUrl, bra
   // ── Page data (delegated to useFlipBookLoader) ──────────────────────────────
   // All I/O — image preloading AND PDF fallback rendering — lives in the
   // hook. FlipBook itself only owns navigation/zoom/pan/render state.
-  const { pages, loading, loadPct, loadErr } = useFlipBookLoader(imageUrls, pdfUrl);
+  // Pages load only once the page is live: the prerendered snapshot and the
+  // hydration render both show the viewer's loading state, so they match
+  // (useHydrated); loading starts right after hydration.
+  const hydrated = useHydrated();
+  const { pages, loading, loadPct, loadErr } = useFlipBookLoader(
+    hydrated ? imageUrls : undefined,
+    hydrated ? pdfUrl : undefined,
+  );
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [spread, setSpread]     = useState(0);

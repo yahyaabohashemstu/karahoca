@@ -7,7 +7,7 @@ import SEO from '../components/SEO';
 import { ArticleSchema, BreadcrumbSchema } from '../components/SchemaOrg';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
+import { getLocalizedNewsItems, getPrerenderedNews, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
 import { normalizeLanguageCode } from '../utils/language';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
@@ -18,18 +18,32 @@ const NewsArticlePage: React.FC = () => {
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
   const isMobile = useIsMobile(768);
   const { lp } = useLocalizedPath();
-  const [article, setArticle] = useState<LocalizedNewsItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  // A prerendered page carries the article: render it right away (same
+  // markup as the snapshot), then refresh from the API below.
+  const [article, setArticle] = useState<LocalizedNewsItem | null>(
+    () => getPrerenderedNews(currentLang)?.find((n) => n.slug === slug) ?? null,
+  );
+  const [loading, setLoading] = useState(() => article === null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    // Keep showing an article that's already the right one (prerendered)
+    // while it refreshes — only a different slug/language shows the loader.
+    setArticle((current) => {
+      if (!current || current.slug !== slug) setLoading(true);
+      return current;
+    });
 
     fetchNewsFromApi(currentLang).then(apiItems => {
       if (cancelled) return;
-      const items = apiItems && apiItems.length > 0 ? apiItems : getLocalizedNewsItems(currentLang);
-      const found = items.find(n => n.slug === slug) || null;
-      setArticle(found);
+      const findIn = (items: LocalizedNewsItem[]) => items.find(n => n.slug === slug) || null;
+      if (apiItems === null) {
+        // API unreachable: an article already on screen (the prerendered
+        // one) stays — it isn't "not found" just because the refresh failed.
+        setArticle((current) => (current && current.slug === slug ? current : findIn(getLocalizedNewsItems(currentLang))));
+      } else {
+        setArticle(findIn(apiItems.length > 0 ? apiItems : getLocalizedNewsItems(currentLang)));
+      }
       setLoading(false);
     });
 

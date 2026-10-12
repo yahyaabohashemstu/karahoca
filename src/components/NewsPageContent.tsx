@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
 import { NewsListSchema } from './SchemaOrg';
-import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
+import { useNewsItems } from '../hooks/useNewsItems';
 import { normalizeLanguageCode } from '../utils/language';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 
@@ -11,21 +11,8 @@ const NewsPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { lp } = useLocalizedPath();
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
+  const newsItems = useNewsItems(currentLanguage);
   const featuredNews = newsItems[0];
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchNewsFromApi(currentLanguage).then(apiItems => {
-      if (cancelled) return;
-      if (apiItems && apiItems.length > 0) {
-        setNewsItems(apiItems);
-      } else {
-        setNewsItems(getLocalizedNewsItems(currentLanguage));
-      }
-    });
-    return () => { cancelled = true; };
-  }, [currentLanguage]);
 
   return (
     <>

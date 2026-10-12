@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCookieConsent, setCookieConsent, type ConsentValue } from '../utils/cookieConsent';
+import { isPrerendering } from '../utils/prerenderData';
 
 const CookieConsent: React.FC = () => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    // Never baked into a prerendered page (it's per visitor, and the
+    // snapshot must equal the first client render, where it's hidden).
+    if (isPrerendering()) return;
     if (getCookieConsent() === null) {
       const timer = setTimeout(() => setVisible(true), 1800);
       return () => clearTimeout(timer);

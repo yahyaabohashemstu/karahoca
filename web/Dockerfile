@@ -4,10 +4,15 @@
 # KARAHOCA frontend Dockerfile (static SPA served by nginx)
 # ─────────────────────────────────────────────────────────────────────────
 # Multi-stage:
-#   1. `builder`  — Node 22 + sharp build deps. Runs `tsc -b && vite build
-#                   && optimize-images && prune-dist`. Prerender is skipped
-#                   because that step needs the backend running and we want
-#                   the frontend image to be deployable independently.
+#   1. `builder`  — Node 22 + sharp build deps + Chromium. Runs `tsc -b &&
+#                   vite build && optimize-images && prune-dist && prerender`.
+#                   The prerender (scripts/prerender.mjs) renders every page
+#                   in headless Chromium and writes dist/<lang>/<page>/index.html,
+#                   so crawlers and link previews get each page's own HTML; the
+#                   browser hydrates it. Its data comes from the public API
+#                   (VITE_BACKEND_URL); if the API is down the pages still
+#                   render with the built-in fallback content. Chromium lives
+#                   only in this stage — the runtime image is plain nginx.
 #   2. `runtime`  — nginx:alpine serving /usr/share/nginx/html (= dist/).
 #                   See ./nginx.conf for SPA fallback + cache headers.
 #
@@ -43,13 +48,16 @@ ARG NGINX_VERSION=1.27-alpine
 FROM node:${NODE_VERSION}-bookworm-slim AS builder
 WORKDIR /app
 
-# Build toolchain for sharp's native bindings (image-optimization step).
+# Build toolchain for sharp's native bindings (image-optimization step), and
+# Debian's Chromium for the prerender step (it also pulls in every library
+# headless Chrome needs).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 make g++ ca-certificates \
+      python3 make g++ ca-certificates chromium \
   && rm -rf /var/lib/apt/lists/*
 
-# Skip Puppeteer's Chromium download — we don't run prerender in this image.
+# Puppeteer drives the system Chromium above instead of downloading its own.
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     NODE_ENV=production
 
 COPY package.json package-lock.json ./
@@ -93,11 +101,17 @@ ENV VITE_APP_VERSION=${VITE_APP_VERSION}
 ARG VITE_CATALOG_BASE_URL
 ENV VITE_CATALOG_BASE_URL=${VITE_CATALOG_BASE_URL}
 
-# Vite build pipeline minus prerender (prerender needs a running backend).
+# Vite build pipeline.
 RUN npx tsc -b \
   && npx vite build \
   && node scripts/optimize-images.mjs \
   && node scripts/prune-dist.mjs
+
+# Prerender every route. Never fails the build: a page that can't be
+# prerendered (or all of them, if Chromium won't start) keeps the SPA shell —
+# exactly the behaviour before prerendering — and the log says why. Set
+# PRERENDER_STRICT=1 here to make a broken prerender fail the deploy instead.
+RUN node scripts/prerender.mjs
 
 # ─── Stage 2: nginx serves dist/ ────────────────────────────────────────────
 FROM nginx:${NGINX_VERSION} AS runtime

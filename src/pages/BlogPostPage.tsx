@@ -31,6 +31,7 @@ import { BreadcrumbSchema, ArticleSchema } from '../components/SchemaOrg';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
+import { readPrerenderData } from '../utils/prerenderData';
 import { localizeAuthorName } from '../utils/blogAuthor';
 import '../styles/blog.css';
 
@@ -179,7 +180,9 @@ const formatDate = (iso: string, lang: string): string => {
     // inconsistent with the rest of the site's typography.
     return new Date(iso).toLocaleDateString(
       { ar: 'ar-EG-u-nu-latn', en: 'en-US', tr: 'tr-TR', ru: 'ru-RU' }[lang] || 'en-US',
-      { year: 'numeric', month: 'long', day: 'numeric' },
+      // Fixed zone (the company's) so the prerendered date and the
+      // browser's agree whatever the viewer's or build server's zone.
+      { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Istanbul' },
     );
   } catch {
     return iso.slice(0, 10);
@@ -254,9 +257,14 @@ const BlogPostPage: React.FC = () => {
   const t = STRINGS[lang] || STRINGS.ar;
   const { lp } = useLocalizedPath();
 
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [related, setRelated] = useState<RelatedPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // A prerendered page embeds this post: render it straight away (same
+  // markup as the snapshot — utils/prerenderData.ts), refresh below.
+  const embedded = slug
+    ? readPrerenderData<{ item?: BlogPost; related?: RelatedPost[] }>(`/api/blog/posts/${encodeURIComponent(slug)}?lang=${lang}`)
+    : undefined;
+  const [post, setPost] = useState<BlogPost | null>(() => embedded?.item ?? null);
+  const [related, setRelated] = useState<RelatedPost[]>(() => embedded?.related ?? []);
+  const [loading, setLoading] = useState(() => !embedded?.item);
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
   const articleRef = useRef<HTMLDivElement | null>(null);
@@ -265,10 +273,22 @@ const BlogPostPage: React.FC = () => {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
-    setLoading(true);
+    // No loader flash when the post on screen is already this one.
+    setPost((current) => {
+      if (!current || current.slug !== slug) setLoading(true);
+      return current;
+    });
 
     apiFetch(`/api/blog/posts/${encodeURIComponent(slug)}?lang=${lang}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        const d = await r.json().catch(() => null);
+        // A JSON 404 is the API saying the post doesn't exist (deleted,
+        // unpublished). Anything else without a body — 5xx, an HTML error
+        // page, no network — means the API couldn't answer.
+        if (r.status === 404 && d) return { item: null, related: [] };
+        if (!r.ok || !d) throw new Error(`blog post: HTTP ${r.status}`);
+        return d;
+      })
       .then((d) => {
         if (cancelled) return;
         setPost(d?.item || null);
@@ -285,7 +305,9 @@ const BlogPostPage: React.FC = () => {
       })
       .catch(() => {
         if (cancelled) return;
-        setPost(null);
+        // API unreachable: a post already on screen (the prerendered one)
+        // stays rather than being declared missing.
+        setPost((current) => (current && current.slug === slug ? current : null));
         setLoading(false);
       });
 
@@ -325,7 +347,8 @@ const BlogPostPage: React.FC = () => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      // Same public URL the share buttons use.
+      await navigator.clipboard.writeText(`https://karahoca.com${lp(`/blog/${slug}`)}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -360,9 +383,10 @@ const BlogPostPage: React.FC = () => {
     );
   }
 
-  const currentUrl = typeof window !== 'undefined'
-    ? window.location.href
-    : `https://karahoca.com${lp(`/blog/${post.slug}`)}`;
+  // The post's public URL, never window.location: the prerendered snapshot
+  // would bake the build machine's address into the share links (and
+  // hydration keeps server-rendered attributes). Also drops ?utm=… noise.
+  const currentUrl = `https://karahoca.com${lp(`/blog/${post.slug}`)}`;
   const heroImage = post.heroImage || post.image || '/KARAHOCA-1-newPhoto.webp';
   const isRtl = lang === 'ar';
 

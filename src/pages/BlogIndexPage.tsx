@@ -19,7 +19,7 @@
  *   - og:image points at the brand-level OG card (runtime generator)
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import SEO from '../components/SEO';
@@ -29,6 +29,7 @@ import { BreadcrumbSchema } from '../components/SchemaOrg';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
+import { readPrerenderData } from '../utils/prerenderData';
 import { localizeAuthorName } from '../utils/blogAuthor';
 import '../styles/blog.css';
 
@@ -150,11 +151,27 @@ const BlogIndexPage: React.FC = () => {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
   const categorySlug = searchParams.get('category') || '';
 
-  const [categories, setCategories] = useState<BlogCategory[]>([]);
-  const [posts, setPosts] = useState<BlogPostSummary[]>([]);
-  const [featuredPosts, setFeaturedPosts] = useState<BlogPostSummary[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+  // Same query strings the effects below request.
+  const postsQuery = new URLSearchParams({ lang, page: String(page), limit: String(PAGE_SIZE) });
+  if (categorySlug) postsQuery.set('category', categorySlug);
+  const postsPath = `/api/blog/posts?${postsQuery.toString()}`;
+
+  // A prerendered page embeds these responses: start from them so the first
+  // render equals the snapshot (utils/prerenderData.ts); the effects below
+  // still refresh from the API.
+  const embeddedPosts = readPrerenderData<{ items?: BlogPostSummary[]; totalPages?: number }>(postsPath);
+  const [categories, setCategories] = useState<BlogCategory[]>(
+    () => readPrerenderData<{ items?: BlogCategory[] }>(`/api/blog/categories?lang=${lang}`)?.items ?? [],
+  );
+  const [posts, setPosts] = useState<BlogPostSummary[]>(() => embeddedPosts?.items ?? []);
+  const [featuredPosts, setFeaturedPosts] = useState<BlogPostSummary[]>(
+    () => readPrerenderData<{ items?: BlogPostSummary[] }>(`/api/blog/posts?lang=${lang}&featured=1&limit=2`)?.items ?? [],
+  );
+  const [totalPages, setTotalPages] = useState(() => embeddedPosts?.totalPages || 1);
+  const [loading, setLoading] = useState(() => !embeddedPosts?.items);
+  // The query whose posts are on screen (initially the snapshot's): no
+  // loader flash while that list refreshes, and it survives a failed refresh.
+  const shownPostsPath = useRef<string | null>(embeddedPosts?.items ? postsPath : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,25 +184,35 @@ const BlogIndexPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     const params = new URLSearchParams({
       lang,
       page: String(page),
       limit: String(PAGE_SIZE),
     });
     if (categorySlug) params.set('category', categorySlug);
+    const path = `/api/blog/posts?${params.toString()}`;
+    if (shownPostsPath.current !== path) setLoading(true);
 
-    apiFetch(`/api/blog/posts?${params.toString()}`)
-      .then((r) => r.json())
+    apiFetch(path)
+      .then((r) => {
+        if (!r.ok) throw new Error(`blog posts: HTTP ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (cancelled) return;
         setPosts(d?.items || []);
         setTotalPages(d?.totalPages || 1);
+        shownPostsPath.current = path;
         setLoading(false);
       })
       .catch(() => {
         if (cancelled) return;
-        setPosts([]);
+        // API unreachable: a list already on screen for this query (the
+        // prerendered one) stays; anything else has nothing to show.
+        if (shownPostsPath.current !== path) {
+          setPosts([]);
+          shownPostsPath.current = null;
+        }
         setLoading(false);
       });
 
@@ -197,7 +224,7 @@ const BlogIndexPage: React.FC = () => {
     let cancelled = false;
     apiFetch(`/api/blog/posts?lang=${lang}&featured=1&limit=2`)
       .then((r) => r.json())
-      .then((d) => { if (!cancelled) setFeaturedPosts(d?.items || []); })
+      .then((d) => { if (!cancelled && Array.isArray(d?.items)) setFeaturedPosts(d.items); })
       .catch(() => { /* */ });
     return () => { cancelled = true; };
   }, [lang]);

@@ -2,8 +2,10 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { WishlistContext, type WishlistItem } from './wishlist-store';
 import { hasUnresolvedWishlistItems, migrateWishlistItems } from './wishlistMigration';
 import { track } from '../utils/track';
+import { useHydratedTransition } from '../hooks/useHydrated';
 
 const STORAGE_KEY = 'karahoca_wishlist';
+const NO_ITEMS: WishlistItem[] = [];
 
 const logStorageError = (action: 'load' | 'save', error: unknown) => {
   if (import.meta.env.DEV) {
@@ -68,7 +70,14 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => { cancelled = true; };
   }, [hasUnresolved]);
 
-  const isInWishlist = useCallback((id: string) => items.some(i => i.id === id), [items]);
+  // The saved wishlist is per visitor, so a prerendered page was rendered
+  // with an empty one. Consumers see it only once the page has hydrated
+  // (filled hearts, the header count…) — otherwise the first render would
+  // differ from the HTML and React would throw the snapshot away.
+  const hydrated = useHydratedTransition();
+  const visibleItems = hydrated ? items : NO_ITEMS;
+
+  const isInWishlist = useCallback((id: string) => visibleItems.some(i => i.id === id), [visibleItems]);
 
   // Read outside the state updater (updaters must stay pure — StrictMode
   // runs them twice), so the add/remove event is sent exactly once.
@@ -113,8 +122,8 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // `toggle`, `remove`, `clear` are already stable via useCallback([]);
   // `isInWishlist` depends on `items`, so it's already captured in deps.
   const value = useMemo(
-    () => ({ items, isInWishlist, toggle, remove, clear }),
-    [items, isInWishlist, toggle, remove, clear],
+    () => ({ items: visibleItems, isInWishlist, toggle, remove, clear }),
+    [visibleItems, isInWishlist, toggle, remove, clear],
   );
 
   return (

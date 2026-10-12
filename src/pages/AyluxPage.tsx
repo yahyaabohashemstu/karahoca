@@ -1,15 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { brandOgImageUrl } from '../utils/ogImageUrls';
 import { BrandPageSchema, ProductListSchema } from '../components/SchemaOrg';
 import BrandPageTemplate from '../components/BrandPage';
-import {
-  getAyluxCategories,
-  fetchBrandCatalogFromApi,
-  mergeApiWithStaticCatalog,
-  type BrandCategoryData,
-} from '../data/brandCatalog';
+import { useBrandCategories } from '../hooks/useBrandCategories';
 import { normalizeLanguageCode } from '../utils/language';
 import { getBrandMarketplaces } from '../constants/marketplaces';
 
@@ -43,19 +38,7 @@ const AyluxPage: React.FC = () => {
 const AyluxPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const currentLang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const [categories, setCategories] = useState<BrandCategoryData[]>(() => getAyluxCategories(t));
-
-  useEffect(() => {
-    let cancelled = false;
-    const staticCats = getAyluxCategories(t);
-    fetchBrandCatalogFromApi('AYLUX', currentLang).then(apiCats => {
-      if (cancelled) return;
-      setCategories(
-        apiCats && apiCats.length > 0 ? mergeApiWithStaticCatalog(apiCats, staticCats) : staticCats,
-      );
-    });
-    return () => { cancelled = true; };
-  }, [currentLang, t]);
+  const categories = useBrandCategories('AYLUX');
 
   const ayluxData = {
     brandName: 'AYLUX',

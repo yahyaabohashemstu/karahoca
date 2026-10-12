@@ -1,4 +1,4 @@
-import React, { memo, useId } from 'react';
+import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MarketplaceStore } from '../../constants/marketplaces';
 import { MarketplaceLink } from './MarketplaceLinks';
@@ -20,7 +20,9 @@ interface MarketplaceSectionProps {
  */
 const MarketplaceSectionComponent: React.FC<MarketplaceSectionProps> = ({ stores, brandName }) => {
   const { t } = useTranslation();
-  const titleId = useId();
+  // Fixed id (one band per page), not useId(): prerendered snapshots and
+  // hydration generate different useId values.
+  const titleId = 'buy-online-title';
   if (stores.length === 0) return null;
 
   return (

@@ -1,4 +1,5 @@
 import { apiFetch } from "../utils/apiFetch";
+import { readPrerenderData } from "../utils/prerenderData";
 import type { SupportedLanguageCode } from "../utils/language";
 
 interface LocalizedTextMap {
@@ -68,6 +69,10 @@ export const formatNewsDate = (
     day: "numeric",
     month: "long",
     year: "numeric",
+    // A fixed zone (the company's), not the viewer's: the same date for
+    // every visitor and for the prerender running on a UTC build server
+    // (a different day near midnight would break hydration).
+    timeZone: "Europe/Istanbul",
   }).format(new Date(publishedAt));
 
 export const getLocalizedNewsItems = (
@@ -96,6 +101,18 @@ export const getLocalizedNewsItems = (
 // ─── API-based fetching (primary source when server is available) ────────────
 // The public API (/api/news?lang=xx) already returns fully translated, ready-to-use
 // LocalizedNewsItem objects — no further mapping is needed.
+
+/**
+ * The /api/news response embedded in a prerendered page, if any — the
+ * initial state that makes the first client render match the snapshot
+ * (see utils/prerenderData.ts). Same validity rules as fetchNewsFromApi.
+ */
+export const getPrerenderedNews = (
+  language: SupportedLanguageCode,
+): LocalizedNewsItem[] | null => {
+  const data = readPrerenderData<{ success?: boolean; items?: LocalizedNewsItem[] }>(`/api/news?lang=${language}`);
+  return data?.success && Array.isArray(data.items) && data.items.length > 0 ? data.items : null;
+};
 
 export const fetchNewsFromApi = async (
   language: SupportedLanguageCode,

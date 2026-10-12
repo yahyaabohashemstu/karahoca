@@ -516,7 +516,7 @@ All endpoints under `/api/*`. The public HTML response sets a `karahoca_csrf` co
 
 | Area | Measure |
 |---|---|
-| **Per-language prerender** | Puppeteer renders `/ar/`, `/en/`, `/tr/`, `/ru/` × every static route + up to 50 latest news articles. Output: `dist/<lang>/<route>/index.html`. Social / non-JS crawlers get ready-to-index HTML. |
+| **Per-language prerender** | At image build, Puppeteer renders `/ar/`, `/en/`, `/tr/`, `/ru/` × every static route + up to 60 latest news articles and blog posts each. Output: `dist/<lang>/<route>/index.html` with the page's own title, description, canonical, hreflang and content, so social / non-JS crawlers get ready-to-index HTML. The browser **hydrates** the snapshot: the API responses the page used are embedded (`<script id="kh-prerender-data">`, read by `src/utils/prerenderData.ts`) so the first render matches, then the data refreshes as usual. Snapshots reflect the API at deploy time — an article published later is served by the SPA shell until the next deploy. |
 | **URL-prefixed i18n** | Real `hreflang` alternates per language. Dynamic sitemap emits 4× URLs × all pages × dynamic news. |
 | **Public read cache** | Redis (or in-memory fallback) caches `/api/products/:brand` and `/api/news` per language × brand, 5-min TTL. Admin mutations explicitly invalidate matching entries via `publicCache.invalidateProductsCache(brand)` / `invalidateNewsCache()`. `X-Cache: HIT/MISS` response header for ops. |
 | **Self-hosted fonts** | Inter woff2 subsets bundled via `@fontsource/inter`. No DNS to `fonts.gstatic.com`. |
@@ -612,7 +612,9 @@ Current deployment: **two services on [Coolify](https://coolify.io)**.
 Config: `web/nginx.conf` (copied to `/etc/nginx/conf.d/default.conf`).
 
 - Serves `dist/` as static files; each known route gets its prerendered
-  HTML when the build has one, otherwise the SPA shell
+  HTML when the build has one, otherwise the SPA shell. The image build
+  (`web/Dockerfile`) installs Debian's Chromium for the prerender step; if
+  that step fails the build still ships, with the SPA shell for every route
 - Unknown paths answer **404** with the SPA shell (the app shows its
   Not-Found page; crawlers get a real 404)
 - `/xx/page/` → **301** `/xx/page`; `/xx` → **301** `/xx/`

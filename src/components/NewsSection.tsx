@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
-import { getLocalizedNewsItems, fetchNewsFromApi, type LocalizedNewsItem } from '../data/news';
+import type { LocalizedNewsItem } from '../data/news';
+import { useNewsItems } from '../hooks/useNewsItems';
 import { normalizeLanguageCode } from '../utils/language';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
+import { isPrerendering } from '../utils/prerenderData';
 
 const AUTO_SCROLL_PAUSE_MS = 3000;
 const AUTO_SCROLL_SPEED_PX_PER_MS = 0.03;
@@ -44,7 +46,7 @@ const NewsSection: React.FC = () => {
   const transitionTimeoutRef = useRef<number | null>(null);
 
   const currentLanguage = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
-  const [newsItems, setNewsItems] = useState<LocalizedNewsItem[]>(() => getLocalizedNewsItems(currentLanguage));
+  const newsItems = useNewsItems(currentLanguage);
   // The infinite marquee triples the list so it can scroll seamlessly — but
   // that only looks right when ONE pass of cards already overflows the
   // viewport. With a single news item the tripled track shows the SAME card
@@ -57,15 +59,6 @@ const NewsSection: React.FC = () => {
     [newsItems, loopEnabled],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchNewsFromApi(currentLanguage).then(apiItems => {
-      if (cancelled) return;
-      if (apiItems && apiItems.length > 0) setNewsItems(apiItems);
-      else setNewsItems(getLocalizedNewsItems(currentLanguage));
-    });
-    return () => { cancelled = true; };
-  }, [currentLanguage]);
   const arrowLabels = useMemo(
     () => ARROW_LABELS[currentLanguage as keyof typeof ARROW_LABELS] ?? ARROW_LABELS.en,
     [currentLanguage]
@@ -162,7 +155,10 @@ const NewsSection: React.FC = () => {
   useEffect(() => {
     const track = trackRef.current;
 
-    if (!track || newsItems.length === 0) {
+    // The prerendered snapshot keeps the initial (looping) layout: it must
+    // equal the first render the browser hydrates against. The browser
+    // measures — and may switch to the static layout — right after.
+    if (!track || newsItems.length === 0 || isPrerendering()) {
       return undefined;
     }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { loadSanitizedSvgIntoContainer } from '../utils/safeSvg';
+import { isPrerendering } from '../utils/prerenderData';
 
 /** Counter text for an animation frame `value` of a stat counting to `target`. */
 const formatCount = (value: number, target: number, suffix: string): string => {
@@ -43,6 +44,18 @@ const NumbersSection: React.FC = () => {
   });
 
   useEffect(() => {
+    // The markup carries the FINAL numbers (crawlers and the prerendered
+    // snapshot show them; hydration needs the snapshot untouched). In the
+    // browser, counters that haven't run yet go back to 0 here — the
+    // section is normally below the fold — and count up when scrolled
+    // into view.
+    if (isPrerendering()) return undefined;
+    countRefs.current.forEach((ref) => {
+      if (!ref || ref.dataset.counted === '1') return;
+      const target = parseInt(ref.getAttribute('data-count') || '0');
+      ref.textContent = formatCount(0, target, ref.getAttribute('data-suffix') || '');
+    });
+
     const activeAnimations = new Map<HTMLSpanElement, number>();
 
     const animateCount = (element: HTMLSpanElement, target: number) => {
@@ -353,7 +366,7 @@ const NumbersSection: React.FC = () => {
                 data-count="15"
                 ref={(el) => { countRefs.current[0] = el; }}
               >
-                0+
+                {formatCount(15, 15, '')}
               </div>
               <div className="info-subtitle">{t('numbers.countries')}</div>
             </div>
@@ -381,7 +394,7 @@ const NumbersSection: React.FC = () => {
                 data-suffix={t('numbers.employees')}
                 ref={(el) => { countRefs.current[3] = el; }}
               >
-                0+
+                {formatCount(200, 200, t('numbers.employees'))}
               </div>
               <div className="info-subtitle">{t('numbers.employeesLabel')}</div>
             </div>
@@ -394,6 +407,9 @@ const NumbersSection: React.FC = () => {
             <div className="spotlight"></div>
             <div
               ref={experienceSvgRef}
+              // Filled by the effect above (inline SVG). The prerender
+              // empties it so the snapshot matches React's empty <div>.
+              data-kh-client-only=""
               style={{
                 width: '180px',
                 height: '204px',
@@ -412,7 +428,7 @@ const NumbersSection: React.FC = () => {
                 data-suffix={t('numbers.years')}
                 ref={(el) => { countRefs.current[1] = el; }}
               >
-                0
+                {formatCount(30, 30, t('numbers.years'))}
               </div>
               <div className="info-subtitle">{t('numbers.experience')}</div>
             </div>
@@ -439,7 +455,7 @@ const NumbersSection: React.FC = () => {
                 data-count="99"
                 ref={(el) => { countRefs.current[2] = el; }}
               >
-                0%
+                {formatCount(99, 99, '')}
               </div>
               <div className="info-subtitle">{t('numbers.satisfaction')}</div>
             </div>

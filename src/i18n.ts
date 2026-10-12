@@ -66,12 +66,16 @@ void i18n
     },
 
     detection: {
-      // Order: htmlTag FIRST so the very first render matches the value
-      // baked into the prerendered HTML shell (required for hydration
-      // safety — a mismatch logs a hydration warning AND swaps dir/RTL
-      // mid-frame, which is visible flicker). After mount, `useLocaleSync`
-      // takes over and reconciles to the URL prefix, which is the actual
-      // source of truth for which locale the visitor is browsing.
+      // Order: the URL's language prefix FIRST (/en/… → en). The URL is the
+      // source of truth, so the very first render is already in the page's
+      // language. With htmlTag first, every page started in the shell's
+      // default (lang="ar") and switched a moment later via useLocaleSync:
+      // an Arabic first frame on /en/ pages, and components that didn't
+      // re-render kept Arabic labels (the chat / WhatsApp buttons in the
+      // prerendered snapshots). Prerendered pages carry <html lang> equal
+      // to their prefix, so hydration still sees the same language.
+      // Paths without a supported prefix (/admin, /) fall through to
+      // htmlTag, then the stored / browser language.
       //
       // `caches: []` (empty) is INTENTIONAL — was previously
       // `['localStorage']`, which silently wrote 'ar' to `i18nextLng` on
@@ -81,7 +85,8 @@ void i18n
       // regardless of their browser language. With caching off, only the
       // LanguageSwitcher's explicit user-choice write (to a separate key,
       // see localizedPath.detectPreferredLang) is persistent.
-      order: ['htmlTag', 'localStorage', 'navigator'],
+      order: ['path', 'htmlTag', 'localStorage', 'navigator'],
+      lookupFromPathIndex: 0,
       caches: [],
       lookupLocalStorage: 'i18nextLng'
     },

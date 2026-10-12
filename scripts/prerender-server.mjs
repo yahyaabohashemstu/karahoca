@@ -8,10 +8,9 @@ import path from 'node:path';
  * given root directory, falls back to a provided HTML shell on unmatched
  * paths (so React Router client routes resolve).
  *
- * The shell is passed in explicitly so we can hold onto the ORIGINAL blank
- * `dist/index.html` in memory — important because the prerender process
- * rewrites `dist/index.html` itself for the '/' route, and we don't want to
- * feed already-prerendered content back as the SPA fallback for other routes.
+ * The shell is passed in explicitly (the blank `dist/index.html`, read once
+ * at start) so routes are always rendered from scratch, never from a
+ * snapshot written earlier in the run or by a previous one.
  */
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -34,8 +33,11 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
-export const startPrerenderServer = ({ rootDir, shellHtml, port = 0 }) =>
+export const startPrerenderServer = ({ rootDir: rootArg, shellHtml, port = 0 }) =>
   new Promise((resolve) => {
+    // Absolute + platform separators, so the escape check below compares like
+    // with like (a forward-slash path on Windows failed it: every page 403).
+    const rootDir = path.resolve(rootArg);
     const server = createServer(async (req, res) => {
       try {
         const urlPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
@@ -57,19 +59,9 @@ export const startPrerenderServer = ({ rootDir, shellHtml, port = 0 }) =>
             createReadStream(resolved).pipe(res);
             return;
           }
-          if (s.isDirectory()) {
-            const idx = path.join(resolved, 'index.html');
-            try {
-              const si = await stat(idx);
-              if (si.isFile()) {
-                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                createReadStream(idx).pipe(res);
-                return;
-              }
-            } catch {
-              /* fall through to SPA shell */
-            }
-          }
+          // Directories (= routes) always get the blank shell below, never a
+          // snapshot already written to dist/<route>/index.html: every page
+          // must render from scratch, exactly as a first visit would.
         } catch {
           /* fall through to SPA shell */
         }

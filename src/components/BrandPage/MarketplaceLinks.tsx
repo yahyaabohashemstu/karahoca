@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   productListingUrl,
@@ -124,7 +124,11 @@ const MarketplaceLinks: React.FC<MarketplaceLinksProps> = ({
   productLinks,
   className,
 }) => {
-  const labelId = useId();
+  // One row per placement on a page (hero, open product modal), so the
+  // placement makes a unique id. Not useId(): the prerendered snapshot's
+  // generated ids never equal the ones hydration generates, and React
+  // keeps the snapshot's — the label link would rest on that coincidence.
+  const labelId = `mkt-label-${placement}`;
   if (stores.length === 0) return null;
 
   return (

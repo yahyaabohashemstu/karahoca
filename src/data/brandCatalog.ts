@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import { apiFetch } from "../utils/apiFetch";
+import { readPrerenderData } from "../utils/prerenderData";
 import type { SupportedLanguageCode } from "../utils/language";
 import type { MarketplaceProductLinks } from "../constants/marketplaces";
 
@@ -695,6 +696,24 @@ export const getStaticProductIdsByImage = (): Map<string, string> => {
   // An image shared by two products can't tell them apart — never guess.
   for (const image of ambiguous) ids.delete(image);
   return ids;
+};
+
+/**
+ * Initial catalog for a brand page: the /api/products response embedded in
+ * a prerendered page (merged with the static catalog exactly like the live
+ * fetch does), else the static catalog. Matching the snapshot here is what
+ * lets the browser hydrate it — see utils/prerenderData.ts.
+ */
+export const initialBrandCategories = (
+  brand: "DIOX" | "AYLUX",
+  lang: SupportedLanguageCode,
+  staticCats: BrandCategoryData[],
+): BrandCategoryData[] => {
+  const data = readPrerenderData<{ success?: boolean; categories?: PublicApiCategory[] }>(
+    `/api/products/${brand}?lang=${lang}`,
+  );
+  if (!data?.success || !Array.isArray(data.categories) || data.categories.length === 0) return staticCats;
+  return mergeApiWithStaticCatalog(data.categories.map(mapPublicCategory), staticCats);
 };
 
 export const fetchBrandCatalogFromApi = async (

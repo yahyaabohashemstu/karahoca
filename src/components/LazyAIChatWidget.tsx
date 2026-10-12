@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../styles/ai-chat.css';
+import { isPrerendering } from '../utils/prerenderData';
 
 const AIChatWidget = lazy(() => import('./AIChat'));
 
@@ -33,6 +34,9 @@ const LazyAIChatWidget: React.FC = () => {
   const openToggleLabel = t('aiWidget.openToggleLabel');
 
   useEffect(() => {
+    // Not in the prerendered snapshot: it must equal the first client
+    // render, which shows only the lightweight toggle below.
+    if (isPrerendering()) return undefined;
     // requestIdleCallback would be ideal here but Safari still doesn't
     // ship it; a plain setTimeout with the same intent is fine — the
     // delay is "shortly after the page is interactive", not "exactly

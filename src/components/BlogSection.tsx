@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocalizedPath } from '../hooks/useLocalizedPath';
 import { normalizeLanguageCode } from '../utils/language';
 import { apiFetch } from '../utils/apiFetch';
+import { readPrerenderData } from '../utils/prerenderData';
 import '../styles/blog.css';
 
 /**
@@ -76,21 +77,33 @@ const BlogSection: React.FC = () => {
   const t = STRINGS[lang] || STRINGS.ar;
   const { lp } = useLocalizedPath();
 
-  const [posts, setPosts] = useState<BlogTeaserPost[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const listPath = `/api/blog/posts?lang=${lang}&limit=3&page=1`;
+  // Prerendered page: start from the embedded posts so the first render
+  // equals the snapshot (utils/prerenderData.ts); refresh below as usual.
+  const embedded = readPrerenderData<{ items?: BlogTeaserPost[] }>(listPath);
+  const [posts, setPosts] = useState<BlogTeaserPost[]>(() => (Array.isArray(embedded?.items) ? embedded.items : []));
+  const [loaded, setLoaded] = useState(() => Array.isArray(embedded?.items));
+  // Language of the posts on screen. A failed refresh keeps them (e.g. the
+  // prerendered teasers) — but only in that language.
+  const postsLang = useRef<string | null>(Array.isArray(embedded?.items) ? lang : null);
 
   useEffect(() => {
     let cancelled = false;
+    const onFailure = () => {
+      if (postsLang.current !== lang) setPosts([]);
+      setLoaded(true);
+    };
     apiFetch(`/api/blog/posts?lang=${lang}&limit=3&page=1`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        setPosts(Array.isArray(d?.items) ? d.items : []);
+        if (!Array.isArray(d?.items)) return onFailure();
+        setPosts(d.items);
+        postsLang.current = lang;
         setLoaded(true);
       })
       .catch(() => {
-        if (cancelled) return;
-        setLoaded(true);
+        if (!cancelled) onFailure();
       });
     return () => { cancelled = true; };
   }, [lang]);
