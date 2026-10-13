@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { adminApi } from '../utils/adminApi';
+import { Navigate, useLocation } from 'react-router-dom';
+import { adminApi, loginPathFor } from '../utils/adminApi';
 
 type SessionState = 'checking' | 'authenticated' | 'unauthenticated';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessionState, setSessionState] = useState<SessionState>('checking');
+  const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +35,8 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }
 
   if (sessionState !== 'authenticated') {
-    return <Navigate to="/admin" replace />;
+    // Remember the page so signing in lands back on it, not the dashboard.
+    return <Navigate to={loginPathFor(location.pathname + location.search)} replace />;
   }
 
   return <>{children}</>;

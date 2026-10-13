@@ -1,15 +1,29 @@
 import { buildApiUrl } from '../../utils/api';
 
-export type AdminRequestError = Error & { status?: number };
+/** `data` is the parsed error body (e.g. the CSV import's per-row errors). */
+export type AdminRequestError = Error & { status?: number; data?: unknown };
 
 interface RequestOptions {
   redirectOn401?: boolean;
 }
 
-const buildRequestError = (message: string, status: number): AdminRequestError => {
+const buildRequestError = (message: string, status: number, data?: unknown): AdminRequestError => {
   const error = new Error(message) as AdminRequestError;
   error.status = status;
+  error.data = data;
   return error;
+};
+
+/** Fired when a save hits an expired session; AdminLayout shows a banner. */
+export const SESSION_EXPIRED_EVENT = 'karahoca-admin:session-expired';
+
+/** The login page sends the admin back here after signing in. */
+export const loginPathFor = (next: string, expired = false) => {
+  const params = new URLSearchParams();
+  if (expired) params.set('expired', '1');
+  if (next.startsWith('/admin/')) params.set('next', next);
+  const query = params.toString();
+  return query ? `/admin?${query}` : '/admin';
 };
 
 // CSRF double-submit: the server sets a `karahoca_admin_csrf` cookie on
@@ -53,13 +67,24 @@ const request = async <T>(method: string, path: string, body?: unknown, options:
 
   if (response.status === 401) {
     if (redirectOn401) {
-      window.location.href = '/admin';
+      if (MUTATION_METHODS.has(method.toUpperCase())) {
+        // A save must not reload the page: that threw away everything the
+        // admin had typed. Keep the form, explain, and let them sign in
+        // again in another tab before saving once more.
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+        throw buildRequestError(
+          'Your session has expired, so this was not saved. Your changes are still here: sign in again in a new tab, then save again.',
+          response.status,
+          data,
+        );
+      }
+      window.location.href = loginPathFor(window.location.pathname + window.location.search, true);
     }
-    throw buildRequestError('Session expired. Please log in again.', response.status);
+    throw buildRequestError('Session expired. Please log in again.', response.status, data);
   }
 
   if (!response.ok) {
-    throw buildRequestError((data as { error?: string }).error || `Request failed (${response.status})`, response.status);
+    throw buildRequestError((data as { error?: string }).error || `Request failed (${response.status})`, response.status, data);
   }
 
   return data;
@@ -79,7 +104,7 @@ export const adminApi = {
 
   getAnalytics: (days?: number) => request<AdminAnalytics>('GET', `/api/admin/analytics${days ? `?days=${days}` : ''}`),
 
-  getGaData: () => request<GaData>('GET', '/api/admin/ga'),
+  getGaData: (days?: number) => request<GaData>('GET', `/api/admin/ga${days ? `?days=${days}` : ''}`),
 
   // Chats
   getChats: (params?: { page?: number; lang?: string }) => {
@@ -332,7 +357,8 @@ export const adminApi = {
       cohorts: Array<{
         cohort: string;
         size: number;
-        retention: Array<{ period: number; label: string; returners: number; pct: number }>;
+        /** null = the period hasn't happened yet (not a real 0 %). */
+        retention: Array<{ period: number; label: string; returners: number | null; pct: number | null }>;
       }>;
     }>('GET', `/api/admin/cohorts${suffix}`);
   },
@@ -375,14 +401,16 @@ export const adminApi = {
     request<{ success: boolean; campaign: Campaign }>('GET', `/api/admin/campaigns/${id}`),
   createCampaign: (data: Partial<Campaign>) =>
     request<{ success: boolean; campaign: Campaign }>('POST', '/api/admin/campaigns', data),
-  updateCampaign: (id: number, data: Partial<Campaign>) =>
+  updateCampaign: (id: number, data: Partial<Campaign> & { excludedEmails?: string[] }) =>
     request<{ success: boolean; campaign: Campaign }>('PUT', `/api/admin/campaigns/${id}`, data),
   deleteCampaign: (id: number) =>
     request<{ success: boolean }>('DELETE', `/api/admin/campaigns/${id}`),
+  // excludedEmails omitted → the server sends with the selection saved on
+  // the campaign; an array (even an empty one, "everyone") replaces it.
   sendCampaign: (id: number, opts?: { excludedEmails?: string[] }) =>
     request<{ success: boolean; queued: boolean; alreadyQueued?: boolean }>(
       'POST', `/api/admin/campaigns/${id}/send`,
-      opts?.excludedEmails?.length ? { excludedEmails: opts.excludedEmails } : undefined,
+      opts?.excludedEmails ? { excludedEmails: opts.excludedEmails } : undefined,
     ),
   scheduleCampaign: (id: number, scheduledAt: string, excludedEmails: string[] = []) =>
     request<{ success: boolean }>('POST', `/api/admin/campaigns/${id}/schedule`, { scheduledAt, excludedEmails }),
@@ -464,6 +492,7 @@ export interface AdminStats {
   stats: {
     products: number;
     news: number;
+    blogPosts: number;
     subscribers: number;
     chatUsers: number;
     chatMessages: number;
@@ -676,7 +705,7 @@ export interface Campaign {
   subject_b_ar?: string; subject_b_en?: string; subject_b_tr?: string; subject_b_ru?: string;
   body_ar: string; body_en: string; body_tr: string; body_ru: string;
   image_url?: string;
-  status: 'draft' | 'scheduled' | 'queued' | 'sent';
+  status: 'draft' | 'scheduled' | 'queued' | 'sending' | 'sent';
   scheduled_at?: string;
   /** JSON array of e-mails left out of the scheduled send. */
   excluded_emails?: string | null;
@@ -727,6 +756,8 @@ export interface AuditLogEntry {
 // ── Google Analytics ────────────────────────────────────────────────────────
 export interface GaData {
   configured: boolean;
+  /** The window the server actually used. */
+  days?: number;
   message?: string;
   steps?: string[];
   error?: string;

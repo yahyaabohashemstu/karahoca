@@ -5,8 +5,12 @@
    Direction: LTR (admin is always LTR regardless of site language)
 ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Google Fonts ───────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* ─── Fonts ──────────────────────────────────────────────────── */
+/* Self-hosted like the public site (main.tsx loads 300/400/600/800). The
+   Google Fonts import fetched the same family again from a third party on
+   every admin visit. */
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/700.css';
 
 /* ─── Design Tokens ──────────────────────────────────────────── */
 :root {
@@ -115,6 +119,7 @@
 /* ─── Login ──────────────────────────────────────────────────── */
 .adm-login-wrap,
 .adm-login-bg {
+  color-scheme: dark;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,6 +181,10 @@
 .adm-layout {
   display: flex;
   min-height: 100vh;
+  /* Native controls (select menus, date pickers, scrollbars) follow the
+     dark theme; with the OS in light mode, <option> lists came out white
+     on white and the date-picker icons dark on dark. */
+  color-scheme: dark;
 }
 
 /* ─── Sidebar ────────────────────────────────────────────────── */
@@ -297,7 +306,29 @@
   border-radius: 0 3px 3px 0;
 }
 
-.adm-nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.adm-nav-icon {
+  width: 20px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adm-nav-group + .adm-nav-group { margin-top: 4px; }
+
+.adm-nav-logout {
+  color: var(--adm-danger);
+  border-radius: var(--adm-radius-sm);
+}
+
+.adm-session-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.adm-session-banner > span { flex: 1 1 280px; }
 
 .adm-sidebar-footer {
   padding: 14px 10px;
@@ -881,11 +912,45 @@
 }
 
 .adm-chat-assistant {
-  background: linear-gradient(135deg, var(--adm-orange), var(--adm-orange-light));
-  color: #fff;
+  /* A tint, not the solid orange gradient: long replies in white-on-orange
+     were tiring to read, and the bright block out-weighed the visitor's
+     question it answers. */
+  background: rgba(255,91,46,0.10);
+  color: var(--adm-text);
+  border: 1px solid rgba(255,91,46,0.28);
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 14px rgba(255,91,46,0.25);
 }
+
+.adm-chat-thread-page {
+  max-height: 68vh;
+  padding: 20px 16px;
+  background: var(--adm-bg);
+}
+
+.adm-chat-title {
+  font-family: monospace;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.adm-chat-lang {
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+
+.adm-chat-markdown { white-space: normal; }
+.adm-chat-markdown > :first-child { margin-top: 0; }
+.adm-chat-markdown > :last-child { margin-bottom: 0; }
+.adm-chat-markdown p,
+.adm-chat-markdown ul,
+.adm-chat-markdown ol { margin: 0 0 8px; }
+.adm-chat-markdown ul,
+.adm-chat-markdown ol { padding-inline-start: 20px; }
+.adm-chat-markdown a { color: var(--adm-orange-light); text-decoration: underline; }
+.adm-chat-markdown table { border-collapse: collapse; margin: 6px 0; }
+.adm-chat-markdown th,
+.adm-chat-markdown td { border: 1px solid var(--adm-border); padding: 4px 8px; }
 
 .adm-chat-meta {
   display: flex;
@@ -2977,4 +3042,67 @@
     border: 1pt dashed #dde1ee !important;
     border-radius: 5pt !important;
   }
+}
+
+/* ─── Shared helpers ─────────────────────────────────────────── */
+.adm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Dashboard KPI row ──────────────────────────────────────── */
+/* Six cards in an auto-fit grid left one orphan on its own row at most
+   widths; fixed column counts keep the row even (6 → 3 → 2). */
+.adm-dashboard-stat-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.adm-dashboard-stat-card {
+  min-height: 0;
+  gap: 6px;
+}
+.adm-dashboard-stat-card .adm-stat-icon {
+  color: var(--adm-orange-light);
+  display: inline-flex;
+}
+.adm-dashboard-shortcut-icon { color: var(--adm-orange-light); }
+
+@media (max-width: 1280px) {
+  .adm-dashboard-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .adm-dashboard-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The question column takes whatever width is left and truncates, instead
+   of a fixed 280 px that pushed the View button out of the card. */
+.adm-dashboard-question { width: 100%; max-width: 0; }
+.adm-dashboard-table-card .adm-table th,
+.adm-dashboard-table-card .adm-table td { padding: 11px 12px; white-space: nowrap; }
+@media (min-width: 769px) {
+  .adm-dashboard-main-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+}
+
+/* Sidebar: all 15 links fit a 900 px-tall window without scrolling. */
+.adm-nav { padding: 12px 10px; }
+.adm-nav-section { padding: 10px 10px 4px; }
+.adm-nav-link { padding: 8px 14px; }
+
+/* Mobile drawer: the wrapper's only child is position:fixed, so the wrapper
+   itself had zero width and translateX(-100%) moved it by nothing — the
+   sidebar sat open over every page on a phone, with no overlay to close it. */
+@media (max-width: 768px) {
+  .adm-sidebar-wrap {
+    width: var(--adm-sidebar-w);
+    max-width: 85vw;
+  }
+  .adm-sidebar { width: 100%; }
 }

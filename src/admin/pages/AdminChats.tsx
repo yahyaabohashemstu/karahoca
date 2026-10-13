@@ -1,27 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type ChatUser } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDate, fmtDateTime, fmtNumber } from '../utils/dateUtils';
 
 export const AdminChats: React.FC = () => {
   const [page, setPage] = useState(1);
   const [lang, setLang] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   const { data, loading, error, reload } = useAsync(
     () => adminApi.getChats({ page, lang: lang || undefined }),
     [page, lang]
   );
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm('Delete all messages from this user?')) return;
-    setDeleting(userId);
+  // Deleting the only row of the last page left "No users found." with the
+  // pager gone (total now fits one page) and no way back.
+  const lastPage = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
+  useEffect(() => {
+    if (data && page > lastPage) setPage(lastPage);
+  }, [data, page, lastPage]);
+
+  const handleDelete = async (user: ChatUser) => {
+    if (!confirm(`Delete this visitor's conversation (${user.message_count} messages)? This cannot be undone.`)) return;
+    setDeleting(user.id);
+    setActionError('');
     try {
-      await adminApi.deleteChatUser(userId);
+      await adminApi.deleteChatUser(user.id);
       reload();
-    } catch {
-      alert('Failed to delete user');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete the conversation');
     } finally {
       setDeleting(null);
     }
@@ -59,20 +68,24 @@ export const AdminChats: React.FC = () => {
 
       {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>}
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {actionError && <div className="adm-alert adm-alert-error" role="alert">⚠ {actionError}</div>}
 
       {data && (
         <>
           <div className="adm-card" style={{ padding: 0 }}>
             <div className="adm-table-wrap">
               <table className="adm-table">
+                {/* User ID, Language, Messages, First Seen, Last Active, Last
+                    Message, Actions. No comments between the <col>s: the
+                    whitespace around them is invalid inside <colgroup>. */}
                 <colgroup>
-                  <col style={{ width: '18%' }} />  {/* User ID */}
-                  <col style={{ width: '8%'  }} />  {/* Language */}
-                  <col style={{ width: '8%'  }} />  {/* Messages */}
-                  <col style={{ width: '11%' }} />  {/* First Seen */}
-                  <col style={{ width: '11%' }} />  {/* Last Active */}
-                  <col style={{ width: '32%' }} />  {/* Last Message */}
-                  <col style={{ width: '12%' }} />  {/* Actions */}
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '32%' }} />
+                  <col style={{ width: '12%' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -91,7 +104,7 @@ export const AdminChats: React.FC = () => {
                   ) : data.users.map((u: ChatUser) => (
                     <tr key={u.id}>
                       <td style={{ textAlign: 'left' }}>
-                        <span className="adm-mono adm-text-sm" style={{ color: 'var(--adm-text-muted)' }}>
+                        <span className="adm-mono adm-text-sm" style={{ color: 'var(--adm-text-muted)' }} title={u.id}>
                           {u.id.slice(0, 16)}…
                         </span>
                       </td>
@@ -99,16 +112,16 @@ export const AdminChats: React.FC = () => {
                         <span className="adm-badge adm-badge-blue">{u.language}</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <strong>{u.message_count}</strong>
+                        <strong>{fmtNumber(u.message_count)}</strong>
                       </td>
                       <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
                         {fmtDate(u.first_seen)}
                       </td>
                       <td style={{ textAlign: 'center' }} className="adm-text-muted adm-text-sm">
-                        {fmtDate(u.last_seen)}
+                        {fmtDateTime(u.last_seen)}
                       </td>
                       <td style={{ textAlign: 'left', maxWidth: 0 }} className="adm-text-sm">
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} dir="auto">
                           {u.last_user_message || u.last_message || '—'}
                         </div>
                       </td>
@@ -119,8 +132,10 @@ export const AdminChats: React.FC = () => {
                           </Link>
                           <button
                             className="adm-btn adm-btn-danger adm-btn-sm"
-                            onClick={() => handleDelete(u.id)}
+                            onClick={() => handleDelete(u)}
                             disabled={deleting === u.id}
+                            aria-label="Delete conversation"
+                            title="Delete conversation"
                           >
                             {deleting === u.id ? '…' : '🗑'}
                           </button>
@@ -142,11 +157,11 @@ export const AdminChats: React.FC = () => {
                 onClick={() => setPage(p => p - 1)}
               >← Prev</button>
               <span className="adm-text-muted adm-text-sm">
-                Page {page} of {Math.ceil(data.total / data.limit)}
+                Page {page} of {lastPage}
               </span>
               <button
                 className="adm-btn adm-btn-ghost adm-btn-sm"
-                disabled={page >= Math.ceil(data.total / data.limit)}
+                disabled={page >= lastPage}
                 onClick={() => setPage(p => p + 1)}
               >Next →</button>
             </div>

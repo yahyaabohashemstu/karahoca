@@ -48,6 +48,8 @@ export const logger = pino({
       // Authorization headers & cookies
       'req.headers.authorization',
       'req.headers.cookie',
+      // Double-submit CSRF value: half of what a forged admin write needs.
+      'req.headers["x-csrf-token"]',
       'req.headers["set-cookie"]',
       'res.headers["set-cookie"]',
       // Common body-level secrets

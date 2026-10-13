@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useLayoutEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminErrorBoundary } from './components/AdminErrorBoundary';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import '../styles/admin.css';
@@ -40,22 +41,30 @@ const wrap = (C: React.ComponentType) => (
 // language prefix to change that). The whole panel — labels, inputs,
 // tables, sidebar, dialogs — therefore rendered mirrored right-to-left.
 // Arabic content fields keep their own dir="rtl".
+// The tab also kept the public site's title (the Arabic home-page title),
+// so an admin tab couldn't be told apart from a site tab.
 const useAdminDocumentDirection = () => {
   useLayoutEffect(() => {
     const html = document.documentElement;
-    const previous = { dir: html.dir, lang: html.lang };
+    const previous = { dir: html.dir, lang: html.lang, title: document.title };
     html.dir = 'ltr';
     html.lang = 'en';
+    document.title = 'KARAHOCA Admin';
     return () => {
       html.dir = previous.dir;
       html.lang = previous.lang;
+      document.title = previous.title;
     };
   }, []);
 };
 
 export const AdminApp: React.FC = () => {
   useAdminDocumentDirection();
-  return <AdminRoutes />;
+  return (
+    <AdminErrorBoundary>
+      <AdminRoutes />
+    </AdminErrorBoundary>
+  );
 };
 
 const AdminRoutes: React.FC = () => (
@@ -85,8 +94,8 @@ const AdminRoutes: React.FC = () => (
       <Route path="funnel" element={wrap(AdminFunnel)} />
       <Route path="cohorts" element={wrap(AdminCohorts)} />
       <Route path="ab-tests" element={wrap(AdminAbTests)} />
+      {/* Unknown admin URL: back to the dashboard, sidebar kept. */}
+      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Route>
-
-    <Route path="*" element={<Navigate to="" replace />} />
   </Routes>
 );

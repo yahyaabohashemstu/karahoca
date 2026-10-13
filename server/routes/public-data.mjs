@@ -241,10 +241,13 @@ export const handleChatLog = (req, res, { body, sendJson, origin }) => {
   const safeLang = ['ar', 'en', 'tr', 'ru'].includes(language) ? language : 'ar';
   const safeSessionId = typeof sessionId === 'string' && sessionId ? sessionId.slice(0, 100) : null;
   // Client timestamps are stored and sorted on in the admin panel; keep
-  // only well-formed ones.
+  // only ISO ones, stored in one canonical form. Date.parse alone also took
+  // "1" (→ 2001) or a clock set a year ahead.
   const safeTimestamp = (value) => {
-    if (typeof value !== 'string' || value.length > 40) return now;
-    return Number.isNaN(Date.parse(value)) ? now : value;
+    if (typeof value !== 'string' || value.length > 40 || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return now;
+    const ms = Date.parse(value);
+    if (Number.isNaN(ms) || ms > Date.now() + 5 * 60 * 1000) return now;
+    return new Date(ms).toISOString();
   };
 
   // Upsert user (Hot path — wrapped in try/catch so a single weird value

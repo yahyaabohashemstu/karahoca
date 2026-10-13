@@ -628,6 +628,7 @@ const migrateInitialData = () => {
   // hepsiburada_url.
   migrateAyluxMarketplaceLinks();
   migratePieceCountPlurals();
+  migrateChatMessageTimestamps();
   // Last: runs after every content seed above, so a fresh database ends up
   // with the same spelling as a migrated one.
   migrateDioxDottedI();
@@ -974,6 +975,30 @@ const migrateToneGuidelinesProductLinks = () => {
   }
 
   markMigration('tone_guidelines_product_links_v1');
+};
+
+// ─── Chat message timestamps ────────────────────────────────────────────────
+
+/**
+ * Before /api/chat/log validated it, created_at held the chat widget's
+ * DISPLAY time ("٠٩:٣٠ ص", "09:30 AM") — no date at all. The admin showed it
+ * verbatim, and as text it sorted after every real date, so the dashboard's
+ * "messages in the last 7 days" counted every one of these rows as recent.
+ * The day can't be recovered; the visitor's first_seen is the closest known
+ * time (no message predates it). Display order stays by id.
+ */
+const migrateChatMessageTimestamps = () => {
+  if (hasMigration('chat_message_timestamps_v1')) return;
+  const { changes } = db.prepare(`
+    UPDATE chat_messages
+    SET created_at = COALESCE(
+      (SELECT first_seen FROM chat_users WHERE chat_users.id = chat_messages.user_id),
+      strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    )
+    WHERE created_at IS NULL OR datetime(created_at) IS NULL
+  `).run();
+  markMigration('chat_message_timestamps_v1');
+  if (changes) logger.info(`[db] Repaired ${changes} chat message timestamp(s) that held a display time instead of a date`);
 };
 
 // ─── Newsletter opaque-key migration ────────────────────────────────────────

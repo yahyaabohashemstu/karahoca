@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi } from './utils/adminApi';
 import { useAdminAuth } from './utils/useAdminAuth';
 
@@ -9,6 +9,13 @@ export const AdminLogin: React.FC = () => {
   const { login, isLoading, error } = useAdminAuth();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
+  // Only admin pages: an absolute or foreign URL here would be an open redirect.
+  const nextParam = searchParams.get('next') || '';
+  const destination = /^\/admin\/[^/]/.test(nextParam) && !nextParam.startsWith('//')
+    ? nextParam
+    : '/admin/dashboard';
 
   useEffect(() => {
     let cancelled = false;
@@ -17,7 +24,7 @@ export const AdminLogin: React.FC = () => {
       try {
         await adminApi.getSession();
         if (!cancelled) {
-          navigate('/admin/dashboard', { replace: true });
+          navigate(destination, { replace: true });
         }
       } catch {
         // No valid cookie session yet; stay on the login screen.
@@ -32,12 +39,12 @@ export const AdminLogin: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, destination]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await login(username, password);
-    if (ok) navigate('/admin/dashboard', { replace: true });
+    if (ok) navigate(destination, { replace: true });
   };
 
   return (
@@ -50,10 +57,17 @@ export const AdminLogin: React.FC = () => {
           <p>Admin Dashboard</p>
         </div>
 
+        {sessionExpired && !error && (
+          <div className="adm-alert adm-alert-info" role="status">
+            Your session expired. Sign in again to continue where you left off.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="adm-form-group">
-            <label className="adm-label">Username</label>
+            <label className="adm-label" htmlFor="adm-login-username">Username</label>
             <input
+              id="adm-login-username"
               className="adm-input"
               type="text"
               placeholder="Enter your username"
@@ -66,8 +80,9 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           <div className="adm-form-group">
-            <label className="adm-label">Password</label>
+            <label className="adm-label" htmlFor="adm-login-password">Password</label>
             <input
+              id="adm-login-password"
               className="adm-input"
               type="password"
               placeholder="••••••••"
@@ -79,7 +94,7 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           {error && (
-            <div className="adm-alert adm-alert-error">
+            <div className="adm-alert adm-alert-error" role="alert">
               ⚠ {error}
             </div>
           )}
@@ -94,7 +109,7 @@ export const AdminLogin: React.FC = () => {
               ? <><span className="adm-spinner" style={{ width: 15, height: 15 }} /> Checking session…</>
               : isLoading
               ? <><span className="adm-spinner" style={{ width: 15, height: 15 }} /> Logging in…</>
-              : '🔐  Sign In'
+              : 'Sign In'
             }
           </button>
         </form>

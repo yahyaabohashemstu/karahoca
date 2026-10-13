@@ -1,6 +1,6 @@
-import { getDb } from '../db.mjs';
+import { getDb, logAudit } from '../db.mjs';
 
-export const handleAdminChats = (req, res, { sendJson, origin, url }) => {
+export const handleAdminChats = (req, res, { sendJson, origin, url, admin }) => {
   const db = getDb();
   const urlObj = new URL(req.url, 'http://localhost');
 
@@ -23,8 +23,21 @@ export const handleAdminChats = (req, res, { sendJson, origin, url }) => {
     }
 
     if (req.method === 'DELETE') {
-      db.prepare('DELETE FROM chat_messages WHERE user_id=?').run(userId);
-      db.prepare('DELETE FROM chat_users WHERE id=?').run(userId);
+      const user = db.prepare('SELECT message_count FROM chat_users WHERE id=?').get(userId);
+      if (!user) { sendJson(res, 404, { success: false, error: 'User not found.' }, origin); return; }
+      db.transaction(() => {
+        db.prepare('DELETE FROM chat_messages WHERE user_id=?').run(userId);
+        db.prepare('DELETE FROM chat_users WHERE id=?').run(userId);
+      })();
+      // The one destructive admin action that left no audit trail.
+      logAudit({
+        action: 'DELETE',
+        entityType: 'chat',
+        entityId: userId,
+        entityName: `Chat visitor ${userId.slice(0, 8)}`,
+        adminUser: admin?.username || 'admin',
+        details: `${user.message_count} messages`,
+      });
       sendJson(res, 200, { success: true }, origin);
       return;
     }
