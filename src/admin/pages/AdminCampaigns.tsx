@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDate, fmtDateTime } from '../utils/dateUtils';
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sent: '#22c55e',
+  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sending: '#0ea5e9', sent: '#22c55e',
 };
 const STATUS_ICON: Record<string, string> = {
-  draft: '✏️', scheduled: '🕐', queued: '⏳', sent: '✅',
+  draft: '✏️', scheduled: '🕐', queued: '⏳', sending: '📤', sent: '✅',
 };
 const TPL_LABEL: Record<string, string> = {
   custom: 'Custom', new_product: '🧴 New Product', offer: '🏷️ Special Offer', news: '📰 Company News',
@@ -19,14 +19,19 @@ export const AdminCampaigns: React.FC = () => {
   const [sending, setSending] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this campaign?')) return;
-    await adminApi.deleteCampaign(id);
-    reload();
+  const handleDelete = async (id: number, title: string) => {
+    if (!confirm(`Delete the campaign "${title}"? Its delivery stats are deleted with it.`)) return;
+    setMsg('');
+    try {
+      await adminApi.deleteCampaign(id);
+      reload();
+    } catch (e: unknown) {
+      setMsg(`❌ ${e instanceof Error ? e.message : 'Delete failed'}`);
+    }
   };
 
   const handleSend = async (id: number) => {
-    if (!confirm('Queue this campaign for immediate delivery to ALL active subscribers?')) return;
+    if (!confirm('Send this campaign now? It goes to the recipients selected in the campaign (every active subscriber unless some were unticked).')) return;
     setSending(id); setMsg('');
     try {
       const res = await adminApi.sendCampaign(id);
@@ -115,12 +120,15 @@ export const AdminCampaigns: React.FC = () => {
                       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: 'var(--adm-text-muted)' }}>
                         <span>{TPL_LABEL[c.template_type] || c.template_type}</span>
                         <span>Created: {fmtDate(c.created_at)}</span>
-                        {c.sent_at && <span style={{ color: '#22c55e' }}>Sent: {fmtDate(c.sent_at)}</span>}
+                        {c.sent_at && <span style={{ color: '#22c55e' }}>Sent: {fmtDateTime(c.sent_at)}</span>}
                         {c.scheduled_at && c.status === 'scheduled' && (
-                          <span style={{ color: '#4f6ef7' }}>Scheduled: {new Date(c.scheduled_at).toLocaleString()}</span>
+                          <span style={{ color: '#4f6ef7' }}>Scheduled: {fmtDateTime(c.scheduled_at)}</span>
                         )}
                         {c.status === 'queued' && (
                           <span style={{ color: '#0ea5e9' }}>Queued for background delivery</span>
+                        )}
+                        {c.status === 'sending' && (
+                          <span style={{ color: '#0ea5e9' }}>Sending now…</span>
                         )}
                         {c.status === 'sent' && (
                           <>
@@ -132,13 +140,9 @@ export const AdminCampaigns: React.FC = () => {
                                 </span>
                               )}
                             </span>
-                            <span>🖱 {c.click_count ?? 0} clicks
-                              {c.recipient_count > 0 && (c.click_count ?? 0) > 0 && (
-                                <span style={{ color: '#f59e0b', marginLeft: 4 }}>
-                                  ({Math.round(((c.click_count ?? 0) / c.recipient_count) * 100)}%)
-                                </span>
-                              )}
-                            </span>
+                            {/* Raw count: it includes repeat clicks, so a
+                                per-recipient rate could pass 100 %. */}
+                            <span>🖱 {c.click_count ?? 0} clicks</span>
                           </>
                         )}
                       </div>
@@ -161,8 +165,17 @@ export const AdminCampaigns: React.FC = () => {
                           {sending === c.id ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Queueing…</> : '🚀 Queue Send'}
                         </button>
                       )}
-                      <Link to={`/admin/campaigns/${c.id}`} className="adm-btn adm-btn-sm">✏️ Edit</Link>
-                      <button className="adm-btn adm-btn-sm adm-btn-danger" onClick={() => handleDelete(c.id)}>🗑</button>
+                      <Link to={`/admin/campaigns/${c.id}`} className="adm-btn adm-btn-sm">
+                        {c.status === 'draft' || c.status === 'scheduled' ? '✏️ Edit' : '👁 View'}
+                      </Link>
+                      {c.status !== 'sending' && (
+                        <button
+                          className="adm-btn adm-btn-sm adm-btn-danger"
+                          onClick={() => handleDelete(c.id, c.title)}
+                          aria-label={`Delete campaign ${c.title}`}
+                          title="Delete"
+                        >🗑</button>
+                      )}
                     </div>
                   </div>
                 </div>

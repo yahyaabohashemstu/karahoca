@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
 
 export const AdminNewsletter: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -12,6 +12,14 @@ export const AdminNewsletter: React.FC = () => {
     () => adminApi.getNewsletter(page),
     [page]
   );
+
+  const lastPage = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
+
+  // Unsubscribing the only row of the last page left the admin on a page
+  // past the end: an empty table reading "No subscribers yet".
+  useEffect(() => {
+    if (data && page > lastPage) setPage(lastPage);
+  }, [data, page, lastPage]);
 
   const handleUnsubscribe = async (email: string) => {
     if (!confirm(`Unsubscribe ${email}?`)) return;
@@ -56,7 +64,9 @@ export const AdminNewsletter: React.FC = () => {
         <div>
           <h1 className="adm-page-title">Newsletter Subscribers</h1>
           <p className="adm-page-subtitle">
-            {data ? `${data.total} total subscribers` : 'Loading...'}
+            {data
+              ? `${fmtNumber(data.total)} total subscribers`
+              : error ? 'Subscriber count unavailable' : 'Loading...'}
           </p>
         </div>
         <button className="adm-btn adm-btn-secondary adm-btn-sm" onClick={handleExport} disabled={exporting}>
@@ -65,9 +75,16 @@ export const AdminNewsletter: React.FC = () => {
       </div>
 
       {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>}
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {error && (
+        <div className="adm-alert adm-alert-error" role="alert">
+          ⚠ Couldn't load subscribers: {error}{' '}
+          <button type="button" className="adm-btn adm-btn-sm" onClick={() => reload()}>Retry</button>
+        </div>
+      )}
 
-      {!loading && (
+      {/* On an error the table would say "No subscribers yet", which is not
+          what the admin should conclude. */}
+      {!loading && !error && (
         <>
           <div className="adm-card" style={{ padding: 0 }}>
             <div className="adm-table-wrap">
@@ -86,7 +103,7 @@ export const AdminNewsletter: React.FC = () => {
                     <tr key={sub.email}>
                       <td className="adm-mono">{sub.email}</td>
                       <td className="adm-text-muted adm-text-sm">
-                        {fmtDate(sub.subscribed_at)}
+                        {fmtDateTime(sub.subscribed_at)}
                       </td>
                       <td>
                         <button
@@ -112,11 +129,11 @@ export const AdminNewsletter: React.FC = () => {
                 onClick={() => setPage(p => p - 1)}
               >← Prev</button>
               <span className="adm-text-muted adm-text-sm">
-                Page {page} of {Math.ceil(data.total / data.limit)}
+                Page {page} of {lastPage}
               </span>
               <button
                 className="adm-btn adm-btn-ghost adm-btn-sm"
-                disabled={page >= Math.ceil(data.total / data.limit)}
+                disabled={page >= lastPage}
                 onClick={() => setPage(p => p + 1)}
               >Next →</button>
             </div>

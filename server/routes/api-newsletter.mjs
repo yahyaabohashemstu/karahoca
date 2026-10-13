@@ -46,6 +46,11 @@ export const handleNewsletterSubscribe = async (request, response, { origin }) =
  * POST /api/newsletter/unsubscribe
  * Rate limit: 10 req / 5-minute window per IP. Verifies the HMAC token then
  * flips the `active` flag on the matching subscriber row.
+ *
+ * Two callers: the /unsubscribe page sends JSON `{ token }`; a mail client's
+ * RFC 8058 one-click button POSTs the form body `List-Unsubscribe=One-Click`
+ * to the List-Unsubscribe URL, so its token is in the query string and the
+ * body is not JSON.
  */
 export const handleNewsletterUnsubscribe = async (request, response, { origin }) => {
   const clientIp = getClientIp(request);
@@ -59,8 +64,15 @@ export const handleNewsletterUnsubscribe = async (request, response, { origin })
     return;
   }
 
-  const body = await readRequestBody(request);
-  const tokenPayload = verifyUnsubscribeToken(body?.token);
+  const queryToken = new URL(request.url || '/', 'http://localhost').searchParams.get('token') || '';
+  // With a query token the body is the one-click form (or empty), which the
+  // JSON reader rejects; it only matters when it carries the token.
+  const body = queryToken
+    ? await readRequestBody(request).catch(() => ({}))
+    : await readRequestBody(request);
+  const tokenPayload = verifyUnsubscribeToken(
+    typeof body?.token === 'string' && body.token ? body.token : queryToken,
+  );
   if (!tokenPayload) {
     sendJson(response, 400, { success: false, error: 'Invalid or expired unsubscribe token.' }, origin);
     return;

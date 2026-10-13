@@ -1,6 +1,7 @@
 import { getDb, incrementStat, generateOpaqueSubscriberKey } from './db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { logger } from '../utils/logger.mjs';
+import { buildListUnsubscribeHeaders } from './listUnsubscribe.mjs';
 
 // ── Welcome email i18n strings ──────────────────────────────────────────────
 const WELCOME_EMAIL_I18N = {
@@ -75,6 +76,10 @@ const sendWelcomeEmail = async ({ normalizedEmail, lang, subscriberKey }) => {
   const i = WELCOME_EMAIL_I18N[userLang];
   const textAlign = i.dir === 'rtl' ? 'right' : 'left';
   const unsubUrl = buildUnsubscribeUrl({ siteUrl, subscriberKey, lang: userLang });
+  const listUnsubscribeHeaders = buildListUnsubscribeHeaders({
+    unsubscribeUrl: unsubUrl,
+    apiBaseUrl: process.env.API_PUBLIC_URL || siteUrl,
+  });
 
   try {
     const resp = await fetch('https://api.resend.com/emails', {
@@ -84,6 +89,7 @@ const sendWelcomeEmail = async ({ normalizedEmail, lang, subscriberKey }) => {
         from: fromEmail,
         to: [normalizedEmail],
         subject: i.subject,
+        ...(Object.keys(listUnsubscribeHeaders).length ? { headers: listUnsubscribeHeaders } : {}),
         html: `<!DOCTYPE html><html lang="${i.lang}" dir="${i.dir}">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,sans-serif">
@@ -110,13 +116,13 @@ const sendWelcomeEmail = async ({ normalizedEmail, lang, subscriberKey }) => {
     });
     const data = await resp.json().catch(() => ({}));
     if (resp.ok) {
-      logger.info('[welcome-email] Sent OK, id:', data.id);
+      logger.info({ id: data.id }, '[welcome-email] sent');
       return { sent: true, id: data.id };
     }
-    logger.warn('[welcome-email] Resend error:', JSON.stringify(data));
+    logger.warn({ status: resp.status, resend: data }, '[welcome-email] Resend rejected the e-mail');
     return { sent: false, error: data.message || data.name || `Resend HTTP ${resp.status}`, details: data };
   } catch (e) {
-    logger.warn('[welcome-email] Network error:', e.message);
+    logger.warn({ err: e }, '[welcome-email] network error');
     return { sent: false, error: e.message };
   }
 };

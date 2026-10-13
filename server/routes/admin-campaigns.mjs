@@ -12,6 +12,7 @@ import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { dequeueQueueItem, enqueueQueueItem } from '../redisClient.mjs';
 import { logger } from '../utils/logger.mjs';
 import { buildUpdater } from '../services/safeUpdate.mjs';
+import { buildListUnsubscribeHeaders } from '../services/listUnsubscribe.mjs';
 
 const CAMPAIGN_UPDATE_FIELDS = [
   'title', 'template_type',
@@ -173,7 +174,17 @@ const ensureSubscriberUnsubscribeKey = (db, email, currentKey = '') => {
 };
 
 // ── HTML email template ───────────────────────────────────────────────────────
-const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageUrl, requestHostOrigin = '' }) => {
+// The template's own words, in the language the campaign is sent in: the
+// header tagline and the copyright line used to be English in every e-mail.
+const EMAIL_STRINGS = {
+  ar: { tagline: 'النشرة الإخبارية الرسمية', rights: 'جميع الحقوق محفوظة.', cta: 'زيارة الموقع', unsubscribe: 'إلغاء الاشتراك' },
+  en: { tagline: 'Official Newsletter', rights: 'All rights reserved.', cta: 'Visit Website', unsubscribe: 'Unsubscribe' },
+  tr: { tagline: 'Resmi Bülten', rights: 'Tüm hakları saklıdır.', cta: 'Siteyi Ziyaret Et', unsubscribe: 'Aboneliği iptal et' },
+  ru: { tagline: 'Официальная рассылка', rights: 'Все права защищены.', cta: 'Посетить сайт', unsubscribe: 'Отписаться' },
+};
+
+export const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageUrl, requestHostOrigin = '' }) => {
+  const strings = EMAIL_STRINGS[lang] || EMAIL_STRINGS.en;
   const isRtl = lang === 'ar';
   const dir   = isRtl ? 'rtl' : 'ltr';
   const font  = isRtl
@@ -230,7 +241,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageU
           <td style="background:linear-gradient(135deg,#0f1117,#1a1d27);padding:32px 40px;text-align:center">
             ${logoBlock}
             <div style="color:#4f6ef7;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:8px">
-              Official Newsletter
+              ${strings.tagline}
             </div>
           </td>
         </tr>
@@ -243,7 +254,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageU
             ${bodyHtml}
             <div style="margin-top:28px;text-align:center">
               <a href="${ctaHref}" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#4f6ef7,#6b84ff);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
-                ${isRtl ? 'زيارة الموقع' : lang === 'tr' ? 'Siteyi Ziyaret Et' : lang === 'ru' ? 'Посетить сайт' : 'Visit Website'} →
+                ${strings.cta} →
               </a>
             </div>
           </td>
@@ -255,7 +266,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageU
         <!-- Footer -->
         <tr>
           <td style="background:#fafafa;padding:24px 40px;text-align:center;font-size:12px;color:#999">
-            <p style="margin:0 0 8px">© ${new Date().getFullYear()} KARAHOCA. All rights reserved.</p>
+            <p style="margin:0 0 8px">© ${new Date().getFullYear()} KARAHOCA. ${strings.rights}</p>
             <p style="margin:0 0 8px">
               📧 <a href="mailto:info@karahoca.com" style="color:#4f6ef7;text-decoration:none">info@karahoca.com</a>
               &nbsp;|&nbsp;
@@ -263,7 +274,7 @@ const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageU
             </p>
             <p style="margin:0">
               <a href="${unsubscribeUrl}" style="color:#bbb;font-size:11px">
-                ${isRtl ? 'إلغاء الاشتراك' : lang === 'tr' ? 'Aboneliği iptal et' : lang === 'ru' ? 'Отписаться' : 'Unsubscribe'}
+                ${strings.unsubscribe}
               </a>
             </p>
             ${pixel ? `<img src="${pixel}" width="1" height="1" alt="" style="display:none" />` : ''}
@@ -276,11 +287,14 @@ const buildEmailContent = ({ subject, body, lang, sendId, unsubscribeUrl, imageU
 </body>
 </html>`;
 
-  return { html, attachments };
+  // Same API base as the pixel: the one-click POST must reach this server.
+  const headers = buildListUnsubscribeHeaders({ unsubscribeUrl, apiBaseUrl });
+
+  return { html, attachments, headers };
 };
 
 // ── Send one email via Resend ─────────────────────────────────────────────────
-const sendEmail = async ({ to, subject, html, replyTo, attachments = [] }) => {
+const sendEmail = async ({ to, subject, html, replyTo, attachments = [], headers = {} }) => {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY not configured.');
   const resend = new Resend(key);
@@ -291,6 +305,7 @@ const sendEmail = async ({ to, subject, html, replyTo, attachments = [] }) => {
     html,
     replyTo,
     attachments,
+    ...(Object.keys(headers).length ? { headers } : {}),
   });
   if (error) {
     throw new Error(error.message || 'Resend send failed');
@@ -319,20 +334,68 @@ const getRequestHostOrigin = (req) => {
   return `${protocol}://${host}`;
 };
 
+// ── Recipient exclusions ──────────────────────────────────────────────────────
+// The campaign row's excluded_emails is the ONE source of truth. Every path
+// that changes the selection (Save, Schedule, Send now) writes it, and the
+// dispatcher reads it from the row. It used to travel inside the queue job,
+// so a job without it — "Queue Send" on the list, or the boot-time recovery
+// of a queued campaign — mailed the people the admin had excluded.
+
+/** Request value → clean list, or null when the caller sent no list. */
+const normaliseExcludedEmails = (value) => {
+  if (!Array.isArray(value)) return null;
+  const emails = new Set();
+  for (const item of value) {
+    if (typeof item !== 'string' || item.length > 254) continue;
+    const email = item.toLowerCase().trim();
+    if (email) emails.add(email);
+    if (emails.size >= 100000) break;
+  }
+  return [...emails];
+};
+
+const readExcludedEmails = (campaign) => {
+  try {
+    const stored = JSON.parse(campaign?.excluded_emails || '[]');
+    return new Set(
+      Array.isArray(stored) ? stored.map((e) => String(e).toLowerCase().trim()) : [],
+    );
+  } catch {
+    return new Set();
+  }
+};
+
+// A campaign in one of these states is being, or has been, mailed: its
+// content and recipients are frozen.
+const LOCKED_STATUSES = new Set(['queued', 'sending', 'sent']);
+
+const hasText = (value) => !!String(value || '').trim();
+
+export const pickSendLanguage = (campaign) =>
+  ['ar', 'en', 'tr', 'ru'].find((l) => hasText(campaign[`body_${l}`])) || 'ar';
+
+/** Why this campaign can't be mailed yet, or '' when it can. */
+const missingContentReason = (campaign) => {
+  const lang = pickSendLanguage(campaign);
+  if (!hasText(campaign[`body_${lang}`])) return 'The campaign has no body text in any language.';
+  if (!hasText(campaign[`subject_${lang}`])) {
+    return `The campaign is sent in ${lang.toUpperCase()}, but its ${lang.toUpperCase()} subject is empty.`;
+  }
+  return '';
+};
+
 // ── Dispatch a campaign ───────────────────────────────────────────────────────
 export const dispatchCampaign = async (campaignId, options = {}) => {
   const db = getDb();
   const requestHostOrigin = typeof options.requestHostOrigin === 'string'
     ? trimTrailingSlash(options.requestHostOrigin)
     : '';
-  const excludedEmails = Array.isArray(options.excludedEmails)
-    ? new Set(options.excludedEmails.map(e => String(e).toLowerCase().trim()))
-    : new Set();
 
   const campaign = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(campaignId);
   if (!campaign) throw new Error('Campaign not found');
   if (campaign.status === 'sent') throw new Error('Campaign already sent');
   if (campaign.status === 'sending') throw new Error('Campaign is already being dispatched');
+  const excludedEmails = readExcludedEmails(campaign);
 
   // Atomically claim this campaign to prevent duplicate sends from the scheduler
   const claimed = db.prepare(
@@ -353,15 +416,17 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
     return { sent: 0, sentA: 0, sentB: 0, errors: [] };
   }
 
-  // Detect if A/B test is configured (subject_b_ar must be filled)
-  const hasAbTest = !!(campaign.subject_b_ar || campaign.subject_b_en);
   // Subscribers have no stored language yet, so one language is sent to
   // everyone: Arabic when it has a body, otherwise the first language that
   // does. It used to be hard-wired to Arabic, so a campaign written in
   // English only (which is what applying a template leaves: English filled,
   // the others cleared for re-translation) went out as an EMPTY right-to-
   // left e-mail with the bare title as its subject.
-  const lang = ['ar', 'en', 'tr', 'ru'].find((l) => String(campaign[`body_${l}`] || '').trim()) || 'ar';
+  const lang = pickSendLanguage(campaign);
+  // A/B only when the language actually sent has a B subject. Checking
+  // ar/en regardless split an English send on an Arabic-only B subject:
+  // group B got subject A, and the "results" compared identical e-mails.
+  const hasAbTest = !!String(campaign[`subject_b_${lang}`] || '').trim();
 
   let sent = 0;
   const errors = [];
@@ -405,7 +470,10 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   // and because we already paid the cost of batching the DB inserts above.
   // Individual failures are collected; partial-failure semantics match
   // the previous behaviour exactly.
-  for (const { email, variant, subscriberKey, sendId } of sendQueue) {
+  const heartbeat = db.prepare("UPDATE email_campaigns SET updated_at=datetime('now') WHERE id=?");
+  for (const [index, { email, variant, subscriberKey, sendId }] of sendQueue.entries()) {
+    // Liveness for closeInterruptedSends.
+    if (index > 0 && index % 20 === 0) heartbeat.run(campaignId);
     const subject = variant === 'b'
       ? (campaign[`subject_b_${lang}`] || campaign[`subject_${lang}`] || campaign.title)
       : (campaign[`subject_${lang}`] || campaign.title);
@@ -430,6 +498,7 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
         subject,
         html: emailContent.html,
         attachments: emailContent.attachments,
+        headers: emailContent.headers,
       });
       updateResend.run(resendId, sendId);
       sent++;
@@ -439,10 +508,24 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
     }
   }
 
+  if (errors.length > 0) {
+    logger.error(
+      { campaignId, failed: errors.length, sent, firstError: errors[0]?.error },
+      '[campaign] some e-mails were not sent',
+    );
+  }
+
   if (sent === 0 && errors.length > 0) {
-    db.prepare(
-      "UPDATE email_campaigns SET status='draft', updated_at=datetime('now') WHERE id=?"
-    ).run(campaignId);
+    // Nothing went out: back to draft (not 'scheduled' — its time has
+    // passed, so the scheduler would retry and fail every minute) and drop
+    // the staged rows, or the next attempt lists every address twice in the
+    // delivery details.
+    db.transaction(() => {
+      db.prepare('DELETE FROM email_sends WHERE campaign_id=? AND resend_id IS NULL').run(campaignId);
+      db.prepare(
+        "UPDATE email_campaigns SET status='draft', updated_at=datetime('now') WHERE id=?"
+      ).run(campaignId);
+    })();
     return { sent, sentA, sentB, errors };
   }
 
@@ -466,23 +549,25 @@ export const queueCampaignDispatch = async (campaignId, options = {}) => {
     return { queued: true, alreadyQueued: true };
   }
 
+  const full = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(campaignId);
+  const contentProblem = missingContentReason(full);
+  if (contentProblem) throw fail(400, contentProblem);
+
   const nextStatus = campaign.status === 'scheduled' ? 'scheduled' : 'draft';
-  // Explicit list from "Send now"; otherwise (the scheduler) the list that
-  // was saved when the campaign was scheduled.
-  let excludedEmails = Array.isArray(options.excludedEmails) ? options.excludedEmails : null;
-  if (!excludedEmails) {
-    try {
-      const stored = JSON.parse(db.prepare('SELECT excluded_emails FROM email_campaigns WHERE id=?').get(campaignId)?.excluded_emails || '[]');
-      excludedEmails = Array.isArray(stored) ? stored : [];
-    } catch {
-      excludedEmails = [];
-    }
-  }
-  const queued = db.prepare(`
-    UPDATE email_campaigns
-    SET status='queued', updated_at=datetime('now')
-    WHERE id=? AND status IN ('draft','scheduled')
-  `).run(campaignId);
+  // An explicit list ("Send now" in the editor) replaces the saved one; no
+  // list (the list page, the scheduler) sends with the saved one.
+  const excludedEmails = normaliseExcludedEmails(options.excludedEmails);
+  const queued = excludedEmails
+    ? db.prepare(`
+        UPDATE email_campaigns
+        SET status='queued', excluded_emails=?, updated_at=datetime('now')
+        WHERE id=? AND status IN ('draft','scheduled')
+      `).run(JSON.stringify(excludedEmails), campaignId)
+    : db.prepare(`
+        UPDATE email_campaigns
+        SET status='queued', updated_at=datetime('now')
+        WHERE id=? AND status IN ('draft','scheduled')
+      `).run(campaignId);
 
   if (queued.changes === 0) {
     throw new Error('Campaign could not be queued for dispatch');
@@ -491,7 +576,6 @@ export const queueCampaignDispatch = async (campaignId, options = {}) => {
   await enqueueQueueItem(CAMPAIGN_DISPATCH_QUEUE, JSON.stringify({
     campaignId,
     requestHostOrigin: typeof options.requestHostOrigin === 'string' ? options.requestHostOrigin : '',
-    excludedEmails,
     fallbackStatus: nextStatus,
   }));
 
@@ -522,10 +606,7 @@ export const processQueuedCampaignDispatches = async () => {
       }
 
       try {
-        await dispatchCampaign(job.campaignId, {
-          requestHostOrigin: job.requestHostOrigin,
-          excludedEmails: Array.isArray(job.excludedEmails) ? job.excludedEmails : [],
-        });
+        await dispatchCampaign(job.campaignId, { requestHostOrigin: job.requestHostOrigin });
       } catch (error) {
         const fallbackStatus = job?.fallbackStatus === 'scheduled' ? 'scheduled' : 'draft';
         try {
@@ -537,7 +618,7 @@ export const processQueuedCampaignDispatches = async () => {
         } catch {
           // Best-effort status recovery only.
         }
-        logger.error(`[campaign-queue] Campaign #${job?.campaignId ?? 'unknown'} failed:`, error?.message || error);
+        logger.error({ err: error, campaignId: job?.campaignId }, '[campaign-queue] campaign dispatch failed');
       }
     }
   } finally {
@@ -545,18 +626,54 @@ export const processQueuedCampaignDispatches = async () => {
   }
 };
 
+// A send loop touches updated_at every few e-mails (see dispatchCampaign),
+// so a 'sending' campaign that has been quiet this long has no live loop:
+// the process died mid-send. Re-sending would mail the first part of the
+// list twice, so close it as sent to the addresses Resend accepted and drop
+// the rows that never went out. The age check keeps a rolling deploy's new
+// container from closing a send the old one is still running.
+const SENDING_STALE_MINUTES = 15;
+
+export const closeInterruptedSends = () => {
+  const db = getDb();
+  const interrupted = db.prepare(`
+    SELECT id FROM email_campaigns
+    WHERE status = 'sending'
+      AND datetime(updated_at) <= datetime('now', '-${SENDING_STALE_MINUTES} minutes')
+  `).all();
+  for (const { id } of interrupted) {
+    db.transaction(() => {
+      db.prepare('DELETE FROM email_sends WHERE campaign_id=? AND resend_id IS NULL').run(id);
+      const { c } = db.prepare('SELECT COUNT(*) AS c FROM email_sends WHERE campaign_id=?').get(id);
+      db.prepare(`
+        UPDATE email_campaigns
+        SET status = CASE WHEN ? > 0 THEN 'sent' ELSE 'draft' END,
+            sent_at = CASE WHEN ? > 0 THEN COALESCE(sent_at, datetime('now')) ELSE sent_at END,
+            recipient_count = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).run(c, c, c, id);
+    })();
+    logger.warn({ campaignId: id }, '[campaign-queue] closed a campaign interrupted mid-send');
+  }
+};
+
 export const recoverQueuedCampaignDispatches = async () => {
-  const queuedCampaigns = getDb().prepare(`
+  const db = getDb();
+  closeInterruptedSends();
+
+  const queuedCampaigns = db.prepare(`
     SELECT id
     FROM email_campaigns
     WHERE status = 'queued'
   `).all();
 
+  // Recipients come from the campaign row, so the order these run in
+  // (relative to a job that survived in Redis) doesn't matter: the first
+  // claims the campaign, the duplicate finds it sent and stops.
   for (const campaign of queuedCampaigns) {
     await enqueueQueueItem(CAMPAIGN_DISPATCH_QUEUE, JSON.stringify({
       campaignId: campaign.id,
       requestHostOrigin: '',
-      excludedEmails: [],
       fallbackStatus: 'draft',
     }));
   }
@@ -672,10 +789,10 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
   const sendMatch = url.match(/^\/api\/admin\/campaigns\/(\d+)\/send$/);
   if (sendMatch && req.method === 'POST') {
     const id = parseInt(sendMatch[1], 10);
-    const excludedEmails = Array.isArray(body?.excludedEmails) ? body.excludedEmails : [];
     const result = await queueCampaignDispatch(id, {
       requestHostOrigin: getRequestHostOrigin(req),
-      excludedEmails,
+      // Absent (the list page) → the saved selection is used.
+      excludedEmails: body?.excludedEmails,
     });
     const camp = db.prepare('SELECT title FROM email_campaigns WHERE id=?').get(id);
     logAudit({
@@ -703,18 +820,24 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
         sendJson(res, 400, { error: 'Invalid scheduledAt value' }, origin);
         return;
       }
+      // A time that has already passed was accepted with "scheduled
+      // successfully" and mailed within the minute.
+      if (Date.parse(scheduledAt) <= Date.now()) {
+        sendJson(res, 400, { error: 'The scheduled time is in the past. Pick a later time, or use Send now.' }, origin);
+        return;
+      }
       // Only drafts (or re-timing an already-scheduled one). Scheduling a
       // sent / sending / queued campaign flipped it back to 'scheduled' and
       // the scheduler then mailed every subscriber a second time.
-      const current = db.prepare('SELECT status FROM email_campaigns WHERE id=?').get(id);
+      const current = db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id);
       if (!current) { sendJson(res, 404, { error: 'Not found' }, origin); return; }
       if (current.status !== 'draft' && current.status !== 'scheduled') {
         sendJson(res, 409, { error: `Campaign is ${current.status}; only drafts can be scheduled.` }, origin);
         return;
       }
-      const excludedEmails = Array.isArray(body.excludedEmails)
-        ? body.excludedEmails.filter((e) => typeof e === 'string' && e.length <= 254).slice(0, 100000)
-        : [];
+      const contentProblem = missingContentReason(current);
+      if (contentProblem) { sendJson(res, 400, { error: contentProblem }, origin); return; }
+      const excludedEmails = normaliseExcludedEmails(body.excludedEmails) ?? [...readExcludedEmails(current)];
       db.prepare("UPDATE email_campaigns SET status='scheduled', scheduled_at=?, excluded_emails=?, updated_at=datetime('now') WHERE id=?")
         .run(normalizedScheduledAt, JSON.stringify(excludedEmails), id);
       sendJson(res, 200, { success: true }, origin);
@@ -734,13 +857,36 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
     }
 
     if (req.method === 'PUT') {
-      updateCampaignRow(id, body);
+      const current = db.prepare('SELECT status FROM email_campaigns WHERE id=?').get(id);
+      if (!current) { sendJson(res, 404, { error: 'Not found' }, origin); return; }
+      // Editing after the send made the stats describe an e-mail nobody got.
+      if (LOCKED_STATUSES.has(current.status)) {
+        sendJson(res, 409, { error: `Campaign is ${current.status}; it can no longer be edited.` }, origin);
+        return;
+      }
+      db.transaction(() => {
+        updateCampaignRow(id, body);
+        // Save keeps the recipient selection too: before, only Schedule
+        // stored it, so unticked people were mailed by a later Queue Send.
+        const excludedEmails = normaliseExcludedEmails(body?.excludedEmails);
+        if (excludedEmails) {
+          db.prepare('UPDATE email_campaigns SET excluded_emails=? WHERE id=?')
+            .run(JSON.stringify(excludedEmails), id);
+        }
+      })();
       sendJson(res, 200, { success: true, campaign: db.prepare('SELECT * FROM email_campaigns WHERE id=?').get(id) }, origin);
       return;
     }
 
     if (req.method === 'DELETE') {
-      const camp = db.prepare('SELECT title FROM email_campaigns WHERE id=?').get(id);
+      const camp = db.prepare('SELECT title, status FROM email_campaigns WHERE id=?').get(id);
+      if (!camp) { sendJson(res, 404, { error: 'Not found' }, origin); return; }
+      // The send loop doesn't look at the row again: deleting mid-send kept
+      // mailing everyone and only threw the delivery stats away.
+      if (camp.status === 'sending') {
+        sendJson(res, 409, { error: 'The campaign is being sent right now; delete it once it has finished.' }, origin);
+        return;
+      }
       db.prepare('DELETE FROM email_campaigns WHERE id=?').run(id);
       logAudit({ action: 'DELETE', entityType: 'campaign', entityId: id, entityName: camp?.title, adminUser });
       sendJson(res, 200, { success: true }, origin);

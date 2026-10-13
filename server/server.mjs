@@ -107,10 +107,21 @@ const httpLog = pinoHttp({
     if (res.statusCode >= 400) return 'warn';
     return 'info';
   },
-  serializers: logger.levels ? undefined : undefined, // inherit from base logger
-  customSuccessMessage: (req, res) => `${req.method} ${req.url} → ${res.statusCode}`,
-  customErrorMessage: (req, res, err) => `${req.method} ${req.url} → ${res.statusCode} (${err?.message || 'error'})`,
+  // Unsubscribe links carry a signed token in the query string; it is a
+  // credential for that subscriber, so it stays out of the logs.
+  serializers: {
+    req: (req) => {
+      if (typeof req.url === 'string') req.url = redactTokens(req.url);
+      return req;
+    },
+  },
+  customSuccessMessage: (req, res) => `${req.method} ${redactTokens(req.url)} → ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${redactTokens(req.url)} → ${res.statusCode} (${err?.message || 'error'})`,
 });
+
+function redactTokens(value) {
+  return typeof value === 'string' ? value.replace(/([?&]token=)[^&#]*/gi, '$1[redacted]') : value;
+}
 
 // ─── Request handler ────────────────────────────────────────────────────────
 const handleRequest = async (request, response) => {
@@ -146,10 +157,18 @@ const handleRequest = async (request, response) => {
     return;
   }
 
+  // RFC 8058 one-click unsubscribe: the mail provider POSTs to the
+  // List-Unsubscribe URL from its own servers, with no Origin header, so the
+  // check below answered 403 and the mail client's Unsubscribe button did
+  // nothing. The signed token in the URL is the authorization, and the
+  // response carries no CORS grant for a foreign origin.
+  const isOneClickUnsubscribe = request.method === 'POST' && url === '/api/newsletter/unsubscribe';
+
   // Block cross-origin writes from disallowed origins.
   if (
     (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE') &&
-    !originAllowed
+    !originAllowed &&
+    !isOneClickUnsubscribe
   ) {
     sendJson(response, 403, { success: false, error: 'Origin is not allowed.' }, corsOrigin);
     return;
@@ -198,6 +217,18 @@ const handleRequest = async (request, response) => {
     if (request.method === 'POST' && url === '/api/newsletter/subscribe') {
       if (!requirePublicCsrfToken(request, response, corsOrigin)) return;
       await handleNewsletterSubscribe(request, response, ctx);
+      return;
+    }
+    // A mail client that OPENS the List-Unsubscribe link instead of POSTing
+    // lands on the normal unsubscribe page, which confirms with the visitor.
+    if (request.method === 'GET' && url === '/api/newsletter/unsubscribe') {
+      const token = new URL(request.url, 'http://localhost').searchParams.get('token') || '';
+      const siteUrl = (process.env.SITE_URL || process.env.FRONTEND_URL || 'https://karahoca.com').replace(/\/+$/, '');
+      response.writeHead(302, {
+        Location: `${siteUrl}/unsubscribe?token=${encodeURIComponent(token)}`,
+        'Cache-Control': 'no-store',
+      });
+      response.end();
       return;
     }
     if (request.method === 'POST' && url === '/api/newsletter/unsubscribe') {

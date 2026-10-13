@@ -254,7 +254,11 @@ export async function enqueueQueueItem(key, value) {
 export async function dequeueQueueItem(key) {
   if (redisAvailable) {
     try {
-      return await redis.lpop(key);
+      const item = await redis.lpop(key);
+      if (item !== null && item !== undefined) return item;
+      // Empty in Redis: still drain jobs that were queued in memory while
+      // Redis was unreachable (or before it connected at boot) — they used
+      // to sit there, their campaign stuck in 'queued', until a restart.
     } catch {
       // fall through
     }

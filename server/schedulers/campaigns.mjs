@@ -1,5 +1,6 @@
 import { getDb } from '../services/db.mjs';
 import {
+  closeInterruptedSends,
   processQueuedCampaignDispatches,
   recoverQueuedCampaignDispatches,
   queueCampaignDispatch,
@@ -11,6 +12,7 @@ const QUEUE_DRAIN_INTERVAL_MS = 5 * 1000;
 
 const dispatchDueCampaigns = async () => {
   try {
+    closeInterruptedSends();
     const db = getDb();
     const due = db
       .prepare(
@@ -22,20 +24,25 @@ const dispatchDueCampaigns = async () => {
       .all();
     for (const { id } of due) {
       logger.info(`[scheduler] Queueing campaign #${id}`);
-      await queueCampaignDispatch(id).catch((e) =>
-        logger.error(`[scheduler] Campaign #${id} failed:`, e.message),
-      );
+      await queueCampaignDispatch(id).catch((err) => {
+        logger.error({ err, campaignId: id }, '[scheduler] could not queue a due campaign');
+        // A content problem (e.g. the body was cleared after scheduling)
+        // won't fix itself: back to draft instead of failing every minute.
+        if (err?.statusCode === 400) {
+          db.prepare("UPDATE email_campaigns SET status='draft', updated_at=datetime('now') WHERE id=? AND status='scheduled'").run(id);
+        }
+      });
     }
-  } catch (e) {
-    logger.error('[scheduler] error:', e.message);
+  } catch (err) {
+    logger.error({ err }, '[scheduler] error');
   }
 };
 
 const drainQueuedCampaigns = async () => {
   try {
     await processQueuedCampaignDispatches();
-  } catch (e) {
-    logger.error('[campaign-queue] worker error:', e.message);
+  } catch (err) {
+    logger.error({ err }, '[campaign-queue] worker error');
   }
 };
 

@@ -51,17 +51,34 @@ export const buildProductContext = (lang = 'ar') => {
 };
 
 // ── Build custom Q&A context string from DB ───────────────────────────────────
+const QA_LANGS = ['ar', 'en', 'tr', 'ru'];
+
+/**
+ * The entry's question and answer for one chat language: that language when
+ * it has both, otherwise the first of ar → en → tr → ru that does. The
+ * fallback used to be English only, so an entry written in Arabic alone
+ * never reached an English, Turkish or Russian chat. Another language is
+ * fine here: the model is told to answer in the visitor's language.
+ */
+export const pickQaPair = (qa, lang) => {
+  for (const l of [lang, ...QA_LANGS.filter((x) => x !== lang)]) {
+    const q = String(qa?.[`question_${l}`] || '').trim();
+    const a = String(qa?.[`answer_${l}`] || '').trim();
+    if (q && a) return { q, a };
+  }
+  return null;
+};
+
 export const buildCustomQAContext = (lang = 'ar') => {
   const db = getDb();
-  const l = ['ar', 'en', 'tr', 'ru'].includes(lang) ? lang : 'ar';
+  const l = QA_LANGS.includes(lang) ? lang : 'ar';
   const qaList = db.prepare('SELECT * FROM ai_custom_qa WHERE active=1').all();
   if (!qaList.length) return '';
 
   const lines = ['\n=== CUSTOM KNOWLEDGE BASE (admin-defined) ==='];
   for (const qa of qaList) {
-    const q = qa[`question_${l}`] || qa.question_en || '';
-    const a = qa[`answer_${l}`]   || qa.answer_en   || '';
-    if (q && a) lines.push(`Q: ${q}\nA: ${a}`);
+    const pair = pickQaPair(qa, l);
+    if (pair) lines.push(`Q: ${pair.q}\nA: ${pair.a}`);
   }
   return lines.join('\n');
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi, type Campaign, type CampaignSend } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDateTime } from '../utils/dateUtils';
 import { buildApiUrl } from '../../utils/api';
 
 const TEMPLATES = [
@@ -35,6 +35,28 @@ const LANGS: Array<{ key: 'ar' | 'en' | 'tr' | 'ru'; label: string; dir: 'rtl' |
 
 type LangKey = 'ar' | 'en' | 'tr' | 'ru';
 type CompressedImage = { base64: string; fileName: string };
+
+const STATUS_COLOR: Record<Campaign['status'], string> = {
+  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sending: '#0ea5e9', sent: '#22c55e',
+};
+
+// Being mailed, or already mailed: the server refuses edits (409), so the
+// page is read-only.
+const LOCKED_STATUSES: ReadonlyArray<Campaign['status']> = ['queued', 'sending', 'sent'];
+
+// Mirrors pickSendLanguage in server/routes/admin-campaigns.mjs: one
+// language goes to everyone — the first of these with a body.
+const SEND_LANG_ORDER: LangKey[] = ['ar', 'en', 'tr', 'ru'];
+const pickSendLanguage = (c: Partial<Campaign>): LangKey =>
+  SEND_LANG_ORDER.find((l) => (c[`body_${l}`] || '').trim()) ?? 'ar';
+
+// Applying a template replaces these (English with the template's text).
+const TEMPLATE_CLEARED_FIELDS = [
+  'subject_ar', 'body_ar', 'subject_tr', 'body_tr', 'subject_ru', 'body_ru',
+  'subject_b_ar', 'subject_b_en', 'subject_b_tr', 'subject_b_ru',
+] as const;
+const isTemplateText = (value: string) =>
+  Object.values(TEMPLATE_DEFAULTS).some((t) => t.subject === value || t.body === value);
 
 const empty = (): Partial<Campaign> => ({
   title: '', template_type: 'custom',
@@ -94,8 +116,11 @@ export const AdminCampaignEdit: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Subscriber picker
-  const [allSubscribers, setAllSubscribers] = useState<string[]>([]);
+  // Subscriber picker. null = still loading: the send confirmation counts
+  // from this list, so Send/Schedule wait for it.
+  const [allSubscribers, setAllSubscribers] = useState<string[] | null>(null);
+  const [subscribersError, setSubscribersError] = useState('');
+  const [subscribersAttempt, setSubscribersAttempt] = useState(0);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -138,16 +163,50 @@ export const AdminCampaignEdit: React.FC = () => {
 
   useEffect(() => {
     if (isNew) return;
+    let current = true;
     // All pages: page 1 alone is 50 subscribers, so the picker (and the
     // "send to N subscribers" confirmation) only ever knew the newest 50.
-    adminApi.getAllNewsletterEmails().then(setAllSubscribers).catch(() => {});
-  }, [isNew]);
+    adminApi.getAllNewsletterEmails()
+      .then((emails) => { if (current) setAllSubscribers(emails); })
+      .catch((e) => {
+        if (current) setSubscribersError(e instanceof Error ? e.message : 'Failed to load subscribers');
+      });
+    return () => { current = false; };
+  }, [isNew, subscribersAttempt]);
+
+  const retrySubscribers = () => {
+    setSubscribersError('');
+    setSubscribersAttempt((n) => n + 1);
+  };
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
+  const locked = !isNew && (form.status ? LOCKED_STATUSES.includes(form.status) : false);
+  const subscribersReady = allSubscribers !== null;
+  const selectedCount = (allSubscribers ?? []).filter((e) => !excluded.has(e)).length;
+  const sendLang = pickSendLanguage(form);
+  const hasAnyBody = SEND_LANG_ORDER.some((l) => (form[`body_${l}`] || '').trim());
+  const sendSubjectMissing = hasAnyBody && !(form[`subject_${sendLang}`] || '').trim();
+
   const applyTemplate = (type: string) => {
+    if (locked) return;
     const t = TEMPLATE_DEFAULTS[type];
     if (t) {
+      // The template replaces the English texts and clears every other
+      // language and all B subjects; that used to happen without a word.
+      const record = form as Record<string, string | undefined>;
+      const losesWork =
+        TEMPLATE_CLEARED_FIELDS.some((k) => (record[k] || '').trim()) ||
+        (['subject_en', 'body_en'] as const).some((k) => {
+          const value = (record[k] || '').trim();
+          return value && !isTemplateText(value);
+        });
+      if (
+        losesWork &&
+        !confirm('Applying this template replaces the English subject and body, and clears the Arabic, Turkish and Russian texts and every Group B subject. Continue?')
+      ) {
+        return;
+      }
       setForm((f) => ({
         ...f,
         template_type: type as Campaign['template_type'],
@@ -192,6 +251,12 @@ export const AdminCampaignEdit: React.FC = () => {
     setScheduleTime(time);
   };
 
+  // The recipient selection is stored on the campaign with every save: a
+  // later "Queue Send" from the list page (or the scheduler) mails exactly
+  // the people ticked here.
+  const saveCampaign = (campaignId: number) =>
+    adminApi.updateCampaign(campaignId, { ...form, excludedEmails: [...excluded] });
+
   const save = async () => {
     if (!form.title?.trim()) {
       setError('Title is required');
@@ -206,7 +271,7 @@ export const AdminCampaignEdit: React.FC = () => {
         navigate(`/admin/campaigns/${r.campaign.id}`, { replace: true });
         setSuccess('Campaign created!');
       } else {
-        await adminApi.updateCampaign(parseInt(id!, 10), form);
+        await saveCampaign(parseInt(id!, 10));
         await refreshCampaign();
         setSuccess('Saved!');
       }
@@ -285,17 +350,25 @@ export const AdminCampaignEdit: React.FC = () => {
       setError('Choose a date to schedule this campaign.');
       return;
     }
+    // Local wall-clock time. The date picker's `min` only stops earlier
+    // days, and the time defaults to 10:00, so "today" after 10:00 was a
+    // time in the past (the server refuses those too).
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime || '10:00'}`);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      setError('Invalid schedule date or time.');
+      return;
+    }
+    if (scheduledAt.getTime() <= Date.now()) {
+      setError('That time has already passed. Pick a later date or time, or use Queue Send to send it now.');
+      return;
+    }
     setScheduling(true);
     setError('');
     setSuccess('');
     try {
-      const scheduledAt = new Date(`${scheduleDate}T${scheduleTime || '10:00'}`);
-      if (Number.isNaN(scheduledAt.getTime())) {
-        throw new Error('Invalid schedule date.');
-      }
       // Save first: scheduling/sending use the stored campaign, so edits
       // made since the last "Save" were silently left out of the e-mail.
-      await adminApi.updateCampaign(parseInt(id, 10), form);
+      await saveCampaign(parseInt(id, 10));
       await adminApi.scheduleCampaign(parseInt(id, 10), scheduledAt.toISOString(), [...excluded]);
       await refreshCampaign();
       setSuccess('Campaign scheduled successfully!');
@@ -307,15 +380,24 @@ export const AdminCampaignEdit: React.FC = () => {
   };
 
   const sendNow = async () => {
-    const selectedCount = allSubscribers.length - excluded.size;
+    if (!subscribersReady) return;
+    // Counted from the list, not `total − excluded`: the saved exclusions can
+    // name people who have since unsubscribed.
+    if (selectedCount === 0) {
+      setError(allSubscribers.length === 0
+        ? 'There are no active subscribers to send to.'
+        : 'No recipients are selected. Tick at least one subscriber under Recipients.');
+      return;
+    }
     if (!confirm(`Queue this campaign for immediate delivery to ${selectedCount} subscriber${selectedCount !== 1 ? 's' : ''}?`)) return;
     setSending(true);
     setError('');
     setSuccess('');
     try {
-      await adminApi.updateCampaign(parseInt(id!, 10), form);
+      await saveCampaign(parseInt(id!, 10));
+      // Always the explicit list — [] means "everyone", not "use the saved one".
       const response = await adminApi.sendCampaign(parseInt(id!, 10), {
-        excludedEmails: excluded.size > 0 ? [...excluded] : [],
+        excludedEmails: [...excluded],
       });
       if (response.alreadyQueued) {
         setSuccess('Campaign is already queued for background delivery.');
@@ -340,42 +422,39 @@ export const AdminCampaignEdit: React.FC = () => {
           {form.status && (
             <p className="adm-page-subtitle">
               Status:{' '}
-              <strong
-                style={{
-                  color:
-                    form.status === 'sent'
-                      ? '#22c55e'
-                      : form.status === 'queued'
-                        ? '#0ea5e9'
-                      : form.status === 'scheduled'
-                        ? '#4f6ef7'
-                        : '#f59e0b',
-                  textTransform: 'capitalize',
-                }}
-              >
+              <strong style={{ color: STATUS_COLOR[form.status] ?? '#f59e0b', textTransform: 'capitalize' }}>
                 {form.status}
               </strong>
               {form.status === 'sent' && ` · ${form.recipient_count} sent · ${form.open_count} opens`}
               {form.status === 'queued' && ' · queued for background delivery'}
-              {form.status === 'scheduled' && form.scheduled_at && ` · ${fmtDate(form.scheduled_at)}`}
+              {form.status === 'sending' && ' · being sent right now'}
+              {form.status === 'scheduled' && form.scheduled_at && ` · ${fmtDateTime(form.scheduled_at)}`}
             </p>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/admin/campaigns')} className="adm-btn">← Back</button>
-          <button onClick={save} className="adm-btn adm-btn-primary" disabled={saving}>
-            {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving…</> : '💾 Save'}
-          </button>
-          {!isNew && form.status !== 'sent' && form.status !== 'queued' && (
-            <button onClick={scheduleLater} className="adm-btn adm-btn-secondary" disabled={scheduling}>
+          {!locked && (
+            <button onClick={save} className="adm-btn adm-btn-primary" disabled={saving}>
+              {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving…</> : '💾 Save'}
+            </button>
+          )}
+          {!isNew && !locked && (
+            <button
+              onClick={scheduleLater}
+              className="adm-btn adm-btn-secondary"
+              disabled={scheduling || !subscribersReady}
+              title={subscribersReady ? undefined : 'Waiting for the subscriber list'}
+            >
               {scheduling ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Scheduling…</> : '🕐 Schedule'}
             </button>
           )}
-          {!isNew && form.status !== 'sent' && form.status !== 'queued' && (
+          {!isNew && !locked && (
             <button
               onClick={sendNow}
               className="adm-btn"
-              disabled={sending}
+              disabled={sending || !subscribersReady}
+              title={subscribersReady ? undefined : 'Waiting for the subscriber list'}
               style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', border: 'none' }}
             >
               {sending ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Queueing…</> : '🚀 Queue Send'}
@@ -386,6 +465,11 @@ export const AdminCampaignEdit: React.FC = () => {
 
       {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
       {success && <div className="adm-alert adm-alert-success" style={{ marginBottom: 16 }}>✅ {success}</div>}
+      {locked && (
+        <div className="adm-alert adm-alert-info" role="status" style={{ marginBottom: 16 }}>
+          🔒 Read-only: this campaign {form.status === 'sent' ? 'has been sent' : form.status === 'sending' ? 'is being sent right now' : 'is queued for delivery'}, so its content and recipients can no longer be changed. To send something similar, create a new campaign.
+        </div>
+      )}
 
       {!isNew && (
         <div className="adm-tabs">
@@ -408,7 +492,7 @@ export const AdminCampaignEdit: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="adm-form-group">
                 <label className="adm-label">Campaign Title *</label>
-                <input className="adm-input" value={form.title || ''} onChange={(e) => set('title', e.target.value)} placeholder="e.g. April Newsletter" />
+                <input className="adm-input" value={form.title || ''} onChange={(e) => set('title', e.target.value)} placeholder="e.g. April Newsletter" readOnly={locked} />
               </div>
               <div className="adm-form-group">
                 <label className="adm-label">Template Type</label>
@@ -416,14 +500,18 @@ export const AdminCampaignEdit: React.FC = () => {
                   {TEMPLATES.map((t) => (
                     <button
                       key={t.value}
+                      type="button"
                       onClick={() => applyTemplate(t.value)}
+                      disabled={locked}
+                      aria-pressed={form.template_type === t.value}
                       style={{
                         padding: '6px 14px',
                         borderRadius: 20,
                         border: '1px solid var(--adm-border)',
                         background: form.template_type === t.value ? 'var(--adm-accent)' : 'var(--adm-surface2)',
                         color: form.template_type === t.value ? '#fff' : 'var(--adm-text)',
-                        cursor: 'pointer',
+                        cursor: locked ? 'not-allowed' : 'pointer',
+                        opacity: locked && form.template_type !== t.value ? 0.6 : 1,
                         fontSize: 12,
                         fontWeight: 600,
                       }}
@@ -445,11 +533,16 @@ export const AdminCampaignEdit: React.FC = () => {
               </div>
             ) : form.status === 'sent' ? (
               <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
-                ✅ Campaign already sent on {form.scheduled_at ? fmtDate(form.scheduled_at) : '—'}.
+                {/* sent_at: a campaign sent with "Queue Send" has no scheduled_at. */}
+                ✅ Campaign sent on {fmtDateTime(form.sent_at || form.scheduled_at)}.
               </div>
             ) : form.status === 'queued' ? (
               <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
                 ⏳ Campaign is queued for background delivery. The worker will pick it up automatically.
+              </div>
+            ) : form.status === 'sending' ? (
+              <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
+                📤 Campaign is being sent right now. Reload this page later to see the result.
               </div>
             ) : (
               <>
@@ -473,13 +566,19 @@ export const AdminCampaignEdit: React.FC = () => {
                       onChange={(e) => setScheduleTime(e.target.value)}
                     />
                   </div>
-                  <button type="button" className="adm-btn adm-btn-secondary" onClick={scheduleLater} disabled={scheduling}>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-secondary"
+                    onClick={scheduleLater}
+                    disabled={scheduling || !subscribersReady}
+                    title={subscribersReady ? undefined : 'Waiting for the subscriber list'}
+                  >
                     {scheduling ? 'Scheduling…' : 'Save schedule'}
                   </button>
                 </div>
                 {form.status === 'scheduled' && form.scheduled_at && (
                   <div className="adm-text-muted adm-text-sm" style={{ marginTop: 8 }}>
-                    Currently scheduled for {fmtDate(form.scheduled_at)}.
+                    Currently scheduled for {fmtDateTime(form.scheduled_at)}.
                   </div>
                 )}
               </>
@@ -493,20 +592,24 @@ export const AdminCampaignEdit: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 className="adm-input"
+                aria-label="Campaign image URL"
                 value={(form as Record<string, string>).image_url || ''}
                 onChange={(e) => set('image_url', e.target.value)}
                 placeholder="https://... or upload from device"
+                readOnly={locked}
                 style={{ flex: 1 }}
               />
-              <button
-                type="button"
-                className="adm-btn adm-btn-secondary adm-btn-sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading…</> : '📁 Upload'}
-              </button>
+              {!locked && (
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-secondary adm-btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading…</> : '📁 Upload'}
+                </button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -529,115 +632,172 @@ export const AdminCampaignEdit: React.FC = () => {
           </div>
 
           {/* ── Subscriber Picker ─────────────────────────────────────────── */}
-          {!isNew && form.status !== 'sent' && allSubscribers.length > 0 && (
+          {!isNew && !locked && (
             <div className="adm-card">
-              <div
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => setPickerOpen(o => !o)}
-              >
-                <div>
+              {subscribersError ? (
+                <>
                   <div className="adm-card-title" style={{ margin: 0 }}>Recipients</div>
-                  <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 3 }}>
-                    {allSubscribers.length - excluded.size} / {allSubscribers.length} selected
-                    {excluded.size > 0 && <span style={{ color: '#f59e0b', marginLeft: 8 }}>· {excluded.size} excluded</span>}
+                  <div className="adm-alert adm-alert-error" role="alert" style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ flex: 1 }}>
+                      ⚠ Couldn't load the subscriber list: {subscribersError}. Sending and scheduling stay disabled until it loads.
+                    </span>
+                    <button type="button" className="adm-btn adm-btn-sm" onClick={retrySubscribers}>Retry</button>
                   </div>
-                </div>
-                <span style={{ fontSize: 18, color: 'var(--adm-text-dim)', transition: 'transform .2s', transform: pickerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-              </div>
-
-              {pickerOpen && (
-                <div style={{ marginTop: 14 }}>
-                  {/* Toolbar */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <input
-                      className="adm-input adm-input-sm"
-                      placeholder="Filter emails…"
-                      value={pickerSearch}
-                      onChange={e => setPickerSearch(e.target.value)}
-                      style={{ flex: 1, minWidth: 160 }}
-                      onClick={e => e.stopPropagation()}
-                    />
-                    <button
-                      type="button"
-                      className="adm-btn adm-btn-ghost adm-btn-sm"
-                      onClick={e => { e.stopPropagation(); setExcluded(new Set()); }}
-                    >Select All</button>
-                    <button
-                      type="button"
-                      className="adm-btn adm-btn-ghost adm-btn-sm"
-                      style={{ color: '#f59e0b' }}
-                      onClick={e => { e.stopPropagation(); setExcluded(new Set(allSubscribers)); }}
-                    >Deselect All</button>
-                  </div>
-
-                  {/* List */}
-                  <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--adm-border)', borderRadius: 8 }}>
-                    {allSubscribers
-                      .filter(email => !pickerSearch.trim() || email.toLowerCase().includes(pickerSearch.toLowerCase()))
-                      .map(email => {
-                        const isExcluded = excluded.has(email);
-                        return (
-                          <label
-                            key={email}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              padding: '9px 14px',
-                              cursor: 'pointer',
-                              borderBottom: '1px solid var(--adm-border)',
-                              background: isExcluded ? 'rgba(245,158,11,0.06)' : 'transparent',
-                              transition: 'background .15s',
-                            }}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!isExcluded}
-                              style={{ width: 15, height: 15, accentColor: 'var(--adm-accent)', flexShrink: 0 }}
-                              onChange={() => {
-                                setExcluded(prev => {
-                                  const next = new Set(prev);
-                                  if (next.has(email)) next.delete(email);
-                                  else next.add(email);
-                                  return next;
-                                });
-                              }}
-                            />
-                            <span
-                              className="adm-mono"
-                              style={{ fontSize: 13, color: isExcluded ? 'var(--adm-text-dim)' : 'var(--adm-text)', textDecoration: isExcluded ? 'line-through' : 'none' }}
-                            >
-                              {email}
-                            </span>
-                          </label>
-                        );
-                      })}
-                  </div>
-                </div>
+                </>
+              ) : allSubscribers === null ? (
+                <>
+                  <div className="adm-card-title" style={{ margin: 0 }}>Recipients</div>
+                  <p className="adm-text-muted adm-text-sm" style={{ margin: '6px 0 0' }}>
+                    <span className="adm-spinner" style={{ width: 12, height: 12, marginRight: 8 }} />Loading subscribers…
+                  </p>
+                </>
+              ) : allSubscribers.length === 0 ? (
+                <>
+                  <div className="adm-card-title" style={{ margin: 0 }}>Recipients</div>
+                  <p className="adm-text-muted adm-text-sm" style={{ margin: '6px 0 0' }}>There are no active subscribers yet.</p>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    aria-expanded={pickerOpen}
+                    aria-controls="campaign-recipient-picker"
+                    onClick={() => setPickerOpen(o => !o)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                      padding: 0, margin: 0, background: 'none', border: 'none', color: 'inherit',
+                      font: 'inherit', textAlign: 'inherit', cursor: 'pointer', userSelect: 'none',
+                    }}
+                  >
+                    <span style={{ display: 'block' }}>
+                      <span className="adm-card-title" style={{ display: 'block', margin: 0 }}>Recipients</span>
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 3 }}>
+                        {selectedCount} / {allSubscribers.length} selected
+                        {selectedCount < allSubscribers.length && (
+                          <span style={{ color: '#f59e0b', marginLeft: 8 }}>· {allSubscribers.length - selectedCount} excluded</span>
+                        )}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" style={{ fontSize: 18, color: 'var(--adm-text-dim)', transition: 'transform .2s', transform: pickerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                  </button>
+    
+                  {pickerOpen && (
+                    <div id="campaign-recipient-picker" style={{ marginTop: 14 }}>
+                      {/* Toolbar */}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                        <input
+                          className="adm-input adm-input-sm"
+                          aria-label="Filter recipients by e-mail"
+                          placeholder="Filter emails…"
+                          value={pickerSearch}
+                          onChange={e => setPickerSearch(e.target.value)}
+                          style={{ flex: 1, minWidth: 160 }}
+                        />
+                        <button
+                          type="button"
+                          className="adm-btn adm-btn-ghost adm-btn-sm"
+                          onClick={() => setExcluded(new Set())}
+                        >Select All</button>
+                        <button
+                          type="button"
+                          className="adm-btn adm-btn-ghost adm-btn-sm"
+                          style={{ color: '#f59e0b' }}
+                          onClick={() => setExcluded(new Set(allSubscribers))}
+                        >Deselect All</button>
+                      </div>
+    
+                      {/* List */}
+                      <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--adm-border)', borderRadius: 8 }}>
+                        {allSubscribers
+                          .filter(email => !pickerSearch.trim() || email.toLowerCase().includes(pickerSearch.toLowerCase()))
+                          .map(email => {
+                            const isExcluded = excluded.has(email);
+                            return (
+                              <label
+                                key={email}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '9px 14px',
+                                  cursor: 'pointer',
+                                  borderBottom: '1px solid var(--adm-border)',
+                                  background: isExcluded ? 'rgba(245,158,11,0.06)' : 'transparent',
+                                  transition: 'background .15s',
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!isExcluded}
+                                  style={{ width: 15, height: 15, accentColor: 'var(--adm-accent)', flexShrink: 0 }}
+                                  onChange={() => {
+                                    setExcluded(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(email)) next.delete(email);
+                                      else next.add(email);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <span
+                                  className="adm-mono"
+                                  style={{ fontSize: 13, color: isExcluded ? 'var(--adm-text-dim)' : 'var(--adm-text)', textDecoration: isExcluded ? 'line-through' : 'none' }}
+                                >
+                                  {email}
+                                </span>
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
 
-          <TranslationHelper
-            fields={{
-              subject: form[`subject_${lang}`] || '',
-              body: form[`body_${lang}`] || '',
-            }}
-            sourceLang={lang}
-            onTranslated={(t) => handleTranslated(t as Record<string, Record<string, string>>)}
-          />
+          {!locked && (
+            <TranslationHelper
+              fields={{
+                subject: form[`subject_${lang}`] || '',
+                body: form[`body_${lang}`] || '',
+              }}
+              sourceLang={lang}
+              onTranslated={(t) => handleTranslated(t as Record<string, Record<string, string>>)}
+            />
+          )}
 
           <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 16 }}>Content</div>
+            <div className="adm-card-title" style={{ marginBottom: 8 }}>Content</div>
+            {/* One language goes to every subscriber; say which, so a
+                half-translated campaign doesn't go out in a surprise one. */}
+            <div style={{ fontSize: 12, color: 'var(--adm-text-muted)', marginBottom: sendSubjectMissing || !hasAnyBody ? 6 : 14 }}>
+              {hasAnyBody ? (
+                <>📤 Will be sent in: <strong>{sendLang.toUpperCase()}</strong>{' '}
+                  <span style={{ color: 'var(--adm-text-dim)' }}>(the first of AR, EN, TR, RU with a body)</span></>
+              ) : (
+                <>📤 Will be sent in the first of AR, EN, TR, RU that has a body.</>
+              )}
+            </div>
+            {!hasAnyBody && (
+              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 14 }}>
+                ⚠ No language has a body yet, so the campaign can't be sent.
+              </div>
+            )}
+            {sendSubjectMissing && (
+              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 14 }}>
+                ⚠ The {sendLang.toUpperCase()} subject is empty — add one before sending or scheduling.
+              </div>
+            )}
             <div className="adm-tabs" style={{ marginBottom: 16 }}>
               {LANGS.map((l) => (
                 <button
                   key={l.key}
+                  type="button"
                   onClick={() => setLang(l.key)}
                   className={`adm-tab-btn${lang === l.key ? ' active' : ''}`}
                 >
-                  {l.label}
+                  {l.label}{hasAnyBody && l.key === sendLang ? ' 📤' : ''}
                 </button>
               ))}
             </div>
@@ -652,6 +812,7 @@ export const AdminCampaignEdit: React.FC = () => {
                     onChange={(e) => set(`subject_${l.key}`, e.target.value)}
                     placeholder="Email subject for Group A (everyone if no B)..."
                     dir={l.dir}
+                    readOnly={locked}
                   />
                 </div>
                 <div className="adm-form-group">
@@ -665,11 +826,24 @@ export const AdminCampaignEdit: React.FC = () => {
                     onChange={(e) => set(`subject_b_${l.key}`, e.target.value)}
                     placeholder="Leave empty to send same subject to everyone..."
                     dir={l.dir}
+                    readOnly={locked}
                     style={{ borderColor: (form as Record<string, string>)[`subject_b_${l.key}`] ? 'rgba(139,92,246,0.5)' : undefined }}
                   />
-                  {(form as Record<string, string>)[`subject_b_${l.key}`] && (
-                    <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4 }}>
-                      ✓ A/B test active — odd-numbered subscribers will receive Subject B
+                  {/* The server A/B-splits only on the B subject of the language it
+                      sends, so a B subject in any other language does nothing. */}
+                  {(form as Record<string, string>)[`subject_b_${l.key}`]?.trim() ? (
+                    l.key === sendLang ? (
+                      <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4 }}>
+                        ✓ A/B test active — every second subscriber will receive Subject B
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                        ⚠ Not used: the campaign is sent in {sendLang.toUpperCase()}, so only the {sendLang.toUpperCase()} Group B subject runs an A/B test.
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 4 }}>
+                      Only the Group B subject of the language being sent ({sendLang.toUpperCase()}) is used.
                     </div>
                   )}
                 </div>
@@ -682,6 +856,7 @@ export const AdminCampaignEdit: React.FC = () => {
                     onChange={(e) => set(`body_${l.key}`, e.target.value)}
                     placeholder="Write your email content here... (use **bold** for emphasis)"
                     dir={l.dir}
+                    readOnly={locked}
                     style={{ fontFamily: 'inherit', resize: 'vertical' }}
                   />
                   <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 4 }}>
@@ -802,7 +977,7 @@ export const AdminCampaignEdit: React.FC = () => {
                             </span>
                           </td>
                         )}
-                        <td>{fmtDate(s.created_at)}</td>
+                        <td>{fmtDateTime(s.created_at)}</td>
                         <td>
                           {s.opened ? (
                             <span style={{ color: '#22c55e', fontWeight: 700 }}>✅ Yes</span>
@@ -817,7 +992,7 @@ export const AdminCampaignEdit: React.FC = () => {
                             <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
                           )}
                         </td>
-                        <td>{s.opened_at ? fmtDate(s.opened_at) : '—'}</td>
+                        <td>{fmtDateTime(s.opened_at)}</td>
                       </tr>
                     ))}
                   </tbody>
