@@ -1,15 +1,58 @@
-import { describe, it, expect } from 'vitest';
-import { pickVariant, __testInternals } from '../services/abTesting.mjs';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Database from 'better-sqlite3';
+import { pickVariant, computeExperimentResults, __testInternals } from '../services/abTesting.mjs';
+import { handleAdminAbTests } from '../routes/admin-ab-tests.mjs';
+
+// Results + admin routes run against an in-memory copy of the tables.
+const mem = vi.hoisted(() => ({ db: null }));
+vi.mock('../db.mjs', () => ({ getDb: () => mem.db, logAudit: () => {} }));
 
 const { fnv1a32 } = __testInternals;
 
 /**
- * Tests for the deterministic variant resolver. We don't touch the DB
- * here — the SQL-shaped paths (results computation, exposure events)
- * are integration territory and would need a seed dataset. What we DO
- * pin is the math + distribution shape that makes A/B reports
- * believable in the first place.
+ * Tests for the deterministic variant resolver — the math + distribution
+ * shape that makes A/B reports believable in the first place — plus the
+ * results window and the variant lock, against a seeded in-memory DB.
  */
+
+const freshDb = () => {
+  mem.db = new Database(':memory:');
+  mem.db.exec(`
+    CREATE TABLE ab_experiments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+      description TEXT, status TEXT NOT NULL DEFAULT 'draft', goal_event TEXT NOT NULL,
+      started_at TEXT, stopped_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE ab_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, experiment_id INTEGER NOT NULL, variant_key TEXT NOT NULL,
+      label TEXT, weight INTEGER NOT NULL DEFAULT 1, created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE visitor_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, visitor_id TEXT, event_type TEXT NOT NULL,
+      payload_json TEXT, created_at TEXT
+    );
+  `);
+};
+
+const addExperiment = ({ key = 'hero', status = 'running', started_at = null, stopped_at = null } = {}) => {
+  const { lastInsertRowid: id } = mem.db.prepare(
+    'INSERT INTO ab_experiments (key, name, status, goal_event, started_at, stopped_at) VALUES (?,?,?,?,?,?)',
+  ).run(key, key, status, 'whatsapp_click', started_at, stopped_at);
+  for (const vk of ['control', 'variant_a']) {
+    mem.db.prepare('INSERT INTO ab_variants (experiment_id, variant_key, label, weight) VALUES (?,?,?,50)').run(id, vk, vk);
+  }
+  return Number(id);
+};
+
+const exposure = (visitor, variant, at, key = 'hero') =>
+  mem.db.prepare('INSERT INTO visitor_events (visitor_id, event_type, payload_json, created_at) VALUES (?,?,?,?)')
+    .run(visitor, 'variant_exposure', JSON.stringify({ experiment_key: key, variant_key: variant }), at);
+const goal = (visitor, at) =>
+  mem.db.prepare('INSERT INTO visitor_events (visitor_id, event_type, created_at) VALUES (?,?,?)')
+    .run(visitor, 'whatsapp_click', at);
+
+const control = (key = 'hero') => computeExperimentResults(key).results.find((r) => r.variant_key === 'control');
 
 describe('fnv1a32', () => {
   it('returns a non-negative 32-bit integer', () => {
@@ -93,5 +136,86 @@ describe('pickVariant', () => {
       { variant_key: 'b', label: 'B', weight: 0 },
     ];
     expect(pickVariant('exp', 'v', zeroed)).toBe('a');
+  });
+});
+
+describe('computeExperimentResults — run window', () => {
+  beforeEach(freshDb);
+
+  it('ignores exposures and conversions from before started_at (a reused key)', () => {
+    // An earlier experiment with the same key, since deleted, left these behind.
+    exposure('old-1', 'control', '2026-01-05 10:00:00');
+    goal('old-1', '2026-01-05 10:05:00');
+    addExperiment({ started_at: '2026-10-01 09:00:00' });
+    exposure('new-1', 'control', '2026-10-02 10:00:00');
+    expect(control()).toMatchObject({ exposed: 1, converted: 0 });
+  });
+
+  it('counts nothing for an experiment that has not started', () => {
+    exposure('old-1', 'control', '2026-01-05 10:00:00');
+    addExperiment({ status: 'draft' });
+    expect(control()).toMatchObject({ exposed: 0, converted: 0, rate: 0 });
+  });
+
+  it('stops counting at stopped_at once stopped', () => {
+    addExperiment({ status: 'stopped', started_at: '2026-10-01 09:00:00', stopped_at: '2026-10-05 18:00:00' });
+    exposure('in', 'control', '2026-10-02 10:00:00');
+    goal('in', '2026-10-05 17:59:59');
+    exposure('late', 'control', '2026-10-06 10:00:00');
+    exposure('slow', 'control', '2026-10-03 10:00:00');
+    goal('slow', '2026-10-07 10:00:00'); // converted after the stop
+    expect(control()).toMatchObject({ exposed: 2, converted: 1 });
+  });
+
+  it('still requires the goal at or after the first exposure', () => {
+    addExperiment({ started_at: '2026-10-01 09:00:00' });
+    goal('v', '2026-10-02 09:00:00');
+    exposure('v', 'control', '2026-10-02 10:00:00');
+    expect(control()).toMatchObject({ exposed: 1, converted: 0 });
+  });
+});
+
+describe('admin A/B routes — variant lock', () => {
+  beforeEach(freshDb);
+
+  const call = (method, url, body = {}) => {
+    const out = {};
+    handleAdminAbTests({ method }, {}, {
+      body, url, origin: '', admin: { username: 'test' },
+      sendJson: (_res, status, payload) => { out.status = status; out.body = payload; },
+    });
+    return out;
+  };
+
+  it('lets a draft change its weights', () => {
+    const id = addExperiment({ status: 'draft' });
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { weight: 70 }).status).toBe(200);
+  });
+
+  it('refuses weight changes, additions and removals once running', () => {
+    const id = addExperiment({ started_at: '2026-10-01 09:00:00' });
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { weight: 70 }).status).toBe(409);
+    expect(call('POST', `/api/admin/ab-tests/${id}/variants`, { variant_key: 'variant_b' }).status).toBe(409);
+    expect(call('DELETE', `/api/admin/ab-tests/${id}/variants/variant_a`).status).toBe(409);
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { label: 'Original' }).status).toBe(200);
+  });
+
+  it('refuses to send a started experiment back to draft', () => {
+    const id = addExperiment({ status: 'stopped', started_at: '2026-10-01 09:00:00', stopped_at: '2026-10-02 09:00:00' });
+    expect(call('PUT', `/api/admin/ab-tests/${id}`, { status: 'draft' }).status).toBe(409);
+  });
+
+  it('rejects an emptied, fractional or negative weight instead of saving it', () => {
+    const id = addExperiment({ status: 'draft' });
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { weight: '' }).status).toBe(400);
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { weight: 2.5 }).status).toBe(400);
+    expect(call('PUT', `/api/admin/ab-tests/${id}/variants/control`, { weight: -1 }).status).toBe(400);
+  });
+
+  it('restarting keeps started_at and clears the old stop', () => {
+    const id = addExperiment({ status: 'stopped', started_at: '2026-10-01 09:00:00', stopped_at: '2026-10-02 09:00:00' });
+    const { status, body } = call('POST', `/api/admin/ab-tests/${id}/start`);
+    expect(status).toBe(200);
+    expect(body.experiment).toMatchObject({ status: 'running', started_at: '2026-10-01 09:00:00', stopped_at: null });
   });
 });

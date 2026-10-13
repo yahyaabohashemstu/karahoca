@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDate, fmtNumber } from '../utils/dateUtils';
 
 const fmt = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
@@ -51,7 +51,9 @@ const TrendChart: React.FC<{
   accent: string;
   summary: string;
 }> = ({ id, data, accent, summary }) => {
-  if (!data.length) {
+  // The server sends every day of the range (quiet days as 0), so an
+  // all-zero series is the "nothing happened" case.
+  if (!data.length || data.every((item) => item.value === 0)) {
     return <div className="adm-analytics-empty">No data yet.</div>;
   }
 
@@ -169,7 +171,7 @@ const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> 
               <span className="adm-device-legend-icon">{DEVICE_ICON[item.device.toLowerCase()] ?? '💻'}</span>
               <div>
                 <strong>{item.device}</strong>
-                <span style={{ color }}>{percentage}% · {item.sessions.toLocaleString()} sessions</span>
+                <span style={{ color }}>{percentage}% · {fmtNumber(item.sessions)} sessions</span>
               </div>
             </div>
           );
@@ -196,7 +198,7 @@ const RankingRow: React.FC<{
           {icon && <span className="adm-ranking-icon">{icon}</span>}
           <span className="adm-ranking-label">{label}</span>
         </div>
-        <strong style={{ color }}>{value.toLocaleString()}</strong>
+        <strong style={{ color }}>{fmtNumber(value)}</strong>
       </div>
       <div className="adm-ranking-track">
         <div className="adm-ranking-fill" style={{ width: `${width}%`, background: color }} />
@@ -266,8 +268,11 @@ const PERIOD_OPTIONS = [
 export const AdminAnalytics: React.FC = () => {
   const [period, setPeriod] = useState(30);
   const internal = useAsync<AdminAnalyticsData>(() => adminApi.getAnalytics(period), [period]);
-  const ga = useAsync<GaData>(() => adminApi.getGaData(), []);
+  // GA4 follows the period too. The server reports the window it actually
+  // used as `days`; every GA label below reads that, never `period`.
+  const ga = useAsync<GaData>(() => adminApi.getGaData(period), [period]);
   const gad = ga.data;
+  const gaDays = gad?.days ?? 30;
   const summary = internal.data?.summary;
 
   const handlePrint = () => window.print();
@@ -285,7 +290,10 @@ export const AdminAnalytics: React.FC = () => {
         </div>
         <div className="analytics-print-header-right">
           <div className="analytics-print-date">Generated: {printDate}</div>
-          <div className="analytics-print-period">Period: Last {period} days</div>
+          {/* Only the daily trends follow the period selector. */}
+          <div className="analytics-print-period">
+            Trends: last {period} days · GA4: last {gaDays} days · Totals: all time
+          </div>
           <div className={`analytics-print-status ${gad?.configured ? 'connected' : 'disconnected'}`}>
             {gad?.configured ? '● GA4 Connected' : '○ GA4 Not Configured'}
           </div>
@@ -326,6 +334,10 @@ export const AdminAnalytics: React.FC = () => {
           🖨️ Export PDF
         </button>
       </div>
+      <p style={{ fontSize: 12, color: 'var(--adm-text-muted)', margin: '-4px 0 16px' }}>
+        The period applies to the daily chat and newsletter trends. Google Analytics covers the last {gaDays} days;
+        the totals, chat languages and most active users are all-time.
+      </p>
 
       {ga.loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading Google Analytics data…</div>}
 
@@ -347,6 +359,10 @@ export const AdminAnalytics: React.FC = () => {
         const sm = gad.summary;
         return (
           <>
+            <div className="adm-analytics-section-divider">
+              <span>📊</span>
+              <strong>Google Analytics 4 — last {gaDays} days</strong>
+            </div>
             <div className="adm-analytics-kpi-grid">
               <MetricCard icon="🔗" label="Sessions" value={fmt(sm.sessions)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
               <MetricCard icon="🟢" label="Active Users" value={fmt(sm.activeUsers)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
@@ -357,12 +373,12 @@ export const AdminAnalytics: React.FC = () => {
             </div>
 
             {(gad.byDay?.length ?? 0) > 0 && (
-              <Panel title="Sessions per day" icon="📈" accent="#4f6ef7" copy="A smoother 30-day trend view for sessions and audience behavior.">
+              <Panel title="Sessions per day" icon="📈" accent="#4f6ef7" copy={`Daily sessions over the last ${gaDays} days.`}>
                 <TrendChart
                   id="ga-sessions"
                   data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: `${item.users} users` }))}
                   accent="#6b84ff"
-                  summary={`${gad.byDay!.reduce((sum, item) => sum + item.sessions, 0).toLocaleString()} total sessions in the last 30 days (GA4 window is fixed)`}
+                  summary={`${fmtNumber(gad.byDay!.reduce((sum, item) => sum + item.sessions, 0))} total sessions in the last ${gaDays} days`}
                 />
               </Panel>
             )}
@@ -437,11 +453,11 @@ export const AdminAnalytics: React.FC = () => {
 
       {summary && (
         <div className="adm-analytics-kpi-grid compact">
-          <MetricCard icon="💬" label="Messages" value={String(summary.total_messages)} gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
-          <MetricCard icon="👤" label="Chat Users" value={String(summary.total_users)} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
-          <MetricCard icon="✉️" label="Subscribers" value={String(summary.total_subscribers)} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
-          <MetricCard icon="📰" label="News Articles" value={String(summary.total_news)} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
-          <MetricCard icon="🧴" label="Products" value={String(summary.total_products)} gradient="linear-gradient(135deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.24)" />
+          <MetricCard icon="💬" label="Messages" value={fmtNumber(summary.total_messages)} sub="All time" gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
+          <MetricCard icon="👤" label="Chat Users" value={fmtNumber(summary.total_users)} sub="All time" gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
+          <MetricCard icon="✉️" label="Subscribers" value={fmtNumber(summary.total_subscribers)} sub="Active, all time" gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
+          <MetricCard icon="📰" label="News Articles" value={fmtNumber(summary.total_news)} sub="Active, all time" gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
+          <MetricCard icon="🧴" label="Products" value={fmtNumber(summary.total_products)} sub="Active, all time" gradient="linear-gradient(135deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.24)" />
         </div>
       )}
 
@@ -453,7 +469,7 @@ export const AdminAnalytics: React.FC = () => {
                 id="chat-per-day"
                 data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#5eaeff"
-                summary={`${(internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} total messages in the last ${period} days`}
+                summary={`${fmtNumber((internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0))} total messages in the last ${period} days`}
               />
             </Panel>
 
@@ -462,7 +478,7 @@ export const AdminAnalytics: React.FC = () => {
                 id="newsletter-per-day"
                 data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
                 accent="#34d399"
-                summary={`${(internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0).toLocaleString()} signups in the last ${period} days`}
+                summary={`${fmtNumber((internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0))} signups in the last ${period} days`}
               />
             </Panel>
           </div>
@@ -471,7 +487,7 @@ export const AdminAnalytics: React.FC = () => {
           <div className="analytics-print-break" />
 
           <div className="adm-analytics-grid-2">
-            <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="How users are distributed by conversation language.">
+            <Panel title="Chat language distribution" icon="🌐" accent="#8b5cf6" copy="All time — how chat users are distributed by conversation language.">
               <div className="adm-ranking-list">
                 {(internal.data.langDistribution ?? []).length ? (
                   (() => {
@@ -491,7 +507,7 @@ export const AdminAnalytics: React.FC = () => {
               </div>
             </Panel>
 
-            <Panel title="Most active users" icon="🔥" accent="#f59e0b" copy="Users generating the heaviest conversation load right now.">
+            <Panel title="Most active users" icon="🔥" accent="#f59e0b" copy="All time — the users with the most messages.">
               {(internal.data.topUsers ?? []).length ? (
                 <div className="adm-analytics-user-stack">
                   {internal.data.topUsers.map((user, index) => (
@@ -502,7 +518,7 @@ export const AdminAnalytics: React.FC = () => {
                         <span>Last seen: {fmtDate(user.last_seen)}</span>
                       </div>
                       <div className="adm-analytics-user-metric">
-                        <strong>{user.message_count}</strong>
+                        <strong>{fmtNumber(user.message_count)}</strong>
                         <span>msgs</span>
                       </div>
                       <span className="adm-badge adm-badge-blue">{user.language}</span>

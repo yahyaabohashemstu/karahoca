@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtNumber } from '../utils/dateUtils';
 
 /**
  * Karo Insights — first-party analytics dashboard for the AI chat.
@@ -15,7 +16,8 @@ import { useAsync } from '../utils/useAdminAuth';
  *   4. Which follow-up chips get tapped (so I know which curated
  *      suggestions are actually working)?
  *   5. What percent of chat openers end up clicking through to
- *      WhatsApp?
+ *      WhatsApp from the chat (product card / footer link / "continue
+ *      on WhatsApp" — not the floating button)?
  *   6. How many conversations dropped off (visitor sent a question
  *      Karo didn't answer)?
  *
@@ -161,7 +163,8 @@ export const AdminKaroInsights: React.FC = () => {
             <Kpi label="Chat opens" value={fmt(kpi?.chatOpens || 0)} sub="Including re-opens" />
             <Kpi label="Total messages" value={fmt(kpi?.totalMessages || 0)} sub={`${fmt(kpi?.userMessages || 0)} user · ${fmt(kpi?.assistantMessages || 0)} Karo`} />
             <Kpi label="Avg msgs / convo" value={String(kpi?.avgMessagesPerConvo || 0)} sub="Per unique visitor" />
-            <Kpi label="WhatsApp CTR" value={`${kpi?.whatsappCtr || 0}%`} sub="of chat openers" />
+            {/* Capped: a rate over 100% can only mean mismatched counts. */}
+            <Kpi label="WhatsApp CTR" value={`${Math.min(100, kpi?.whatsappCtr || 0)}%`} sub="of chat openers, from the chat" />
             <Kpi label="Dropped convos" value={fmt(kpi?.droppedConversations || 0)} sub="Visitor turn without a reply" />
           </div>
 
@@ -256,7 +259,9 @@ export const AdminKaroInsights: React.FC = () => {
 
           {/* Sparkline-style daily volume */}
           <Section title="📈 Daily chat volume" style={{ marginTop: 14 }}>
-            {data.byDay.length === 0 ? <p style={s.empty}>No chats in this range.</p> : (
+            {/* byDay has every day of the range (quiet days as 0), so
+                "no chats" means every day is 0, not an empty list. */}
+            {data.byDay.every((row) => row.opens === 0) ? <p style={s.empty}>No chats in this range.</p> : (
               <DailyBars rows={data.byDay} />
             )}
           </Section>
@@ -289,24 +294,28 @@ const Section: React.FC<SectionProps> = ({ title, style, children }) => (
 
 /**
  * Pure-CSS bar chart for the daily volume series. Avoids pulling in a
- * dedicated chart library for a single 30-bar visual.
+ * dedicated chart library for a single 30-bar visual. One bar per day of
+ * the range — zero days included, so gaps show as gaps — which is why
+ * long ranges get thinner bars and the strip scrolls rather than
+ * overflowing the card.
  */
 interface DailyBarsProps {
   rows: Array<{ day: string; unique_visitors: number; opens: number }>;
 }
 const DailyBars: React.FC<DailyBarsProps> = ({ rows }) => {
   const max = Math.max(1, ...rows.map((r) => r.opens));
+  const dense = rows.length > 45;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120, padding: '8px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: dense ? 1 : 4, height: 120, padding: '8px 0', overflowX: 'auto' }}>
       {rows.map((row) => {
         const heightPct = (row.opens / max) * 100;
         return (
           <div
             key={row.day}
-            title={`${row.day}: ${row.opens} opens, ${row.unique_visitors} visitors`}
+            title={`${row.day}: ${fmtNumber(row.opens)} opens, ${fmtNumber(row.unique_visitors)} visitors`}
             style={{
               flex: 1,
-              minWidth: 4,
+              minWidth: dense ? 2 : 4,
               height: `${heightPct}%`,
               background: 'linear-gradient(180deg, #F54B1A 0%, rgba(245,75,26,0.4) 100%)',
               borderRadius: '3px 3px 0 0',

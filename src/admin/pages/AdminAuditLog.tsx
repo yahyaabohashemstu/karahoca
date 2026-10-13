@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { adminApi, type AuditLogEntry } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtDateTime } from '../utils/dateUtils';
 
 /**
  * Admin audit log viewer.
@@ -39,15 +40,39 @@ const ACTION_ICON: Record<string, string> = {
   REORDER: '↕️',
 };
 
+// Keys are the entityType strings the server passes to logAudit — keep
+// in step with `grep -rn "entityType:" server/`. Types missing here showed
+// as raw ids and couldn't be filtered on.
 const ENTITY_LABELS: Record<string, string> = {
-  product:    '🧴 Product',
-  category:   '🗂️ Category',
-  news:       '📰 News',
-  campaign:   '📧 Campaign',
-  newsletter: '✉️ Newsletter',
-  ai_qa:      '🤖 AI Q&A',
-  audit_log:  '🔍 Audit Log',
+  product:       '🧴 Product',
+  category:      '🗂️ Category',
+  news:          '📰 News',
+  blog_post:     '📝 Blog post',
+  blog_category: '🏷️ Blog category',
+  campaign:      '📧 Campaign',
+  newsletter:    '✉️ Newsletter',
+  chat:          '💬 Chat',
+  ai_qa:         '🤖 AI Q&A',
+  ab_test:       '🧪 A/B test',
+  ab_variant:    '🔀 A/B variant',
+  audit_log:     '🔍 Audit Log',
 };
+
+/** Filter dropdown options, in the same order as the label map. */
+const ENTITY_FILTERS: Array<{ value: string; label: string }> = [
+  { value: 'product',       label: 'Products' },
+  { value: 'category',      label: 'Categories' },
+  { value: 'news',          label: 'News' },
+  { value: 'blog_post',     label: 'Blog posts' },
+  { value: 'blog_category', label: 'Blog categories' },
+  { value: 'campaign',      label: 'Campaigns' },
+  { value: 'newsletter',    label: 'Newsletter' },
+  { value: 'chat',          label: 'Chats' },
+  { value: 'ai_qa',         label: 'AI Q&A' },
+  { value: 'ab_test',       label: 'A/B tests' },
+  { value: 'ab_variant',    label: 'A/B variants' },
+  { value: 'audit_log',     label: 'Audit log' },
+];
 
 const PAGE_SIZE = 50;
 
@@ -79,10 +104,6 @@ export const AdminAuditLog: React.FC = () => {
   const logs: AuditLogEntry[] = data?.logs ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const fmtDate = (iso: string) => {
-    try { return new Date(iso).toLocaleString(); } catch { return iso; }
-  };
 
   /**
    * Reset every filter at once. Cheaper than five sequential `setState`
@@ -157,25 +178,19 @@ export const AdminAuditLog: React.FC = () => {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Entity</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={entityFilter}
             onChange={(e) => { setEntityFilter(e.target.value); setPage(0); }}
           >
             <option value="">All entities</option>
-            <option value="product">Products</option>
-            <option value="category">Categories</option>
-            <option value="news">News</option>
-            <option value="campaign">Campaigns</option>
-            <option value="newsletter">Newsletter</option>
-            <option value="ai_qa">AI Q&amp;A</option>
-            <option value="audit_log">Audit log</option>
+            {ENTITY_FILTERS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Action</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={actionFilter}
             onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
           >
@@ -214,6 +229,7 @@ export const AdminAuditLog: React.FC = () => {
             type="date"
             className="adm-input adm-input-sm"
             value={fromDate}
+            max={toDate || undefined}
             onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
             style={{ width: 150 }}
           />
@@ -225,6 +241,7 @@ export const AdminAuditLog: React.FC = () => {
             type="date"
             className="adm-input adm-input-sm"
             value={toDate}
+            min={fromDate || undefined}
             onChange={(e) => { setToDate(e.target.value); setPage(0); }}
             style={{ width: 150 }}
           />
@@ -271,7 +288,9 @@ export const AdminAuditLog: React.FC = () => {
                         {ENTITY_LABELS[log.entity_type] ?? log.entity_type}
                       </td>
                       <td>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{log.entity_name || '—'}</div>
+                        {/* dir="auto": Arabic product / article names otherwise
+                            reorder their punctuation in this LTR table. */}
+                        <div dir="auto" style={{ fontWeight: 600, fontSize: 13 }}>{log.entity_name || '—'}</div>
                         {log.entity_id && (
                           <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 1 }}>
                             ID: {log.entity_id}
@@ -279,9 +298,11 @@ export const AdminAuditLog: React.FC = () => {
                         )}
                       </td>
                       <td style={{ fontSize: 12 }}>{log.admin_user}</td>
-                      <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{log.details || '—'}</td>
+                      <td dir="auto" style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{log.details || '—'}</td>
                       <td style={{ fontSize: 12, color: 'var(--adm-text-dim)', whiteSpace: 'nowrap' }}>
-                        {fmtDate(log.created_at)}
+                        {/* created_at is UTC 'YYYY-MM-DD HH:MM:SS'; new Date() read it
+                            as local time, 3 h off in Istanbul. */}
+                        {fmtDateTime(log.created_at)}
                       </td>
                     </tr>
                   ))}

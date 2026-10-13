@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtNumber } from '../utils/dateUtils';
 
 /**
  * Cohort retention dashboard (Phase G3).
@@ -14,6 +15,9 @@ import { useAsync } from '../utils/useAdminAuth';
  * own cohort) so we use it as the visual baseline rather than an
  * arbitrary global max. That keeps small cohorts readable next to
  * big ones.
+ *
+ * Periods that haven't started yet come back as `null` and render as an
+ * empty hatched cell, distinct from a real 0%.
  */
 
 const LANGS = [
@@ -28,8 +32,8 @@ const LANGS = [
  * Pick a background colour for a retention cell. Hue is fixed (the
  * brand blue); the alpha encodes magnitude so the matrix reads as a
  * heatmap without dragging in a colour library. Cells with pct=0
- * stay transparent so the empty future of recent cohorts looks empty
- * rather than just "deeply blue and confusing."
+ * stay transparent so "nobody came back" looks empty rather than just
+ * "deeply blue and confusing."
  */
 const cellBg = (pct: number) => {
   if (pct <= 0) return 'transparent';
@@ -38,6 +42,17 @@ const cellBg = (pct: number) => {
   const alpha = Math.min(0.85, 0.05 + Math.sqrt(pct / 100) * 0.8);
   return `rgba(79, 110, 247, ${alpha.toFixed(2)})`;
 };
+
+/** Not-yet-reached period: faint diagonal hatch, no number. */
+const FUTURE_CELL_BG =
+  'repeating-linear-gradient(135deg, transparent 0 6px, rgba(255, 255, 255, 0.04) 6px 12px)';
+
+/**
+ * The sticky Cohort column must be opaque, or the cells scrolling under
+ * it show through (--adm-surface is a 4.5% white tint). The card's own
+ * glass tint over the page's solid base colour matches the card.
+ */
+const STICKY_BG = 'linear-gradient(var(--adm-glass), var(--adm-glass)), var(--adm-bg-mid)';
 
 export const AdminCohorts: React.FC = () => {
   const [bucket, setBucket] = useState<'week' | 'month'>('week');
@@ -57,8 +72,8 @@ export const AdminCohorts: React.FC = () => {
         <div>
           <h1 className="adm-page-title">Cohort retention</h1>
           <p className="adm-page-subtitle">
-            How many visitors from each cohort come back in the {bucket}s that follow.
-            Hover a cell to see absolute counts.
+            Visitors are grouped by the {bucket} of their first-ever visit; each cell shows how many of
+            them came back in the {bucket}s that follow. Hover a cell to see absolute counts.
           </p>
         </div>
       </div>
@@ -70,7 +85,7 @@ export const AdminCohorts: React.FC = () => {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Bucket</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={bucket}
             onChange={(e) => setBucket(e.target.value === 'month' ? 'month' : 'week')}
             style={{ width: 110 }}
@@ -82,7 +97,7 @@ export const AdminCohorts: React.FC = () => {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Periods</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={periods}
             onChange={(e) => setPeriods(Number(e.target.value))}
             style={{ width: 90 }}
@@ -93,7 +108,7 @@ export const AdminCohorts: React.FC = () => {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Language</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
             style={{ width: 160 }}
@@ -116,7 +131,7 @@ export const AdminCohorts: React.FC = () => {
             <table className="adm-table" style={{ minWidth: 'max-content' }}>
               <thead>
                 <tr>
-                  <th style={{ position: 'sticky', left: 0, background: 'var(--adm-surface)', minWidth: 130, zIndex: 1 }}>
+                  <th style={{ position: 'sticky', left: 0, background: STICKY_BG, minWidth: 130, zIndex: 1 }}>
                     Cohort
                   </th>
                   <th style={{ minWidth: 60 }}>Size</th>
@@ -133,7 +148,7 @@ export const AdminCohorts: React.FC = () => {
                     <td style={{
                       position: 'sticky',
                       left: 0,
-                      background: 'var(--adm-surface)',
+                      background: STICKY_BG,
                       fontWeight: 600,
                       fontSize: 12,
                       whiteSpace: 'nowrap',
@@ -141,22 +156,37 @@ export const AdminCohorts: React.FC = () => {
                     }}>
                       {c.cohort}
                     </td>
-                    <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{c.size}</td>
-                    {c.retention.map((r) => (
-                      <td
-                        key={r.period}
-                        title={`${r.returners} of ${c.size} returned in ${r.label}`}
-                        style={{
-                          textAlign: 'center',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          background: cellBg(r.pct),
-                          color: r.pct >= 50 ? '#fff' : 'inherit',
-                        }}
-                      >
-                        {r.pct > 0 ? `${r.pct}%` : '—'}
-                      </td>
-                    ))}
+                    <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{fmtNumber(c.size)}</td>
+                    {c.retention.map((r) => {
+                      // null = this period hasn't started yet (no data);
+                      // 0 = it has, and nobody came back.
+                      const pct: number | null = r.pct;
+                      if (pct === null) {
+                        return (
+                          <td
+                            key={r.period}
+                            title={`${r.label} hasn't started yet`}
+                            aria-label="Not reached yet"
+                            style={{ background: FUTURE_CELL_BG }}
+                          />
+                        );
+                      }
+                      return (
+                        <td
+                          key={r.period}
+                          title={`${fmtNumber(r.returners)} of ${fmtNumber(c.size)} returned in the ${bucket} of ${r.label}`}
+                          style={{
+                            textAlign: 'center',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            background: cellBg(pct),
+                            color: pct >= 50 ? '#fff' : pct === 0 ? 'var(--adm-text-dim)' : 'inherit',
+                          }}
+                        >
+                          {pct}%
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

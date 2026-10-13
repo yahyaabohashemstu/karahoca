@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtNumber } from '../utils/dateUtils';
 
 /**
  * Conversion funnel + search-terms dashboard (Phase G1 + G2).
@@ -88,6 +89,7 @@ export const AdminFunnel: React.FC = () => {
             type="date"
             className="adm-input adm-input-sm"
             value={from}
+            max={to}
             onChange={(e) => { setActivePreset('custom'); setRange((r) => ({ ...r, from: e.target.value })); }}
           />
         </label>
@@ -97,13 +99,15 @@ export const AdminFunnel: React.FC = () => {
             type="date"
             className="adm-input adm-input-sm"
             value={to}
+            min={from}
+            max={isoDate(new Date())}
             onChange={(e) => { setActivePreset('custom'); setRange((r) => ({ ...r, to: e.target.value })); }}
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Language</span>
           <select
-            className="adm-input adm-input-sm"
+            className="adm-select adm-input-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
             style={{ width: 160 }}
@@ -120,47 +124,73 @@ export const AdminFunnel: React.FC = () => {
         <>
           <div className="adm-card" style={{ marginBottom: 16 }}>
             <div className="adm-card-title">Funnel</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-              {funnel.length === 0 ? (
-                <div style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>
-                  No events recorded in this window. Try a wider date range.
-                </div>
-              ) : funnel.map((step, idx) => {
-                const widthPct = peak > 0 ? Math.max(2, Math.round((step.visitors / peak) * 100)) : 0;
-                return (
-                  <div key={step.key} style={{ position: 'relative' }}>
+            {/* The server always returns all five steps, so "nothing
+                happened" is a top step of 0 — five empty bars said nothing. */}
+            {peak === 0 ? (
+              <div style={{ color: 'var(--adm-text-dim)', fontSize: 13, marginTop: 12 }}>
+                No visitors recorded in this window. Try a wider date range.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                {funnel.map((step, idx) => {
+                  const widthPct = (step.visitors / peak) * 100;
+                  // Full-width row: a track with the fill drawn under the
+                  // text. The fill used to BE the row, so a small step
+                  // shrank to its 200px minimum and the text wrapped onto
+                  // three lines.
+                  return (
                     <div
+                      key={step.key}
                       style={{
-                        height: 56,
-                        background: 'linear-gradient(90deg, rgba(79, 110, 247, 0.18), rgba(79, 110, 247, 0.04))',
-                        borderLeft: '3px solid #4f6ef7',
+                        position: 'relative',
+                        height: 48,
                         borderRadius: 6,
-                        width: `${widthPct}%`,
-                        minWidth: 200,
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '0 14px',
-                        gap: 12,
-                        transition: 'width 0.4s ease',
+                        overflow: 'hidden',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        borderLeft: '3px solid #4f6ef7',
                       }}
                     >
-                      <span style={{ fontSize: 20 }}>{step.icon}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{step.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>
-                          {step.visitors.toLocaleString()} unique visitors • {step.conversionFromStart}% of top
-                        </div>
-                      </div>
-                      {idx > 0 && step.dropFromPrev > 0 && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', whiteSpace: 'nowrap' }}>
-                          –{step.dropFromPrev}% drop
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          width: `${widthPct}%`,
+                          background: 'linear-gradient(90deg, rgba(79, 110, 247, 0.32), rgba(79, 110, 247, 0.12))',
+                          transition: 'width 0.4s ease',
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'relative',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '0 14px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{step.icon}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {step.label}
                         </span>
-                      )}
+                        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--adm-text-muted)', flexShrink: 0 }}>
+                          <strong style={{ color: 'var(--adm-text)' }}>{fmtNumber(step.visitors)}</strong> visitors · {step.conversionFromStart}% of top
+                        </span>
+                        {idx > 0 && step.dropFromPrev > 0 && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', flexShrink: 0 }}>
+                            –{step.dropFromPrev}% drop
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="adm-card">
@@ -192,7 +222,7 @@ export const AdminFunnel: React.FC = () => {
                         <td>
                           <span dir="auto" style={{ fontSize: 14 }}>{s.term}</span>
                         </td>
-                        <td><strong>{s.count.toLocaleString()}</strong></td>
+                        <td><strong>{fmtNumber(s.count)}</strong></td>
                         <td>
                           <span className="adm-badge adm-badge-blue" style={{ fontSize: 11 }}>
                             {s.topLang || '—'}

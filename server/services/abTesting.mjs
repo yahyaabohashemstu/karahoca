@@ -25,6 +25,8 @@
  *          experiment's goal_event AT OR AFTER their first exposure
  *      so a visitor who whatsapp-clicked BEFORE seeing the variant
  *      isn't credited to it.
+ *      Both only count inside the experiment's run: from started_at,
+ *      and up to stopped_at once it is stopped (see computeExperimentResults).
  *
  *   4. Lift + confidence are computed naively (z-test of two
  *      proportions). For KARAHOCA's volumes (hundreds of visitors per
@@ -149,9 +151,9 @@ const zTestPValue = (xA, nA, xB, nB) => {
  *
  * For each variant of the given experiment:
  *   - exposed   = unique visitor_ids with a variant_exposure event
- *                 for this experiment + variant
+ *                 for this experiment + variant inside the run window
  *   - converted = subset of those who fired goal_event at or after
- *                 their first exposure
+ *                 their first exposure, and inside the window
  *   - rate      = converted / exposed
  *   - lift      = (rate - baseline_rate) / baseline_rate
  *                 where baseline_rate = first variant's rate
@@ -171,10 +173,33 @@ export const computeExperimentResults = (experimentKey) => {
     ORDER BY id ASC
   `).all(exp.id);
 
+  // The run window. Events are matched by experiment_key alone, and a key
+  // can be reused (delete an experiment, create a new one with the same
+  // key), so without it a new experiment inherited the old one's
+  // exposures and conversions; a stopped one kept collecting conversions.
+  // datetime() puts the bounds in visitor_events' 'YYYY-MM-DD HH:MM:SS'
+  // shape, so the TEXT comparison is exact whichever shape they arrive in.
+  const windowStart = exp.started_at || null;
+  const windowEnd = (exp.status === 'stopped' || exp.status === 'done') ? (exp.stopped_at || null) : null;
+  const inWindow = (col) =>
+    `${col} >= datetime(@windowStart)${windowEnd ? ` AND ${col} <= datetime(@windowEnd)` : ''}`;
+
   // For each variant, query the visitor_events table for exposures +
   // conversions. We use a single JOINED query per variant to avoid
   // pulling the whole event log into JS.
   const rows = variants.map((v) => {
+    // Never started (a draft): nothing it could have caused yet.
+    if (!windowStart) {
+      return { variant_key: v.variant_key, label: v.label || v.variant_key, weight: v.weight, exposed: 0, converted: 0, rate: 0 };
+    }
+    const bind = {
+      experimentKey: exp.key,
+      variantKey: v.variant_key,
+      goalEvent: exp.goal_event,
+      windowStart,
+      windowEnd,
+    };
+
     // Exposed: unique visitors with a matching variant_exposure event.
     // The payload_json holds { experiment_key, variant_key }. We use
     // json_extract (built-in to SQLite 3.45 / better-sqlite3) for the
@@ -184,32 +209,35 @@ export const computeExperimentResults = (experimentKey) => {
       FROM visitor_events
       WHERE event_type='variant_exposure'
         AND visitor_id IS NOT NULL
-        AND json_extract(payload_json, '$.experiment_key') = ?
-        AND json_extract(payload_json, '$.variant_key')    = ?
-    `).get(exp.key, v.variant_key);
+        AND ${inWindow('created_at')}
+        AND json_extract(payload_json, '$.experiment_key') = @experimentKey
+        AND json_extract(payload_json, '$.variant_key')    = @variantKey
+    `).get(bind);
     const exposed = exposedRow?.c ?? 0;
 
     // Converted: visitors who had at least one goal_event AT OR AFTER
-    // their first exposure to this variant. The inner subquery finds
-    // each exposed visitor's first exposure timestamp, the outer
-    // counts those who later fired the goal.
+    // their first exposure to this variant (and before the stop). The
+    // inner subquery finds each exposed visitor's first exposure
+    // timestamp, the outer counts those who later fired the goal.
     const convertedRow = db.prepare(`
       WITH first_exposure AS (
         SELECT visitor_id, MIN(created_at) AS first_at
         FROM visitor_events
         WHERE event_type='variant_exposure'
           AND visitor_id IS NOT NULL
-          AND json_extract(payload_json, '$.experiment_key') = ?
-          AND json_extract(payload_json, '$.variant_key')    = ?
+          AND ${inWindow('created_at')}
+          AND json_extract(payload_json, '$.experiment_key') = @experimentKey
+          AND json_extract(payload_json, '$.variant_key')    = @variantKey
         GROUP BY visitor_id
       )
       SELECT COUNT(DISTINCT fe.visitor_id) AS c
       FROM first_exposure fe
       INNER JOIN visitor_events ve
         ON ve.visitor_id = fe.visitor_id
-       AND ve.event_type = ?
+       AND ve.event_type = @goalEvent
        AND ve.created_at >= fe.first_at
-    `).get(exp.key, v.variant_key, exp.goal_event);
+       AND ${inWindow('ve.created_at')}
+    `).get(bind);
     const converted = convertedRow?.c ?? 0;
 
     return {

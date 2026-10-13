@@ -29,24 +29,7 @@
  */
 
 import { getDb } from '../db.mjs';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Parse `from` / `to` query params. Falls back to "last 30 days" when
- * missing — the most-common admin lens. Returns ISO strings (SQLite
- * compares them lexicographically when both are in 'YYYY-MM-DD' format
- * or full ISO).
- */
-const parseRange = (urlObj) => {
-  const now = new Date();
-  const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const fromParam = urlObj.searchParams.get('from');
-  const toParam = urlObj.searchParams.get('to');
-  const from = fromParam || defaultFrom.toISOString().slice(0, 10);
-  const to = toParam || now.toISOString();
-  return { from, to };
-};
+import { resolveDayRange } from '../utils/dateRange.mjs';
 
 // ─── G1: Funnel ──────────────────────────────────────────────────────────────
 
@@ -65,13 +48,16 @@ const FUNNEL_STEPS = [
   { key: 'whatsapp_click',    label: 'Clicked WhatsApp',     icon: '📱' },
 ];
 
-const computeFunnel = ({ from, to, lang }) => {
+const computeFunnel = ({ from, toExclusive, lang }) => {
   const db = getDb();
   // Sub-query for each step builds the set of visitor_ids that have
   // performed that event_type in the window. We start with the broadest
   // step (page_view) and successively INNER JOIN to narrow.
+  // `< toExclusive` (the day after `to`), not `<= to`: a bare 'YYYY-MM-DD'
+  // sorts before every timestamp of that day, so `<= to` never counted
+  // the last day — today was always missing and From = To gave 0.
   const langClause = lang ? `AND lang=?` : '';
-  const baseParams = lang ? [from, to, lang] : [from, to];
+  const baseParams = lang ? [from, toExclusive, lang] : [from, toExclusive];
 
   // Build the CTEs dynamically so adding a step doesn't require code
   // changes to the SQL template.
@@ -83,7 +69,7 @@ const computeFunnel = ({ from, to, lang }) => {
       WHERE visitor_id IS NOT NULL
         AND event_type = '${s.key}'
         AND created_at >= ?
-        AND created_at <= ?
+        AND created_at < ?
         ${langClause}
     )`;
   });
@@ -141,16 +127,16 @@ const computeFunnel = ({ from, to, lang }) => {
  * "test" noise that visitors generate while figuring out the search
  * input on first focus.
  */
-const computeSearchTerms = ({ from, to, lang, limit = 50 }) => {
+const computeSearchTerms = ({ from, toExclusive, lang, limit = 50 }) => {
   const db = getDb();
   const langClause = lang ? `AND lang=?` : '';
-  const baseParams = lang ? [from, to, lang] : [from, to];
+  const baseParams = lang ? [from, toExclusive, lang] : [from, toExclusive];
   const rows = db.prepare(`
     SELECT payload_json, lang
     FROM visitor_events
     WHERE event_type='search_query'
       AND created_at >= ?
-      AND created_at <= ?
+      AND created_at < ?
       ${langClause}
   `).all(...baseParams);
 
@@ -197,7 +183,11 @@ const computeSearchTerms = ({ from, to, lang, limit = 50 }) => {
  * Sundays look intentionally low rather than chaotically distributed.
  */
 const bucketDate = (isoString, bucket) => {
-  const d = new Date(isoString);
+  // 'YYYY-MM-DD HH:MM:SS' (SQLite datetime('now')) is UTC, but `new Date`
+  // reads a space-separated timestamp as LOCAL time, so near midnight an
+  // event landed in the neighbouring bucket on any server not set to UTC.
+  const s = String(isoString);
+  const d = new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s) ? `${s.replace(' ', 'T')}Z` : s);
   if (Number.isNaN(d.getTime())) return null;
   d.setUTCHours(0, 0, 0, 0);
   if (bucket === 'month') {
@@ -225,50 +215,73 @@ const addBuckets = (isoDate, bucket, n) => {
  * Build the cohort retention triangle.
  *
  * Algorithm:
- *   1. For each known visitor_id, find the EARLIEST created_at across
- *      all their visitor_events. That timestamp's bucket = their
- *      cohort.
+ *   1. For each visitor_id, find their FIRST-EVER event — MIN(created_at)
+ *      over their whole history, not just the window. Only visitors whose
+ *      first event falls inside the window form cohorts, and that event's
+ *      bucket is their cohort. (Taking the earliest event INSIDE the
+ *      window made a visitor first seen months ago look new, piling
+ *      returning visitors into the oldest cohort.)
  *   2. For each subsequent bucket offset (0..periods-1) count whether
  *      they had at least one event in that bucket.
  *   3. Roll up: cohort N, period P → (returners / cohort_size) × 100.
+ *      A bucket that hasn't started yet is `null` — no data — so the UI
+ *      can tell it apart from a real 0%.
+ *
+ * `lang` picks visitors whose first event was in that language (their
+ * acquisition language) and still counts every return visit, so the
+ * W+0 column stays 100% under the filter too.
  *
  * This is N×P SQL passes if done naively. The implementation below
- * pulls one row per (visitor, bucket) pair and rolls up in JS — for
- * KARAHOCA's volume (~hundreds of visitors / day) that's a single
- * fast scan; the matrix is at most ~12 cohorts × 12 periods.
+ * pulls one row per event of the cohort visitors and rolls up in JS —
+ * for KARAHOCA's volume (~hundreds of visitors / day) that's a single
+ * fast scan; the matrix is at most 24 cohorts × 24 periods.
  */
-const computeCohorts = ({ bucket, periods, lang }) => {
+const computeCohorts = ({ bucket, periods, lang, now = new Date() }) => {
   const db = getDb();
-  const oldestNeeded = addBuckets(bucketDate(new Date().toISOString(), bucket), bucket, -periods);
-  const langClause = lang ? `AND lang=?` : '';
-  const params = lang ? [oldestNeeded, lang] : [oldestNeeded];
+  const currentBucket = bucketDate(now.toISOString(), bucket);
+  // Exactly `periods` cohorts: the current bucket and the ones before it.
+  const oldestNeeded = addBuckets(currentBucket, bucket, -(periods - 1));
+  const langClause = lang
+    ? `WHERE EXISTS (
+         SELECT 1 FROM visitor_events fl
+         WHERE fl.visitor_id = f.visitor_id AND fl.created_at = f.first_at AND fl.lang = @lang
+       )`
+    : '';
 
-  // Pull every (visitor, bucket-start) tuple in range. created_at
-  // comes back as a TEXT in 'YYYY-MM-DD HH:MM:SS' or full ISO — both
-  // are parseable by `new Date`.
+  // A bare 'YYYY-MM-DD' lower bound compares correctly against both
+  // stored timestamp shapes; created_at comes back as TEXT and goes
+  // through bucketDate, which reads either.
   const rows = db.prepare(`
-    SELECT visitor_id, created_at
-    FROM visitor_events
-    WHERE visitor_id IS NOT NULL
-      AND created_at >= ?
-      ${langClause}
-  `).all(...params);
+    WITH firsts AS (
+      SELECT visitor_id, MIN(created_at) AS first_at
+      FROM visitor_events
+      WHERE visitor_id IS NOT NULL
+      GROUP BY visitor_id
+      HAVING MIN(created_at) >= @oldest
+    )
+    SELECT f.visitor_id, f.first_at, ve.created_at
+    FROM firsts f
+    JOIN visitor_events ve ON ve.visitor_id = f.visitor_id
+    ${langClause}
+  `).all({ oldest: oldestNeeded, lang: lang || null });
 
-  // First pass: visitor → earliest bucket (their cohort).
-  // Second pass: visitor → set of buckets they appeared in.
+  // visitor → cohort (bucket of their first-ever event), and
+  // visitor → set of buckets they appeared in.
   const cohortByVisitor = new Map();
   const visitedBuckets = new Map();
   for (const row of rows) {
+    if (!cohortByVisitor.has(row.visitor_id)) {
+      const cohort = bucketDate(row.first_at, bucket);
+      if (!cohort) continue;
+      cohortByVisitor.set(row.visitor_id, cohort);
+      visitedBuckets.set(row.visitor_id, new Set());
+    }
     const bk = bucketDate(row.created_at, bucket);
-    if (!bk) continue;
-    const existing = cohortByVisitor.get(row.visitor_id);
-    if (!existing || bk < existing) cohortByVisitor.set(row.visitor_id, bk);
-    if (!visitedBuckets.has(row.visitor_id)) visitedBuckets.set(row.visitor_id, new Set());
-    visitedBuckets.get(row.visitor_id).add(bk);
+    if (bk) visitedBuckets.get(row.visitor_id).add(bk);
   }
 
   // Build the cohort labels — every distinct cohort date that appears
-  // in cohortByVisitor, sorted ascending. We cap at `periods` cohorts
+  // in cohortByVisitor, sorted ascending. Capped at `periods` cohorts
   // to keep the matrix bounded.
   const cohortLabels = [...new Set(cohortByVisitor.values())].sort().slice(-periods);
   const cohortMembers = new Map(cohortLabels.map((l) => [l, []]));
@@ -284,6 +297,10 @@ const computeCohorts = ({ bucket, periods, lang }) => {
     const retention = [];
     for (let p = 0; p < periods; p++) {
       const targetBucket = addBuckets(cohort, bucket, p);
+      if (targetBucket > currentBucket) {
+        retention.push({ period: p, label: targetBucket, returners: null, pct: null });
+        continue;
+      }
       let returners = 0;
       for (const vid of members) {
         if (visitedBuckets.get(vid)?.has(targetBucket)) returners += 1;
@@ -307,10 +324,19 @@ const computeCohorts = ({ bucket, periods, lang }) => {
  */
 export const handleAdminFunnel = (req, res, { sendJson, origin }) => {
   const urlObj = new URL(req.url, 'http://localhost');
-  const { from, to } = parseRange(urlObj);
+  // Date-only from/to (defaults: the last 30 days up to today, UTC).
+  const range = resolveDayRange({
+    from: urlObj.searchParams.get('from'),
+    to: urlObj.searchParams.get('to'),
+  });
+  if (range.error) {
+    sendJson(res, 400, { success: false, error: range.error }, origin);
+    return;
+  }
+  const { from, to, toExclusive } = range;
   const lang = urlObj.searchParams.get('lang') || null;
-  const funnel = computeFunnel({ from, to, lang });
-  const searchTerms = computeSearchTerms({ from, to, lang });
+  const funnel = computeFunnel({ from, toExclusive, lang });
+  const searchTerms = computeSearchTerms({ from, toExclusive, lang });
   sendJson(res, 200, { success: true, range: { from, to }, lang, funnel, searchTerms }, origin);
 };
 
@@ -332,4 +358,4 @@ export const handleAdminCohorts = (req, res, { sendJson, origin }) => {
 };
 
 // Exposed for unit testing.
-export const __testInternals = { FUNNEL_STEPS, bucketDate, addBuckets };
+export const __testInternals = { FUNNEL_STEPS, bucketDate, addBuckets, computeFunnel, computeCohorts };

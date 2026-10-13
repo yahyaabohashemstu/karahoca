@@ -1,4 +1,5 @@
 import { getDb } from '../db.mjs';
+import { addDays, fillDays, todayUtc } from '../utils/dateRange.mjs';
 
 export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
   const db = getDb();
@@ -8,30 +9,38 @@ export const handleAdminAnalytics = (req, res, { sendJson, origin }) => {
   const rawDays = parseInt(urlObj.searchParams.get('days') || '30', 10);
   const days = Number.isFinite(rawDays) && rawDays > 0 ? Math.min(rawDays, 365) : 30;
 
-  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const today = todayUtc();
+  const since = addDays(today, -days);
 
   const dailyData = db.prepare(`
     SELECT date, metric, value FROM daily_stats
     WHERE date >= ? ORDER BY date ASC
   `).all(since);
 
-  // Chat messages per day
-  const chatPerDay = db.prepare(`
+  // Chat messages per day. GROUP BY only returns days with activity;
+  // fillDays adds the quiet ones as 0 (UTC days, like date()) so the
+  // trend line doesn't run straight across them.
+  const chatPerDayRows = db.prepare(`
     SELECT date(created_at) as date, COUNT(*) as count
     FROM chat_messages
     WHERE date(created_at) >= ?
     GROUP BY date(created_at)
     ORDER BY date ASC
   `).all(since);
+  const chatPerDay = fillDays(chatPerDayRows, since, today, 'date', (date) => ({ date, count: 0 }));
 
   // Newsletter signups per day
-  const newsletterPerDay = db.prepare(`
+  const newsletterPerDayRows = db.prepare(`
     SELECT date(subscribed_at) as date, COUNT(*) as count
     FROM newsletter_subscribers
     WHERE date(subscribed_at) >= ? AND active=1
     GROUP BY date(subscribed_at)
     ORDER BY date ASC
   `).all(since);
+  const newsletterPerDay = fillDays(newsletterPerDayRows, since, today, 'date', (date) => ({ date, count: 0 }));
+
+  // Everything below is ALL-TIME, not scoped to `days` (the page labels
+  // it so).
 
   // Language distribution of chat users
   const langDistribution = db.prepare(`

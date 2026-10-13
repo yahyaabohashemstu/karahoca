@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { adminApi, type AbExperimentRow, type AbVariantRow, type AbExperimentResults } from '../utils/adminApi';
+import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 /**
  * A/B testing dashboard (Phase G4).
@@ -8,7 +10,9 @@ import { adminApi, type AbExperimentRow, type AbVariantRow, type AbExperimentRes
  *
  *   - Create a new experiment (auto-seeded with control + variant_a).
  *   - Edit name / description / goal_event.
- *   - Add / remove / re-weight variants.
+ *   - Add / remove / re-weight variants — while the experiment is a
+ *     draft only; the server locks them once it starts (re-weighting a
+ *     running test moves visitors between variants).
  *   - Start / Stop transitions (start stamps started_at, stop stamps
  *     stopped_at; assignments freeze when stopped).
  *   - Live results panel: exposed, converted, conversion rate, lift
@@ -27,10 +31,18 @@ const STATUS_BADGE: Record<AbExperimentRow['status'], { bg: string; label: strin
   done:    { bg: '#4f6ef7', label: '✓ Done' },
 };
 
+type Details = { experiment: AbExperimentRow; variants: AbVariantRow[]; results: AbExperimentResults | null };
+
 export const AdminAbTests: React.FC = () => {
   const [experiments, setExperiments] = useState<(AbExperimentRow & { variants: AbVariantRow[] })[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [details, setDetails] = useState<{ experiment: AbExperimentRow; variants: AbVariantRow[]; results: AbExperimentResults | null } | null>(null);
+  const [selectedId, setSelectedIdState] = useState<number | null>(null);
+  const [details, setDetails] = useState<Details | null>(null);
+  // The id whose details may be shown. A response for any other id (the
+  // admin clicked on before it arrived) is dropped — it used to land and
+  // show experiment A's panel while B was selected, so Delete / Start /
+  // Stop acted on B with A on screen.
+  const selectedRef = useRef<number | null>(null);
+  const isMobile = useIsMobile(767);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -40,6 +52,15 @@ export const AdminAbTests: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newGoal, setNewGoal] = useState('whatsapp_click');
 
+  // Clear the panel on every selection change so the old experiment
+  // never sits under the new selection while its details load.
+  const setSelectedId = (id: number | null) => {
+    if (id === selectedRef.current) return;
+    selectedRef.current = id;
+    setSelectedIdState(id);
+    setDetails(null);
+  };
+
   const reloadList = async () => {
     setLoading(true);
     setError(null);
@@ -47,7 +68,7 @@ export const AdminAbTests: React.FC = () => {
       const res = await adminApi.listAbTests();
       setExperiments(res.experiments);
       // Auto-select the first one if nothing is selected.
-      if (selectedId == null && res.experiments[0]) setSelectedId(res.experiments[0].id);
+      if (selectedRef.current == null && res.experiments[0]) setSelectedId(res.experiments[0].id);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -57,9 +78,10 @@ export const AdminAbTests: React.FC = () => {
   const reloadDetails = async (id: number) => {
     try {
       const res = await adminApi.getAbTest(id);
+      if (selectedRef.current !== id) return;
       setDetails({ experiment: res.experiment, variants: res.variants, results: res.results });
     } catch (e) {
-      setError((e as Error).message);
+      if (selectedRef.current === id) setError((e as Error).message);
     }
   };
 
@@ -80,49 +102,61 @@ export const AdminAbTests: React.FC = () => {
     }
   };
 
+  // Every mutation targets the experiment whose panel is on screen
+  // (details.experiment), never just the selected id.
   const handleStartStop = async (action: 'start' | 'stop') => {
-    if (!selectedId) return;
+    if (!details) return;
+    const { id, name } = details.experiment;
+    if (action === 'start' && !confirm(`Start "${name}"? Its variants and weights are locked once it is running.`)) return;
+    if (action === 'stop' && !confirm(`Stop "${name}"? Visitors stop being assigned to its variants.`)) return;
     try {
-      if (action === 'start') await adminApi.startAbTest(selectedId);
-      else await adminApi.stopAbTest(selectedId);
-      await Promise.all([reloadList(), reloadDetails(selectedId)]);
+      if (action === 'start') await adminApi.startAbTest(id);
+      else await adminApi.stopAbTest(id);
+      await Promise.all([reloadList(), reloadDetails(id)]);
     } catch (e) { setError((e as Error).message); }
   };
 
   const handleDeleteExp = async () => {
-    if (!selectedId || !confirm('Delete this experiment? Variants and assignment history will be lost.')) return;
+    if (!details) return;
+    const { id, name } = details.experiment;
+    if (!confirm(`Delete the experiment "${name}"? Its variants and results will be lost.`)) return;
     try {
-      await adminApi.deleteAbTest(selectedId);
-      setSelectedId(null);
-      setDetails(null);
+      await adminApi.deleteAbTest(id);
+      if (selectedRef.current === id) setSelectedId(null);
       await reloadList();
     } catch (e) { setError((e as Error).message); }
   };
 
   const handleAddVariant = async () => {
-    if (!selectedId) return;
-    const key = prompt('Variant key (e.g. "variant_b"):');
+    if (!details) return;
+    const { id } = details.experiment;
+    const key = prompt(`Variant key for "${details.experiment.name}" (e.g. "variant_b"):`);
     if (!key) return;
     try {
-      await adminApi.addAbVariant(selectedId, { variant_key: key.trim(), weight: 25, label: key.trim() });
-      await reloadDetails(selectedId);
+      await adminApi.addAbVariant(id, { variant_key: key.trim(), weight: 25, label: key.trim() });
+      await reloadDetails(id);
     } catch (e) { setError((e as Error).message); }
   };
   const handleUpdateWeight = async (variantKey: string, weight: number) => {
-    if (!selectedId) return;
+    if (!details) return;
+    const { id } = details.experiment;
     try {
-      await adminApi.updateAbVariant(selectedId, variantKey, { weight });
-      await reloadDetails(selectedId);
+      await adminApi.updateAbVariant(id, variantKey, { weight });
+      await reloadDetails(id);
     } catch (e) { setError((e as Error).message); }
   };
   const handleDeleteVariant = async (variantKey: string) => {
-    if (!selectedId) return;
-    if (!confirm(`Remove variant "${variantKey}"?`)) return;
+    if (!details) return;
+    const { id, name } = details.experiment;
+    if (!confirm(`Remove variant "${variantKey}" from "${name}"?`)) return;
     try {
-      await adminApi.deleteAbVariant(selectedId, variantKey);
-      await reloadDetails(selectedId);
+      await adminApi.deleteAbVariant(id, variantKey);
+      await reloadDetails(id);
     } catch (e) { setError((e as Error).message); }
   };
+
+  // Variants are editable only in draft (the server answers 409 otherwise).
+  const variantsLocked = details != null && details.experiment.status !== 'draft';
 
   return (
     <div>
@@ -150,7 +184,7 @@ export const AdminAbTests: React.FC = () => {
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Goal event</span>
-            <select className="adm-input adm-input-sm" value={newGoal} onChange={(e) => setNewGoal(e.target.value)}>
+            <select className="adm-select adm-input-sm" value={newGoal} onChange={(e) => setNewGoal(e.target.value)}>
               <option value="whatsapp_click">whatsapp_click</option>
               <option value="chat_open">chat_open</option>
               <option value="chat_message_sent">chat_message_sent</option>
@@ -166,7 +200,7 @@ export const AdminAbTests: React.FC = () => {
       {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>}
 
       {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '260px minmax(0, 1fr)', gap: 16 }}>
           {/* List */}
           <div className="adm-card" style={{ padding: 0, overflow: 'hidden' }}>
             {experiments.length === 0 ? (
@@ -225,9 +259,19 @@ export const AdminAbTests: React.FC = () => {
                 </div>
                 <p style={{ color: 'var(--adm-text-dim)', fontSize: 13, marginTop: 4 }}>
                   <code>{details.experiment.key}</code> • goal: <code>{details.experiment.goal_event}</code>
+                  {details.experiment.started_at && <> • started {fmtDateTime(details.experiment.started_at)}</>}
+                  {details.experiment.stopped_at && details.experiment.status !== 'running' && (
+                    <> • stopped {fmtDateTime(details.experiment.stopped_at)}</>
+                  )}
                 </p>
 
                 <h3 style={{ fontSize: 14, marginTop: 16, marginBottom: 8 }}>Variants</h3>
+                {variantsLocked && (
+                  <p style={{ color: 'var(--adm-text-dim)', fontSize: 12, marginTop: 0, marginBottom: 8 }}>
+                    🔒 Variants and weights are locked once an experiment has started — changing them would move
+                    visitors between variants. Create a new experiment to test a different split.
+                  </p>
+                )}
                 <div className="adm-table-wrap">
                   <table className="adm-table">
                     <thead>
@@ -249,32 +293,54 @@ export const AdminAbTests: React.FC = () => {
                           <td><code>{v.variant_key}</code></td>
                           <td>{v.label || '—'}</td>
                           <td>
-                            <input
-                              // Remount on a server-side change so the field
-                              // shows the saved value.
-                              key={v.weight}
-                              type="number"
-                              className="adm-input adm-input-sm"
-                              defaultValue={v.weight}
-                              min={0}
-                              style={{ width: 80 }}
-                              onBlur={(e) => {
-                                const next = Number(e.target.value);
-                                if (Number.isFinite(next) && next !== v.weight) {
-                                  void handleUpdateWeight(v.variant_key, next);
-                                }
-                              }}
-                            />
+                            {variantsLocked ? fmtNumber(v.weight) : (
+                              <input
+                                // Remount on a server-side change so the field
+                                // shows the saved value.
+                                key={v.weight}
+                                type="number"
+                                className="adm-input adm-input-sm"
+                                defaultValue={v.weight}
+                                min={0}
+                                step={1}
+                                aria-label={`Weight of ${v.variant_key}`}
+                                style={{ width: 80 }}
+                                onBlur={(e) => {
+                                  // An emptied box used to save weight 0
+                                  // (Number('') is 0). Only a whole number
+                                  // >= 0 is saved; anything else snaps back.
+                                  const raw = e.target.value.trim();
+                                  const next = Number(raw);
+                                  if (raw === '' || !Number.isInteger(next) || next < 0) {
+                                    e.target.value = String(v.weight);
+                                    if (raw !== '') setError('A weight must be a whole number of 0 or more.');
+                                    return;
+                                  }
+                                  if (next !== v.weight) void handleUpdateWeight(v.variant_key, next);
+                                }}
+                              />
+                            )}
                           </td>
                           <td>
-                            <button className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => handleDeleteVariant(v.variant_key)}>✕</button>
+                            {!variantsLocked && (
+                              <button
+                                className="adm-btn adm-btn-danger adm-btn-sm"
+                                onClick={() => handleDeleteVariant(v.variant_key)}
+                                aria-label={`Remove variant ${v.variant_key}`}
+                                title={`Remove variant ${v.variant_key}`}
+                              >
+                                ✕
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <button className="adm-btn adm-btn-ghost adm-btn-sm" style={{ marginTop: 8 }} onClick={handleAddVariant}>+ Add variant</button>
+                {!variantsLocked && (
+                  <button className="adm-btn adm-btn-ghost adm-btn-sm" style={{ marginTop: 8 }} onClick={handleAddVariant}>+ Add variant</button>
+                )}
 
                 {details.results && details.results.results.length > 0 && (
                   <>
@@ -298,8 +364,8 @@ export const AdminAbTests: React.FC = () => {
                                 <strong>{r.label}</strong>
                                 {idx === 0 && <span style={{ fontSize: 10, color: 'var(--adm-text-dim)', marginLeft: 6 }}>(baseline)</span>}
                               </td>
-                              <td>{r.exposed.toLocaleString()}</td>
-                              <td>{r.converted.toLocaleString()}</td>
+                              <td>{fmtNumber(r.exposed)}</td>
+                              <td>{fmtNumber(r.converted)}</td>
                               <td>{(r.rate * 100).toFixed(2)}%</td>
                               <td style={{ color: r.lift > 0 ? '#22c55e' : r.lift < 0 ? '#dc2626' : 'inherit' }}>
                                 {idx === 0 ? '—' : `${r.lift > 0 ? '+' : ''}${r.lift}%`}
@@ -313,9 +379,11 @@ export const AdminAbTests: React.FC = () => {
                   </>
                 )}
               </>
+            ) : selectedId != null ? (
+              <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>
             ) : (
               <div style={{ color: 'var(--adm-text-dim)', textAlign: 'center', padding: 32 }}>
-                Pick an experiment on the left, or create a new one.
+                Pick an experiment {isMobile ? 'above' : 'on the left'}, or create a new one.
               </div>
             )}
           </div>

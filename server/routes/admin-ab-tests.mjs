@@ -18,6 +18,9 @@
  *     PUT    /api/admin/ab-tests/{id}/variants/{vkey}     update weight/label
  *     DELETE /api/admin/ab-tests/{id}/variants/{vkey}     remove variant
  *
+ *   Variants (and weights) can only change while the experiment is a
+ *   draft — see variantsLockedError.
+ *
  *   Public (anonymous)
  *     GET    /api/ab/active                   running experiments + variants
  *
@@ -41,6 +44,29 @@ const readVariants = (db, experimentId) => db.prepare(`
   FROM ab_variants WHERE experiment_id=? ORDER BY id ASC
 `).all(experimentId);
 
+/**
+ * Assignment is `hash(key + visitor) % total weight`, so adding or removing
+ * a variant or changing a weight once visitors have been assigned silently
+ * moves some of them into another variant — their earlier exposure stays
+ * counted under the old one and the results stop meaning anything. The
+ * variant set is therefore frozen when the experiment leaves draft. (The
+ * label is cosmetic and stays editable.)
+ */
+const variantsLockedError = (exp) =>
+  `Variants are locked once an experiment has started (this one is ${exp.status}): changing them would move `
+  + 'visitors between variants and corrupt the results. Create a new experiment to test a different split.';
+
+/**
+ * A weight is a whole number >= 0; anything else is null. Number('') is 0,
+ * so an emptied weight box has to be rejected explicitly or it silently
+ * zeroes the variant.
+ */
+const parseWeight = (v) => {
+  if (typeof v !== 'number' && (typeof v !== 'string' || v.trim() === '')) return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+};
+
 // ─── Admin handler ──────────────────────────────────────────────────────────
 export const handleAdminAbTests = (req, res, { body, sendJson, origin, url, admin }) => {
   const db = getDb();
@@ -51,7 +77,16 @@ export const handleAdminAbTests = (req, res, { body, sendJson, origin, url, admi
   const stopMatch  = url.match(/^\/api\/admin\/ab-tests\/(\d+)\/stop$/);
   if (startMatch && req.method === 'POST') {
     const id = Number(startMatch[1]);
-    db.prepare(`UPDATE ab_experiments SET status='running', started_at=COALESCE(started_at, datetime('now')), updated_at=datetime('now') WHERE id=?`).run(id);
+    if (!readExperiment(db, id)) { sendJson(res, 404, { success: false, error: 'Experiment not found.' }, origin); return; }
+    // The variants freeze from here on, so a split that can't assign
+    // anyone (no variant with a weight) must be fixed before, not after.
+    if (!readVariants(db, id).some((v) => v.weight > 0)) {
+      sendJson(res, 400, { success: false, error: 'Give at least one variant a weight above 0 before starting.' }, origin);
+      return;
+    }
+    // stopped_at is cleared so a restarted experiment's results aren't
+    // cut off at its previous stop (computeExperimentResults).
+    db.prepare(`UPDATE ab_experiments SET status='running', started_at=COALESCE(started_at, datetime('now')), stopped_at=NULL, updated_at=datetime('now') WHERE id=?`).run(id);
     const exp = readExperiment(db, id);
     logAudit({ action: 'UPDATE', entityType: 'ab_test', entityId: id, entityName: `Started experiment "${exp?.key}"`, adminUser });
     sendJson(res, 200, { success: true, experiment: exp }, origin);
@@ -74,11 +109,21 @@ export const handleAdminAbTests = (req, res, { body, sendJson, origin, url, admi
     const exp = readExperiment(db, expId);
     if (!exp) { sendJson(res, 404, { success: false, error: 'Experiment not found.' }, origin); return; }
 
+    // Weight changes, additions and removals only while in draft.
+    const changesSplit = vkey
+      ? req.method === 'DELETE' || (req.method === 'PUT' && body.weight !== undefined)
+      : req.method === 'POST';
+    if (changesSplit && exp.status !== 'draft') {
+      sendJson(res, 409, { success: false, error: variantsLockedError(exp) }, origin);
+      return;
+    }
+
     if (req.method === 'POST' && !vkey) {
       const variant_key = String(body.variant_key || '').trim();
       const label = String(body.label || '').trim();
-      const weight = Math.max(0, Math.floor(Number(body.weight) || 1));
+      const weight = body.weight === undefined ? 1 : parseWeight(body.weight);
       if (!variant_key) { sendJson(res, 400, { success: false, error: 'variant_key required.' }, origin); return; }
+      if (weight === null) { sendJson(res, 400, { success: false, error: 'weight must be a whole number of 0 or more.' }, origin); return; }
       try {
         db.prepare(`INSERT INTO ab_variants(experiment_id, variant_key, label, weight) VALUES(?,?,?,?)`)
           .run(expId, variant_key, label, weight);
@@ -92,7 +137,11 @@ export const handleAdminAbTests = (req, res, { body, sendJson, origin, url, admi
     }
     if (req.method === 'PUT' && vkey) {
       const label = body.label !== undefined ? String(body.label) : null;
-      const weight = body.weight !== undefined ? Math.max(0, Math.floor(Number(body.weight) || 0)) : null;
+      const weight = body.weight !== undefined ? parseWeight(body.weight) : null;
+      if (body.weight !== undefined && weight === null) {
+        sendJson(res, 400, { success: false, error: 'weight must be a whole number of 0 or more.' }, origin);
+        return;
+      }
       const sets = [];
       const params = [];
       if (label !== null) { sets.push('label=?'); params.push(label); }
@@ -136,7 +185,20 @@ export const handleAdminAbTests = (req, res, { body, sendJson, origin, url, admi
           sendJson(res, 400, { success: false, error: `status must be one of: ${[...VALID_STATUSES].join(', ')}` }, origin);
           return;
         }
+        // Back to draft would unlock the variants of an experiment that
+        // already has exposures.
+        if (body.status === 'draft' && exp.status !== 'draft') {
+          sendJson(res, 409, { success: false, error: 'An experiment that has started cannot go back to draft.' }, origin);
+          return;
+        }
         fields.push('status=?'); params.push(body.status);
+        // Keep the results window (started_at → stopped_at) in step with
+        // the status, as /start and /stop do.
+        if (body.status === 'running') {
+          fields.push(`started_at=COALESCE(started_at, datetime('now'))`, 'stopped_at=NULL');
+        } else if (exp.status === 'running') {
+          fields.push(`stopped_at=datetime('now')`);
+        }
       }
       if (fields.length === 0) { sendJson(res, 400, { success: false, error: 'Nothing to update.' }, origin); return; }
       fields.push(`updated_at=datetime('now')`);

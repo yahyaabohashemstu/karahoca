@@ -7,6 +7,8 @@ import { sendJson } from '../middlewares/cors.mjs';
 import { requireAdminAuth, requireCsrfToken } from '../middlewares/adminAuth.mjs';
 import { getDb, logAudit } from '../services/db.mjs';
 import { createAdminCsrfCookie, generateCsrfToken, readAdminCsrfCookie } from '../auth.mjs';
+import { logger } from '../utils/logger.mjs';
+import { resolveDayRange } from '../utils/dateRange.mjs';
 
 import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
 import { handleAdminStats } from './admin-stats.mjs';
@@ -29,34 +31,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, '..', 'data', 'uploads');
 
-const ALLOWED_UPLOAD_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
-
-/** Validates magic bytes for the 4 supported image types. */
-const validateImageMagic = (buf, ext) => {
-  if ((ext === 'jpg' || ext === 'jpeg') && buf.length >= 3) {
-    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
-  }
-  if (ext === 'png' && buf.length >= 8) {
-    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
-  }
-  if (ext === 'gif' && buf.length >= 6) {
-    return buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46;
-  }
-  if (ext === 'webp' && buf.length >= 12) {
-    return buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
-  }
-  return false;
+/**
+ * The image type from the file's magic bytes — 'jpg' | 'png' | 'gif' |
+ * 'webp', or null for anything else. The stored extension comes from
+ * here, not from the client's file name: Windows saves JPEGs as
+ * "photo.jfif" and a pasted screenshot can arrive with no extension, and
+ * both were rejected although the bytes were a perfectly good image.
+ */
+const detectImageExt = (buf) => {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png';
+  if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return 'gif';
+  if (
+    buf.length >= 12
+    && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 // RIFF
+    && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50 // WEBP
+  ) return 'webp';
+  return null;
 };
 
+let warnedNoApiPublicUrl = false;
+
 const handleUploadImage = async (request, response, { origin, body }) => {
-  const { imageBase64, fileName } = body;
-  if (!imageBase64 || !fileName) {
-    sendJson(response, 400, { error: 'imageBase64 and fileName required' }, origin);
-    return;
-  }
-  const ext = (fileName.split('.').pop() || '').toLowerCase();
-  if (!ALLOWED_UPLOAD_EXTS.has(ext)) {
-    sendJson(response, 400, { error: 'Unsupported file type' }, origin);
+  const { imageBase64 } = body;
+  if (!imageBase64) {
+    sendJson(response, 400, { error: 'imageBase64 required' }, origin);
     return;
   }
   const buf = Buffer.from(imageBase64, 'base64');
@@ -64,8 +63,9 @@ const handleUploadImage = async (request, response, { origin, body }) => {
     sendJson(response, 400, { error: 'File too large (max 10 MB)' }, origin);
     return;
   }
-  if (!validateImageMagic(buf, ext)) {
-    sendJson(response, 400, { error: 'File content does not match the declared image type' }, origin);
+  const ext = detectImageExt(buf);
+  if (!ext) {
+    sendJson(response, 400, { error: 'Unsupported file type — upload a JPEG, PNG, WebP or GIF image.' }, origin);
     return;
   }
 
@@ -74,9 +74,22 @@ const handleUploadImage = async (request, response, { origin, body }) => {
   await writeFile(path.join(uploadsDir, unique), buf);
 
   // API_PUBLIC_URL = publicly reachable URL of this Node backend.
-  // Required because email clients load uploaded images directly from the
-  // API server (the nginx frontend does NOT proxy /api/ routes).
-  const apiBase = (process.env.API_PUBLIC_URL || process.env.SITE_URL || '').replace(/\/+$/, '');
+  // Required because email clients and the public site load uploaded
+  // images directly from the API server (the nginx frontend does NOT
+  // proxy /api/ — it answers 404), so the old fallback to SITE_URL built
+  // URLs that could never load. Without API_PUBLIC_URL we hand back the
+  // relative /api/uploads/… path — the form the rest of the code resolves
+  // itself (resolveAdminImage prefixes VITE_BACKEND_URL; campaign sends,
+  // the sitemap and OG cards map it to the API host) — and say so once.
+  const apiBase = (process.env.API_PUBLIC_URL || '').replace(/\/+$/, '');
+  if (!apiBase && !warnedNoApiPublicUrl) {
+    warnedNoApiPublicUrl = true;
+    logger.warn(
+      '[upload] API_PUBLIC_URL is not set: uploaded images get a relative /api/uploads/… URL, which the public '
+      + 'site loads from the web host (404 when the API runs on its own domain). Set API_PUBLIC_URL to this '
+      + "API's public origin, e.g. https://api.karahoca.com.",
+    );
+  }
   const relativePath = `/api/uploads/${unique}`;
   const absoluteUrl = apiBase ? `${apiBase}${relativePath}` : relativePath;
   sendJson(response, 200, { success: true, path: relativePath, url: absoluteUrl }, origin);
@@ -91,7 +104,7 @@ const handleUploadImage = async (request, response, { origin, body }) => {
  *   entity   exact match on entity_type (product, news, campaign, …)
  *   action   exact match on action (CREATE / UPDATE / DELETE / SEND / EXPORT)
  *   q        case-insensitive substring on entity_name OR entity_id
- *   from/to  ISO date bounds on created_at (inclusive on `from`, exclusive on `to`)
+ *   from/to  'YYYY-MM-DD' days (UTC), both included; either may be left open
  *
  * When format=csv the endpoint streams a CSV download instead of JSON.
  * Used by the admin's "Export log" button for compliance / audit trails.
@@ -108,8 +121,17 @@ const handleAuditLog = (request, response, { origin, admin }) => {
   const entityType = urlObj.searchParams.get('entity') || null;
   const action = urlObj.searchParams.get('action') || null;
   const q = (urlObj.searchParams.get('q') || '').trim();
-  const from = urlObj.searchParams.get('from') || null;
-  const to = urlObj.searchParams.get('to') || null;
+  // `to` used to be bound as `created_at < 'YYYY-MM-DD'`, which ends the
+  // range at the START of that day: From = To was always empty, in the
+  // table and the CSV export alike. Compare against the day after instead.
+  const range = resolveDayRange(
+    { from: urlObj.searchParams.get('from'), to: urlObj.searchParams.get('to') },
+    { defaultDays: null, maxDays: null },
+  );
+  if (range.error) {
+    sendJson(response, 400, { success: false, error: range.error }, origin);
+    return;
+  }
   const format = (urlObj.searchParams.get('format') || 'json').toLowerCase();
 
   const conditions = [];
@@ -121,8 +143,8 @@ const handleAuditLog = (request, response, { origin, admin }) => {
     const needle = `%${q.toLowerCase()}%`;
     params.push(needle, needle, needle);
   }
-  if (from) { conditions.push('created_at >= ?'); params.push(from); }
-  if (to)   { conditions.push('created_at < ?');  params.push(to); }
+  if (range.from)        { conditions.push('created_at >= ?'); params.push(range.from); }
+  if (range.toExclusive) { conditions.push('created_at < ?');  params.push(range.toExclusive); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   if (format === 'csv') {
@@ -138,23 +160,32 @@ const handleAuditLog = (request, response, { origin, admin }) => {
     // CSV-cell sanitiser: prefix anything that could be parsed as a
     // formula by Excel / Sheets with `'` so opening the export in a
     // spreadsheet doesn't execute injected payloads from entity_name.
+    // The check runs on the RAW value, before quoting: run afterwards it
+    // saw the opening `"` of a quoted cell, so `=HYPERLINK("…")` — quoted
+    // because of its own `"` — went out live. A bare \r also needs
+    // quoting, or it splits the row.
     const csvSafe = (v = '') => {
-      const s = String(v ?? '');
-      const escaped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      return /^[=+\-@\t\r]/.test(escaped) ? `'${escaped}` : escaped;
+      let s = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const header = ['id', 'created_at', 'admin_user', 'action', 'entity_type', 'entity_id', 'entity_name', 'details'];
     const body = rows.map((r) => header.map((k) => csvSafe(r[k])).join(','));
     const csv = [header.join(','), ...body].join('\n');
 
     // Log the export itself — fully meta-circular. Useful for spotting
-    // an admin shipping the audit log out of band.
+    // an admin shipping the audit log out of band. Records the filter
+    // VALUES: the WHERE clause it used to store was only `entity_type=?`
+    // placeholders, which said nothing about what was exported.
+    const filters = [
+      ['entity', entityType], ['action', action], ['q', q], ['from', range.from], ['to', range.to],
+    ].filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(', ');
     logAudit({
       action: 'EXPORT',
       entityType: 'audit_log',
       entityName: `CSV export (${rows.length} rows)`,
       adminUser: admin?.username || 'admin',
-      details: where ? `Filters: ${where.replace('WHERE ', '')}` : 'No filters',
+      details: filters ? `Filters: ${filters}` : 'No filters',
     });
 
     response.writeHead(200, {

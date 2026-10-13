@@ -15,7 +15,7 @@
  */
 
 import { createSign } from 'node:crypto';
-import { requireAuth } from '../auth.mjs';
+import { addDays, fillDays, todayUtc } from '../utils/dateRange.mjs';
 
 // ── Token cache ───────────────────────────────────────────────────────────────
 let _cachedToken = null;
@@ -84,12 +84,25 @@ function parseRows(result, dimKeys, metricKeys) {
   });
 }
 
+// "20250326" → "2025-03-26"
+const gaDateToDay = (d) => {
+  const s = String(d);
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+};
+
 // ── Handler ───────────────────────────────────────────────────────────────────
+// Auth: only reachable through api-admin.mjs, which runs requireAdminAuth
+// before dispatching any /api/admin/* route. (A local `try { requireAuth }`
+// used to sit here; requireAuth returns null instead of throwing, so it
+// never rejected anything.)
 export async function handleAdminGa(req, res, ctx) {
   const { sendJson, origin } = ctx;
 
-  try { requireAuth(req); }
-  catch { sendJson(res, 401, { error: 'Unauthorized' }, origin); return; }
+  // ?days=30|60|90 — the same window as the Analytics page's period
+  // selector (default 30, capped at 365). The GA KPIs used to be a fixed
+  // 30 days while the page said "Last 90 days".
+  const rawDays = parseInt(new URL(req.url, 'http://localhost').searchParams.get('days') || '30', 10);
+  const days = Number.isFinite(rawDays) && rawDays > 0 ? Math.min(rawDays, 365) : 30;
 
   const propertyId = (process.env.GA_PROPERTY_ID || '').replace('properties/', '');
   const sa         = getServiceAccount();
@@ -107,13 +120,14 @@ export async function handleAdminGa(req, res, ctx) {
         'Add to your .env:  GA_SERVICE_ACCOUNT_JSON={"type":"service_account",...}  (one line)',
         'Restart the server',
       ],
+      days,
     }, origin);
     return;
   }
 
   try {
     const token     = await getAccessToken(sa);
-    const dateRange = { startDate: '30daysAgo', endDate: 'today' };
+    const dateRange = { startDate: `${days}daysAgo`, endDate: 'today' };
     const order     = (metricName) => [{ metric: { metricName }, desc: true }];
 
     const [overview, byDay, byCountry, byPage, byDevice, bySource] = await Promise.all([
@@ -180,17 +194,24 @@ export async function handleAdminGa(req, res, ctx) {
       avgSessionDuration:  Math.round(Number(mv[5]?.value ?? 0)), // seconds
     };
 
-    // Format date "20250326" → "26/3"
-    const fmtDay = (d) => {
-      const s = String(d);
-      return `${parseInt(s.slice(6), 10)}/${parseInt(s.slice(4, 6), 10)}`;
-    };
+    // Format day "2025-03-26" → "26/3"
+    const fmtDay = (day) => `${parseInt(day.slice(8), 10)}/${parseInt(day.slice(5, 7), 10)}`;
+
+    // GA omits days with no sessions; fill them with 0 so the trend line
+    // doesn't run straight across a dead stretch. GA days are in the
+    // property's timezone, so the range ends at whichever is later — its
+    // last day or today (UTC) — and nothing GA returned is dropped.
+    const dayRows = parseRows(byDay, ['date'], ['sessions', 'users'])
+      .map(r => ({ ...r, date: gaDateToDay(r.date) }));
+    const lastDay = dayRows.reduce((max, r) => (r.date > max ? r.date : max), todayUtc());
+    const firstDay = dayRows.reduce((min, r) => (r.date < min ? r.date : min), addDays(lastDay, -days));
+    const filledDays = fillDays(dayRows, firstDay, lastDay, 'date', (date) => ({ date, sessions: 0, users: 0 }));
 
     sendJson(res, 200, {
       configured: true,
+      days,
       summary,
-      byDay:     parseRows(byDay,     ['date'],    ['sessions', 'users'])
-                   .map(r => ({ ...r, date: fmtDay(r.date) })),
+      byDay:     filledDays.map(r => ({ ...r, date: fmtDay(r.date) })),
       byCountry: parseRows(byCountry, ['country'], ['sessions']),
       byPage:    parseRows(byPage,    ['page'],    ['views']),
       byDevice:  parseRows(byDevice,  ['device'],  ['sessions']),
@@ -198,6 +219,6 @@ export async function handleAdminGa(req, res, ctx) {
     }, origin);
 
   } catch (err) {
-    sendJson(res, 500, { configured: true, error: err.message }, origin);
+    sendJson(res, 500, { configured: true, days, error: err.message }, origin);
   }
 }
