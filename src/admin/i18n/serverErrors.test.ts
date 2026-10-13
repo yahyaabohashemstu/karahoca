@@ -94,7 +94,7 @@ describe('translateServerError', () => {
       '"from" must be on or before "to".',
       'Field "name_ar" is required.',
       'Trendyol link must be an https:// address on trendyol.com.',
-      'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and import that file.',
+      'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). In Excel use File > Save As > "CSV UTF-8 (Comma delimited)" and import that file.',
       'CSV too large: 6000 rows (max 5000 per import).',
       'Language must be one of ar, en, tr, ru.',
       'The scheduled time is in the past. Pick a later time, or use Send now.',

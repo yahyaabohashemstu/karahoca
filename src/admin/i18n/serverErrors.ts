@@ -99,7 +99,7 @@ const EXACT_MESSAGES: Record<string, string> = {
 
   // ── Product CSV import ─────────────────────────────────────────────────
   'csv body required (string).': 'محتوى ملف CSV مطلوب.',
-  'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and import that file.':
+  'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). In Excel use File > Save As > "CSV UTF-8 (Comma delimited)" and import that file.':
     'ترميز الملف ليس UTF-8، لذا وصلت نصوصه العربية والتركية والروسية تالفة ("�"). في Excel اختر File ثم Save As ثم "CSV UTF-8 (Comma delimited)"، ثم استورد الملف الناتج.',
   'CSV contained no data rows.': 'ملف CSV لا يحتوي على أي صفوف بيانات.',
 

@@ -225,7 +225,7 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       sendJson(res, 400, {
         success: false,
         error: 'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). '
-          + 'In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and import that file.',
+          + 'In Excel use File > Save As > "CSV UTF-8 (Comma delimited)" and import that file.',
       }, origin);
       return;
     }
