@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { adminApi, type AdminRequestError } from '../utils/adminApi';
 import { defineMessages, useT, type Translate } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Badge, Button } from '../ui';
 
 const messages = defineMessages({
   en: {
@@ -15,12 +16,12 @@ const messages = defineMessages({
     failed: 'Translation failed',
     listSeparator: ', ',
     partlyFailed: { other: '{langs} could not be translated. Try again for the missing language(s).' },
-    partlyTranslated: '✓ Partly translated',
-    translated: '✓ Translated',
+    partlyTranslated: 'Partly translated',
+    translated: 'Translated',
     buttonTitle: 'Translate the {lang} text into the other languages using AI',
     translating: 'Translating…',
     tryAgain: 'Try again',
-    translateAll: 'Auto-Translate All Languages',
+    translateAll: 'Auto-translate all languages',
   },
   ar: {
     busy: 'خدمة الترجمة مشغولة الآن. انتظر قليلًا ثم أعد المحاولة.',
@@ -37,8 +38,8 @@ const messages = defineMessages({
       two: 'تعذّرت الترجمة إلى {langs}. أعد المحاولة لهاتين اللغتين.',
       other: 'تعذّرت الترجمة إلى {langs}. أعد المحاولة لهذه اللغات.',
     },
-    partlyTranslated: '✓ تُرجم جزئيًا',
-    translated: '✓ تمت الترجمة',
+    partlyTranslated: 'تُرجم جزئيًا',
+    translated: 'تمت الترجمة',
     buttonTitle: 'ترجمة النص المكتوب باللغة {lang} إلى اللغات الأخرى باستخدام الذكاء الاصطناعي',
     translating: 'جارٍ الترجمة…',
     tryAgain: 'إعادة المحاولة',
@@ -89,6 +90,8 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
+  // Some languages failed (warning) or nothing came back (danger).
+  const [partial, setPartial] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const t = useT(messages);
@@ -109,6 +112,7 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
     if (!hasContent || loading) return;
     setLoading(true);
     setError(null);
+    setPartial(false);
     setSuccess(null);
 
     try {
@@ -168,6 +172,7 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
         .filter((l) => l !== sourceLang);
       if (failed.length > 0) {
         setError(t.plural('partlyFailed', failed.length, { langs: failed.map(langLabel).join(t('listSeparator')) }));
+        setPartial(true);
         setAttempt(a => a + 1);
       } else {
         setAttempt(0);
@@ -185,38 +190,33 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <button
-        type="button"
-        className="adm-btn adm-translate-btn adm-btn-sm"
-        onClick={handleTranslate}
-        disabled={loading || !hasContent}
-        title={t('buttonTitle', { lang: langLabel(sourceLang) })}
-      >
-        {loading
-          ? <span className="adm-spinner" style={{ width: 14, height: 14 }} />
-          : '🤖'}
-        {' '}
-        {loading
-          ? t('translating')
-          : attempt > 0
-            ? t('tryAgain')
-            : t('translateAll')}
-      </button>
-
-      {success && (
-        <span className="adm-badge adm-badge-green" role="status">{success}</span>
-      )}
-
-      {error && (
-        <span
-          className="adm-badge adm-badge-red"
-          role="alert"
-          style={{ maxWidth: 420, whiteSpace: 'normal', lineHeight: 1.4 }}
+    // Capped width: it often sits in a card header next to the title.
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, maxWidth: 420 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Button
+          variant="ai"
+          icon="ai"
+          size="sm"
+          onClick={handleTranslate}
+          loading={loading}
+          disabled={!hasContent}
+          title={t('buttonTitle', { lang: langLabel(sourceLang) })}
         >
-          ✗ {error}
-        </span>
-      )}
+          {loading
+            ? t('translating')
+            : attempt > 0
+              ? t('tryAgain')
+              : t('translateAll')}
+        </Button>
+
+        {success && (
+          <span role="status">
+            <Badge tone={partial ? 'warning' : 'success'} icon={partial ? 'alert' : 'checkCircle'}>{success}</Badge>
+          </span>
+        )}
+      </div>
+
+      {error && <Alert tone={partial ? 'warning' : 'danger'}>{error}</Alert>}
     </div>
   );
 };

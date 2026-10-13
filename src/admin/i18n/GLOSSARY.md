@@ -51,6 +51,13 @@ Style:
   neutrally (no gendered "أنت/أنتِ" — prefer imperative or impersonal forms:
   "احفظ الحملة أولًا", "لا توجد بيانات بعد").
 - Numbers stay Western (0-9); dates come from `fmtDate`/`fmtDateTime`.
-- Arrows point with the reading direction: English "← Back" / "View →"
-  become Arabic "→ رجوع" / "عرض ←".
+- No arrow characters (← → ↗) in text: buttons and links carry a
+  direction icon (`back`, `forward`, `external`) that mirrors in Arabic
+  by itself (see src/admin/ui/README.md).
 - Plurals: use `t.plural` with zero/one/two/few/many/other forms.
+- English copy is sentence case ("Save product", "Audit log"); only names
+  and acronyms keep capitals (Google Analytics, AYLUX, CSV, A/B, AI).
+- Content-language tabs show the code chip and the name in the admin
+  language: `<LangLabel lang="en" />` ("EN English" / "EN الإنجليزية").
+- Back links name the parent section as the sidebar does ("Products",
+  "المنتجات"), not "Back to …"; save buttons say what they save.

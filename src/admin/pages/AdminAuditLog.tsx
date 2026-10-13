@@ -4,6 +4,7 @@ import { useAsync } from '../utils/useAdminAuth';
 import { fmtDateTime } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { AdminIcon, Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Toolbar, type IconName, type Tone } from '../ui';
 
 /**
  * Admin audit log viewer.
@@ -24,7 +25,7 @@ import { common } from '../i18n/common';
 
 const messages = defineMessages({
   en: {
-    title: 'Audit Log',
+    title: 'Audit log',
     subtitle: { other: 'All admin create / update / delete / send / export operations — {n} matching entries' },
     resetFilters: 'Reset filters',
     entity: 'Entity',
@@ -43,7 +44,6 @@ const messages = defineMessages({
     colTime: 'Time',
     noEntries: 'No log entries matching the current filters.',
     idLabel: 'ID:',
-    pageSlash: 'Page {page} / {total}',
     // Filter dropdown
     actionOption_CREATE: 'Create',
     actionOption_UPDATE: 'Update',
@@ -74,7 +74,8 @@ const messages = defineMessages({
     entity_ai_qa: 'AI Q&A',
     entity_ab_test: 'A/B test',
     entity_ab_variant: 'A/B variant',
-    entity_audit_log: 'Audit Log',
+    entity_audit_log: 'Audit log',
+    entity_site: 'Website',
     // Filter dropdown
     entityFilter_product: 'Products',
     entityFilter_category: 'Categories',
@@ -88,6 +89,7 @@ const messages = defineMessages({
     entityFilter_ab_test: 'A/B tests',
     entityFilter_ab_variant: 'A/B variants',
     entityFilter_audit_log: 'Audit log',
+    entityFilter_site: 'Website',
   },
   ar: {
     title: 'سجل العمليات',
@@ -116,7 +118,6 @@ const messages = defineMessages({
     colTime: 'الوقت',
     noEntries: 'لا توجد سجلات تطابق عوامل التصفية الحالية.',
     idLabel: 'المعرّف:',
-    pageSlash: 'صفحة {page} من {total}',
     actionOption_CREATE: 'إنشاء',
     actionOption_UPDATE: 'تعديل',
     actionOption_DELETE: 'حذف',
@@ -145,6 +146,7 @@ const messages = defineMessages({
     entity_ab_test: 'تجربة A/B',
     entity_ab_variant: 'نسخة A/B',
     entity_audit_log: 'سجل العمليات',
+    entity_site: 'الموقع',
     entityFilter_product: 'المنتجات',
     entityFilter_category: 'الفئات',
     entityFilter_news: 'الأخبار',
@@ -157,6 +159,7 @@ const messages = defineMessages({
     entityFilter_ab_test: 'اختبارات A/B',
     entityFilter_ab_variant: 'نسخ A/B',
     entityFilter_audit_log: 'سجل العمليات',
+    entityFilter_site: 'الموقع',
   },
 });
 
@@ -164,44 +167,39 @@ const ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'SEND', 'QUEUE', 'EXPORT', 'IMPOR
 type Action = typeof ACTIONS[number];
 const isAction = (value: string): value is Action => (ACTIONS as readonly string[]).includes(value);
 
-const ACTION_COLOR: Record<string, string> = {
-  CREATE: '#22c55e',
-  UPDATE: '#4f6ef7',
-  DELETE: '#ef4444',
-  SEND:   '#f59e0b',
-  EXPORT: '#06b6d4',
-  IMPORT: '#0ea5e9',
-  REORDER: '#a855f7',
-};
-
-const ACTION_ICON: Record<string, string> = {
-  CREATE: '➕',
-  UPDATE: '✏️',
-  DELETE: '🗑️',
-  SEND:   '📧',
-  EXPORT: '⬇️',
-  IMPORT: '📥',
-  REORDER: '↕️',
+// One tone + icon per action, the same as the matching buttons elsewhere
+// (Add = plus, Edit = edit, Delete = trash, Send = send…).
+const ACTION_LOOK: Record<Action, { tone: Tone; icon: IconName }> = {
+  CREATE: { tone: 'success', icon: 'plus' },
+  UPDATE: { tone: 'info', icon: 'edit' },
+  DELETE: { tone: 'danger', icon: 'trash' },
+  SEND: { tone: 'accent', icon: 'send' },
+  QUEUE: { tone: 'accent', icon: 'send' },
+  EXPORT: { tone: 'neutral', icon: 'download' },
+  IMPORT: { tone: 'neutral', icon: 'upload' },
+  REORDER: { tone: 'neutral', icon: 'sort' },
 };
 
 // Keys are the entityType strings the server passes to logAudit — keep
 // in step with `grep -rn "entityType:" server/`. Types missing here showed
 // as raw ids and couldn't be filtered on. Labels: entity_* / entityFilter_*
-// in the messages above; the filter dropdown follows this order.
+// in the messages above; the filter dropdown follows this order. Icons
+// match the sidebar's.
 const ENTITY_ICON = {
-  product:       '🧴',
-  category:      '🗂️',
-  news:          '📰',
-  blog_post:     '📝',
-  blog_category: '🏷️',
-  campaign:      '📧',
-  newsletter:    '✉️',
-  chat:          '💬',
-  ai_qa:         '🤖',
-  ab_test:       '🧪',
-  ab_variant:    '🔀',
-  audit_log:     '🔍',
-} as const;
+  product:       'products',
+  category:      'categories',
+  news:          'news',
+  blog_post:     'blog',
+  blog_category: 'categories',
+  campaign:      'campaigns',
+  newsletter:    'newsletter',
+  chat:          'chats',
+  ai_qa:         'ai',
+  ab_test:       'abtest',
+  ab_variant:    'abtest',
+  audit_log:     'audit',
+  site:          'language',
+} as const satisfies Record<string, IconName>;
 type EntityType = keyof typeof ENTITY_ICON;
 const ENTITY_TYPES = Object.keys(ENTITY_ICON) as EntityType[];
 const isEntityType = (value: string): value is EntityType => Object.prototype.hasOwnProperty.call(ENTITY_ICON, value);
@@ -238,6 +236,7 @@ export const AdminAuditLog: React.FC = () => {
   const logs: AuditLogEntry[] = data?.logs ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const filtered = Boolean(entityFilter || actionFilter || searchApplied || fromDate || toDate);
 
   /**
    * Reset every filter at once. Cheaper than five sequential `setState`
@@ -263,17 +262,13 @@ export const AdminAuditLog: React.FC = () => {
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">
-            {t.plural('subtitle', total)}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <a
+      <PageHeader
+        title={t('title')}
+        subtitle={t.plural('subtitle', total)}
+        actions={(
+          <Button
             href={exportUrl}
-            className="adm-btn adm-btn-ghost adm-btn-sm"
+            icon="download"
             // download attribute provides a sensible default filename
             // even on browsers that don't follow Content-Disposition
             // strictly (rare but Safari historically lagged).
@@ -281,185 +276,173 @@ export const AdminAuditLog: React.FC = () => {
             target="_self"
             rel="noopener"
           >
-            ⬇️ {tc('exportCsv')}
-          </a>
-          <button
-            type="button"
-            className="adm-btn adm-btn-ghost adm-btn-sm"
-            onClick={resetFilters}
-            disabled={
-              !entityFilter && !actionFilter && !searchApplied && !fromDate && !toDate
-            }
-          >
+            {tc('exportCsv')}
+          </Button>
+        )}
+      />
+
+      {/* Filters wrap onto more lines on narrow viewports by themselves. */}
+      <Toolbar
+        end={(
+          <Button variant="ghost" size="sm" icon="close" onClick={resetFilters} disabled={!filtered}>
             {t('resetFilters')}
-          </button>
-        </div>
-      </div>
-
-      {/* Filter bar — five controls laid out in a flex-wrap row so it
-          collapses cleanly on narrow viewports without a media query. */}
-      <div
-        className="adm-card"
-        style={{
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-          alignItems: 'flex-end',
-          marginBottom: 16,
-          padding: 12,
-        }}
+          </Button>
+        )}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('entity')}</span>
-          <select
-            className="adm-select adm-input-sm"
-            value={entityFilter}
-            onChange={(e) => { setEntityFilter(e.target.value); setPage(0); }}
-          >
-            <option value="">{t('allEntities')}</option>
-            {ENTITY_TYPES.map((type) => <option key={type} value={type}>{t(`entityFilter_${type}`)}</option>)}
-          </select>
-        </label>
+        <select
+          className="adm-select adm-select-sm adm-select-narrow"
+          aria-label={t('entity')}
+          value={entityFilter}
+          onChange={(e) => { setEntityFilter(e.target.value); setPage(0); }}
+        >
+          <option value="">{t('allEntities')}</option>
+          {ENTITY_TYPES.map((type) => <option key={type} value={type}>{t(`entityFilter_${type}`)}</option>)}
+        </select>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('action')}</span>
-          <select
-            className="adm-select adm-input-sm"
-            value={actionFilter}
-            onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
-          >
-            <option value="">{t('allActions')}</option>
-            {ACTIONS.map((action) => <option key={action} value={action}>{t(`actionOption_${action}`)}</option>)}
-          </select>
-        </label>
+        <select
+          className="adm-select adm-select-sm adm-select-narrow"
+          aria-label={t('action')}
+          value={actionFilter}
+          onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
+        >
+          <option value="">{t('allActions')}</option>
+          {ACTIONS.map((action) => <option key={action} value={action}>{t(`actionOption_${action}`)}</option>)}
+        </select>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 220px', minWidth: 220 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('searchLabel')}</span>
-          <form
-            onSubmit={(e) => { e.preventDefault(); setSearchApplied(searchInput.trim()); setPage(0); }}
-            style={{ display: 'flex', gap: 4 }}
-          >
+        <form
+          className="adm-flex"
+          role="search"
+          onSubmit={(e) => { e.preventDefault(); setSearchApplied(searchInput.trim()); setPage(0); }}
+        >
+          <input
+            type="search"
+            className="adm-input adm-input-sm"
+            aria-label={t('searchLabel')}
+            placeholder={t('searchPlaceholder')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            style={{ minWidth: 200 }}
+          />
+          <Button type="submit" size="sm" icon="search">{tc('search')}</Button>
+        </form>
+
+        {/* The range wraps as one piece. */}
+        <div className="adm-flex">
+          <label className="adm-flex">
+            <span className="adm-toolbar-label">{t('from')}</span>
             <input
-              type="search"
-              className="adm-input adm-input-sm"
-              placeholder={t('searchPlaceholder')}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              style={{ flex: 1 }}
+              type="date"
+              className="adm-input adm-input-sm adm-input-narrow"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
             />
-            <button type="submit" className="adm-btn adm-btn-primary adm-btn-sm">{tc('search')}</button>
-          </form>
-        </label>
+          </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('from')}</span>
-          <input
-            type="date"
-            className="adm-input adm-input-sm"
-            value={fromDate}
-            max={toDate || undefined}
-            onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
-            style={{ width: 150 }}
-          />
-        </label>
+          <label className="adm-flex">
+            <span className="adm-toolbar-label">{t('to')}</span>
+            <input
+              type="date"
+              className="adm-input adm-input-sm adm-input-narrow"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+            />
+          </label>
+        </div>
+      </Toolbar>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('to')}</span>
-          <input
-            type="date"
-            className="adm-input adm-input-sm"
-            value={toDate}
-            min={fromDate || undefined}
-            onChange={(e) => { setToDate(e.target.value); setPage(0); }}
-            style={{ width: 150 }}
-          />
-        </label>
-      </div>
+      {loading && <Loading label={tc('loading')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
-
-      {!loading && (
+      {/* On an error the table would say "no entries match", which is not
+          what the admin should conclude. */}
+      {!loading && !error && (
         <>
-          <div className="adm-card" style={{ padding: 0 }}>
-            <div className="adm-table-wrap">
-              <table className="adm-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 110 }}>{t('colAction')}</th>
-                    <th style={{ width: 130 }}>{t('colEntity')}</th>
-                    <th>{t('colNameId')}</th>
-                    <th style={{ width: 100 }}>{t('colAdmin')}</th>
-                    <th>{t('colDetails')}</th>
-                    <th style={{ width: 160 }}>{t('colTime')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.length === 0 ? (
+          <Card flush>
+            {logs.length === 0 ? (
+              <EmptyState icon={filtered ? 'search' : 'audit'} title={t('noEntries')} compact />
+            ) : (
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
-                        {t('noEntries')}
-                      </td>
+                      <th style={{ width: 120 }}>{t('colAction')}</th>
+                      <th style={{ width: 150 }}>{t('colEntity')}</th>
+                      <th>{t('colNameId')}</th>
+                      <th style={{ width: 100 }}>{t('colAdmin')}</th>
+                      <th>{t('colDetails')}</th>
+                      <th style={{ width: 160 }}>{t('colTime')}</th>
                     </tr>
-                  ) : logs.map((log) => (
-                    <tr key={log.id}>
-                      <td>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
-                          color: ACTION_COLOR[log.action] ?? 'var(--adm-text)',
-                        }}>
-                          {ACTION_ICON[log.action] ?? '•'} {isAction(log.action) ? t(`actionBadge_${log.action}`) : log.action}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>
-                        {isEntityType(log.entity_type)
-                          ? `${ENTITY_ICON[log.entity_type]} ${t(`entity_${log.entity_type}`)}`
-                          : log.entity_type}
-                      </td>
-                      <td>
-                        {/* dir="auto": Arabic product / article names otherwise
-                            reorder their punctuation in this LTR table. */}
-                        <div dir="auto" style={{ fontWeight: 600, fontSize: 13 }}>{log.entity_name || '—'}</div>
-                        {log.entity_id && (
-                          <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 1 }}>
-                            {t('idLabel')} <bdi dir="ltr">{log.entity_id}</bdi>
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontSize: 12 }}>{log.admin_user}</td>
-                      <td dir="auto" style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{log.details || '—'}</td>
-                      <td style={{ fontSize: 12, color: 'var(--adm-text-dim)', whiteSpace: 'nowrap' }}>
-                        {/* created_at is UTC 'YYYY-MM-DD HH:MM:SS'; new Date() read it
-                            as local time, 3 h off in Istanbul. */}
-                        {fmtDateTime(log.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => (
+                      <tr key={log.id}>
+                        <td>
+                          {isAction(log.action) ? (
+                            <Badge tone={ACTION_LOOK[log.action].tone} icon={ACTION_LOOK[log.action].icon}>
+                              {t(`actionBadge_${log.action}`)}
+                            </Badge>
+                          ) : (
+                            <Badge>{log.action}</Badge>
+                          )}
+                        </td>
+                        <td className="adm-text-sm adm-text-muted">
+                          {isEntityType(log.entity_type) ? (
+                            <span className="adm-flex">
+                              <AdminIcon name={ENTITY_ICON[log.entity_type]} size="sm" />
+                              {t(`entity_${log.entity_type}`)}
+                            </span>
+                          ) : log.entity_type}
+                        </td>
+                        <td>
+                          {/* dir="auto": Arabic product / article names otherwise
+                              reorder their punctuation in this LTR table. */}
+                          <div dir="auto"><strong>{log.entity_name || '—'}</strong></div>
+                          {log.entity_id && (
+                            <div className="adm-text-sm adm-text-muted">
+                              {t('idLabel')} <bdi dir="ltr">{log.entity_id}</bdi>
+                            </div>
+                          )}
+                        </td>
+                        <td className="adm-text-sm">{log.admin_user}</td>
+                        <td dir="auto" className="adm-text-sm adm-text-muted">{log.details || '—'}</td>
+                        <td className="adm-text-sm adm-text-muted" style={{ whiteSpace: 'nowrap' }}>
+                          {/* created_at is UTC 'YYYY-MM-DD HH:MM:SS'; new Date() read it
+                              as local time, 3 h off in Istanbul. */}
+                          {fmtDateTime(log.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
 
           {totalPages > 1 && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
-              <button
-                className="adm-btn adm-btn-ghost adm-btn-sm"
+            <div className="adm-pagination">
+              <Button
+                variant="ghost"
+                size="sm"
+                icon="chevronBack"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
                 {tc('prev')}
-              </button>
-              <span style={{ fontSize: 13, color: 'var(--adm-text-muted)' }}>
-                {t('pageSlash', { page: page + 1, total: totalPages })}
+              </Button>
+              <span className="adm-text-muted adm-text-sm">
+                {tc('pageOf', { page: page + 1, total: totalPages })}
               </span>
-              <button
-                className="adm-btn adm-btn-ghost adm-btn-sm"
+              <Button
+                variant="ghost"
+                size="sm"
+                iconEnd="chevronForward"
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
               >
                 {tc('next')}
-              </button>
+              </Button>
             </div>
           )}
         </>

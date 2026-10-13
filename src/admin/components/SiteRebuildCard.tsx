@@ -4,6 +4,7 @@ import { useAsync } from '../utils/useAdminAuth';
 import { fmtDateTime, fmtTime } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Badge, Button, Card, Loading } from '../ui';
 
 const messages = defineMessages({
   en: {
@@ -108,31 +109,31 @@ export const SiteRebuildCard: React.FC = () => {
     }
   }
 
+  const look = { ok: { tone: 'success', icon: 'checkCircle' }, wait: { tone: 'info', icon: 'clock' }, warn: { tone: 'warning', icon: 'alert' } } as const;
+
   return (
-    <div className="adm-card adm-dashboard-side-panel adm-site-rebuild">
-      <div className="adm-dashboard-panel-head compact">
-        <div>
-          <div className="adm-card-title">{t('title')}</div>
-          <p className="adm-dashboard-panel-copy">{t('copy')}</p>
-        </div>
-      </div>
-      {loading && !data && <div className="adm-text-dim adm-text-sm">{tc('loading')}</div>}
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+    <Card
+      className="adm-dashboard-side-panel adm-site-rebuild"
+      title={t('title')}
+      icon="search"
+      subtitle={t('copy')}
+    >
+      {loading && !data && <Loading inline label={tc('loading')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
       {data && (
         <>
-          <div className={`adm-site-rebuild-status adm-site-rebuild-${tone}`} role="status">
-            <span className="adm-site-rebuild-dot" aria-hidden="true" />
-            <strong>{headline}</strong>
+          <div role="status">
+            <Badge tone={look[tone].tone} icon={look[tone].icon}>{headline}</Badge>
           </div>
           <p className="adm-site-rebuild-detail">{detail}</p>
-          {actionError && <div className="adm-alert adm-alert-error" role="alert">⚠ {actionError}</div>}
+          {actionError && <Alert tone="danger">{actionError}</Alert>}
           {data.configured && (
-            <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={rebuildNow} disabled={busy}>
+            <Button size="sm" icon="refresh" onClick={rebuildNow} loading={busy}>
               {busy ? t('requesting') : t('refreshNow')}
-            </button>
+            </Button>
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 };

@@ -12,19 +12,20 @@ import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
 import { buildApiUrl } from '../../utils/api';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { AdminIcon, Alert, Badge, Button, Card, EmptyState, Field, LangLabel, LangTag, Loading, PageHeader, StatCard, StatGrid, StatusBadge, Tabs, type IconName, type Tone } from '../ui';
 
 const messages = defineMessages({
   en: {
+    backToCampaigns: 'Campaigns',
+    saveCampaign: 'Save campaign',
     // Templates
     tplCustom: 'Custom',
-    tplNewProduct: 'New Product',
-    tplOffer: 'Special Offer',
-    tplNews: 'Company News',
-    // Language tabs of the editor (flags stay in the code).
-    code_ar: 'AR',
-    code_en: 'EN',
-    code_tr: 'TR',
-    code_ru: 'RU',
+    tplNewProduct: 'New product',
+    tplOffer: 'Special offer',
+    tplNews: 'Company news',
+    // Language tabs of the editor: whether each version can be sent.
+    langComplete: 'Complete',
+    langIncomplete: 'Incomplete, so not sent',
     // Load / save / send messages
     statsFailed: 'Failed to load stats',
     subscribersFailed: 'Failed to load subscribers',
@@ -60,40 +61,38 @@ const messages = defineMessages({
     },
     sendFailed: 'Send failed',
     // Header
-    newCampaign: 'New Campaign',
-    editCampaign: 'Edit Campaign',
-    statusLabel: 'Status:',
-    sentCount: '{n} sent',
+    newCampaign: 'New campaign',
+    editCampaign: 'Edit campaign',
+    sentCount: { one: 'Sent to {n} recipient', other: 'Sent to {n} recipients' },
     opensCount: { one: '{n} open', other: '{n} opens' },
-    headerQueued: 'queued for background delivery',
-    headerSending: 'being sent right now',
+    headerQueued: 'Queued for background delivery',
+    headerSending: 'Being sent right now',
     waitingForList: 'Waiting for the subscriber list',
     scheduling: 'Scheduling…',
     schedule: 'Schedule',
     queueing: 'Queueing…',
-    queueSend: 'Queue Send',
+    queueSend: 'Queue send',
     lockedSent: 'Read-only: this campaign has been sent, so its content and recipients can no longer be changed. To send something similar, create a new campaign.',
     lockedSending: 'Read-only: this campaign is being sent right now, so its content and recipients can no longer be changed. To send something similar, create a new campaign.',
     lockedQueued: 'Read-only: this campaign is queued for delivery, so its content and recipients can no longer be changed. To send something similar, create a new campaign.',
     stats: 'Stats',
     // Settings
-    settingsTitle: 'Campaign Settings',
-    campaignTitle: 'Campaign Title *',
+    settingsTitle: 'Campaign settings',
+    campaignTitle: 'Campaign title',
     campaignTitlePlaceholder: 'e.g. April Newsletter',
-    templateType: 'Template Type',
+    templateType: 'Template type',
     // Timing
-    timingTitle: 'Campaign Timing',
+    timingTitle: 'Campaign timing',
     saveFirstToSchedule: 'Save the campaign first, then you can set a scheduled send time.',
     sentOn: 'Campaign sent on {date}.',
     queuedInfo: 'Campaign is queued for background delivery. The worker will pick it up automatically.',
     sendingInfo: 'Campaign is being sent right now. Reload this page later to see the result.',
     date: 'Date',
     time: 'Time',
-    saveSchedule: 'Save schedule',
     currentlyScheduled: 'Currently scheduled for {date}.',
     // Image
-    imageTitle: 'Campaign Image',
-    imageHint: '(optional — shown at top of email)',
+    imageTitle: 'Campaign image',
+    imageHint: 'Optional — shown at the top of the e-mail',
     imageUrlLabel: 'Campaign image URL',
     imageUrlPlaceholder: 'https://... or upload from device',
     previewAlt: 'preview',
@@ -104,10 +103,12 @@ const messages = defineMessages({
     noSubscribersYet: 'There are no active subscribers yet.',
     selectedOfTotal: '{n} / {total} selected',
     excluded: '{n} excluded',
+    showRecipients: 'Choose recipients',
+    hideRecipients: 'Hide the list',
     filterLabel: 'Filter recipients by e-mail',
     filterPlaceholder: 'Filter emails…',
-    selectAll: 'Select All',
-    deselectAll: 'Deselect All',
+    selectAll: 'Select all',
+    deselectAll: 'Deselect all',
     // Content
     content: 'Content',
     audienceTitle: 'Who receives which language',
@@ -121,20 +122,20 @@ const messages = defineMessages({
     noVersionYet: '— no {lang} version yet',
     incompleteSubjectOnly: '{lang} has a subject but no body, so it is not sent. Complete it or clear it.',
     incompleteBodyOnly: '{lang} has a body but no subject, so it is not sent. Complete it or clear it.',
-    subjectA: 'Subject Line — Group A',
+    subjectA: 'Subject line — group A',
     subjectAPlaceholder: 'Email subject for Group A (everyone if no B)...',
-    subjectB: 'Subject Line — Group B',
-    abBadge: 'A/B TEST',
+    subjectB: 'Subject line — group B',
+    abBadge: 'A/B test',
     subjectBPlaceholder: 'Leave empty to send same subject to everyone...',
     abNoReceivers: 'No selected subscriber receives {lang}, so this test will not run.',
     abActive: 'A/B test active — every second subscriber receiving {lang} gets Subject B',
     abOptional: 'Optional. Tests a second subject among the subscribers who receive {lang}.',
-    body: 'Email Body',
+    body: 'Email body',
     bodyPlaceholder: 'Write your email content here... (use **bold** for emphasis)',
     bodyHint: 'Use **text** for bold. Each line becomes a paragraph.',
     // Stats
     opens: 'Opens',
-    openRate: 'Open Rate',
+    openRate: 'Open rate',
     clicks: 'Clicks',
     byLanguage: 'By language',
     colLanguageSent: 'Language sent',
@@ -142,25 +143,25 @@ const messages = defineMessages({
     colOpened: 'Opened',
     colOpenRate: 'Open rate',
     colClicks: 'Clicks',
-    abResults: 'A/B Test Results',
+    abResults: 'A/B test results',
     groupA: 'Group A',
     groupB: 'Group B',
-    deliveryDetails: 'Delivery Details',
+    deliveryDetails: 'Delivery details',
     noSends: 'No emails sent yet for this campaign.',
     colEmail: 'Email',
     colVariant: 'Variant',
     colSent: 'Sent',
-    colOpenTime: 'Open Time',
+    colOpenTime: 'Open time',
   },
   ar: {
+    backToCampaigns: 'الحملات البريدية',
+    saveCampaign: 'حفظ الحملة',
     tplCustom: 'مخصص',
     tplNewProduct: 'منتج جديد',
     tplOffer: 'عرض خاص',
     tplNews: 'أخبار الشركة',
-    code_ar: 'العربية',
-    code_en: 'الإنجليزية',
-    code_tr: 'التركية',
-    code_ru: 'الروسية',
+    langComplete: 'مكتملة',
+    langIncomplete: 'غير مكتملة، لذلك لن تُرسل',
     statsFailed: 'تعذّر تحميل الإحصاءات',
     subscribersFailed: 'تعذّر تحميل المشتركين',
     audienceItem: '{lang}: {n}',
@@ -202,7 +203,6 @@ const messages = defineMessages({
     sendFailed: 'فشل الإرسال',
     newCampaign: 'حملة جديدة',
     editCampaign: 'تعديل الحملة',
-    statusLabel: 'الحالة:',
     sentCount: {
       zero: 'لم تُرسل إلى أحد',
       one: 'أُرسلت إلى مستلم واحد',
@@ -231,7 +231,7 @@ const messages = defineMessages({
     lockedQueued: 'للقراءة فقط: هذه الحملة في قائمة انتظار الإرسال، لذا لم يعد بالإمكان تغيير محتواها ومستلميها. لإرسال حملة مشابهة، أنشئ حملة جديدة.',
     stats: 'الإحصاءات',
     settingsTitle: 'إعدادات الحملة',
-    campaignTitle: 'اسم الحملة *',
+    campaignTitle: 'اسم الحملة',
     campaignTitlePlaceholder: 'مثال: نشرة شهر أبريل',
     templateType: 'نوع القالب',
     timingTitle: 'توقيت الحملة',
@@ -241,10 +241,9 @@ const messages = defineMessages({
     sendingInfo: 'الحملة قيد الإرسال الآن. أعد تحميل هذه الصفحة لاحقًا لرؤية النتيجة.',
     date: 'التاريخ',
     time: 'الوقت',
-    saveSchedule: 'حفظ الموعد',
     currentlyScheduled: 'مجدولة حاليًا في {date}.',
     imageTitle: 'صورة الحملة',
-    imageHint: '(اختيارية — تظهر أعلى الرسالة)',
+    imageHint: 'اختيارية — تظهر أعلى الرسالة',
     imageUrlLabel: 'رابط صورة الحملة',
     imageUrlPlaceholder: 'https://... أو ارفع صورة من الجهاز',
     previewAlt: 'معاينة',
@@ -267,6 +266,8 @@ const messages = defineMessages({
       many: '{n} مستبعدًا',
       other: '{n} مستبعد',
     },
+    showRecipients: 'اختيار المستلمين',
+    hideRecipients: 'إخفاء القائمة',
     filterLabel: 'تصفية المستلمين حسب البريد الإلكتروني',
     filterPlaceholder: 'ابحث في عناوين البريد…',
     selectAll: 'تحديد الكل',
@@ -317,11 +318,11 @@ const messages = defineMessages({
 
 type Key = keyof typeof messages.en;
 
-const TEMPLATES: Array<{ value: Campaign['template_type']; label: Key; icon: string }> = [
-  { value: 'custom',      label: 'tplCustom',     icon: '✏️' },
-  { value: 'new_product', label: 'tplNewProduct', icon: '🧴' },
-  { value: 'offer',       label: 'tplOffer',      icon: '🏷️' },
-  { value: 'news',        label: 'tplNews',       icon: '📰' },
+const TEMPLATES: Array<{ value: Campaign['template_type']; label: Key; icon: IconName }> = [
+  { value: 'custom',      label: 'tplCustom',     icon: 'edit' },
+  { value: 'new_product', label: 'tplNewProduct', icon: 'products' },
+  { value: 'offer',       label: 'tplOffer',      icon: 'tag' },
+  { value: 'news',        label: 'tplNews',       icon: 'news' },
 ];
 // E-mail content, not admin UI: the template fills in these English texts
 // whatever language the dashboard is shown in.
@@ -342,18 +343,14 @@ const TEMPLATE_DEFAULTS: Record<string, { subject: string; body: string }> = {
 
 type LangKey = 'ar' | 'en' | 'tr' | 'ru';
 
-const LANGS: Array<{ key: LangKey; flag: string; dir: 'rtl' | 'ltr' }> = [
-  { key: 'ar', flag: '🇸🇦', dir: 'rtl' },
-  { key: 'en', flag: '🇬🇧', dir: 'ltr' },
-  { key: 'tr', flag: '🇹🇷', dir: 'ltr' },
-  { key: 'ru', flag: '🇷🇺', dir: 'ltr' },
+const LANGS: Array<{ key: LangKey; dir: 'rtl' | 'ltr' }> = [
+  { key: 'ar', dir: 'rtl' },
+  { key: 'en', dir: 'ltr' },
+  { key: 'tr', dir: 'ltr' },
+  { key: 'ru', dir: 'ltr' },
 ];
 
 type CompressedImage = { base64: string; fileName: string };
-
-const STATUS_COLOR: Record<Campaign['status'], string> = {
-  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sending: '#0ea5e9', sent: '#22c55e',
-};
 
 // Being mailed, or already mailed: the server refuses edits (409), so the
 // page is read-only.
@@ -417,7 +414,6 @@ export const AdminCampaignEdit: React.FC = () => {
   useEffect(() => { tRef.current = t; }, [t]);
 
   const langName = (l: LangKey | 'unknown') => tc(`lang_${l}`);
-  const langTab = (l: (typeof LANGS)[number]) => `${l.flag} ${t(`code_${l.key}`)}`;
 
   const [form, setForm] = useState<Partial<Campaign>>(empty());
   const [lang, setLang] = useState<LangKey>('ar');
@@ -763,380 +759,324 @@ export const AdminCampaignEdit: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /></div>;
+  if (loading) return <Loading label={tc('loading')} />;
+
+  const formText = form as Record<string, string | undefined>;
+  const headerDetails =
+    form.status === 'sent' ? `${t.plural('sentCount', form.recipient_count ?? 0)} · ${t.plural('opensCount', form.open_count ?? 0)}`
+      : form.status === 'queued' ? t('headerQueued')
+        : form.status === 'sending' ? t('headerSending')
+          : form.status === 'scheduled' && form.scheduled_at ? t('currentlyScheduled', { date: fmtDateTime(form.scheduled_at) })
+            : undefined;
+  const totalClicks = sends.reduce((sum, s) => sum + (s.click_count ?? 0), 0);
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{isNew ? `✉️ ${t('newCampaign')}` : `✉️ ${form.title || t('editCampaign')}`}</h1>
-          {form.status && (
-            <p className="adm-page-subtitle">
-              {t('statusLabel')}{' '}
-              <strong style={{ color: STATUS_COLOR[form.status] ?? '#f59e0b', textTransform: 'capitalize' }}>
-                {tc(form.status)}
-              </strong>
-              {form.status === 'sent' && ` · ${t.plural('sentCount', form.recipient_count ?? 0)} · ${t.plural('opensCount', form.open_count ?? 0)}`}
-              {form.status === 'queued' && ` · ${t('headerQueued')}`}
-              {form.status === 'sending' && ` · ${t('headerSending')}`}
-              {form.status === 'scheduled' && form.scheduled_at && ` · ${fmtDateTime(form.scheduled_at)}`}
-            </p>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={() => navigate('/admin/campaigns')} className="adm-btn">{tc('back')}</button>
-          {!locked && (
-            <button onClick={save} className="adm-btn adm-btn-primary" disabled={saving}>
-              {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {tc('saving')}</> : `💾 ${tc('save')}`}
-            </button>
-          )}
-          {!isNew && !locked && (
-            <button
-              onClick={scheduleLater}
-              className="adm-btn adm-btn-secondary"
-              disabled={scheduling || !subscribersReady}
-              title={subscribersReady ? undefined : t('waitingForList')}
-            >
-              {scheduling ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {t('scheduling')}</> : `🕐 ${t('schedule')}`}
-            </button>
-          )}
-          {!isNew && !locked && (
-            <button
-              onClick={sendNow}
-              className="adm-btn"
-              disabled={sending || !subscribersReady}
-              title={subscribersReady ? undefined : t('waitingForList')}
-              style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', border: 'none' }}
-            >
-              {sending ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {t('queueing')}</> : `🚀 ${t('queueSend')}`}
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title={isNew ? t('newCampaign') : <span dir="auto">{form.title || t('editCampaign')}</span>}
+        back={{ to: '/admin/campaigns', label: t('backToCampaigns') }}
+        meta={form.status ? <StatusBadge status={form.status} /> : undefined}
+        subtitle={headerDetails}
+        actions={!locked && (
+          <Button variant="primary" icon="save" onClick={save} loading={saving}>
+            {saving ? tc('saving') : t('saveCampaign')}
+          </Button>
+        )}
+      />
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
-      {success && <div className="adm-alert adm-alert-success" style={{ marginBottom: 16 }}>✅ {success}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
+      {success && <Alert tone="success">{success}</Alert>}
       {locked && (
-        <div className="adm-alert adm-alert-info" role="status" style={{ marginBottom: 16 }}>
-          🔒 {form.status === 'sent' ? t('lockedSent') : form.status === 'sending' ? t('lockedSending') : t('lockedQueued')}
-        </div>
+        <Alert tone="info">
+          {form.status === 'sent' ? t('lockedSent') : form.status === 'sending' ? t('lockedSending') : t('lockedQueued')}
+        </Alert>
       )}
 
       {!isNew && (
-        <div className="adm-tabs">
-          {(['edit', 'stats'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => navigate(`/admin/campaigns/${id}?tab=${tab}`, { replace: true })}
-              className={`adm-tab-btn${activeTab === tab ? ' active' : ''}`}
-            >
-              {tab === 'edit' ? `✏️ ${tc('edit')}` : `📊 ${t('stats')}`}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          variant="underline"
+          value={activeTab === 'stats' ? 'stats' : 'edit'}
+          onChange={(tab) => navigate(`/admin/campaigns/${id}?tab=${tab}`, { replace: true })}
+          items={[
+            { value: 'edit', label: tc('edit'), icon: 'edit' },
+            { value: 'stats', label: t('stats'), icon: 'insights' },
+          ]}
+        />
       )}
 
       {activeTab === 'edit' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 16 }}>{t('settingsTitle')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('campaignTitle')}</label>
+        <div className="adm-stack">
+          <Card title={t('settingsTitle')} icon="settings">
+            <div className="adm-grid-2">
+              <Field label={t('campaignTitle')} required>
                 <input className="adm-input" dir="auto" value={form.title || ''} onChange={(e) => set('title', e.target.value)} placeholder={t('campaignTitlePlaceholder')} readOnly={locked} />
-              </div>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('templateType')}</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                  {TEMPLATES.map((tpl) => (
-                    <button
-                      key={tpl.value}
-                      type="button"
-                      onClick={() => applyTemplate(tpl.value)}
-                      disabled={locked}
-                      aria-pressed={form.template_type === tpl.value}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: 20,
-                        border: '1px solid var(--adm-border)',
-                        background: form.template_type === tpl.value ? 'var(--adm-accent)' : 'var(--adm-surface2)',
-                        color: form.template_type === tpl.value ? '#fff' : 'var(--adm-text)',
-                        cursor: locked ? 'not-allowed' : 'pointer',
-                        opacity: locked && form.template_type !== tpl.value ? 0.6 : 1,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {tpl.icon} {t(tpl.label)}
-                    </button>
-                  ))}
-                </div>
+              </Field>
+              <div className="adm-field">
+                <span className="adm-label">{t('templateType')}</span>
+                <Tabs
+                  variant="segmented"
+                  ariaLabel={t('templateType')}
+                  value={form.template_type ?? 'custom'}
+                  onChange={applyTemplate}
+                  items={TEMPLATES.map((tpl) => ({
+                    value: tpl.value,
+                    label: t(tpl.label),
+                    icon: tpl.icon,
+                    // Read-only: the chosen template stays readable, the others are off.
+                    disabled: locked && form.template_type !== tpl.value,
+                  }))}
+                />
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 12 }}>{t('timingTitle')}</div>
-
+          <Card title={t('timingTitle')} icon="clock">
             {isNew ? (
-              <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
-                💾 {t('saveFirstToSchedule')}
-              </div>
+              <Alert tone="info">{t('saveFirstToSchedule')}</Alert>
             ) : form.status === 'sent' ? (
-              <div style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
-                {/* sent_at: a campaign sent with "Queue Send" has no scheduled_at. */}
-                ✅ {t('sentOn', { date: fmtDateTime(form.sent_at || form.scheduled_at) })}
-              </div>
+              /* sent_at: a campaign sent with "Queue Send" has no scheduled_at. */
+              <Alert tone="success">{t('sentOn', { date: fmtDateTime(form.sent_at || form.scheduled_at) })}</Alert>
             ) : form.status === 'queued' ? (
-              <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
-                ⏳ {t('queuedInfo')}
-              </div>
+              <Alert tone="info">{t('queuedInfo')}</Alert>
             ) : form.status === 'sending' ? (
-              <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: 8, color: 'var(--adm-text-muted)', fontSize: 13 }}>
-                📤 {t('sendingInfo')}
-              </div>
+              <Alert tone="info">{t('sendingInfo')}</Alert>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-                  <div className="adm-form-group" style={{ marginBottom: 0 }}>
-                    <label className="adm-label">{t('date')}</label>
-                      <input
-                        className="adm-input"
-                        type="date"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        min={getLocalDateInputMin()}
-                      />
-                  </div>
-                  <div className="adm-form-group" style={{ marginBottom: 0 }}>
-                    <label className="adm-label">{t('time')}</label>
+                <div className="adm-grid-2">
+                  <Field
+                    label={t('date')}
+                    hint={form.status === 'scheduled' && form.scheduled_at
+                      ? t('currentlyScheduled', { date: fmtDateTime(form.scheduled_at) })
+                      : undefined}
+                  >
+                    <input
+                      className="adm-input"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={getLocalDateInputMin()}
+                    />
+                  </Field>
+                  <Field label={t('time')}>
                     <input
                       className="adm-input"
                       type="time"
                       value={scheduleTime}
                       onChange={(e) => setScheduleTime(e.target.value)}
                     />
-                  </div>
-                  <button
-                    type="button"
-                    className="adm-btn adm-btn-secondary"
+                  </Field>
+                </div>
+                <div className="adm-flex" style={{ flexWrap: 'wrap' }}>
+                  <Button
+                    variant="secondary"
+                    icon="calendar"
                     onClick={scheduleLater}
-                    disabled={scheduling || !subscribersReady}
+                    loading={scheduling}
+                    disabled={!subscribersReady}
                     title={subscribersReady ? undefined : t('waitingForList')}
                   >
-                    {scheduling ? t('scheduling') : t('saveSchedule')}
-                  </button>
+                    {scheduling ? t('scheduling') : t('schedule')}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    icon="send"
+                    onClick={sendNow}
+                    loading={sending}
+                    disabled={!subscribersReady}
+                    title={subscribersReady ? undefined : t('waitingForList')}
+                  >
+                    {sending ? t('queueing') : t('queueSend')}
+                  </Button>
                 </div>
-                {form.status === 'scheduled' && form.scheduled_at && (
-                  <div className="adm-text-muted adm-text-sm" style={{ marginTop: 8 }}>
-                    {t('currentlyScheduled', { date: fmtDateTime(form.scheduled_at) })}
-                  </div>
-                )}
               </>
             )}
-          </div>
+          </Card>
 
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 12 }}>
-              {t('imageTitle')} <span style={{ fontSize: 11, color: 'var(--adm-text-dim)', fontWeight: 400, textTransform: 'none' }}>{t('imageHint')}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                className="adm-input"
-                dir="ltr"
-                aria-label={t('imageUrlLabel')}
-                value={(form as Record<string, string>).image_url || ''}
-                onChange={(e) => set('image_url', e.target.value)}
-                placeholder={t('imageUrlPlaceholder')}
-                readOnly={locked}
-                style={{ flex: 1 }}
-              />
-              {!locked && (
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-secondary adm-btn-sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {tc('uploading')}</> : `📁 ${tc('upload')}`}
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImageUpload(f);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-            {(form as Record<string, string>).image_url && (
+          <Card
+            title={t('imageTitle')}
+            icon="image"
+            subtitle={t('imageHint')}
+            actions={!locked && (
+              <Button
+                size="sm"
+                icon="upload"
+                onClick={() => fileInputRef.current?.click()}
+                loading={uploading}
+              >
+                {uploading ? tc('uploading') : tc('upload')}
+              </Button>
+            )}
+          >
+            <input
+              className="adm-input"
+              dir="ltr"
+              aria-label={t('imageUrlLabel')}
+              value={formText.image_url || ''}
+              onChange={(e) => set('image_url', e.target.value)}
+              placeholder={t('imageUrlPlaceholder')}
+              readOnly={locked}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImageUpload(f);
+                e.target.value = '';
+              }}
+            />
+            {formText.image_url && (
               <img
-                src={getPreviewImageUrl((form as Record<string, string>).image_url)}
+                src={getPreviewImageUrl(formText.image_url)}
                 alt={t('previewAlt')}
-                style={{ marginTop: 10, maxHeight: 160, maxWidth: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid var(--adm-border)' }}
+                style={{ display: 'block', marginTop: 12, maxHeight: 160, maxWidth: '100%', objectFit: 'contain' }}
               />
             )}
-          </div>
+          </Card>
 
           {/* ── Subscriber Picker ─────────────────────────────────────────── */}
           {!isNew && !locked && (
-            <div className="adm-card">
-              {subscribersError ? (
-                <>
-                  <div className="adm-card-title" style={{ margin: 0 }}>{t('recipients')}</div>
-                  <div className="adm-alert adm-alert-error" role="alert" style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ flex: 1 }}>
-                      ⚠ {t('subscribersLoadFailed', { error: subscribersError })}
-                    </span>
-                    <button type="button" className="adm-btn adm-btn-sm" onClick={retrySubscribers}>{tc('retry')}</button>
-                  </div>
-                </>
-              ) : allSubscribers === null ? (
-                <>
-                  <div className="adm-card-title" style={{ margin: 0 }}>{t('recipients')}</div>
-                  <p className="adm-text-muted adm-text-sm" style={{ margin: '6px 0 0' }}>
-                    <span className="adm-spinner" style={{ width: 12, height: 12, marginInlineEnd: 8 }} />{t('loadingSubscribers')}
-                  </p>
-                </>
-              ) : allSubscribers.length === 0 ? (
-                <>
-                  <div className="adm-card-title" style={{ margin: 0 }}>{t('recipients')}</div>
-                  <p className="adm-text-muted adm-text-sm" style={{ margin: '6px 0 0' }}>{t('noSubscribersYet')}</p>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
+            subscribersError ? (
+              <Card title={t('recipients')} icon="cohorts">
+                <Alert
+                  tone="danger"
+                  action={<Button size="sm" icon="refresh" onClick={retrySubscribers}>{tc('retry')}</Button>}
+                >
+                  {t('subscribersLoadFailed', { error: subscribersError })}
+                </Alert>
+              </Card>
+            ) : allSubscribers === null ? (
+              <Card title={t('recipients')} icon="cohorts">
+                <Loading inline label={t('loadingSubscribers')} />
+              </Card>
+            ) : allSubscribers.length === 0 ? (
+              <Card title={t('recipients')} icon="cohorts">
+                <EmptyState icon="cohorts" title={t('noSubscribersYet')} compact />
+              </Card>
+            ) : (
+              <Card
+                title={t('recipients')}
+                icon="cohorts"
+                subtitle={(
+                  <>
+                    {t.plural('selectedOfTotal', selectedCount, { total: allSubscribers.length })}
+                    {selectedCount < allSubscribers.length && (
+                      <>
+                        {' '}
+                        <Badge tone="warning">{t.plural('excluded', allSubscribers.length - selectedCount)}</Badge>
+                      </>
+                    )}
+                  </>
+                )}
+                actions={(
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    iconEnd={pickerOpen ? 'chevronUp' : 'chevronDown'}
                     aria-expanded={pickerOpen}
                     aria-controls="campaign-recipient-picker"
                     onClick={() => setPickerOpen(o => !o)}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                      padding: 0, margin: 0, background: 'none', border: 'none', color: 'inherit',
-                      font: 'inherit', textAlign: 'inherit', cursor: 'pointer', userSelect: 'none',
-                    }}
                   >
-                    <span style={{ display: 'block' }}>
-                      <span className="adm-card-title" style={{ display: 'block', margin: 0 }}>{t('recipients')}</span>
-                      <span style={{ display: 'block', fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 3 }}>
-                        {t.plural('selectedOfTotal', selectedCount, { total: allSubscribers.length })}
-                        {selectedCount < allSubscribers.length && (
-                          <span style={{ color: '#f59e0b', marginInlineStart: 8 }}>· {t.plural('excluded', allSubscribers.length - selectedCount)}</span>
-                        )}
-                      </span>
-                    </span>
-                    <span aria-hidden="true" style={{ fontSize: 18, color: 'var(--adm-text-dim)', transition: 'transform .2s', transform: pickerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                  </button>
-
-                  {pickerOpen && (
-                    <div id="campaign-recipient-picker" style={{ marginTop: 14 }}>
-                      {/* Toolbar */}
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                        <input
-                          className="adm-input adm-input-sm"
-                          dir="ltr"
-                          aria-label={t('filterLabel')}
-                          placeholder={t('filterPlaceholder')}
-                          value={pickerSearch}
-                          onChange={e => setPickerSearch(e.target.value)}
-                          style={{ flex: 1, minWidth: 160 }}
-                        />
-                        <button
-                          type="button"
-                          className="adm-btn adm-btn-ghost adm-btn-sm"
-                          onClick={() => setExcluded(new Set())}
-                        >{t('selectAll')}</button>
-                        <button
-                          type="button"
-                          className="adm-btn adm-btn-ghost adm-btn-sm"
-                          style={{ color: '#f59e0b' }}
-                          onClick={() => setExcluded(new Set(allSubscribers))}
-                        >{t('deselectAll')}</button>
-                      </div>
-
-                      {/* List */}
-                      <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--adm-border)', borderRadius: 8 }}>
-                        {allSubscribers
-                          .filter(email => !pickerSearch.trim() || email.toLowerCase().includes(pickerSearch.toLowerCase()))
-                          .map(email => {
-                            const isExcluded = excluded.has(email);
-                            return (
-                              <label
-                                key={email}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 10,
-                                  padding: '9px 14px',
-                                  cursor: 'pointer',
-                                  borderBottom: '1px solid var(--adm-border)',
-                                  background: isExcluded ? 'rgba(245,158,11,0.06)' : 'transparent',
-                                  transition: 'background .15s',
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={!isExcluded}
-                                  style={{ width: 15, height: 15, accentColor: 'var(--adm-accent)', flexShrink: 0 }}
-                                  onChange={() => {
-                                    setExcluded(prev => {
-                                      const next = new Set(prev);
-                                      if (next.has(email)) next.delete(email);
-                                      else next.add(email);
-                                      return next;
-                                    });
-                                  }}
-                                />
-                                <span
-                                  className="adm-mono"
-                                  style={{ fontSize: 13, color: isExcluded ? 'var(--adm-text-dim)' : 'var(--adm-text)', textDecoration: isExcluded ? 'line-through' : 'none' }}
-                                >
-                                  {email}
-                                </span>
-                              </label>
-                            );
-                          })}
-                      </div>
+                    {pickerOpen ? t('hideRecipients') : t('showRecipients')}
+                  </Button>
+                )}
+              >
+                {pickerOpen && (
+                  <div id="campaign-recipient-picker">
+                    <div className="adm-flex" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+                      <input
+                        type="search"
+                        className="adm-input adm-input-sm"
+                        dir="ltr"
+                        aria-label={t('filterLabel')}
+                        placeholder={t('filterPlaceholder')}
+                        value={pickerSearch}
+                        onChange={e => setPickerSearch(e.target.value)}
+                        style={{ flex: 1, minWidth: 160 }}
+                      />
+                      <Button variant="ghost" size="sm" icon="checkCircle" onClick={() => setExcluded(new Set())}>
+                        {t('selectAll')}
+                      </Button>
+                      <Button variant="ghost" size="sm" icon="ban" onClick={() => setExcluded(new Set(allSubscribers))}>
+                        {t('deselectAll')}
+                      </Button>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
+
+                    <div className="adm-table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                      <table className="adm-table">
+                        <tbody>
+                          {allSubscribers
+                            .filter(email => !pickerSearch.trim() || email.toLowerCase().includes(pickerSearch.toLowerCase()))
+                            .map(email => {
+                              const isExcluded = excluded.has(email);
+                              return (
+                                <tr key={email}>
+                                  <td>
+                                    <label className="adm-check" style={{ display: 'flex' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={!isExcluded}
+                                        onChange={() => {
+                                          setExcluded(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(email)) next.delete(email);
+                                            else next.add(email);
+                                            return next;
+                                          });
+                                        }}
+                                      />
+                                      <span
+                                        className={`adm-mono adm-cell-ltr${isExcluded ? ' adm-text-muted' : ''}`}
+                                        style={isExcluded ? { textDecoration: 'line-through' } : undefined}
+                                      >
+                                        {email}
+                                      </span>
+                                    </label>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )
           )}
 
-          {!locked && (
-            <TranslationHelper
-              fields={{
-                subject: form[`subject_${lang}`] || '',
-                body: form[`body_${lang}`] || '',
-              }}
-              sourceLang={lang}
-              onTranslated={(translations) => handleTranslated(translations as Record<string, Record<string, string>>)}
-            />
-          )}
-
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 8 }}>{t('content')}</div>
+          <Card
+            title={t('content')}
+            icon="mail"
+            actions={!locked && (
+              <TranslationHelper
+                fields={{
+                  subject: form[`subject_${lang}`] || '',
+                  body: form[`body_${lang}`] || '',
+                }}
+                sourceLang={lang}
+                onTranslated={(translations) => handleTranslated(translations as Record<string, Record<string, string>>)}
+              />
+            )}
+          >
             {/* Each subscriber gets their own language, or the closest one
                 written. Show the outcome per group so a half-translated
                 campaign doesn't reach anyone in a surprise language. */}
             <div className="adm-campaign-audience">
               <div className="adm-campaign-audience-title">{t('audienceTitle')}</div>
               {!available.length ? (
-                <div className="adm-campaign-audience-warn">
-                  ⚠ {t('noLanguageComplete')}
+                <div className="adm-campaign-audience-warn adm-flex">
+                  <AdminIcon name="alert" size="xs" />
+                  <span>{t('noLanguageComplete')}</span>
                 </div>
               ) : isNew ? (
-                <div className="adm-text-dim">{t('saveToSeeAudience')}</div>
+                <div className="adm-text-muted">{t('saveToSeeAudience')}</div>
               ) : !subscribersReady ? (
-                <div className="adm-text-dim">{t('loadingSubscribers')}</div>
+                <div className="adm-text-muted">{t('loadingSubscribers')}</div>
               ) : audience.length === 0 ? (
-                <div className="adm-text-dim">{t('noSubscribersSelected')}</div>
+                <div className="adm-text-muted">{t('noSubscribersSelected')}</div>
               ) : (
                 <table className="adm-campaign-audience-table">
                   <thead>
@@ -1149,12 +1089,15 @@ export const AdminCampaignEdit: React.FC = () => {
                         <td>{fmtNumber(g.count)}</td>
                         <td>
                           {g.receives === g.own ? (
-                            <span className="adm-campaign-audience-ok">✓ {langName(g.receives)}</span>
+                            <span className="adm-campaign-audience-ok adm-flex" style={{ gap: 5 }}>
+                              <AdminIcon name="check" size="xs" />
+                              <span>{langName(g.receives)}</span>
+                            </span>
                           ) : g.own === 'unknown' ? (
-                            <span>{langName(g.receives!)} <span className="adm-text-dim">{t('firstWritten')}</span></span>
+                            <span>{langName(g.receives!)} <span className="adm-text-muted">{t('firstWritten')}</span></span>
                           ) : (
                             <span className="adm-campaign-audience-fallback">
-                              {langName(g.receives!)} <span className="adm-text-dim">{t('noVersionYet', { lang: langName(g.own) })}</span>
+                              {langName(g.receives!)} <span className="adm-text-muted">{t('noVersionYet', { lang: langName(g.own) })}</span>
                             </span>
                           )}
                         </td>
@@ -1164,257 +1107,231 @@ export const AdminCampaignEdit: React.FC = () => {
                 </table>
               )}
               {incomplete.map((l) => (
-                <div key={l} className="adm-campaign-audience-warn">
-                  ⚠ {t((form[`subject_${l}`] || '').trim() ? 'incompleteSubjectOnly' : 'incompleteBodyOnly', { lang: langName(l) })}
+                <div key={l} className="adm-campaign-audience-warn adm-flex">
+                  <AdminIcon name="alert" size="xs" />
+                  <span>{t((form[`subject_${l}`] || '').trim() ? 'incompleteSubjectOnly' : 'incompleteBodyOnly', { lang: langName(l) })}</span>
                 </div>
-              ))}
-            </div>
-            <div className="adm-tabs" style={{ marginBottom: 16 }}>
-              {LANGS.map((l) => (
-                <button
-                  key={l.key}
-                  type="button"
-                  onClick={() => setLang(l.key)}
-                  className={`adm-tab-btn${lang === l.key ? ' active' : ''}`}
-                >
-                  {langTab(l)}
-                  {available.includes(l.key) ? ' ✓' : incomplete.includes(l.key) ? ' ⚠' : ''}
-                </button>
               ))}
             </div>
 
+            <div className="adm-mb-16">
+              <Tabs
+                variant="segmented"
+                ariaLabel={t('content')}
+                value={lang}
+                onChange={setLang}
+                items={LANGS.map((l) => ({
+                  value: l.key,
+                  label: <LangLabel lang={l.key} />,
+                  badge: available.includes(l.key)
+                    ? <AdminIcon name="check" size={12} label={t('langComplete')} />
+                    : incomplete.includes(l.key)
+                      ? <AdminIcon name="alert" size={12} label={t('langIncomplete')} />
+                      : undefined,
+                }))}
+              />
+            </div>
+
             {/* Direction follows the language being written, not the dashboard's. */}
-            {LANGS.filter((l) => l.key === lang).map((l) => (
-              <div key={l.key} style={{ direction: l.dir, textAlign: l.dir === 'rtl' ? 'right' : 'left' }}>
-                <div className="adm-form-group">
-                  <label className="adm-label">{t('subjectA')}</label>
-                  <input
-                    className="adm-input"
-                    value={(form as Record<string, string>)[`subject_${l.key}`] || ''}
-                    onChange={(e) => set(`subject_${l.key}`, e.target.value)}
-                    placeholder={t('subjectAPlaceholder')}
-                    dir={l.dir}
-                    readOnly={locked}
-                  />
-                </div>
-                <div className="adm-form-group">
-                  <label className="adm-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {t('subjectB')}
-                    <span style={{ fontSize: 10, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', borderRadius: 4, padding: '2px 6px', fontWeight: 700 }}>{t('abBadge')}</span>
-                  </label>
-                  <input
-                    className="adm-input"
-                    value={(form as Record<string, string>)[`subject_b_${l.key}`] || ''}
-                    onChange={(e) => set(`subject_b_${l.key}`, e.target.value)}
-                    placeholder={t('subjectBPlaceholder')}
-                    dir={l.dir}
-                    readOnly={locked}
-                    style={{ borderColor: (form as Record<string, string>)[`subject_b_${l.key}`] ? 'rgba(139,92,246,0.5)' : undefined }}
-                  />
+            {LANGS.filter((l) => l.key === lang).map((l) => {
+              const subjectB = formText[`subject_b_${l.key}`] || '';
+              return (
+                // Each box has the content language's direction; labels and
+                // hints keep the dashboard's.
+                <div key={l.key}>
+                  <Field label={t('subjectA')}>
+                    <input
+                      className="adm-input"
+                      value={formText[`subject_${l.key}`] || ''}
+                      onChange={(e) => set(`subject_${l.key}`, e.target.value)}
+                      placeholder={t('subjectAPlaceholder')}
+                      dir={l.dir}
+                      readOnly={locked}
+                    />
+                  </Field>
                   {/* The A/B split runs separately in each language, among the
                       subscribers who receive that language. */}
-                  {(form as Record<string, string>)[`subject_b_${l.key}`]?.trim() ? (
-                    subscribersReady && receivingCount(l.key) === 0 ? (
-                      <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
-                        ⚠ {t('abNoReceivers', { lang: langName(l.key) })}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 4 }}>
-                        ✓ {t('abActive', { lang: langName(l.key) })}
-                      </div>
-                    )
-                  ) : (
-                    <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 4 }}>
-                      {t('abOptional', { lang: langName(l.key) })}
-                    </div>
-                  )}
+                  <Field
+                    label={<>{t('subjectB')} <Badge tone="violet">{t('abBadge')}</Badge></>}
+                    hint={subjectB.trim() ? (
+                      subscribersReady && receivingCount(l.key) === 0 ? (
+                        <span className="adm-campaign-audience-warn adm-flex" style={{ marginTop: 0 }}>
+                          <AdminIcon name="alert" size="xs" />
+                          <span>{t('abNoReceivers', { lang: langName(l.key) })}</span>
+                        </span>
+                      ) : (
+                        <span className="adm-campaign-audience-ok adm-flex">
+                          <AdminIcon name="check" size="xs" />
+                          <span>{t('abActive', { lang: langName(l.key) })}</span>
+                        </span>
+                      )
+                    ) : t('abOptional', { lang: langName(l.key) })}
+                  >
+                    <input
+                      className="adm-input"
+                      value={subjectB}
+                      onChange={(e) => set(`subject_b_${l.key}`, e.target.value)}
+                      placeholder={t('subjectBPlaceholder')}
+                      dir={l.dir}
+                      readOnly={locked}
+                    />
+                  </Field>
+                  <Field label={t('body')} hint={t('bodyHint')}>
+                    <textarea
+                      className="adm-textarea"
+                      rows={12}
+                      value={formText[`body_${l.key}`] || ''}
+                      onChange={(e) => set(`body_${l.key}`, e.target.value)}
+                      placeholder={t('bodyPlaceholder')}
+                      dir={l.dir}
+                      readOnly={locked}
+                    />
+                  </Field>
                 </div>
-                <div className="adm-form-group">
-                  <label className="adm-label">{t('body')}</label>
-                  <textarea
-                    className="adm-input"
-                    rows={12}
-                    value={(form as Record<string, string>)[`body_${l.key}`] || ''}
-                    onChange={(e) => set(`body_${l.key}`, e.target.value)}
-                    placeholder={t('bodyPlaceholder')}
-                    dir={l.dir}
-                    readOnly={locked}
-                    style={{ fontFamily: 'inherit', resize: 'vertical' }}
-                  />
-                  <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 4 }}>
-                    {t('bodyHint')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              );
+            })}
+          </Card>
         </div>
       )}
 
       {activeTab === 'stats' && !isNew && (
-        <div>
+        <div className="adm-stack">
           {/* ── Summary cards ─────────────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginBottom: 24 }}>
-            <div className="adm-stat-card">
-              <div className="adm-stat-icon">👥</div>
-              <div className="adm-stat-label">{t('recipients')}</div>
-              <div className="adm-stat-value">{fmtNumber(form.recipient_count)}</div>
-            </div>
-            <div className="adm-stat-card">
-              <div className="adm-stat-icon">👁</div>
-              <div className="adm-stat-label">{t('opens')}</div>
-              <div className="adm-stat-value" style={{ color: '#22c55e' }}>{fmtNumber(form.open_count)}</div>
-            </div>
-            <div className="adm-stat-card">
-              <div className="adm-stat-icon">📊</div>
-              <div className="adm-stat-label">{t('openRate')}</div>
-              <div className="adm-stat-value" style={{ color: '#8b5cf6' }}>
-                {form.recipient_count ? `${Math.round((form.open_count! / form.recipient_count) * 100)}%` : '—'}
-              </div>
-            </div>
-            <div className="adm-stat-card">
-              <div className="adm-stat-icon">🔗</div>
-              <div className="adm-stat-label">{t('clicks')}</div>
-              <div className="adm-stat-value" style={{ color: '#f59e0b' }}>
-                {fmtNumber(sends.reduce((sum, s) => sum + (s.click_count ?? 0), 0))}
-              </div>
-            </div>
-          </div>
+          <StatGrid min={150}>
+            <StatCard icon="cohorts" label={t('recipients')} value={fmtNumber(form.recipient_count)} />
+            <StatCard icon="eye" tone="success" label={t('opens')} value={fmtNumber(form.open_count)} />
+            <StatCard
+              icon="insights"
+              tone="violet"
+              label={t('openRate')}
+              value={form.recipient_count ? `${Math.round((form.open_count! / form.recipient_count) * 100)}%` : '—'}
+            />
+            <StatCard icon="pointer" tone="warning" label={t('clicks')} value={fmtNumber(totalClicks)} />
+          </StatGrid>
 
-          {/* ── A/B breakdown (shown only if variant data exists) ─────────── */}
           {/* Per language: who got which version, and how each did. */}
           {sends.some(s => s.lang) && (() => {
             const langs = (['ar', 'en', 'tr', 'ru'] as const).filter((l) => sends.some((x) => x.lang === l));
             return (
-              <div className="adm-card" style={{ marginBottom: 24 }}>
-                <div className="adm-card-title" style={{ marginBottom: 14 }}>{t('byLanguage')}</div>
-                <table className="adm-campaign-audience-table">
-                  <thead>
-                    <tr><th>{t('colLanguageSent')}</th><th>{t('colRecipients')}</th><th>{t('colOpened')}</th><th>{t('colOpenRate')}</th><th>{t('colClicks')}</th></tr>
-                  </thead>
-                  <tbody>
-                    {langs.map((l) => {
-                      const group = sends.filter((x) => x.lang === l);
-                      const opened = group.filter((x) => x.opened).length;
-                      return (
-                        <tr key={l}>
-                          <td>{langName(l)}</td>
-                          <td>{fmtNumber(group.length)}</td>
-                          <td>{fmtNumber(opened)}</td>
-                          <td>{group.length ? `${Math.round((opened / group.length) * 100)}%` : '—'}</td>
-                          <td>{fmtNumber(group.reduce((n, x) => n + (x.click_count ?? 0), 0))}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <Card title={t('byLanguage')} icon="language" flush>
+                <div className="adm-table-wrap">
+                  <table className="adm-table">
+                    <thead>
+                      <tr><th>{t('colLanguageSent')}</th><th>{t('colRecipients')}</th><th>{t('colOpened')}</th><th>{t('colOpenRate')}</th><th>{t('colClicks')}</th></tr>
+                    </thead>
+                    <tbody>
+                      {langs.map((l) => {
+                        const group = sends.filter((x) => x.lang === l);
+                        const opened = group.filter((x) => x.opened).length;
+                        return (
+                          <tr key={l}>
+                            <td><span className="adm-flex"><LangTag lang={l} /> {langName(l)}</span></td>
+                            <td>{fmtNumber(group.length)}</td>
+                            <td>{fmtNumber(opened)}</td>
+                            <td>{group.length ? `${Math.round((opened / group.length) * 100)}%` : '—'}</td>
+                            <td>{fmtNumber(group.reduce((n, x) => n + (x.click_count ?? 0), 0))}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             );
           })()}
 
+          {/* ── A/B breakdown (shown only if variant data exists) ─────────── */}
           {sends.some(s => s.ab_variant === 'b') && (() => {
             const groupA = sends.filter(s => s.ab_variant !== 'b');
             const groupB = sends.filter(s => s.ab_variant === 'b');
             const rate = (group: typeof sends) =>
               group.length ? `${Math.round((group.filter(s => s.opened).length / group.length) * 100)}%` : '—';
             const clicks = (group: typeof sends) => group.reduce((n, s) => n + (s.click_count ?? 0), 0);
+            const groups: Array<{ key: 'a' | 'b'; label: string; group: typeof sends; tone: Tone }> = [
+              { key: 'a', label: t('groupA'), group: groupA, tone: 'info' },
+              { key: 'b', label: t('groupB'), group: groupB, tone: 'violet' },
+            ];
             return (
-              <div className="adm-card" style={{ marginBottom: 24 }}>
-                <div className="adm-card-title" style={{ marginBottom: 14 }}>
-                  🧪 {t('abResults')}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {[
-                    { key: 'a', label: t('groupA'), group: groupA, color: '#4f6ef7' },
-                    { key: 'b', label: t('groupB'), group: groupB, color: '#8b5cf6' },
-                  ].map(({ key, label, group, color }) => (
-                    <div key={key} style={{ background: 'var(--adm-surface2)', borderRadius: 10, padding: '14px 18px', border: `1px solid ${color}40` }}>
-                      <div style={{ fontWeight: 700, color, marginBottom: 10, fontSize: 14 }}>{label}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span className="adm-text-muted">{t('recipients')}</span>
-                          <strong>{fmtNumber(group.length)}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span className="adm-text-muted">{t('opens')}</span>
-                          <strong style={{ color: '#22c55e' }}>{fmtNumber(group.filter(s => s.opened).length)}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span className="adm-text-muted">{t('openRate')}</span>
-                          <strong style={{ color }}>{rate(group)}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span className="adm-text-muted">{t('clicks')}</span>
-                          <strong style={{ color: '#f59e0b' }}>{fmtNumber(clicks(group))}</strong>
-                        </div>
-                      </div>
-                    </div>
+              <Card title={t('abResults')} icon="abtest">
+                <div className="adm-grid-2">
+                  {groups.map(({ key, label, group, tone }) => (
+                    <Card
+                      key={key}
+                      title={label}
+                      actions={<Badge tone={tone} title={t('openRate')}>{rate(group)}</Badge>}
+                    >
+                      <dl style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px 12px', margin: 0 }}>
+                        <dt className="adm-text-muted">{t('recipients')}</dt>
+                        <dd style={{ margin: 0 }}><strong>{fmtNumber(group.length)}</strong></dd>
+                        <dt className="adm-text-muted">{t('opens')}</dt>
+                        <dd style={{ margin: 0 }}><strong>{fmtNumber(group.filter(s => s.opened).length)}</strong></dd>
+                        <dt className="adm-text-muted">{t('openRate')}</dt>
+                        <dd style={{ margin: 0 }}><strong>{rate(group)}</strong></dd>
+                        <dt className="adm-text-muted">{t('clicks')}</dt>
+                        <dd style={{ margin: 0 }}><strong>{fmtNumber(clicks(group))}</strong></dd>
+                      </dl>
+                    </Card>
                   ))}
                 </div>
-              </div>
+              </Card>
             );
           })()}
 
           {/* ── Delivery table ─────────────────────────────────────────────── */}
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ marginBottom: 14 }}>{t('deliveryDetails')}</div>
+          <Card title={t('deliveryDetails')} icon="mail" flush>
             {!statsLoaded ? (
-              <p className="adm-text-muted adm-text-sm"><span className="adm-spinner" style={{ width: 14, height: 14, marginInlineEnd: 8 }} />{tc('loading')}</p>
+              <Loading label={tc('loading')} />
             ) : !sends.length ? (
-              <p className="adm-text-muted adm-text-sm">{t('noSends')}</p>
+              <EmptyState icon="mail" title={t('noSends')} compact />
             ) : (() => {
               // Compute once — avoids O(n²) inside the row map
               const hasVariant = sends.some(s => s.ab_variant);
               return (
-                <table className="adm-table" style={{ fontSize: 12 }}>
-                  <thead>
-                    <tr>
-                      <th>{t('colEmail')}</th>
-                      {hasVariant && <th>{t('colVariant')}</th>}
-                      <th>{t('colSent')}</th>
-                      <th>{t('colOpened')}</th>
-                      <th>{t('colClicks')}</th>
-                      <th>{t('colOpenTime')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sends.map((s) => (
-                      <tr key={s.id}>
-                        <td className="adm-mono">{s.email}</td>
-                        {hasVariant && (
-                          <td>
-                            <span style={{
-                              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-                              background: s.ab_variant === 'b' ? 'rgba(139,92,246,0.15)' : 'rgba(79,110,247,0.15)',
-                              color: s.ab_variant === 'b' ? '#8b5cf6' : '#4f6ef7',
-                            }}>
-                              {s.ab_variant?.toUpperCase() ?? 'A'}
-                            </span>
-                          </td>
-                        )}
-                        <td>{fmtDateTime(s.created_at)}</td>
-                        <td>
-                          {s.opened ? (
-                            <span style={{ color: '#22c55e', fontWeight: 700 }}>✅ {tc('yes')}</span>
-                          ) : (
-                            <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
-                          )}
-                        </td>
-                        <td>
-                          {(s.click_count ?? 0) > 0 ? (
-                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{fmtNumber(s.click_count)}</span>
-                          ) : (
-                            <span style={{ color: 'var(--adm-text-dim)' }}>—</span>
-                          )}
-                        </td>
-                        <td>{fmtDateTime(s.opened_at)}</td>
+                <div className="adm-table-wrap">
+                  <table className="adm-table">
+                    <thead>
+                      <tr>
+                        <th>{t('colEmail')}</th>
+                        {hasVariant && <th>{t('colVariant')}</th>}
+                        <th>{t('colSent')}</th>
+                        <th>{t('colOpened')}</th>
+                        <th>{t('colClicks')}</th>
+                        <th>{t('colOpenTime')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sends.map((s) => (
+                        <tr key={s.id}>
+                          <td className="adm-mono adm-cell-ltr">{s.email}</td>
+                          {hasVariant && (
+                            <td>
+                              <Badge tone={s.ab_variant === 'b' ? 'violet' : 'info'}>{s.ab_variant?.toUpperCase() ?? 'A'}</Badge>
+                            </td>
+                          )}
+                          <td className="adm-cell-date">{fmtDateTime(s.created_at)}</td>
+                          <td>
+                            {s.opened ? (
+                              <Badge tone="success" icon="checkCircle">{tc('yes')}</Badge>
+                            ) : (
+                              <span className="adm-text-muted">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {(s.click_count ?? 0) > 0 ? (
+                              <strong>{fmtNumber(s.click_count)}</strong>
+                            ) : (
+                              <span className="adm-text-muted">—</span>
+                            )}
+                          </td>
+                          <td className="adm-cell-date">{fmtDateTime(s.opened_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               );
             })()}
-          </div>
+          </Card>
         </div>
       )}
     </div>

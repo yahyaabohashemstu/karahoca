@@ -4,6 +4,7 @@ import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { AdminIcon, Alert, Badge, Button, Card, EmptyState, Field, IconButton, Loading, NumberInput, PageHeader, StatusBadge } from '../ui';
 
 /**
  * A/B testing dashboard (Phase G4).
@@ -30,31 +31,32 @@ const messages = defineMessages({
   en: {
     title: 'A/B testing',
     subtitle: 'Manage experiments, allocate variant weights, and read results attributed via the visitor_events stream.',
-    newExperiment: '+ New experiment',
+    newExperiment: 'New experiment',
     keySlug: 'Key (slug)',
     name: 'Name',
     namePlaceholder: 'Hero CTA color test',
     goalEvent: 'Goal event',
     create: 'Create',
-    noExperiments: 'No experiments yet. Create one to start testing.',
-    status_draft: '📝 Draft',
-    status_running: '▶️ Running',
-    status_stopped: '⏹ Stopped',
-    status_done: '✓ Done',
-    start: '▶️ Start',
-    stop: '⏹ Stop',
-    deleteBtn: '🗑 Delete',
+    colExperiment: 'Experiment',
+    noExperiments: 'No experiments yet.',
+    noExperimentsText: 'Create one to start testing.',
+    // StatusBadge words, except where the experiment needs its own:
+    // "stopped" is feminine in Arabic (تجربة), "done" has no shared status.
+    status_stopped: 'Stopped',
+    status_done: 'Done',
+    start: 'Start',
+    stop: 'Stop',
     goal: 'goal:',
     started: 'started {date}',
     stopped: 'stopped {date}',
     variants: 'Variants',
-    variantsLocked: '🔒 Variants and weights are locked once an experiment has started — changing them would move visitors between variants. Create a new experiment to test a different split.',
+    variantsLocked: 'Variants and weights are locked once an experiment has started — changing them would move visitors between variants. Create a new experiment to test a different split.',
     colKey: 'Key',
     colLabel: 'Label',
     colWeight: 'Weight',
     weightOf: 'Weight of {key}',
     removeVariant: 'Remove variant {key}',
-    addVariant: '+ Add variant',
+    addVariant: 'Add variant',
     results: 'Results',
     colVariant: 'Variant',
     colExposed: 'Exposed',
@@ -62,7 +64,7 @@ const messages = defineMessages({
     colRate: 'Rate',
     colLift: 'Lift',
     colConfidence: 'Confidence',
-    baseline: '(baseline)',
+    baseline: 'Baseline',
     pickAbove: 'Pick an experiment above, or create a new one.',
     pickSide: 'Pick an experiment on the left, or create a new one.',
     confirmStart: 'Start "{name}"? Its variants and weights are locked once it is running.',
@@ -75,31 +77,30 @@ const messages = defineMessages({
   ar: {
     title: 'اختبارات A/B',
     subtitle: 'أدِر التجارب، ووزّع أوزان النسخ، واطّلع على النتائج المحتسبة من سجل أحداث الزوار visitor_events.',
-    newExperiment: '+ تجربة جديدة',
+    newExperiment: 'تجربة جديدة',
     keySlug: 'المفتاح (slug)',
     name: 'الاسم',
     namePlaceholder: 'تجربة لون زر الدعوة في الواجهة',
     goalEvent: 'حدث الهدف',
     create: 'إنشاء',
-    noExperiments: 'لا توجد تجارب بعد. أنشئ تجربة لبدء الاختبار.',
-    status_draft: '📝 مسودة',
-    status_running: '▶️ قيد التشغيل',
-    status_stopped: '⏹ متوقفة',
-    status_done: '✓ منتهية',
-    start: '▶️ بدء',
-    stop: '⏹ إيقاف',
-    deleteBtn: '🗑 حذف',
+    colExperiment: 'التجربة',
+    noExperiments: 'لا توجد تجارب بعد.',
+    noExperimentsText: 'أنشئ تجربة لبدء الاختبار.',
+    status_stopped: 'متوقفة',
+    status_done: 'منتهية',
+    start: 'بدء',
+    stop: 'إيقاف',
     goal: 'الهدف:',
     started: 'بدأت {date}',
     stopped: 'توقفت {date}',
     variants: 'النسخ',
-    variantsLocked: '🔒 تُقفل النسخ وأوزانها بعد بدء التجربة، لأن تغييرها ينقل الزوار بين النسخ. أنشئ تجربة جديدة لاختبار توزيع مختلف.',
+    variantsLocked: 'تُقفل النسخ وأوزانها بعد بدء التجربة، لأن تغييرها ينقل الزوار بين النسخ. أنشئ تجربة جديدة لاختبار توزيع مختلف.',
     colKey: 'المفتاح',
     colLabel: 'التسمية',
     colWeight: 'الوزن',
     weightOf: 'وزن {key}',
     removeVariant: 'إزالة النسخة {key}',
-    addVariant: '+ إضافة نسخة',
+    addVariant: 'إضافة نسخة',
     results: 'النتائج',
     colVariant: 'النسخة',
     colExposed: 'المعروضة لهم',
@@ -107,7 +108,7 @@ const messages = defineMessages({
     colRate: 'المعدل',
     colLift: 'التحسّن',
     colConfidence: 'الثقة',
-    baseline: '(الأساس)',
+    baseline: 'الأساس',
     pickAbove: 'اختر تجربة من القائمة أعلاه، أو أنشئ تجربة جديدة.',
     pickSide: 'اختر تجربة من القائمة على اليمين، أو أنشئ تجربة جديدة.',
     confirmStart: 'بدء "{name}"؟ تُقفل نسخها وأوزانها بمجرد تشغيلها.',
@@ -119,18 +120,27 @@ const messages = defineMessages({
   },
 });
 
-const STATUS_BADGE: Record<AbExperimentRow['status'], { bg: string; label: 'status_draft' | 'status_running' | 'status_stopped' | 'status_done' }> = {
-  draft:   { bg: '#94a3b8', label: 'status_draft' },
-  running: { bg: '#22c55e', label: 'status_running' },
-  stopped: { bg: '#dc2626', label: 'status_stopped' },
-  done:    { bg: '#4f6ef7', label: 'status_done' },
-};
-
 type Details = { experiment: AbExperimentRow; variants: AbVariantRow[]; results: AbExperimentResults | null };
 
 export const AdminAbTests: React.FC = () => {
   const t = useT(messages);
   const tc = useT(common);
+
+  const statusBadge = (status: AbExperimentRow['status']) => {
+    switch (status) {
+      case 'draft':
+      case 'running':
+        return <StatusBadge status={status} />;
+      case 'stopped':
+        return <StatusBadge status="stopped" label={t('status_stopped')} />;
+      case 'done':
+        return <StatusBadge status="done" label={t('status_done')} />;
+      default:
+        // A status this build doesn't know yet: show it as stored.
+        return <Badge>{String(status)}</Badge>;
+    }
+  };
+
   const [experiments, setExperiments] = useState<(AbExperimentRow & { variants: AbVariantRow[] })[]>([]);
   const [selectedId, setSelectedIdState] = useState<number | null>(null);
   const [details, setDetails] = useState<Details | null>(null);
@@ -257,124 +267,140 @@ export const AdminAbTests: React.FC = () => {
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">{t('subtitle')}</p>
-        </div>
-        <button className="adm-btn adm-btn-primary adm-btn-sm" onClick={() => setShowCreate((v) => !v)}>
-          {t('newExperiment')}
-        </button>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={(
+          // One primary action per view: while the form is open, its
+          // Create button is the primary one.
+          <Button
+            variant={showCreate ? 'secondary' : 'primary'}
+            icon="plus"
+            aria-expanded={showCreate}
+            onClick={() => setShowCreate((v) => !v)}
+          >
+            {t('newExperiment')}
+          </Button>
+        )}
+      />
 
       {showCreate && (
-        <div className="adm-card" style={{ marginBottom: 16, padding: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('keySlug')}</span>
-            <input className="adm-input adm-input-sm" dir="ltr" value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="hero_cta_color" />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 200px' }}>
-            <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('name')}</span>
-            <input className="adm-input adm-input-sm" dir="auto" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('namePlaceholder')} />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('goalEvent')}</span>
-            {/* Event identifiers, shown as they are stored. */}
-            <select className="adm-select adm-input-sm" dir="ltr" value={newGoal} onChange={(e) => setNewGoal(e.target.value)}>
-              <option value="whatsapp_click">whatsapp_click</option>
-              <option value="chat_open">chat_open</option>
-              <option value="chat_message_sent">chat_message_sent</option>
-              <option value="product_view">product_view</option>
-              <option value="newsletter_subscribe">newsletter_subscribe</option>
-            </select>
-          </label>
-          <button className="adm-btn adm-btn-primary adm-btn-sm" onClick={handleCreate}>{t('create')}</button>
-        </div>
+        <Card title={t('newExperiment')} icon="abtest" className="adm-mb-16">
+          <div className="adm-form-grid">
+            <Field label={t('keySlug')}>
+              <input className="adm-input" dir="ltr" value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="hero_cta_color" />
+            </Field>
+            <Field label={t('name')}>
+              <input className="adm-input" dir="auto" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('namePlaceholder')} />
+            </Field>
+            <Field label={t('goalEvent')}>
+              {/* Event identifiers, shown as they are stored. */}
+              <select className="adm-select" dir="ltr" value={newGoal} onChange={(e) => setNewGoal(e.target.value)}>
+                <option value="whatsapp_click">whatsapp_click</option>
+                <option value="chat_open">chat_open</option>
+                <option value="chat_message_sent">chat_message_sent</option>
+                <option value="product_view">product_view</option>
+                <option value="newsletter_subscribe">newsletter_subscribe</option>
+              </select>
+            </Field>
+          </div>
+          <div className="adm-flex">
+            <Button variant="primary" icon="check" onClick={handleCreate}>{t('create')}</Button>
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>{tc('cancel')}</Button>
+          </div>
+        </Card>
       )}
 
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
+      {loading && <Loading label={tc('loading')} />}
 
-      {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '260px minmax(0, 1fr)', gap: 16 }}>
+      {/* No experiments yet: one empty state, not an empty list beside an
+          empty detail panel. */}
+      {!loading && !error && experiments.length === 0 && (
+        <Card>
+          <EmptyState icon="abtest" title={t('noExperiments')} text={t('noExperimentsText')} />
+        </Card>
+      )}
+
+      {!loading && experiments.length > 0 && (
+        <div className="adm-master-detail">
           {/* List */}
-          <div className="adm-card" style={{ padding: 0, overflow: 'hidden' }}>
-            {experiments.length === 0 ? (
-              <div style={{ padding: 16, color: 'var(--adm-text-dim)' }}>
-                {t('noExperiments')}
-              </div>
-            ) : experiments.map((exp) => (
-              <button
-                key={exp.id}
-                type="button"
-                onClick={() => setSelectedId(exp.id)}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'start',
-                  padding: '10px 12px',
-                  background: selectedId === exp.id ? 'var(--adm-surface2)' : 'transparent',
-                  border: 0,
-                  borderBottom: '1px solid var(--adm-border)',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <strong style={{ fontSize: 13 }}>{exp.name}</strong>
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: 999,
-                    color: '#fff',
-                    background: STATUS_BADGE[exp.status]?.bg ?? '#666',
-                  }}>
-                    {STATUS_BADGE[exp.status] ? t(STATUS_BADGE[exp.status].label) : exp.status}
-                  </span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 2 }}><bdi dir="ltr">{exp.key}</bdi></div>
-              </button>
-            ))}
-          </div>
+          <Card flush>
+            <div className="adm-select-list" role="list" aria-label={t('colExperiment')}>
+              {experiments.map((exp) => {
+                const selected = selectedId === exp.id;
+                return (
+                  <button
+                    key={exp.id}
+                    type="button"
+                    role="listitem"
+                    className={`adm-select-item${selected ? ' is-selected' : ''}`}
+                    aria-current={selected || undefined}
+                    onClick={() => setSelectedId(exp.id)}
+                  >
+                    <span style={{ minWidth: 0 }}>
+                      <bdi className="adm-truncate" style={{ display: 'block' }}>{exp.name}</bdi>
+                      <span className="adm-mono adm-text-muted adm-text-sm"><bdi dir="ltr">{exp.key}</bdi></span>
+                    </span>
+                    {statusBadge(exp.status)}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
 
           {/* Detail */}
-          <div className="adm-card" style={{ padding: 16 }}>
-            {details ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <h2 style={{ margin: 0, fontSize: 18 }}>{details.experiment.name}</h2>
-                  <div style={{ display: 'flex', gap: 8 }}>
+          {details ? (
+            <div className="adm-stack">
+              <Card
+                title={details.experiment.name}
+                icon="abtest"
+                subtitle={<bdi dir="ltr" className="adm-mono">{details.experiment.key}</bdi>}
+                actions={(
+                  <>
                     {details.experiment.status === 'draft' && (
-                      <button className="adm-btn adm-btn-primary adm-btn-sm" onClick={() => handleStartStop('start')}>{t('start')}</button>
+                      <Button size="sm" icon="play" onClick={() => handleStartStop('start')}>{t('start')}</Button>
                     )}
                     {details.experiment.status === 'running' && (
-                      <button className="adm-btn adm-btn-warning adm-btn-sm" onClick={() => handleStartStop('stop')}>{t('stop')}</button>
+                      <Button size="sm" icon="stop" onClick={() => handleStartStop('stop')}>{t('stop')}</Button>
                     )}
-                    <button className="adm-btn adm-btn-danger adm-btn-sm" onClick={handleDeleteExp}>{t('deleteBtn')}</button>
-                  </div>
-                </div>
-                <p style={{ color: 'var(--adm-text-dim)', fontSize: 13, marginTop: 4 }}>
-                  <code dir="ltr">{details.experiment.key}</code> • {t('goal')} <code dir="ltr">{details.experiment.goal_event}</code>
-                  {details.experiment.started_at && <> • {t('started', { date: fmtDateTime(details.experiment.started_at) })}</>}
-                  {details.experiment.stopped_at && details.experiment.status !== 'running' && (
-                    <> • {t('stopped', { date: fmtDateTime(details.experiment.stopped_at) })}</>
-                  )}
-                </p>
-
-                <h3 style={{ fontSize: 14, marginTop: 16, marginBottom: 8 }}>{t('variants')}</h3>
-                {variantsLocked && (
-                  <p style={{ color: 'var(--adm-text-dim)', fontSize: 12, marginTop: 0, marginBottom: 8 }}>
-                    {t('variantsLocked')}
-                  </p>
+                    <Button size="sm" variant="danger" icon="trash" onClick={handleDeleteExp}>{tc('delete')}</Button>
+                  </>
                 )}
+              >
+                <div className="adm-flex" style={{ flexWrap: 'wrap' }}>
+                  {statusBadge(details.experiment.status)}
+                  <Badge icon="target">
+                    {t('goal')} <bdi dir="ltr">{details.experiment.goal_event}</bdi>
+                  </Badge>
+                  {details.experiment.started_at && (
+                    <Badge icon="calendar">{t('started', { date: fmtDateTime(details.experiment.started_at) })}</Badge>
+                  )}
+                  {details.experiment.stopped_at && details.experiment.status !== 'running' && (
+                    <Badge icon="calendar">{t('stopped', { date: fmtDateTime(details.experiment.stopped_at) })}</Badge>
+                  )}
+                </div>
+              </Card>
+
+              <Card
+                flush
+                title={t('variants')}
+                icon="sort"
+                subtitle={variantsLocked ? <><AdminIcon name="lock" size="xs" /> {t('variantsLocked')}</> : undefined}
+                actions={!variantsLocked && (
+                  <Button size="sm" icon="plus" onClick={handleAddVariant}>{t('addVariant')}</Button>
+                )}
+              >
                 <div className="adm-table-wrap">
                   <table className="adm-table">
                     <thead>
                       <tr>
                         <th>{t('colKey')}</th>
                         <th>{t('colLabel')}</th>
-                        <th style={{ width: 100 }}>{t('colWeight')}</th>
-                        <th style={{ width: 60 }}></th>
+                        <th style={{ width: 110 }}>{t('colWeight')}</th>
+                        {!variantsLocked && (
+                          <th className="adm-col-actions"><span className="adm-sr-only">{tc('actions')}</span></th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -385,19 +411,17 @@ export const AdminAbTests: React.FC = () => {
                         // the previous test's weights, and blurring one wrote
                         // that stale weight into the newly selected test.
                         <tr key={`${details.experiment.id}:${v.variant_key}`}>
-                          <td><code dir="ltr">{v.variant_key}</code></td>
+                          <td className="adm-mono adm-cell-ltr">{v.variant_key}</td>
                           <td><bdi>{v.label || '—'}</bdi></td>
                           <td>
                             {variantsLocked ? fmtNumber(v.weight) : (
-                              <input
+                              <NumberInput
                                 // Remount on a server-side change so the field
                                 // shows the saved value.
                                 key={v.weight}
-                                type="number"
                                 className="adm-input adm-input-sm"
                                 defaultValue={v.weight}
                                 min={0}
-                                step={1}
                                 aria-label={t('weightOf', { key: v.variant_key })}
                                 style={{ width: 80 }}
                                 onBlur={(e) => {
@@ -416,75 +440,78 @@ export const AdminAbTests: React.FC = () => {
                               />
                             )}
                           </td>
-                          <td>
-                            {!variantsLocked && (
-                              <button
-                                className="adm-btn adm-btn-danger adm-btn-sm"
-                                onClick={() => handleDeleteVariant(v.variant_key)}
-                                aria-label={t('removeVariant', { key: v.variant_key })}
-                                title={t('removeVariant', { key: v.variant_key })}
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </td>
+                          {!variantsLocked && (
+                            <td className="adm-col-actions">
+                              <div className="adm-row-actions">
+                                <IconButton
+                                  icon="trash"
+                                  tone="danger"
+                                  size="sm"
+                                  label={t('removeVariant', { key: v.variant_key })}
+                                  onClick={() => handleDeleteVariant(v.variant_key)}
+                                />
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {!variantsLocked && (
-                  <button className="adm-btn adm-btn-ghost adm-btn-sm" style={{ marginTop: 8 }} onClick={handleAddVariant}>{t('addVariant')}</button>
-                )}
+              </Card>
 
-                {details.results && details.results.results.length > 0 && (
-                  <>
-                    <h3 style={{ fontSize: 14, marginTop: 24, marginBottom: 8 }}>{t('results')}</h3>
-                    <div className="adm-table-wrap">
-                      <table className="adm-table">
-                        <thead>
-                          <tr>
-                            <th>{t('colVariant')}</th>
-                            <th style={{ width: 80 }}>{t('colExposed')}</th>
-                            <th style={{ width: 90 }}>{t('colConverted')}</th>
-                            <th style={{ width: 90 }}>{t('colRate')}</th>
-                            <th style={{ width: 80 }}>{t('colLift')}</th>
-                            <th style={{ width: 100 }}>{t('colConfidence')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {details.results.results.map((r, idx) => (
-                            <tr key={r.variant_key}>
-                              <td>
+              {details.results && details.results.results.length > 0 && (
+                <Card flush title={t('results')} icon="insights">
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>{t('colVariant')}</th>
+                          <th style={{ width: 90 }}>{t('colExposed')}</th>
+                          <th style={{ width: 100 }}>{t('colConverted')}</th>
+                          <th style={{ width: 90 }}>{t('colRate')}</th>
+                          <th style={{ width: 90 }}>{t('colLift')}</th>
+                          <th style={{ width: 100 }}>{t('colConfidence')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.results.results.map((r, idx) => (
+                          <tr key={r.variant_key}>
+                            <td>
+                              <div className="adm-flex">
                                 <strong><bdi>{r.label}</bdi></strong>
-                                {idx === 0 && <span style={{ fontSize: 10, color: 'var(--adm-text-dim)', marginInlineStart: 6 }}>{t('baseline')}</span>}
-                              </td>
-                              <td>{fmtNumber(r.exposed)}</td>
-                              <td>{fmtNumber(r.converted)}</td>
-                              <td>{(r.rate * 100).toFixed(2)}%</td>
-                              <td style={{ color: r.lift > 0 ? '#22c55e' : r.lift < 0 ? '#dc2626' : 'inherit' }}>
-                                {/* dir="ltr": a signed number ("+12%") otherwise shows its sign on the wrong side in Arabic. */}
-                                {idx === 0 ? '—' : <span dir="ltr">{`${r.lift > 0 ? '+' : ''}${r.lift}%`}</span>}
-                              </td>
-                              <td>{idx === 0 ? '—' : `${r.confidence}%`}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : selectedId != null ? (
-              <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>
-            ) : (
-              <div style={{ color: 'var(--adm-text-dim)', textAlign: 'center', padding: 32 }}>
-                {/* The list sits beside the panel on the reading-start side:
-                    left in English, right in Arabic (worded in each message). */}
-                {isMobile ? t('pickAbove') : t('pickSide')}
-              </div>
-            )}
-          </div>
+                                {idx === 0 && <Badge>{t('baseline')}</Badge>}
+                              </div>
+                            </td>
+                            <td>{fmtNumber(r.exposed)}</td>
+                            <td>{fmtNumber(r.converted)}</td>
+                            <td>{(r.rate * 100).toFixed(2)}%</td>
+                            <td>
+                              {idx === 0 ? '—' : (
+                                <Badge tone={r.lift > 0 ? 'success' : r.lift < 0 ? 'danger' : 'neutral'}>
+                                  {/* dir="ltr": a signed number ("+12%") otherwise shows its sign on the wrong side in Arabic. */}
+                                  <span dir="ltr">{`${r.lift > 0 ? '+' : ''}${r.lift}%`}</span>
+                                </Badge>
+                              )}
+                            </td>
+                            <td>{idx === 0 ? '—' : `${r.confidence}%`}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+            </div>
+          ) : selectedId != null ? (
+            <Card><Loading label={tc('loading')} /></Card>
+          ) : (
+            <Card>
+              {/* The list sits beside the panel on the reading-start side:
+                  left in English, right in Arabic (worded in each message). */}
+              <EmptyState icon="abtest" title={isMobile ? t('pickAbove') : t('pickSide')} compact />
+            </Card>
+          )}
         </div>
       )}
     </div>

@@ -4,11 +4,12 @@ import { AdminSidebar } from './components/AdminSidebar';
 import { AdminErrorBoundary } from './components/AdminErrorBoundary';
 import { adminApi, SESSION_EXPIRED_EVENT } from './utils/adminApi';
 import { defineMessages, useT } from './i18n/core';
+import { Alert, Button, IconButton } from './ui';
 
 const messages = defineMessages({
   en: {
     openMenu: 'Open menu',
-    brand: 'KARAHOCA Admin',
+    brand: 'KARAHOCA admin',
     sessionExpired: 'Your session has expired. Nothing you typed is lost: sign in again in a new tab, then come back here and save.',
     signInNewTab: 'Sign in (new tab)',
     dismiss: 'Dismiss',
@@ -85,31 +86,33 @@ export const AdminLayout: React.FC = () => {
       <div className="adm-main">
         {/* Mobile header */}
         <div className="adm-mobile-header">
-          <button
-            className="adm-btn adm-btn-ghost adm-btn-sm"
+          <IconButton
+            icon="menu"
+            label={t('openMenu')}
             onClick={() => setSidebarOpen(true)}
-            aria-label={t('openMenu')}
             aria-expanded={sidebarOpen}
-          >
-            ☰
-          </button>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>{t('brand')}</span>
+          />
+          <span className="adm-mobile-brand">{t('brand')}</span>
         </div>
 
         <div className="adm-content">
           {sessionExpired && (
-            <div className="adm-alert adm-alert-error adm-session-banner" role="alert">
-              <span>{t('sessionExpired')}</span>
-              <a href="/admin" target="_blank" rel="noopener" className="adm-btn adm-btn-sm adm-btn-primary">
-                {t('signInNewTab')}
-              </a>
-              <button type="button" className="adm-btn adm-btn-sm adm-btn-ghost" onClick={() => setSessionExpired(false)}>
-                {t('dismiss')}
-              </button>
-            </div>
+            <Alert
+              tone="warning"
+              action={(
+                <div className="adm-session-actions">
+                  <Button href="/admin" target="_blank" rel="noopener" variant="primary" size="sm" iconEnd="external">
+                    {t('signInNewTab')}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSessionExpired(false)}>{t('dismiss')}</Button>
+                </div>
+              )}
+            >
+              {t('sessionExpired')}
+            </Alert>
           )}
           {logoutError && (
-            <div className="adm-alert adm-alert-error" role="alert">{logoutError}</div>
+            <Alert tone="danger">{logoutError}</Alert>
           )}
           {/* Keyed by page so an error on one page doesn't stick to the next. */}
           <AdminErrorBoundary key={pathname}>

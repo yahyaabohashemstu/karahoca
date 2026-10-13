@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { adminApi, loginPathFor } from '../utils/adminApi';
 import { defineMessages, useT } from '../i18n/core';
+import { Loading } from '../ui';
 
 const messages = defineMessages({
   en: { checking: 'Checking session…' },
@@ -38,7 +39,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   if (sessionState === 'checking') {
-    return <div className="adm-loading-center"><span className="adm-spinner" /> {t('checking')}</div>;
+    return <Loading label={t('checking')} />;
   }
 
   if (sessionState !== 'authenticated') {

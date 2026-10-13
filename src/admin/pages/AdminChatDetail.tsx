@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { adminApi } from '../utils/adminApi';
@@ -7,13 +7,14 @@ import { useAsync } from '../utils/useAdminAuth';
 import { fmtDateTime } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { AdminIcon, Alert, Button, Card, EmptyState, LangTag, Loading, PageHeader } from '../ui';
 
 const messages = defineMessages({
   en: {
-    backToChats: '← Back to chats',
+    backToChats: 'Chat history',
     messageCount: { other: '{n} messages' },
     seen: 'First seen {first} · Last active {last}',
-    deleteConversation: '🗑 Delete conversation',
+    deleteConversation: 'Delete conversation',
     conversation: 'Conversation',
     noMessages: 'No messages found.',
     assistant: 'Assistant',
@@ -22,7 +23,7 @@ const messages = defineMessages({
     deleteFailed: 'Failed to delete the conversation',
   },
   ar: {
-    backToChats: '→ العودة إلى المحادثات',
+    backToChats: 'سجل المحادثات',
     messageCount: {
       zero: 'لا رسائل',
       one: 'رسالة واحدة',
@@ -32,7 +33,7 @@ const messages = defineMessages({
       other: '{n} رسالة',
     },
     seen: 'أول ظهور {first} · آخر نشاط {last}',
-    deleteConversation: '🗑 حذف المحادثة',
+    deleteConversation: 'حذف المحادثة',
     conversation: 'المحادثة',
     noMessages: 'لا توجد رسائل.',
     assistant: 'المساعد',
@@ -84,12 +85,16 @@ export const AdminChatDetail: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
+  const back = { to: '/admin/chats', label: t('backToChats') };
+  // The visitor id is the page title: monospace, read left to right.
+  const idTitle = (id: string) => <span className="adm-chat-title"><bdi dir="ltr">{id}</bdi></span>;
+
+  if (loading) return <Loading label={tc('loading')} />;
   if (error) {
     return (
       <div>
-        <Link to="/admin/chats" className="adm-btn adm-btn-ghost adm-btn-sm" style={{ marginBottom: 16 }}>{t('backToChats')}</Link>
-        <div className="adm-alert adm-alert-error">⚠ {error}</div>
+        <PageHeader title={idTitle(userId)} back={back} />
+        <Alert tone="danger">{error}</Alert>
       </div>
     );
   }
@@ -99,39 +104,20 @@ export const AdminChatDetail: React.FC = () => {
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <Link to="/admin/chats" className="adm-btn adm-btn-ghost adm-btn-sm">{tc('back')}</Link>
-          <div style={{ minWidth: 0 }}>
-            <h1 className="adm-page-title adm-chat-title"><bdi dir="ltr">{user?.id}</bdi></h1>
-            <p className="adm-page-subtitle">
-              <span className="adm-badge adm-badge-blue" style={{ marginInlineEnd: 8 }}>{user?.language}</span>
-              {t.plural('messageCount', chatMessages.length)} · {t('seen', { first: fmtDateTime(user?.first_seen), last: fmtDateTime(user?.last_seen) })}
-            </p>
-          </div>
-        </div>
-        <button className="adm-btn adm-btn-danger adm-btn-sm" onClick={handleDelete}>
-          {t('deleteConversation')}
-        </button>
-      </div>
+      <PageHeader
+        title={idTitle(user?.id ?? userId)}
+        back={back}
+        meta={user?.language ? <LangTag lang={user.language} /> : undefined}
+        subtitle={<>{t.plural('messageCount', chatMessages.length)} · {t('seen', { first: fmtDateTime(user?.first_seen), last: fmtDateTime(user?.last_seen) })}</>}
+        actions={<Button variant="danger" icon="trash" onClick={handleDelete}>{t('deleteConversation')}</Button>}
+      />
 
-      {deleteError && <div className="adm-alert adm-alert-error" role="alert">⚠ {deleteError}</div>}
+      {deleteError && <Alert tone="danger">{deleteError}</Alert>}
 
-      <div className="adm-card" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* Header */}
-        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--adm-border)' }}>
-          <span className="adm-card-title">{t('conversation')}</span>
-          <span className="adm-text-muted adm-text-sm" style={{ marginInlineStart: 12 }}>
-            {t.plural('messageCount', chatMessages.length)}
-          </span>
-        </div>
-
-        {/* Messages */}
+      <Card flush title={t('conversation')} icon="chats" subtitle={t.plural('messageCount', chatMessages.length)}>
         <div className="adm-chat-thread adm-chat-thread-page">
           {chatMessages.length === 0 ? (
-            <p className="adm-text-muted adm-text-sm" style={{ textAlign: 'center', padding: 32 }}>
-              {t('noMessages')}
-            </p>
+            <EmptyState icon="chats" title={t('noMessages')} compact />
           ) : chatMessages.map(msg => (
             <div
               key={msg.id}
@@ -139,8 +125,9 @@ export const AdminChatDetail: React.FC = () => {
             >
               <div className={`adm-chat-bubble adm-chat-${msg.role}`}>
                 <div className="adm-chat-meta">
+                  <AdminIcon name={msg.role === 'assistant' ? 'bot' : 'user'} size="xs" />
                   <strong>{msg.role === 'assistant' ? t('assistant') : t('visitor')}</strong>
-                  {msg.language && <span className="adm-chat-lang">{msg.language}</span>}
+                  {msg.language && <LangTag lang={msg.language} />}
                   <span>{fmtDateTime(msg.created_at)}</span>
                 </div>
                 {/* dir="auto": Arabic messages in this left-to-right page put
@@ -158,7 +145,7 @@ export const AdminChatDetail: React.FC = () => {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

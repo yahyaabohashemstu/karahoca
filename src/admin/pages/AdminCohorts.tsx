@@ -4,6 +4,7 @@ import { useAsync } from '../utils/useAdminAuth';
 import { fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Card, EmptyState, Loading, PageHeader, Tabs, Toolbar } from '../ui';
 
 /**
  * Cohort retention dashboard (Phase G3).
@@ -63,6 +64,8 @@ const messages = defineMessages({
   },
 });
 
+type Bucket = 'week' | 'month';
+
 // Language names are written in their own language ("All" is translated).
 const LANGS = [
   { code: 'ar', label: 'العربية' },
@@ -70,6 +73,8 @@ const LANGS = [
   { code: 'tr', label: 'Türkçe' },
   { code: 'ru', label: 'Русский' },
 ];
+
+const PERIOD_CHOICES = [4, 6, 8, 12, 16, 24];
 
 /**
  * Pick a background colour for a retention cell. Hue is fixed (the
@@ -80,7 +85,7 @@ const LANGS = [
  */
 const cellBg = (pct: number) => {
   if (pct <= 0) return 'transparent';
-  // Map 0–100 → alpha 0.05–0.85 with a touch of curve so 10-20% range
+  // Map 0–100 to alpha 0.05–0.85 with a touch of curve so 10-20% range
   // is already visible.
   const alpha = Math.min(0.85, 0.05 + Math.sqrt(pct / 100) * 0.8);
   return `rgba(79, 110, 247, ${alpha.toFixed(2)})`;
@@ -92,15 +97,19 @@ const FUTURE_CELL_BG =
 
 /**
  * The sticky Cohort column must be opaque, or the cells scrolling under
- * it show through (--adm-surface is a 4.5% white tint). The card's own
- * glass tint over the page's solid base colour matches the card.
+ * it show through (the glass tints are translucent). The table sits on
+ * two glass layers (the card and the table frame) over the page's solid
+ * base colour, so the cell paints the same stack.
  */
-const STICKY_BG = 'linear-gradient(var(--adm-glass), var(--adm-glass)), var(--adm-bg-mid)';
+const STICKY_BG =
+  'linear-gradient(var(--adm-glass), var(--adm-glass)), linear-gradient(var(--adm-glass), var(--adm-glass)), var(--adm-bg-mid)';
+
+const STICKY: React.CSSProperties = { position: 'sticky', insetInlineStart: 0, background: STICKY_BG, zIndex: 1 };
 
 export const AdminCohorts: React.FC = () => {
   const t = useT(messages);
   const tc = useT(common);
-  const [bucket, setBucket] = useState<'week' | 'month'>('week');
+  const [bucket, setBucket] = useState<Bucket>('week');
   const [periods, setPeriods] = useState(8);
   const [lang, setLang] = useState('');
 
@@ -113,135 +122,116 @@ export const AdminCohorts: React.FC = () => {
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">
-            {bucket === 'week' ? t('subtitleWeek') : t('subtitleMonth')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={bucket === 'week' ? t('subtitleWeek') : t('subtitleMonth')}
+      />
 
-      <div
-        className="adm-card"
-        style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}
-      >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('bucket')}</span>
+      <Toolbar>
+        <Tabs<Bucket>
+          variant="segmented"
+          size="sm"
+          ariaLabel={t('bucket')}
+          items={[
+            { value: 'week', label: t('weekly') },
+            { value: 'month', label: t('monthly') },
+          ]}
+          value={bucket}
+          onChange={setBucket}
+        />
+        <label className="adm-flex">
+          <span className="adm-toolbar-label">{t('periods')}</span>
           <select
-            className="adm-select adm-input-sm"
-            value={bucket}
-            onChange={(e) => setBucket(e.target.value === 'month' ? 'month' : 'week')}
-            style={{ width: 110 }}
-          >
-            <option value="week">{t('weekly')}</option>
-            <option value="month">{t('monthly')}</option>
-          </select>
-        </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('periods')}</span>
-          <select
-            className="adm-select adm-input-sm"
+            className="adm-select adm-select-sm"
             value={periods}
             onChange={(e) => setPeriods(Number(e.target.value))}
-            style={{ width: 90 }}
+            style={{ minWidth: 0 }}
           >
-            {[4, 6, 8, 12, 16, 24].map((n) => <option key={n} value={n}>{n}</option>)}
+            {PERIOD_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{tc('language')}</span>
+        <label className="adm-flex">
+          <span className="adm-toolbar-label">{tc('language')}</span>
           <select
-            className="adm-select adm-input-sm"
+            className="adm-select adm-select-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
-            style={{ width: 160 }}
           >
             <option value="">{t('allLanguages')}</option>
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
-      </div>
+      </Toolbar>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {loading && <Loading label={tc('loading')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       {!loading && !error && (
-        <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
+        <Card flush>
           {cohorts.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--adm-text-dim)' }}>
-              {t('noCohorts')}
-            </div>
+            <EmptyState compact icon="cohorts" title={t('noCohorts')} />
           ) : (
-            <table className="adm-table" style={{ minWidth: 'max-content' }}>
-              <thead>
-                <tr>
-                  <th style={{ position: 'sticky', insetInlineStart: 0, background: STICKY_BG, minWidth: 130, zIndex: 1 }}>
-                    {t('colCohort')}
-                  </th>
-                  <th style={{ minWidth: 60 }}>{t('colSize')}</th>
-                  {Array.from({ length: periods }, (_, p) => (
-                    <th key={p} style={{ textAlign: 'center', minWidth: 70 }}>
-                      {bucket === 'week' ? t('colWeek', { n: p }) : t('colMonth', { n: p })}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cohorts.map((c) => (
-                  <tr key={c.cohort}>
-                    <td style={{
-                      position: 'sticky',
-                      insetInlineStart: 0,
-                      background: STICKY_BG,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      whiteSpace: 'nowrap',
-                      zIndex: 1,
-                    }}>
-                      {c.cohort}
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>{fmtNumber(c.size)}</td>
-                    {c.retention.map((r) => {
-                      // null = this period hasn't started yet (no data);
-                      // 0 = it has, and nobody came back.
-                      const pct: number | null = r.pct;
-                      if (pct === null) {
+            <div className="adm-table-wrap">
+              <table className="adm-table" style={{ minWidth: 'max-content' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...STICKY, minWidth: 130 }}>{t('colCohort')}</th>
+                    <th style={{ minWidth: 60 }}>{t('colSize')}</th>
+                    {Array.from({ length: periods }, (_, p) => (
+                      <th key={p} style={{ textAlign: 'center', minWidth: 70 }}>
+                        {bucket === 'week' ? t('colWeek', { n: p }) : t('colMonth', { n: p })}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cohorts.map((c) => (
+                    <tr key={c.cohort}>
+                      <td style={{ ...STICKY, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        <span className="adm-text-sm">{c.cohort}</span>
+                      </td>
+                      <td><span className="adm-text-sm adm-text-muted">{fmtNumber(c.size)}</span></td>
+                      {c.retention.map((r) => {
+                        // null = this period hasn't started yet (no data);
+                        // 0 = it has, and nobody came back.
+                        const pct: number | null = r.pct;
+                        if (pct === null) {
+                          return (
+                            <td
+                              key={r.period}
+                              title={t('notStarted', { label: r.label })}
+                              aria-label={t('notReached')}
+                              style={{ background: FUTURE_CELL_BG }}
+                            />
+                          );
+                        }
+                        // Heatmap cell: background and label colour are the chart's.
                         return (
                           <td
                             key={r.period}
-                            title={t('notStarted', { label: r.label })}
-                            aria-label={t('notReached')}
-                            style={{ background: FUTURE_CELL_BG }}
-                          />
+                            title={t(bucket === 'week' ? 'returnedWeek' : 'returnedMonth', {
+                              returners: fmtNumber(r.returners),
+                              size: fmtNumber(c.size),
+                              label: r.label,
+                            })}
+                            style={{
+                              textAlign: 'center',
+                              fontWeight: 600,
+                              background: cellBg(pct),
+                              color: pct >= 50 ? '#fff' : undefined,
+                            }}
+                          >
+                            <span className={pct === 0 ? 'adm-text-sm adm-text-muted' : 'adm-text-sm'}>{pct}%</span>
+                          </td>
                         );
-                      }
-                      return (
-                        <td
-                          key={r.period}
-                          title={t(bucket === 'week' ? 'returnedWeek' : 'returnedMonth', {
-                            returners: fmtNumber(r.returners),
-                            size: fmtNumber(c.size),
-                            label: r.label,
-                          })}
-                          style={{
-                            textAlign: 'center',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            background: cellBg(pct),
-                            color: pct >= 50 ? '#fff' : pct === 0 ? 'var(--adm-text-dim)' : 'inherit',
-                          }}
-                        >
-                          {pct}%
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

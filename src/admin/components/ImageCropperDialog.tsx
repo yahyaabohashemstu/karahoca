@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useModalDialog } from '../utils/useModalDialog';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Button, Modal, Tabs } from '../ui';
 
 const messages = defineMessages({
   en: {
-    title: '✂️ Crop image',
+    title: 'Crop image',
+    aspectLabel: 'Aspect ratio',
     aspect_free: 'Free',
     aspect_square: '1:1 Square (catalogue default)',
     aspect_banner: '3:2 Banner (hero / flipbook)',
@@ -18,15 +19,16 @@ const messages = defineMessages({
     sizeInfo: '{w} × {h} px (preview) — saves at {outW} × {outH} px',
     pickFile: 'Pick a file to crop',
     cropping: 'Cropping…',
-    applyCrop: '✓ Apply crop',
+    applyCrop: 'Apply crop',
     errImageMissing: 'Image element missing.',
     errCanvas: 'Canvas 2D context unavailable.',
-    errBlob: 'Canvas → blob conversion failed.',
+    errBlob: 'Could not convert the cropped image to a file.',
     errTooBig: 'The cropped image is {size} MB, over the 10 MB upload limit. Crop a smaller area.',
     cropFailed: 'Crop failed.',
   },
   ar: {
-    title: '✂️ قص الصورة',
+    title: 'قص الصورة',
+    aspectLabel: 'نسبة الأبعاد',
     aspect_free: 'حرّ',
     aspect_square: '1:1 مربع (الافتراضي في الكتالوج)',
     aspect_banner: '3:2 لافتة (الواجهة الرئيسية / الكتيّب)',
@@ -39,7 +41,7 @@ const messages = defineMessages({
     sizeInfo: '{w} × {h} بكسل (معاينة) — تُحفظ بحجم {outW} × {outH} بكسل',
     pickFile: 'اختر ملفًا لقصه',
     cropping: 'جارٍ القص…',
-    applyCrop: '✓ تطبيق القص',
+    applyCrop: 'تطبيق القص',
     errImageMissing: 'عنصر الصورة غير موجود.',
     errCanvas: 'لا يتيح المتصفح الرسم على Canvas 2D.',
     errBlob: 'تعذّر تحويل الصورة المقصوصة إلى ملف.',
@@ -387,17 +389,12 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     } as const;
   }, [box]);
 
-  // Escape cancels, except mid-export (the result would arrive after close).
-  const panelRef = useModalDialog<HTMLDivElement>(open, () => { if (!working) onCancel(); });
-
-  // Early exit only AFTER every hook has run: returning before `useMemo`
-  // above made the closed → open render call one more hook than the
-  // previous one, which React rejects ("Rendered more hooks than during
-  // the previous render") — the "Crop & upload" button crashed the page.
-  if (!open) return null;
+  // Escape, the close button and Cancel do nothing mid-export (the result
+  // would arrive after close).
+  const handleClose = () => { if (!working) onCancel(); };
 
   const outputSize = (() => {
-    if (!imgDims || !box) return null;
+    if (!open || !imgDims || !box) return null;
     const img = containerRef.current?.querySelector('img');
     return exportSize(
       box.width * (imgDims.w / (img?.clientWidth || imgDims.w)),
@@ -406,67 +403,48 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
   })();
 
   return (
-    <div
-      role="presentation"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 23, 42, 0.7)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: 16,
-      }}
-      onPointerUp={endDrag}
-      onPointerLeave={endDrag}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="image-cropper-title"
-        tabIndex={-1}
-        className="adm-card"
-        style={{
-          width: 'min(820px, 100%)',
-          maxHeight: 'calc(100vh - 32px)',
-          padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          outline: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 id="image-cropper-title" style={{ margin: 0, fontSize: 18 }}>{t('title')}</h2>
-          <button
-            type="button"
-            className="adm-btn adm-btn-ghost adm-btn-sm"
-            onClick={onCancel}
-            disabled={working}
-            aria-label={tc('close')}
+    <Modal
+      open={open}
+      title={t('title')}
+      onClose={handleClose}
+      closeLabel={tc('close')}
+      size="lg"
+      footer={(
+        <>
+          <span className="adm-text-sm adm-text-muted" style={{ marginInlineEnd: 'auto', alignSelf: 'center' }}>
+            {box && outputSize
+              ? t('sizeInfo', { w: Math.round(box.width), h: Math.round(box.height), outW: outputSize.w, outH: outputSize.h })
+              : t('pickFile')}
+          </span>
+          <Button variant="ghost" onClick={handleClose} disabled={working}>
+            {tc('cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            icon="check"
+            onClick={applyCrop}
+            disabled={!box || !imgDims}
+            loading={working}
           >
-            ✕
-          </button>
-        </div>
-
+            {working ? t('cropping') : t('applyCrop')}
+          </Button>
+        </>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Aspect-ratio selector */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {(['free', 'square', 'banner'] as const).map((a) => (
-            <button
-              key={a}
-              type="button"
-              className={`adm-btn adm-btn-sm ${aspect === a ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
-              onClick={() => setAspect(a)}
-            >
-              {t(`aspect_${a}`)}
-            </button>
-          ))}
-        </div>
+        <Tabs<AspectRatio>
+          variant="segmented"
+          ariaLabel={t('aspectLabel')}
+          value={aspect}
+          onChange={setAspect}
+          items={(['free', 'square', 'banner'] as const).map((a) => ({ value: a, label: t(`aspect_${a}`) }))}
+        />
 
         {/* The image + crop overlay. Always left-to-right: the box,
-            strips and handles are positioned in px from the left edge. */}
+            strips and handles are positioned in px from the left edge.
+            Pointer capture (startDrag) sends the move / up events of a
+            drag here, so the drag ends wherever the pointer is released. */}
         <div
           ref={containerRef}
           dir="ltr"
@@ -481,6 +459,9 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
             alignSelf: 'center',
           }}
           onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={endDrag}
         >
           {imageUrl && (
             <img
@@ -548,34 +529,8 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
           )}
         </div>
 
-        {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--adm-text-dim)' }}>
-            {box && outputSize
-              ? t('sizeInfo', { w: Math.round(box.width), h: Math.round(box.height), outW: outputSize.w, outH: outputSize.h })
-              : t('pickFile')}
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button"
-              className="adm-btn adm-btn-ghost adm-btn-sm"
-              onClick={onCancel}
-              disabled={working}
-            >
-              {tc('cancel')}
-            </button>
-            <button
-              type="button"
-              className="adm-btn adm-btn-primary adm-btn-sm"
-              onClick={applyCrop}
-              disabled={working || !box || !imgDims}
-            >
-              {working ? t('cropping') : t('applyCrop')}
-            </button>
-          </div>
-        </div>
+        {error && <Alert tone="danger">{error}</Alert>}
       </div>
-    </div>
+    </Modal>
   );
 };

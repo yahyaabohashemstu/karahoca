@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AdminLangContext, defineMessages } from '../i18n/core';
+import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/Layout';
 
 // A class component can't call useT; it reads the language from context.
 const messages = defineMessages({
@@ -76,16 +78,13 @@ export class AdminErrorBoundary extends Component<Props, State> {
     const chunk = isChunkLoadError(error);
     const m = messages[this.context?.lang ?? 'ar'] as Record<keyof typeof messages.en, string>;
     return (
-      <div className="adm-card" role="alert" style={{ maxWidth: 560, margin: '48px auto', textAlign: 'center' }}>
-        <div className="adm-card-title" style={{ marginBottom: 8 }}>
-          {chunk ? m.updatedTitle : m.errorTitle}
-        </div>
-        <p className="adm-text-muted" style={{ marginBottom: 20 }}>
-          {chunk ? m.updatedText : error.message || m.errorText}
-        </p>
-        <button type="button" className="adm-btn adm-btn-primary" onClick={() => window.location.reload()}>
-          {m.reload}
-        </button>
+      <div className="adm-card adm-error-panel" role="alert">
+        <EmptyState
+          icon={chunk ? 'refresh' : 'alert'}
+          title={chunk ? m.updatedTitle : m.errorTitle}
+          text={chunk ? m.updatedText : error.message || m.errorText}
+          action={<Button variant="primary" icon="refresh" onClick={() => window.location.reload()}>{m.reload}</Button>}
+        />
       </div>
     );
   }

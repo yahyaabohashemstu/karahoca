@@ -3,6 +3,9 @@ import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT, type Translate } from '../i18n/core';
+import {
+  Alert, Card, EmptyState, LangTag, Loading, PageHeader, StatCard, StatGrid, Tabs, Toolbar,
+} from '../ui';
 
 /**
  * Karo Insights — first-party analytics dashboard for the AI chat.
@@ -34,10 +37,13 @@ import { defineMessages, useT, type Translate } from '../i18n/core';
 
 const messages = defineMessages({
   en: {
-    title: '🤖 Karo Insights',
+    title: 'Karo insights',
+    subtitle: 'How visitors use Karo, the site\'s chat assistant: volume, origin, languages and what they ask about.',
+    period: 'Period',
     custom: 'Custom',
     lastDays: { other: 'Last {n} days' },
-    rangeArrow: '→',
+    from: 'From',
+    to: 'To',
     loading: 'Loading insights…',
     loadFailed: 'Failed to load insights: {error}',
     thousands: '{n}K',
@@ -54,30 +60,33 @@ const messages = defineMessages({
     whatsappCtrSub: 'of chat openers, from the chat',
     dropped: 'Dropped convos',
     droppedSub: 'Visitor turn without a reply',
-    topCountries: '🌍 Top countries',
+    topCountries: 'Top countries',
     colCountry: 'Country',
     colChats: 'Chats',
-    langDist: '🗣 Language distribution',
+    langDist: 'Language distribution',
     colLang: 'Lang',
-    topProducts: '📦 Top products asked about',
+    topProducts: 'Top products asked about',
     colProduct: 'Product',
     colHits: 'Hits',
     noProducts: 'No product events yet.',
-    topChips: '💬 Top follow-up chips',
+    topChips: 'Top follow-up chips',
     colChip: 'Chip',
     colTaps: 'Taps',
     noChips: 'No chip taps yet.',
     emptyChip: '(empty)',
-    dailyVolume: '📈 Daily chat volume',
+    dailyVolume: 'Daily chat volume',
     noChatsInRange: 'No chats in this range.',
     noData: 'No data yet.',
     dayBar: '{day}: {opens} opens, {visitors} visitors',
   },
   ar: {
-    title: '🤖 إحصاءات كارو',
+    title: 'إحصاءات كارو',
+    subtitle: 'كيف يستخدم الزوار كارو، مساعد المحادثة في الموقع: حجم المحادثات، ومن أين يأتون، ولغاتهم، وعمّا يسألون.',
+    period: 'الفترة',
     custom: 'فترة مخصّصة',
     lastDays: { one: 'آخر يوم', two: 'آخر يومين', few: 'آخر {n} أيام', many: 'آخر {n} يومًا', other: 'آخر {n} يوم' },
-    rangeArrow: '←',
+    from: 'من',
+    to: 'إلى',
     loading: 'جارٍ تحميل الإحصاءات…',
     loadFailed: 'تعذّر تحميل الإحصاءات: {error}',
     thousands: '{n} ألف',
@@ -94,21 +103,21 @@ const messages = defineMessages({
     whatsappCtrSub: 'من الذين فتحوا المحادثة، من داخل المحادثة',
     dropped: 'محادثات بلا رد',
     droppedSub: 'رسالة من الزائر لم يُرَدّ عليها',
-    topCountries: '🌍 أبرز الدول',
+    topCountries: 'أبرز الدول',
     colCountry: 'الدولة',
     colChats: 'المحادثات',
-    langDist: '🗣 توزيع اللغات',
+    langDist: 'توزيع اللغات',
     colLang: 'اللغة',
-    topProducts: '📦 أكثر المنتجات التي سُئل عنها',
+    topProducts: 'أكثر المنتجات التي سُئل عنها',
     colProduct: 'المنتج',
     colHits: 'مرات الظهور',
     noProducts: 'لا توجد أحداث منتجات بعد.',
-    topChips: '💬 أكثر الاقتراحات المتابِعة استخدامًا',
+    topChips: 'أكثر الاقتراحات المتابِعة استخدامًا',
     colChip: 'الاقتراح',
     colTaps: 'النقرات',
     noChips: 'لم يُنقر على أي اقتراح بعد.',
     emptyChip: '(فارغ)',
-    dailyVolume: '📈 حجم المحادثات اليومي',
+    dailyVolume: 'حجم المحادثات اليومي',
     noChatsInRange: 'لا توجد محادثات في هذه الفترة.',
     noData: 'لا توجد بيانات بعد.',
     dayBar: '{day} — مرات الفتح: {opens}، الزوار: {visitors}',
@@ -117,50 +126,8 @@ const messages = defineMessages({
 
 type T = Translate<keyof typeof messages.en>;
 
-// Style tokens — kept inline so the page reads top-to-bottom without
-// jumping to a separate CSS module. Mirrors the muted-glass aesthetic
-// the existing admin pages use.
-const s = {
-  card: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    padding: '16px 18px',
-  } as React.CSSProperties,
-  kpiGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: 12,
-    marginBottom: 18,
-  } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 } as React.CSSProperties,
-  kpiValue: { fontSize: 24, fontWeight: 800 } as React.CSSProperties,
-  kpiSub: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 } as React.CSSProperties,
-  sectionTitle: { margin: '24px 0 10px', fontSize: 16, fontWeight: 700 } as React.CSSProperties,
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } as React.CSSProperties,
-  th: {
-    textAlign: 'start',
-    padding: '8px 10px',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    color: 'rgba(255,255,255,0.55)',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-  } as React.CSSProperties,
-  td: { padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)' } as React.CSSProperties,
-  empty: { textAlign: 'center', padding: 28, color: 'rgba(255,255,255,0.4)' } as React.CSSProperties,
-  rangePicker: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 } as React.CSSProperties,
-  rangeBtn: {
-    background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.18)',
-    color: '#fff',
-    padding: '6px 12px',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 13,
-  } as React.CSSProperties,
-  rangeBtnActive: { background: 'rgba(245,75,26,0.18)', borderColor: '#F54B1A' } as React.CSSProperties,
-};
+/** Numeric columns line up at the end of the cell. */
+const NUM: React.CSSProperties = { textAlign: 'end' };
 
 const fmt = (n: number, t: T) =>
   n >= 1_000_000 ? t('millions', { n: (n / 1_000_000).toFixed(1) })
@@ -176,6 +143,8 @@ const isoDaysAgo = (days: number): string => {
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
 type PresetKey = '7' | '30' | '90' | 'custom';
+
+const PRESETS: PresetKey[] = ['7', '30', '90', 'custom'];
 
 export const AdminKaroInsights: React.FC = () => {
   const t = useT(messages);
@@ -198,190 +167,176 @@ export const AdminKaroInsights: React.FC = () => {
 
   return (
     <div>
-      <h1 style={{ margin: '0 0 18px', fontSize: 22 }}>{t('title')}</h1>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       {/* Range picker */}
-      <div style={s.rangePicker}>
-        {(['7', '30', '90', 'custom'] as PresetKey[]).map((p) => (
-          <button
-            key={p}
-            type="button"
-            style={{
-              ...s.rangeBtn,
-              ...(preset === p ? s.rangeBtnActive : {}),
-            }}
-            onClick={() => setPreset(p)}
-          >
-            {p === 'custom' ? t('custom') : t.plural('lastDays', Number(p))}
-          </button>
-        ))}
+      <Toolbar>
+        <Tabs
+          variant="segmented"
+          size="sm"
+          ariaLabel={t('period')}
+          items={PRESETS.map((p) => ({ value: p, label: p === 'custom' ? t('custom') : t.plural('lastDays', Number(p)) }))}
+          value={preset}
+          onChange={setPreset}
+        />
         {preset === 'custom' && (
           <>
-            <input
-              type="date"
-              value={customFrom}
-              max={customTo}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              style={{ ...s.rangeBtn, padding: '6px 10px' }}
-            />
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>{t('rangeArrow')}</span>
-            <input
-              type="date"
-              value={customTo}
-              min={customFrom}
-              max={todayIso()}
-              onChange={(e) => setCustomTo(e.target.value)}
-              style={{ ...s.rangeBtn, padding: '6px 10px' }}
-            />
+            <label className="adm-flex">
+              <span className="adm-toolbar-label">{t('from')}</span>
+              <input
+                type="date"
+                className="adm-input adm-input-sm"
+                value={customFrom}
+                max={customTo}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+            </label>
+            <label className="adm-flex">
+              <span className="adm-toolbar-label">{t('to')}</span>
+              <input
+                type="date"
+                className="adm-input adm-input-sm"
+                value={customTo}
+                min={customFrom}
+                max={todayIso()}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </label>
           </>
         )}
-      </div>
+      </Toolbar>
 
-      {loading && <p style={{ color: 'rgba(255,255,255,0.55)' }}>{t('loading')}</p>}
-      {error && (
-        <p style={{ color: '#f87171' }}>{t('loadFailed', { error: String(error) })}</p>
-      )}
+      {loading && <Loading label={t('loading')} />}
+      {error && <Alert tone="danger">{t('loadFailed', { error: String(error) })}</Alert>}
 
       {data && (
         <>
-          {/* KPI tiles */}
-          <div style={s.kpiGrid}>
-            <Kpi label={t('uniqueVisitors')} value={fmt(kpi?.uniqueVisitors || 0, t)} sub={t('uniqueVisitorsSub')} />
-            <Kpi label={t('chatOpens')} value={fmt(kpi?.chatOpens || 0, t)} sub={t('chatOpensSub')} />
-            <Kpi
+          <StatGrid>
+            <StatCard icon="cohorts" tone="info" label={t('uniqueVisitors')} value={fmt(kpi?.uniqueVisitors || 0, t)} sub={t('uniqueVisitorsSub')} />
+            <StatCard icon="bot" label={t('chatOpens')} value={fmt(kpi?.chatOpens || 0, t)} sub={t('chatOpensSub')} />
+            <StatCard
+              icon="chats"
+              tone="violet"
               label={t('totalMessages')}
               value={fmt(kpi?.totalMessages || 0, t)}
               sub={t('totalMessagesSub', { user: fmt(kpi?.userMessages || 0, t), karo: fmt(kpi?.assistantMessages || 0, t) })}
             />
-            <Kpi label={t('avgPerConvo')} value={String(kpi?.avgMessagesPerConvo || 0)} sub={t('avgPerConvoSub')} />
+            <StatCard icon="insights" tone="info" label={t('avgPerConvo')} value={String(kpi?.avgMessagesPerConvo || 0)} sub={t('avgPerConvoSub')} />
             {/* Capped: a rate over 100% can only mean mismatched counts. */}
-            <Kpi label={t('whatsappCtr')} value={`${Math.min(100, kpi?.whatsappCtr || 0)}%`} sub={t('whatsappCtrSub')} />
-            <Kpi label={t('dropped')} value={fmt(kpi?.droppedConversations || 0, t)} sub={t('droppedSub')} />
+            <StatCard icon="whatsapp" tone="success" label={t('whatsappCtr')} value={`${Math.min(100, kpi?.whatsappCtr || 0)}%`} sub={t('whatsappCtrSub')} />
+            <StatCard icon="alert" tone="warning" label={t('dropped')} value={fmt(kpi?.droppedConversations || 0, t)} sub={t('droppedSub')} />
+          </StatGrid>
+
+          <div className="adm-stack">
+            {/* Two-column layout for the distribution tables */}
+            <div className="adm-analytics-grid-2">
+              <Card title={t('topCountries')} icon="language">
+                {data.byCountry.length === 0 ? <EmptyState compact icon="language" title={t('noData')} /> : (
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>{t('colCountry')}</th>
+                          <th style={NUM}>{t('colChats')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.byCountry.map((row) => (
+                          <tr key={row.country}>
+                            <td>{row.country}</td>
+                            <td style={NUM}>{fmt(row.count, t)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+
+              <Card title={t('langDist')} icon="language">
+                {data.byLang.length === 0 ? <EmptyState compact icon="language" title={t('noData')} /> : (
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>{t('colLang')}</th>
+                          <th style={NUM}>{t('colChats')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.byLang.map((row) => (
+                          <tr key={row.lang}>
+                            <td><LangTag lang={row.lang} /></td>
+                            <td style={NUM}>{fmt(row.count, t)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+
+              <Card title={t('topProducts')} icon="products">
+                {data.topProducts.length === 0 ? <EmptyState compact icon="products" title={t('noProducts')} /> : (
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>{t('colProduct')}</th>
+                          <th style={NUM}>{t('colHits')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.topProducts.map((row) => (
+                          <tr key={row.product_id}>
+                            <td className="adm-cell-ltr"><code className="adm-mono">{row.product_id}</code></td>
+                            <td style={NUM}>{fmt(row.hits, t)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+
+              <Card title={t('topChips')} icon="chats">
+                {data.topFollowupChips.length === 0 ? <EmptyState compact icon="chats" title={t('noChips')} /> : (
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>{t('colChip')}</th>
+                          <th style={NUM}>{t('colTaps')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.topFollowupChips.map((row, i) => (
+                          <tr key={`${row.chip}-${i}`}>
+                            <td><bdi>{row.chip || t('emptyChip')}</bdi></td>
+                            <td style={NUM}>{fmt(row.count, t)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Sparkline-style daily volume */}
+            <Card title={t('dailyVolume')} icon="analytics">
+              {/* byDay has every day of the range (quiet days as 0), so
+                  "no chats" means every day is 0, not an empty list. */}
+              {data.byDay.every((row) => row.opens === 0) ? <EmptyState compact icon="analytics" title={t('noChatsInRange')} /> : (
+                <DailyBars rows={data.byDay} />
+              )}
+            </Card>
           </div>
-
-          {/* Two-column layout for the distribution tables */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-            <Section title={t('topCountries')}>
-              {data.byCountry.length === 0 ? <p style={s.empty}>{t('noData')}</p> : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>
-                      <th style={s.th}>{t('colCountry')}</th>
-                      <th style={{ ...s.th, textAlign: 'end' }}>{t('colChats')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.byCountry.map((row) => (
-                      <tr key={row.country}>
-                        <td style={s.td}>{row.country}</td>
-                        <td style={{ ...s.td, textAlign: 'end' }}>{fmt(row.count, t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Section>
-
-            <Section title={t('langDist')}>
-              {data.byLang.length === 0 ? <p style={s.empty}>{t('noData')}</p> : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>
-                      <th style={s.th}>{t('colLang')}</th>
-                      <th style={{ ...s.th, textAlign: 'end' }}>{t('colChats')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.byLang.map((row) => (
-                      <tr key={row.lang}>
-                        <td style={s.td}>{row.lang.toUpperCase()}</td>
-                        <td style={{ ...s.td, textAlign: 'end' }}>{fmt(row.count, t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Section>
-
-            <Section title={t('topProducts')}>
-              {data.topProducts.length === 0 ? <p style={s.empty}>{t('noProducts')}</p> : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>
-                      <th style={s.th}>{t('colProduct')}</th>
-                      <th style={{ ...s.th, textAlign: 'end' }}>{t('colHits')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topProducts.map((row) => (
-                      <tr key={row.product_id}>
-                        <td style={s.td}>
-                          <code dir="ltr" style={{ fontSize: 12, color: 'rgba(255,255,255,0.78)' }}>{row.product_id}</code>
-                        </td>
-                        <td style={{ ...s.td, textAlign: 'end' }}>{fmt(row.hits, t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Section>
-
-            <Section title={t('topChips')}>
-              {data.topFollowupChips.length === 0 ? <p style={s.empty}>{t('noChips')}</p> : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>
-                      <th style={s.th}>{t('colChip')}</th>
-                      <th style={{ ...s.th, textAlign: 'end' }}>{t('colTaps')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topFollowupChips.map((row, i) => (
-                      <tr key={`${row.chip}-${i}`}>
-                        <td style={s.td}><bdi>{row.chip || t('emptyChip')}</bdi></td>
-                        <td style={{ ...s.td, textAlign: 'end' }}>{fmt(row.count, t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Section>
-          </div>
-
-          {/* Sparkline-style daily volume */}
-          <Section title={t('dailyVolume')} style={{ marginTop: 14 }}>
-            {/* byDay has every day of the range (quiet days as 0), so
-                "no chats" means every day is 0, not an empty list. */}
-            {data.byDay.every((row) => row.opens === 0) ? <p style={s.empty}>{t('noChatsInRange')}</p> : (
-              <DailyBars rows={data.byDay} />
-            )}
-          </Section>
         </>
       )}
     </div>
   );
 };
-
-interface KpiProps { label: string; value: string; sub: string; }
-const Kpi: React.FC<KpiProps> = ({ label, value, sub }) => (
-  <div style={s.card}>
-    <div style={s.kpiLabel}>{label}</div>
-    <div style={s.kpiValue}>{value}</div>
-    <div style={s.kpiSub}>{sub}</div>
-  </div>
-);
-
-interface SectionProps {
-  title: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}
-const Section: React.FC<SectionProps> = ({ title, style, children }) => (
-  <div style={{ ...s.card, ...style }}>
-    <h2 style={s.sectionTitle}>{title}</h2>
-    {children}
-  </div>
-);
 
 /**
  * Pure-CSS bar chart for the daily volume series. Avoids pulling in a
@@ -410,6 +365,7 @@ const DailyBars: React.FC<DailyBarsProps> = ({ rows }) => {
               flex: 1,
               minWidth: dense ? 2 : 4,
               height: `${heightPct}%`,
+              // Chart bar colour (series).
               background: 'linear-gradient(180deg, #F54B1A 0%, rgba(245,75,26,0.4) 100%)',
               borderRadius: '3px 3px 0 0',
               transition: 'opacity 0.15s',

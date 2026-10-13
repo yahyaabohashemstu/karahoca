@@ -5,6 +5,7 @@ import { AdminErrorBoundary } from './components/AdminErrorBoundary';
 import { AdminI18nProvider } from './i18n/AdminI18nProvider';
 import { useT } from './i18n/core';
 import { common } from './i18n/common';
+import { Loading } from './ui';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import '../styles/admin.css';
@@ -33,7 +34,7 @@ const AdminAbTests = lazy(() => import('./pages/AdminAbTests').then((m) => ({ de
 
 const Fallback = () => {
   const tc = useT(common);
-  return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
+  return <Loading label={tc('loading')} />;
 };
 
 const wrap = (C: React.ComponentType) => (

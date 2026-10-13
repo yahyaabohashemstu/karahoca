@@ -3,13 +3,17 @@ import { adminApi, type AdminAnalytics as AdminAnalyticsData, type GaData } from
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate, fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT, type Translate } from '../i18n/core';
+import {
+  AdminIcon, Alert, Badge, Button, Card, EmptyState, LangTag, Loading, PageHeader, SectionTitle,
+  StatCard, StatGrid, Tabs, Toolbar, type IconName,
+} from '../ui';
 
 const messages = defineMessages({
   en: {
-    gaStep1: 'Go to Google Cloud Console → IAM & Admin → Service Accounts → Create service account',
+    gaStep1: 'Go to Google Cloud Console > IAM & Admin > Service Accounts > Create service account',
     gaStep2: 'Download the JSON key file for that service account',
-    gaStep3: 'In GA4: Admin → Property Access Management → add the service-account email as Viewer',
-    gaStep4: 'In Google Cloud Console: APIs & Services → Library → Enable "Google Analytics Data API"',
+    gaStep3: 'In GA4: Admin > Property Access Management, then add the service-account email as Viewer',
+    gaStep4: 'In Google Cloud Console: APIs & Services > Library, then enable "Google Analytics Data API"',
     gaStep5: 'Add to the API environment:  GA_PROPERTY_ID=XXXXXXXXX  (numbers only)',
     gaStep6: 'Add to the API environment:  GA_SERVICE_ACCOUNT_JSON={"type":"service_account",...}  (one line)',
     gaStep7: 'Restart the API service',
@@ -21,12 +25,12 @@ const messages = defineMessages({
     device_mobile: 'mobile',
     device_desktop: 'desktop',
     device_tablet: 'tablet',
-    srcOrganicSearch: 'Organic Search',
+    srcOrganicSearch: 'Organic search',
     srcDirect: 'Direct',
     srcReferral: 'Referral',
-    srcOrganicSocial: 'Organic Social',
+    srcOrganicSocial: 'Organic social',
     srcEmail: 'Email',
-    srcPaidSearch: 'Paid Search',
+    srcPaidSearch: 'Paid search',
     srcDisplay: 'Display',
     srcUnassigned: 'Unassigned',
     thousands: '{n}K',
@@ -35,14 +39,12 @@ const messages = defineMessages({
     durationSec: '{s}s',
     setupTitle: 'Google Analytics 4 setup required',
     setupCopy: 'Complete the following steps to connect the property cleanly.',
+    period: 'Period',
     periodDays: { other: '{n} days' },
     lastDays: { other: 'last {n} days' },
-    printTagline: 'Analytics Report',
+    printTagline: 'Analytics report',
     printGenerated: 'Generated: {date}',
     printPeriod: 'Trends: {trend} · GA4: {ga} · Totals: all time',
-    printConnected: '● GA4 Connected',
-    printNotConfigured: '○ GA4 Not Configured',
-    eyebrow: 'Performance Overview',
     title: 'Analytics',
     heroText: 'A cleaner view of Google Analytics 4 plus internal bot and newsletter activity, organized for faster reading and comparison.',
     gaConnected: 'GA4 connected',
@@ -50,17 +52,17 @@ const messages = defineMessages({
     gaConnectedCopy: 'Traffic and device insights are available below.',
     gaNotConfiguredCopy: 'Add the property configuration to unlock reporting.',
     exportPdfTitle: 'Export as PDF',
-    exportPdf: '🖨️ Export PDF',
+    exportPdf: 'Export PDF',
     periodNote: 'The period applies to the daily chat and newsletter trends. Google Analytics covers the {range}; the totals, chat languages and most active users are all-time.',
     loadingGa: 'Loading Google Analytics data…',
     gaError: 'GA4 API error',
     gaSection: 'Google Analytics 4 — {range}',
     sessions: 'Sessions',
-    activeUsers: 'Active Users',
-    newUsers: 'New Users',
-    pageViews: 'Page Views',
-    bounceRate: 'Bounce Rate',
-    avgSession: 'Avg Session',
+    activeUsers: 'Active users',
+    newUsers: 'New users',
+    pageViews: 'Page views',
+    bounceRate: 'Bounce rate',
+    avgSession: 'Avg session',
     perSession: 'per session',
     sessionsPerDay: 'Sessions per day',
     sessionsPerDayCopy: 'Daily sessions over the {range}.',
@@ -74,12 +76,12 @@ const messages = defineMessages({
     sourcesCopy: 'How visitors are discovering the website.',
     topPages: 'Top pages',
     topPagesCopy: 'The most viewed destinations across the site.',
-    internalSection: 'Internal Stats — Bot & Newsletter',
+    internalSection: 'Internal stats — bot & newsletter',
     loadingInternal: 'Loading internal analytics…',
     messages: 'Messages',
-    chatUsers: 'Chat Users',
+    chatUsers: 'Chat users',
     subscribers: 'Subscribers',
-    newsArticles: 'News Articles',
+    newsArticles: 'News articles',
     products: 'Products',
     allTime: 'All time',
     activeSubscribersAllTime: 'Active, all time',
@@ -100,10 +102,10 @@ const messages = defineMessages({
     noUsers: 'No users yet.',
   },
   ar: {
-    gaStep1: 'افتح Google Cloud Console، ثم IAM & Admin → Service Accounts → Create service account',
+    gaStep1: 'افتح Google Cloud Console، ثم IAM & Admin > Service Accounts > Create service account',
     gaStep2: 'نزّل ملف مفتاح JSON لحساب الخدمة هذا',
-    gaStep3: 'في GA4: Admin → Property Access Management، ثم أضف بريد حساب الخدمة بصلاحية Viewer',
-    gaStep4: 'في Google Cloud Console: APIs & Services → Library، ثم فعّل "Google Analytics Data API"',
+    gaStep3: 'في GA4: Admin > Property Access Management، ثم أضف بريد حساب الخدمة بصلاحية Viewer',
+    gaStep4: 'في Google Cloud Console: APIs & Services > Library، ثم فعّل "Google Analytics Data API"',
     gaStep5: 'أضف إلى متغيرات بيئة الـ API:  GA_PROPERTY_ID=XXXXXXXXX  (أرقام فقط)',
     gaStep6: 'أضف إلى متغيرات بيئة الـ API:  GA_SERVICE_ACCOUNT_JSON={"type":"service_account",...}  (في سطر واحد)',
     gaStep7: 'أعد تشغيل خدمة الـ API',
@@ -136,14 +138,12 @@ const messages = defineMessages({
     durationSec: '{s} ث',
     setupTitle: 'يلزم إعداد Google Analytics 4',
     setupCopy: 'أكمل الخطوات التالية لربط الخاصية بشكل صحيح.',
+    period: 'الفترة',
     periodDays: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' },
     lastDays: { one: 'آخر يوم', two: 'آخر يومين', few: 'آخر {n} أيام', many: 'آخر {n} يومًا', other: 'آخر {n} يوم' },
     printTagline: 'تقرير التحليلات',
     printGenerated: 'تاريخ الإنشاء: {date}',
     printPeriod: 'الاتجاهات: {trend} · GA4: {ga} · الإجماليات: منذ البداية',
-    printConnected: '● GA4 متصل',
-    printNotConfigured: '○ GA4 غير مُعدّ',
-    eyebrow: 'نظرة عامة على الأداء',
     title: 'التحليلات',
     heroText: 'عرض أوضح لبيانات Google Analytics 4 إلى جانب نشاط المساعد والنشرة البريدية داخل الموقع، مرتّب لقراءة ومقارنة أسرع.',
     gaConnected: 'GA4 متصل',
@@ -151,7 +151,7 @@ const messages = defineMessages({
     gaConnectedCopy: 'بيانات الزيارات والأجهزة متاحة أدناه.',
     gaNotConfiguredCopy: 'أضف إعدادات الخاصية لتفعيل التقارير.',
     exportPdfTitle: 'تصدير بصيغة PDF',
-    exportPdf: '🖨️ تصدير PDF',
+    exportPdf: 'تصدير PDF',
     periodNote: 'تنطبق الفترة على الاتجاهات اليومية للمحادثات والنشرة البريدية. يغطي Google Analytics {range}؛ أما الإجماليات ولغات المحادثة وأكثر الزوار نشاطًا فتشمل كل الفترات منذ البداية.',
     loadingGa: 'جارٍ تحميل بيانات Google Analytics…',
     gaError: 'خطأ في واجهة GA4 البرمجية',
@@ -216,28 +216,21 @@ const fmtDuration = (s: number, t: T) => {
   return m > 0 ? t('durationMinSec', { m: String(m), s: String(sec) }) : t('durationSec', { s: String(sec) });
 };
 
-const COUNTRY_FLAG: Record<string, string> = {
-  Turkey: '🇹🇷', Türkiye: '🇹🇷', 'United States': '🇺🇸', 'Saudi Arabia': '🇸🇦',
-  Germany: '🇩🇪', France: '🇫🇷', 'United Kingdom': '🇬🇧', UAE: '🇦🇪',
-  Russia: '🇷🇺', Iraq: '🇮🇶', Egypt: '🇪🇬', Jordan: '🇯🇴',
-  Kuwait: '🇰🇼', Qatar: '🇶🇦', Netherlands: '🇳🇱', Spain: '🇪🇸',
-  Italy: '🇮🇹', Canada: '🇨🇦', Australia: '🇦🇺', Brazil: '🇧🇷',
-  Iceland: '🇮🇸', Ireland: '🇮🇪',
-};
-
+// Chart series colours (bars, lines, donut slices) — the only hard-coded
+// colours on the page.
 const SOURCE_COLOR: Record<string, string> = {
   'Organic Search': '#22c55e', Direct: '#4f6ef7', Referral: '#f59e0b',
   'Organic Social': '#ec4899', Email: '#06b6d4', 'Paid Search': '#f97316',
   Display: '#8b5cf6', Unassigned: '#6b7280',
 };
 
-const SOURCE_ICON: Record<string, string> = {
-  'Organic Search': '🔍', Direct: '🔗', Referral: '↗️',
-  'Organic Social': '📲', Email: '📧', 'Paid Search': '💰',
-  Display: '🖼️', Unassigned: '❓',
+const SOURCE_ICON: Record<string, IconName> = {
+  'Organic Search': 'search', Direct: 'link', Referral: 'external',
+  'Organic Social': 'smartphone', Email: 'mail', 'Paid Search': 'coins',
+  Display: 'image', Unassigned: 'help',
 };
 
-// GA4 channel-group names → readable labels. Unknown channels show as sent.
+// GA4 channel-group names to readable labels. Unknown channels show as sent.
 const SOURCE_LABEL: Record<string, Key> = {
   'Organic Search': 'srcOrganicSearch', Direct: 'srcDirect', Referral: 'srcReferral',
   'Organic Social': 'srcOrganicSocial', Email: 'srcEmail', 'Paid Search': 'srcPaidSearch',
@@ -248,13 +241,15 @@ const DEVICE_COLOR: Record<string, string> = {
   mobile: '#4f6ef7', desktop: '#22c55e', tablet: '#f59e0b',
 };
 
-const DEVICE_ICON: Record<string, string> = {
-  mobile: '📱', desktop: '🖥️', tablet: '📟',
+const DEVICE_ICON: Record<string, IconName> = {
+  mobile: 'smartphone', desktop: 'monitor', tablet: 'tablet',
 };
 
 const DEVICE_LABEL: Record<string, Key> = {
   mobile: 'device_mobile', desktop: 'device_desktop', tablet: 'device_tablet',
 };
+
+const LANG_COLORS = ['#8b5cf6', '#4f6ef7', '#22c55e', '#f59e0b'];
 
 type TrendDatum = { label: string; value: number; helper?: string };
 
@@ -268,7 +263,7 @@ const TrendChart: React.FC<{
   // The server sends every day of the range (quiet days as 0), so an
   // all-zero series is the "nothing happened" case.
   if (!data.length || data.every((item) => item.value === 0)) {
-    return <div className="adm-analytics-empty">{t('noData')}</div>;
+    return <EmptyState compact icon="analytics" title={t('noData')} />;
   }
 
   const width = 720;
@@ -305,6 +300,7 @@ const TrendChart: React.FC<{
             </linearGradient>
           </defs>
 
+          {/* Gridline colour: the print stylesheet matches this exact value. */}
           {[0, 0.5, 1].map((step) => {
             const y = padding.top + chartHeight * step;
             return (
@@ -342,7 +338,7 @@ const TrendChart: React.FC<{
 const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> }> = ({ items }) => {
   const t = useT(messages);
   const total = items.reduce((sum, item) => sum + item.sessions, 0);
-  if (!total) return <div className="adm-analytics-empty">{t('noDeviceData')}</div>;
+  if (!total) return <EmptyState compact icon="smartphone" title={t('noDeviceData')} />;
 
   let offset = 0;
   const radius = 56;
@@ -352,6 +348,7 @@ const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> 
   return (
     <div className="adm-device-layout">
       <svg viewBox="0 0 144 144" className="adm-device-chart adm-ltr" aria-label={t('deviceSessions')}>
+        {/* Track colour: the print stylesheet matches this exact value. */}
         <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="16" />
         {items.map((item, index) => {
           const portion = item.sessions / total;
@@ -382,13 +379,15 @@ const DonutChart: React.FC<{ items: Array<{ device: string; sessions: number }> 
       <div className="adm-device-legend">
         {items.map((item) => {
           const percentage = Math.round((item.sessions / total) * 100);
-          const color = DEVICE_COLOR[item.device.toLowerCase()] ?? '#6b7280';
-          const labelKey = DEVICE_LABEL[item.device.toLowerCase()];
+          const device = item.device.toLowerCase();
+          const color = DEVICE_COLOR[device] ?? '#6b7280';
+          const labelKey = DEVICE_LABEL[device];
           return (
             <div key={item.device} className="adm-device-legend-item">
-              <span className="adm-device-legend-icon">{DEVICE_ICON[item.device.toLowerCase()] ?? '💻'}</span>
+              <AdminIcon name={DEVICE_ICON[device] ?? 'monitor'} size="lg" className="adm-device-legend-icon adm-text-muted" />
               <div>
                 <strong>{labelKey ? t(labelKey) : item.device}</strong>
+                {/* Legend key: the slice's colour. */}
                 <span style={{ color }}>{t.plural('deviceShare', item.sessions, { pct: String(percentage) })}</span>
               </div>
             </div>
@@ -403,8 +402,9 @@ const RankingRow: React.FC<{
   label: string;
   value: number;
   max: number;
+  /** Bar (series) colour. */
   color: string;
-  icon?: string;
+  icon?: IconName;
   rank?: number;
   /** "ltr" for values that read left to right (URL paths). */
   labelDir?: 'ltr';
@@ -415,7 +415,7 @@ const RankingRow: React.FC<{
       <div className="adm-ranking-top">
         <div className="adm-ranking-label-wrap">
           {rank !== undefined && <span className="adm-ranking-rank">#{rank}</span>}
-          {icon && <span className="adm-ranking-icon">{icon}</span>}
+          {icon && <AdminIcon name={icon} size="sm" className="adm-ranking-icon adm-text-muted" />}
           <span className="adm-ranking-label" dir={labelDir}>{label}</span>
         </div>
         <strong style={{ color }}>{fmtNumber(value)}</strong>
@@ -427,41 +427,6 @@ const RankingRow: React.FC<{
   );
 };
 
-const MetricCard: React.FC<{
-  icon: string;
-  label: string;
-  value: string;
-  sub?: string;
-  gradient: string;
-  border: string;
-}> = ({ icon, label, value, sub, gradient, border }) => (
-  <div className="adm-analytics-metric-card" style={{ background: gradient, borderColor: border }}>
-    <div className="adm-analytics-metric-icon">{icon}</div>
-    <div className="adm-analytics-metric-label">{label}</div>
-    <div className="adm-analytics-metric-value">{value}</div>
-    {sub && <div className="adm-analytics-metric-sub">{sub}</div>}
-  </div>
-);
-
-const Panel: React.FC<{
-  title: string;
-  icon: string;
-  children: React.ReactNode;
-  accent?: string;
-  copy?: string;
-  className?: string;
-}> = ({ title, icon, children, accent = 'var(--adm-accent)', copy, className }) => (
-  <section className={`adm-analytics-panel${className ? ` ${className}` : ''}`} style={{ borderTopColor: accent }}>
-    <div className="adm-analytics-panel-head">
-      <div>
-        <div className="adm-card-title">{icon} {title}</div>
-        {copy && <p className="adm-analytics-panel-copy">{copy}</p>}
-      </div>
-    </div>
-    {children}
-  </section>
-);
-
 // The steps come from the server (English only).
 const GA_STEPS = ['gaStep1', 'gaStep2', 'gaStep3', 'gaStep4', 'gaStep5', 'gaStep6', 'gaStep7'] as const;
 
@@ -469,22 +434,15 @@ const GA_STEPS = ['gaStep1', 'gaStep2', 'gaStep3', 'gaStep4', 'gaStep5', 'gaStep
 // the admin language instead.
 const SetupGuide: React.FC = () => {
   const t = useT(messages);
-  const steps = GA_STEPS.map((key) => t(key));
   return (
-    <div className="adm-analytics-rich-alert warning">
-      <div className="adm-analytics-rich-alert-head">
-        <span>⚙️</span>
-        <div>
-          <strong>{t('setupTitle')}</strong>
-          <p>{t('setupCopy')}</p>
-        </div>
-      </div>
-      <ol className="adm-analytics-steps">
-        {steps.map((step, index) => (
-          <li key={index} dir="auto">{step}</li>
+    <Alert tone="warning" title={t('setupTitle')}>
+      <p>{t('setupCopy')}</p>
+      <ol style={{ display: 'grid', gap: 8, marginTop: 10, paddingInlineStart: 20 }}>
+        {GA_STEPS.map((key) => (
+          <li key={key} dir="auto">{t(key)}</li>
         ))}
       </ol>
-    </div>
+    </Alert>
   );
 };
 
@@ -508,7 +466,7 @@ export const AdminAnalytics: React.FC = () => {
   const printDate = fmtDate(new Date().toISOString());
 
   return (
-    <div className="adm-analytics-page">
+    <div className="adm-print-report">
 
       {/* ── Print-only cover header (hidden on screen) ────────────────────── */}
       <div className="analytics-print-header">
@@ -523,60 +481,44 @@ export const AdminAnalytics: React.FC = () => {
             {t('printPeriod', { trend: periodRange, ga: gaRange })}
           </div>
           <div className={`analytics-print-status ${gad?.configured ? 'connected' : 'disconnected'}`}>
-            {gad?.configured ? t('printConnected') : t('printNotConfigured')}
+            {gad?.configured ? t('gaConnected') : t('gaNotConfigured')}
           </div>
         </div>
       </div>
 
-      <section className="adm-card adm-analytics-hero">
-        <div>
-          <span className="adm-dashboard-eyebrow">{t('eyebrow')}</span>
-          <h1 className="adm-analytics-hero-title">{t('title')}</h1>
-          <p className="adm-analytics-hero-text">{t('heroText')}</p>
-        </div>
-        <div className="adm-analytics-status-card">
-          <div className="adm-analytics-status-dot" style={{ background: gad?.configured ? '#22c55e' : '#f59e0b' }} />
-          <div>
-            <strong>{gad?.configured ? t('gaConnected') : t('gaNotConfigured')}</strong>
-            <span>{gad?.configured ? t('gaConnectedCopy') : t('gaNotConfiguredCopy')}</span>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('heroText')}
+        meta={gad && (
+          gad.configured
+            ? <Badge tone="success" icon="checkCircle" title={t('gaConnectedCopy')}>{t('gaConnected')}</Badge>
+            : <Badge tone="warning" icon="alert" title={t('gaNotConfiguredCopy')}>{t('gaNotConfigured')}</Badge>
+        )}
+        actions={(
+          <Button icon="printer" onClick={handlePrint} title={t('exportPdfTitle')}>
+            {t('exportPdf')}
+          </Button>
+        )}
+      />
 
-      {/* ── Controls toolbar ─────────────────────────────────────────────────── */}
-      <div className="adm-analytics-toolbar">
-        <div className="adm-analytics-period-selector">
-          {PERIOD_OPTIONS.map((days) => (
-            <button
-              key={days}
-              onClick={() => setPeriod(days)}
-              className={`adm-analytics-period-btn${period === days ? ' active' : ''}`}
-            >
-              {t.plural('periodDays', days)}
-            </button>
-          ))}
-        </div>
-        <button className="adm-analytics-export-btn" onClick={handlePrint} title={t('exportPdfTitle')}>
-          {t('exportPdf')}
-        </button>
-      </div>
-      <p style={{ fontSize: 12, color: 'var(--adm-text-muted)', margin: '-4px 0 16px' }}>
-        {t('periodNote', { range: gaRange })}
-      </p>
+      {/* adm-analytics-toolbar: left out of the printed report (admin.css print rules). */}
+      <Toolbar className="adm-analytics-toolbar">
+        <Tabs
+          variant="segmented"
+          size="sm"
+          ariaLabel={t('period')}
+          items={PERIOD_OPTIONS.map((days) => ({ value: String(days), label: t.plural('periodDays', days) }))}
+          value={String(period)}
+          onChange={(value) => setPeriod(Number(value))}
+        />
+        <span className="adm-text-sm adm-text-muted" style={{ flex: '1 1 320px' }}>
+          {t('periodNote', { range: gaRange })}
+        </span>
+      </Toolbar>
 
-      {ga.loading && <div className="adm-loading-center"><span className="adm-spinner" /> {t('loadingGa')}</div>}
+      {ga.loading && <Loading label={t('loadingGa')} />}
 
-      {!ga.loading && ga.error && (
-        <div className="adm-analytics-rich-alert error">
-          <div className="adm-analytics-rich-alert-head">
-            <span>⚠️</span>
-            <div>
-              <strong>{t('gaError')}</strong>
-              <p>{ga.error}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {!ga.loading && ga.error && <Alert tone="danger" title={t('gaError')}>{ga.error}</Alert>}
 
       {!ga.loading && gad && !gad.configured && <SetupGuide />}
 
@@ -584,90 +526,92 @@ export const AdminAnalytics: React.FC = () => {
         const sm = gad.summary;
         return (
           <>
-            <div className="adm-analytics-section-divider">
-              <span>📊</span>
-              <strong>{t('gaSection', { range: gaRange })}</strong>
-            </div>
-            <div className="adm-analytics-kpi-grid">
-              <MetricCard icon="🔗" label={t('sessions')} value={fmt(sm.sessions, t)} gradient="linear-gradient(135deg, rgba(79,110,247,0.18), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.28)" />
-              <MetricCard icon="🟢" label={t('activeUsers')} value={fmt(sm.activeUsers, t)} gradient="linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.28)" />
-              <MetricCard icon="✨" label={t('newUsers')} value={fmt(sm.newUsers, t)} gradient="linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.28)" />
-              <MetricCard icon="📄" label={t('pageViews')} value={fmt(sm.pageViews, t)} gradient="linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.28)" />
-              <MetricCard icon="↩️" label={t('bounceRate')} value={`${sm.bounceRate}%`} gradient="linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05))" border="rgba(239,68,68,0.24)" />
-              <MetricCard icon="⏱️" label={t('avgSession')} value={fmtDuration(sm.avgSessionDuration, t)} sub={t('perSession')} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
-            </div>
+            <SectionTitle icon="insights">{t('gaSection', { range: gaRange })}</SectionTitle>
+            <StatGrid>
+              <StatCard icon="link" tone="info" label={t('sessions')} value={fmt(sm.sessions, t)} />
+              <StatCard icon="activity" tone="success" label={t('activeUsers')} value={fmt(sm.activeUsers, t)} />
+              <StatCard icon="user" tone="warning" label={t('newUsers')} value={fmt(sm.newUsers, t)} />
+              <StatCard icon="file" tone="violet" label={t('pageViews')} value={fmt(sm.pageViews, t)} />
+              <StatCard icon="undo" tone="danger" label={t('bounceRate')} value={`${sm.bounceRate}%`} />
+              <StatCard icon="timer" tone="info" label={t('avgSession')} value={fmtDuration(sm.avgSessionDuration, t)} sub={t('perSession')} />
+            </StatGrid>
 
-            {(gad.byDay?.length ?? 0) > 0 && (
-              <Panel title={t('sessionsPerDay')} icon="📈" accent="#4f6ef7" copy={t('sessionsPerDayCopy', { range: gaRange })}>
-                <TrendChart
-                  id="ga-sessions"
-                  data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: t.plural('usersCount', item.users) }))}
-                  accent="#6b84ff"
-                  summary={t('sessionsSummary', {
-                    total: fmtNumber(gad.byDay!.reduce((sum, item) => sum + item.sessions, 0)),
-                    range: gaRange,
-                  })}
-                />
-              </Panel>
-            )}
+            <div className="adm-stack">
+              {(gad.byDay?.length ?? 0) > 0 && (
+                <Card title={t('sessionsPerDay')} icon="analytics" subtitle={t('sessionsPerDayCopy', { range: gaRange })}>
+                  <TrendChart
+                    id="ga-sessions"
+                    data={gad.byDay!.map((item) => ({ label: item.date, value: item.sessions, helper: t.plural('usersCount', item.users) }))}
+                    accent="#6b84ff"
+                    summary={t('sessionsSummary', {
+                      total: fmtNumber(gad.byDay!.reduce((sum, item) => sum + item.sessions, 0)),
+                      range: gaRange,
+                    })}
+                  />
+                </Card>
+              )}
 
-            <div className="adm-analytics-grid-3">
-              <Panel title={t('topCountries')} icon="🌍" accent="#4f6ef7" copy={t('topCountriesCopy')}>
-                <div className="adm-ranking-list">
-                  {(gad.byCountry ?? []).map((item, index) => (
-                    <RankingRow
-                      key={item.country}
-                      rank={index + 1}
-                      label={item.country}
-                      icon={COUNTRY_FLAG[item.country] ?? '🌐'}
-                      value={item.sessions}
-                      max={gad.byCountry?.[0]?.sessions ?? 1}
-                      color="#4f6ef7"
-                    />
-                  ))}
-                </div>
-              </Panel>
+              <div className="adm-analytics-grid-3">
+                <Card title={t('topCountries')} icon="language" subtitle={t('topCountriesCopy')}>
+                  {(gad.byCountry ?? []).length ? (
+                    <div className="adm-ranking-list">
+                      {gad.byCountry!.map((item, index) => (
+                        <RankingRow
+                          key={item.country}
+                          rank={index + 1}
+                          label={item.country}
+                          value={item.sessions}
+                          max={gad.byCountry?.[0]?.sessions ?? 1}
+                          color="#4f6ef7"
+                        />
+                      ))}
+                    </div>
+                  ) : <EmptyState compact icon="language" title={t('noData')} />}
+                </Card>
 
-              <Panel title={t('devices')} icon="📱" accent="#8b5cf6" copy={t('devicesCopy')}>
-                <DonutChart items={gad.byDevice ?? []} />
-              </Panel>
+                <Card title={t('devices')} icon="smartphone" subtitle={t('devicesCopy')}>
+                  <DonutChart items={gad.byDevice ?? []} />
+                </Card>
 
-              <Panel title={t('sources')} icon="🔀" accent="#f59e0b" copy={t('sourcesCopy')}>
-                <div className="adm-ranking-list">
-                  {(gad.bySource ?? []).map((item) => {
-                    const labelKey = SOURCE_LABEL[item.source];
-                    return (
+                <Card title={t('sources')} icon="pie" subtitle={t('sourcesCopy')}>
+                  {(gad.bySource ?? []).length ? (
+                    <div className="adm-ranking-list">
+                      {gad.bySource!.map((item) => {
+                        const labelKey = SOURCE_LABEL[item.source];
+                        return (
+                          <RankingRow
+                            key={item.source}
+                            label={labelKey ? t(labelKey) : item.source}
+                            icon={SOURCE_ICON[item.source] ?? 'language'}
+                            value={item.sessions}
+                            max={gad.bySource?.[0]?.sessions ?? 1}
+                            color={SOURCE_COLOR[item.source] ?? '#6b7280'}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : <EmptyState compact icon="pie" title={t('noData')} />}
+                </Card>
+              </div>
+
+              {(gad.byPage?.length ?? 0) > 0 && (
+                <Card title={t('topPages')} icon="files" subtitle={t('topPagesCopy')}>
+                  <div className="adm-analytics-grid-2 compact">
+                    {gad.byPage!.map((item, index) => (
                       <RankingRow
-                        key={item.source}
-                        label={labelKey ? t(labelKey) : item.source}
-                        icon={SOURCE_ICON[item.source] ?? '🌐'}
-                        value={item.sessions}
-                        max={gad.bySource?.[0]?.sessions ?? 1}
-                        color={SOURCE_COLOR[item.source] ?? '#6b7280'}
+                        key={item.page}
+                        rank={index + 1}
+                        label={item.page}
+                        labelDir="ltr"
+                        value={item.views}
+                        max={gad.byPage?.[0]?.views ?? 1}
+                        color="#22c55e"
                       />
-                    );
-                  })}
-                </div>
-              </Panel>
+                    ))}
+                  </div>
+                </Card>
+              )}
             </div>
-
-            {(gad.byPage?.length ?? 0) > 0 && (
-              <Panel title={t('topPages')} icon="📑" accent="#22c55e" copy={t('topPagesCopy')} className="adm-analytics-panel-wide">
-                <div className="adm-analytics-grid-2 compact">
-                  {gad.byPage!.map((item, index) => (
-                    <RankingRow
-                      key={item.page}
-                      rank={index + 1}
-                      label={item.page}
-                      labelDir="ltr"
-                      value={item.views}
-                      max={gad.byPage?.[0]?.views ?? 1}
-                      color="#22c55e"
-                    />
-                  ))}
-                </div>
-              </Panel>
-            )}
           </>
         );
       })()}
@@ -675,98 +619,94 @@ export const AdminAnalytics: React.FC = () => {
       {/* ── Page break before internal stats (print only) ─────────────────── */}
       <div className="analytics-print-break" />
 
-      <div className="adm-analytics-section-divider">
-        <span>💬</span>
-        <strong>{t('internalSection')}</strong>
-      </div>
+      <SectionTitle icon="chats">{t('internalSection')}</SectionTitle>
 
-      {internal.loading && <div className="adm-loading-center"><span className="adm-spinner" /> {t('loadingInternal')}</div>}
-      {internal.error && <div className="adm-alert adm-alert-error">⚠ {internal.error}</div>}
+      {internal.loading && <Loading label={t('loadingInternal')} />}
+      {internal.error && <Alert tone="danger">{internal.error}</Alert>}
 
       {summary && (
-        <div className="adm-analytics-kpi-grid compact">
-          <MetricCard icon="💬" label={t('messages')} value={fmtNumber(summary.total_messages)} sub={t('allTime')} gradient="linear-gradient(135deg, rgba(79,110,247,0.16), rgba(79,110,247,0.05))" border="rgba(79,110,247,0.26)" />
-          <MetricCard icon="👤" label={t('chatUsers')} value={fmtNumber(summary.total_users)} sub={t('allTime')} gradient="linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.05))" border="rgba(34,197,94,0.26)" />
-          <MetricCard icon="✉️" label={t('subscribers')} value={fmtNumber(summary.total_subscribers)} sub={t('activeSubscribersAllTime')} gradient="linear-gradient(135deg, rgba(6,182,212,0.16), rgba(6,182,212,0.05))" border="rgba(6,182,212,0.24)" />
-          <MetricCard icon="📰" label={t('newsArticles')} value={fmtNumber(summary.total_news)} sub={t('activeAllTime')} gradient="linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.05))" border="rgba(245,158,11,0.24)" />
-          <MetricCard icon="🧴" label={t('products')} value={fmtNumber(summary.total_products)} sub={t('activeAllTime')} gradient="linear-gradient(135deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05))" border="rgba(139,92,246,0.24)" />
-        </div>
+        // Five tiles: 200px minimum puts all five on one desktop row.
+        <StatGrid min={200}>
+          <StatCard icon="chats" tone="info" label={t('messages')} value={fmtNumber(summary.total_messages)} sub={t('allTime')} />
+          <StatCard icon="cohorts" tone="success" label={t('chatUsers')} value={fmtNumber(summary.total_users)} sub={t('allTime')} />
+          <StatCard icon="newsletter" tone="info" label={t('subscribers')} value={fmtNumber(summary.total_subscribers)} sub={t('activeSubscribersAllTime')} />
+          <StatCard icon="news" tone="warning" label={t('newsArticles')} value={fmtNumber(summary.total_news)} sub={t('activeAllTime')} />
+          <StatCard icon="products" tone="violet" label={t('products')} value={fmtNumber(summary.total_products)} sub={t('activeAllTime')} />
+        </StatGrid>
       )}
 
       {internal.data && (
-        <>
-          <div className="adm-analytics-grid-2">
-            <Panel title={t('chatPerDay')} icon="💬" accent="#4f6ef7" copy={t('chatPerDayCopy')}>
-              <TrendChart
-                id="chat-per-day"
-                data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
-                accent="#5eaeff"
-                summary={t('chatSummary', {
-                  total: fmtNumber((internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0)),
-                  range: periodRange,
-                })}
-              />
-            </Panel>
+        // One grid for both rows: the print stylesheet turns it into a plain
+        // column, and the print-only break between the rows starts a new page.
+        <div className="adm-analytics-grid-2">
+          <Card title={t('chatPerDay')} icon="chats" subtitle={t('chatPerDayCopy')}>
+            <TrendChart
+              id="chat-per-day"
+              data={(internal.data.chatPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
+              accent="#5eaeff"
+              summary={t('chatSummary', {
+                total: fmtNumber((internal.data.chatPerDay ?? []).reduce((sum, item) => sum + item.count, 0)),
+                range: periodRange,
+              })}
+            />
+          </Card>
 
-            <Panel title={t('signupsPerDay')} icon="✉️" accent="#22c55e" copy={t('signupsPerDayCopy')}>
-              <TrendChart
-                id="newsletter-per-day"
-                data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
-                accent="#34d399"
-                summary={t('signupsSummary', {
-                  total: fmtNumber((internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0)),
-                  range: periodRange,
-                })}
-              />
-            </Panel>
-          </div>
+          <Card title={t('signupsPerDay')} icon="newsletter" subtitle={t('signupsPerDayCopy')}>
+            <TrendChart
+              id="newsletter-per-day"
+              data={(internal.data.newsletterPerDay ?? []).map((item) => ({ label: item.date, value: item.count }))}
+              accent="#34d399"
+              summary={t('signupsSummary', {
+                total: fmtNumber((internal.data.newsletterPerDay ?? []).reduce((sum, item) => sum + item.count, 0)),
+                range: periodRange,
+              })}
+            />
+          </Card>
 
           {/* ── Page break before audience section (print only) ─────────────── */}
           <div className="analytics-print-break" />
 
-          <div className="adm-analytics-grid-2">
-            <Panel title={t('langDist')} icon="🌐" accent="#8b5cf6" copy={t('langDistCopy')}>
+          <Card title={t('langDist')} icon="language" subtitle={t('langDistCopy')}>
+            {(internal.data.langDistribution ?? []).length ? (
               <div className="adm-ranking-list">
-                {(internal.data.langDistribution ?? []).length ? (
-                  (() => {
-                    const total = internal.data.langDistribution.reduce((sum, item) => sum + item.count, 0);
-                    const colors = ['#8b5cf6', '#4f6ef7', '#22c55e', '#f59e0b'];
-                    return internal.data.langDistribution.map((item, index) => (
-                      <RankingRow
-                        key={item.language}
-                        label={`${item.language.toUpperCase()} (${Math.round((item.count / total) * 100)}%)`}
-                        value={item.count}
-                        max={total}
-                        color={colors[index % colors.length]}
-                      />
-                    ));
-                  })()
-                ) : <div className="adm-analytics-empty">{t('noLangData')}</div>}
+                {(() => {
+                  const total = internal.data.langDistribution.reduce((sum, item) => sum + item.count, 0);
+                  return internal.data.langDistribution.map((item, index) => (
+                    <RankingRow
+                      key={item.language}
+                      label={`${item.language.toUpperCase()} (${Math.round((item.count / total) * 100)}%)`}
+                      value={item.count}
+                      max={total}
+                      color={LANG_COLORS[index % LANG_COLORS.length]}
+                    />
+                  ));
+                })()}
               </div>
-            </Panel>
+            ) : <EmptyState compact icon="language" title={t('noLangData')} />}
+          </Card>
 
-            <Panel title={t('topUsers')} icon="🔥" accent="#f59e0b" copy={t('topUsersCopy')}>
-              {(internal.data.topUsers ?? []).length ? (
-                <div className="adm-analytics-user-stack">
-                  {internal.data.topUsers.map((user, index) => (
-                    <div key={user.id} className="adm-analytics-user-row">
-                      <div className="adm-analytics-user-rank">{index + 1}</div>
-                      <div className="adm-analytics-user-copy">
-                        <strong><bdi dir="ltr">{user.id.slice(0, 20)}…</bdi></strong>
-                        <span>{t('lastSeen', { date: fmtDate(user.last_seen) })}</span>
-                      </div>
-                      <div className="adm-analytics-user-metric">
-                        <strong>{fmtNumber(user.message_count)}</strong>
-                        <span>{t('msgs')}</span>
-                      </div>
-                      <span className="adm-badge adm-badge-blue">{user.language}</span>
+          <Card title={t('topUsers')} icon="flame" subtitle={t('topUsersCopy')}>
+            {(internal.data.topUsers ?? []).length ? (
+              <div className="adm-analytics-user-stack">
+                {internal.data.topUsers.map((user, index) => (
+                  <div key={user.id} className="adm-analytics-user-row">
+                    <div className="adm-analytics-user-rank">{index + 1}</div>
+                    <div className="adm-analytics-user-copy">
+                      <strong><bdi dir="ltr">{user.id.slice(0, 20)}…</bdi></strong>
+                      <span>{t('lastSeen', { date: fmtDate(user.last_seen) })}</span>
                     </div>
-                  ))}
-                </div>
-              ) : <div className="adm-analytics-empty">{t('noUsers')}</div>}
-            </Panel>
-          </div>
-        </>
+                    <div className="adm-analytics-user-metric">
+                      <strong>{fmtNumber(user.message_count)}</strong>
+                      <span>{t('msgs')}</span>
+                    </div>
+                    {/* The wrapper takes the grid cell, so the chip keeps its own width. */}
+                    <span>{user.language && <LangTag lang={user.language} />}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyState compact icon="cohorts" title={t('noUsers')} />}
+          </Card>
+        </div>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { IconButton, Tabs, type IconName } from '../ui';
 
 /**
  * Lightweight markdown editor for the blog body field (Phase F).
@@ -15,8 +16,8 @@ import { common } from '../i18n/common';
  *     the AI chat) — reusing them costs zero bytes.
  *
  * UX:
- *   - Toolbar with the 8 most-common formatting actions (bold, italic,
- *     H1/H2, list, quote, link, image). Each inserts the right
+ *   - Toolbar with the most-common formatting actions (bold, italic,
+ *     H1–H3, lists, quote, link, image, code). Each inserts the right
  *     markdown syntax at the cursor — selected text is wrapped.
  *   - "Preview" tab renders the live markdown via react-markdown so
  *     the admin sees exactly what visitors will see, headings and
@@ -44,6 +45,8 @@ const messages = defineMessages({
     link: 'Link (Ctrl+K)',
     image: 'Image',
     code: 'Inline code',
+    formatting: 'Formatting',
+    view: 'Editor view',
     preview: 'Preview',
     placeholder: 'Write in markdown — **bold**, *italic*, # heading, - list, [link](url)…',
     emptyPreview: 'Nothing to preview yet — switch back to Edit and write something.',
@@ -60,6 +63,8 @@ const messages = defineMessages({
     link: 'رابط (Ctrl+K)',
     image: 'صورة',
     code: 'شيفرة ضمن السطر',
+    formatting: 'التنسيق',
+    view: 'طريقة العرض',
     preview: 'معاينة',
     placeholder: 'اكتب بصيغة Markdown — **غامق**، *مائل*، # عنوان، - قائمة، [رابط](url)…',
     emptyPreview: 'لا يوجد ما يُعاين بعد — عُد إلى «تعديل» واكتب شيئًا.',
@@ -72,30 +77,34 @@ interface Props {
   dir?: 'ltr' | 'rtl';
   rows?: number;
   placeholder?: string;
+  /** Given to the textarea, so a <Field> label points at it. */
+  id?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
 }
 
 type ToolbarAction =
   | 'bold' | 'italic' | 'h1' | 'h2' | 'h3'
   | 'ul' | 'ol' | 'quote' | 'link' | 'image' | 'code';
 
-interface ToolbarButton {
-  action: ToolbarAction;
-  label: string;
-}
+// Each button shows an icon, or the text glyph writers know (B, I, H1…).
+// Its name (title / aria-label) is the message keyed by its action.
+type ToolbarButton =
+  | { action: ToolbarAction; icon: IconName }
+  | { action: ToolbarAction; glyph: React.ReactNode };
 
-// The button's name (title / aria-label) is the message keyed by its action.
 const TOOLBAR: ToolbarButton[] = [
-  { action: 'bold',   label: 'B'  },
-  { action: 'italic', label: 'I'  },
-  { action: 'h1',     label: 'H1' },
-  { action: 'h2',     label: 'H2' },
-  { action: 'h3',     label: 'H3' },
-  { action: 'ul',     label: '•'  },
-  { action: 'ol',     label: '1.' },
-  { action: 'quote',  label: '❝' },
-  { action: 'link',   label: '🔗' },
-  { action: 'image',  label: '🖼' },
-  { action: 'code',   label: '⟨⟩' },
+  { action: 'bold',   glyph: <strong>B</strong> },
+  { action: 'italic', glyph: <em>I</em> },
+  { action: 'h1',     glyph: 'H1' },
+  { action: 'h2',     glyph: 'H2' },
+  { action: 'h3',     glyph: 'H3' },
+  { action: 'ul',     icon: 'list' },
+  { action: 'ol',     icon: 'listOrdered' },
+  { action: 'quote',  icon: 'quote' },
+  { action: 'link',   icon: 'link' },
+  { action: 'image',  icon: 'image' },
+  { action: 'code',   icon: 'code' },
 ];
 
 /**
@@ -172,7 +181,8 @@ const applyMarkdownAction = (
 };
 
 export const MarkdownEditor: React.FC<Props> = ({
-  value, onChange, dir = 'ltr', rows = 12, placeholder,
+  value, onChange, dir = 'ltr', rows = 12, placeholder, id,
+  'aria-describedby': describedBy, 'aria-invalid': invalid,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
@@ -208,94 +218,66 @@ export const MarkdownEditor: React.FC<Props> = ({
   };
 
   return (
-    <div className="adm-markdown-editor" style={{ border: '1px solid var(--adm-border)', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: 6,
-        background: 'var(--adm-surface2)',
-        borderBottom: '1px solid var(--adm-border)',
-        flexWrap: 'wrap',
-      }}>
-        {TOOLBAR.map((b) => (
-          <button
-            key={b.action}
-            type="button"
-            title={t(b.action)}
-            // The labels are symbols ("❝", "⟨⟩", "1."); give screen
-            // readers the action's name instead.
-            aria-label={t(b.action)}
-            onClick={() => applyAction(b.action)}
-            disabled={mode === 'preview'}
-            style={{
-              border: '1px solid var(--adm-border)',
-              background: 'transparent',
-              color: 'inherit',
-              fontWeight: 600,
-              fontSize: 13,
-              padding: '2px 8px',
-              borderRadius: 4,
-              cursor: mode === 'preview' ? 'not-allowed' : 'pointer',
-              minWidth: 28,
-            }}
-          >
-            {b.label}
-          </button>
-        ))}
-        <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 4 }}>
-          <button
-            type="button"
-            className={`adm-btn adm-btn-sm ${mode === 'edit' ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
-            onClick={() => setMode('edit')}
-          >
-            ✏️ {tc('edit')}
-          </button>
-          <button
-            type="button"
-            className={`adm-btn adm-btn-sm ${mode === 'preview' ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
-            onClick={() => setMode('preview')}
-          >
-            👁 {t('preview')}
-          </button>
+    <div className="adm-markdown-editor">
+      <div className="adm-markdown-bar">
+        <div role="toolbar" aria-label={t('formatting')} className="adm-markdown-tools">
+          {TOOLBAR.map((b) => ('icon' in b ? (
+            <IconButton
+              key={b.action}
+              icon={b.icon}
+              label={t(b.action)}
+              size="sm"
+              onClick={() => applyAction(b.action)}
+              disabled={mode === 'preview'}
+            />
+          ) : (
+            // A text glyph in the same square button as the icons.
+            <button
+              key={b.action}
+              type="button"
+              className="adm-icon-btn adm-icon-btn-default adm-icon-btn-sm"
+              title={t(b.action)}
+              aria-label={t(b.action)}
+              onClick={() => applyAction(b.action)}
+              disabled={mode === 'preview'}
+            >
+              {b.glyph}
+            </button>
+          )))}
+        </div>
+        <div className="adm-markdown-mode">
+          <Tabs
+            variant="segmented"
+            size="sm"
+            ariaLabel={t('view')}
+            value={mode}
+            onChange={setMode}
+            items={[
+              { value: 'edit', label: tc('edit'), icon: 'edit' },
+              { value: 'preview', label: t('preview'), icon: 'eye' },
+            ]}
+          />
         </div>
       </div>
 
       {mode === 'edit' ? (
         <textarea
           ref={textareaRef}
+          id={id}
+          aria-describedby={describedBy}
+          aria-invalid={invalid}
+          className="adm-textarea adm-markdown-source"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           dir={dir}
           rows={rows}
           placeholder={placeholder ?? t('placeholder')}
-          style={{
-            width: '100%',
-            border: 0,
-            outline: 'none',
-            padding: 12,
-            fontFamily: 'ui-monospace, "JetBrains Mono", "Fira Code", monospace',
-            fontSize: 13,
-            lineHeight: 1.55,
-            resize: 'vertical',
-            minHeight: 200,
-            background: 'var(--adm-surface)',
-            color: 'inherit',
-          }}
         />
       ) : (
-        <div
-          dir={dir}
-          className="adm-markdown-preview"
-          style={{
-            padding: '16px 18px',
-            minHeight: 220,
-            fontSize: 15,
-            lineHeight: 1.7,
-            background: 'var(--adm-surface)',
-          }}
-        >
+        // The same box as the textarea, so switching to the preview
+        // doesn't move the page.
+        <div dir={dir} className="adm-textarea adm-markdown-preview">
           {value.trim() ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -303,24 +285,12 @@ export const MarkdownEditor: React.FC<Props> = ({
                 // Match the public NewsArticlePage's heading hierarchy:
                 // the page already provides an <h1>, so our H1 maps to
                 // <h2> visually but keeps the markdown source clean.
-                h1: ({ node, ...rest }) => <h2 {...rest} style={{ fontSize: 22, fontWeight: 700, marginTop: 24, marginBottom: 10 }} />,
-                h2: ({ node, ...rest }) => <h3 {...rest} style={{ fontSize: 18, fontWeight: 700, marginTop: 20, marginBottom: 8 }} />,
-                h3: ({ node, ...rest }) => <h4 {...rest} style={{ fontSize: 16, fontWeight: 600, marginTop: 16, marginBottom: 6 }} />,
+                // Look of headings, links, quotes and code: .adm-markdown-preview in admin.css.
+                h1: ({ node, ...rest }) => <h2 {...rest} />,
+                h2: ({ node, ...rest }) => <h3 {...rest} />,
+                h3: ({ node, ...rest }) => <h4 {...rest} />,
                 a: ({ node, href, ...rest }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#4f6ef7', textDecoration: 'underline' }} {...rest} />
-                ),
-                blockquote: ({ node, ...rest }) => (
-                  <blockquote
-                    {...rest}
-                    // Logical sides follow the preview's own dir (the
-                    // content language), so the bar sits where lines start.
-                    style={{
-                      borderInlineStart: '4px solid #4f6ef7',
-                      paddingInlineStart: 14,
-                      margin: '12px 0',
-                      color: 'var(--adm-text-muted)',
-                    }}
-                  />
+                  <a href={href} target="_blank" rel="noopener noreferrer" {...rest} />
                 ),
                 // react-markdown v10 dropped the `inline` flag from
                 // the code renderer — block code blocks now carry a
@@ -330,15 +300,15 @@ export const MarkdownEditor: React.FC<Props> = ({
                 code: ({ className, children, ...rest }) => {
                   const isBlock = /language-/.test(className || '');
                   return isBlock
-                    ? <pre style={{ background: 'rgba(127,127,127,0.1)', padding: 12, borderRadius: 6, overflow: 'auto' }}><code className={className} {...rest}>{children}</code></pre>
-                    : <code className={className} style={{ background: 'rgba(127,127,127,0.15)', padding: '1px 5px', borderRadius: 3, fontSize: 13 }} {...rest}>{children}</code>;
+                    ? <pre><code className={className} {...rest}>{children}</code></pre>
+                    : <code className={className} {...rest}>{children}</code>;
                 },
               }}
             >
               {value}
             </ReactMarkdown>
           ) : (
-            <em style={{ color: 'var(--adm-text-dim)' }}>{t('emptyPreview')}</em>
+            <p className="adm-markdown-empty">{t('emptyPreview')}</p>
           )}
         </div>
       )}

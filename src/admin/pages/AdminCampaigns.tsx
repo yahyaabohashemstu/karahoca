@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDate, fmtDateTime, fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import {
+  AdminIcon, Alert, Badge, Button, Card, EmptyState, IconButton, Loading, PageHeader,
+  StatCard, StatGrid, StatusBadge, type IconName, type Tone,
+} from '../ui';
 
 const messages = defineMessages({
   en: {
-    title: 'Email Campaigns',
+    title: 'Email campaigns',
     subtitle: 'Compose, schedule & send newsletters to all subscribers',
-    newCampaign: 'New Campaign',
+    newCampaign: 'New campaign',
     confirmDelete: 'Delete the campaign "{title}"? Its delivery stats are deleted with it.',
     deleteFailed: 'Delete failed',
     confirmSend: 'Send this campaign now? It goes to the recipients selected in the campaign (every active subscriber unless some were unticked).',
@@ -25,11 +28,12 @@ const messages = defineMessages({
     cardOpens: 'Opens',
     cardClicks: 'Clicks',
     noCampaigns: 'No campaigns yet.',
-    createFirst: 'Create Your First Campaign',
+    noCampaignsText: 'A campaign is one e-mail to the newsletter subscribers, each in their own language.',
+    createFirst: 'Create your first campaign',
     tplCustom: 'Custom',
-    tplNewProduct: 'New Product',
-    tplOffer: 'Special Offer',
-    tplNews: 'Company News',
+    tplNewProduct: 'New product',
+    tplOffer: 'Special offer',
+    tplNews: 'Company news',
     createdAt: 'Created: {date}',
     sentAt: 'Sent: {date}',
     scheduledAt: 'Scheduled: {date}',
@@ -37,10 +41,13 @@ const messages = defineMessages({
     sendingNow: 'Sending now…',
     recipients: { one: '{n} recipient', other: '{n} recipients' },
     opens: { one: '{n} open', other: '{n} opens' },
+    openRate: 'Open rate',
     clicks: { one: '{n} click', other: '{n} clicks' },
     stats: 'Stats',
     queueing: 'Queueing…',
-    queueSend: 'Queue Send',
+    queueSend: 'Queue send',
+    editCampaignLabel: 'Edit campaign {title}',
+    viewCampaignLabel: 'View campaign {title}',
     deleteCampaignLabel: 'Delete campaign {title}',
   },
   ar: {
@@ -61,6 +68,7 @@ const messages = defineMessages({
     cardOpens: 'مرات الفتح',
     cardClicks: 'النقرات',
     noCampaigns: 'لا توجد حملات بعد.',
+    noCampaignsText: 'الحملة رسالة واحدة إلى مشتركي النشرة البريدية، يتلقاها كل مشترك بلغته.',
     createFirst: 'أنشئ أول حملة',
     tplCustom: 'مخصص',
     tplNewProduct: 'منتج جديد',
@@ -87,6 +95,7 @@ const messages = defineMessages({
       many: 'فُتحت {n} مرة',
       other: 'فُتحت {n} مرة',
     },
+    openRate: 'معدل الفتح',
     clicks: {
       zero: 'لا نقرات',
       one: 'نقرة واحدة',
@@ -98,203 +107,182 @@ const messages = defineMessages({
     stats: 'الإحصاءات',
     queueing: 'جارٍ الإرسال…',
     queueSend: 'إرسال الآن',
+    editCampaignLabel: 'تعديل الحملة {title}',
+    viewCampaignLabel: 'عرض الحملة {title}',
     deleteCampaignLabel: 'حذف الحملة {title}',
   },
 });
 
 type Key = keyof typeof messages.en;
-type StatusKey = 'draft' | 'scheduled' | 'queued' | 'sending' | 'sent';
 
-const STATUS_COLOR: Record<string, string> = {
-  draft: '#f59e0b', scheduled: '#4f6ef7', queued: '#0ea5e9', sending: '#0ea5e9', sent: '#22c55e',
+const TPL_LABEL: Record<string, { icon: IconName; label: Key }> = {
+  custom: { icon: 'edit', label: 'tplCustom' },
+  new_product: { icon: 'products', label: 'tplNewProduct' },
+  offer: { icon: 'tag', label: 'tplOffer' },
+  news: { icon: 'news', label: 'tplNews' },
 };
-const STATUS_ICON: Record<string, string> = {
-  draft: '✏️', scheduled: '🕐', queued: '⏳', sending: '📤', sent: '✅',
-};
-// Labels come from the shared status words (i18n/common).
-const STATUS_KEYS: readonly string[] = ['draft', 'scheduled', 'queued', 'sending', 'sent'] satisfies StatusKey[];
-const TPL_LABEL: Record<string, { icon: string; label: Key }> = {
-  custom: { icon: '', label: 'tplCustom' },
-  new_product: { icon: '🧴', label: 'tplNewProduct' },
-  offer: { icon: '🏷️', label: 'tplOffer' },
-  news: { icon: '📰', label: 'tplNews' },
-};
+
+/** One item of a campaign's meta line: a small icon and its text. */
+const Meta: React.FC<{ icon: IconName; children: React.ReactNode }> = ({ icon, children }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+    <AdminIcon name={icon} size="xs" />
+    <span>{children}</span>
+  </span>
+);
 
 export const AdminCampaigns: React.FC = () => {
   const { data, loading, error, reload } = useAsync(() => adminApi.getCampaigns(), []);
   const [sending, setSending] = useState<number | null>(null);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState<{ tone: 'success' | 'warning' | 'danger'; text: string } | null>(null);
   const t = useT(messages);
   const tc = useT(common);
 
-  const statusText = (status: string) => (STATUS_KEYS.includes(status) ? tc(status as StatusKey) : status);
-  const templateText = (type: string) => {
-    const tpl = TPL_LABEL[type];
-    if (!tpl) return type;
-    return tpl.icon ? `${tpl.icon} ${t(tpl.label)}` : t(tpl.label);
-  };
-
   const handleDelete = async (id: number, title: string) => {
     if (!confirm(t('confirmDelete', { title }))) return;
-    setMsg('');
+    setMsg(null);
     try {
       await adminApi.deleteCampaign(id);
       reload();
     } catch (e: unknown) {
-      setMsg(`❌ ${e instanceof Error ? e.message : t('deleteFailed')}`);
+      setMsg({ tone: 'danger', text: e instanceof Error ? e.message : t('deleteFailed') });
     }
   };
 
   const handleSend = async (id: number) => {
     if (!confirm(t('confirmSend'))) return;
-    setSending(id); setMsg('');
+    setSending(id); setMsg(null);
     try {
       const res = await adminApi.sendCampaign(id);
       if (res.alreadyQueued) {
-        setMsg(`⚠️ ${t('alreadyQueued')}`);
+        setMsg({ tone: 'warning', text: t('alreadyQueued') });
       } else {
-        setMsg(`✅ ${t('queuedOk')}`);
+        setMsg({ tone: 'success', text: t('queuedOk') });
       }
       reload();
     } catch (e: unknown) {
-      setMsg(`❌ ${e instanceof Error ? e.message : t('sendFailed')}`);
+      setMsg({ tone: 'danger', text: e instanceof Error ? e.message : t('sendFailed') });
     } finally { setSending(null); }
   };
 
+  const campaigns = data?.campaigns ?? [];
+  const summary: { label: Key; value: number; icon: IconName; tone: Tone }[] = [
+    { label: 'cardTotal', value: campaigns.length, icon: 'mail', tone: 'accent' },
+    { label: 'cardDrafts', value: campaigns.filter(c => c.status === 'draft').length, icon: 'draft', tone: 'warning' },
+    { label: 'cardScheduled', value: campaigns.filter(c => c.status === 'scheduled').length, icon: 'clock', tone: 'info' },
+    { label: 'cardQueued', value: campaigns.filter(c => c.status === 'queued').length, icon: 'hourglass', tone: 'info' },
+    { label: 'cardSent', value: campaigns.filter(c => c.status === 'sent').length, icon: 'checkCircle', tone: 'success' },
+    { label: 'cardOpens', value: campaigns.reduce((s, c) => s + c.open_count, 0), icon: 'eye', tone: 'violet' },
+    { label: 'cardClicks', value: campaigns.reduce((s, c) => s + (c.click_count ?? 0), 0), icon: 'pointer', tone: 'accent' },
+  ];
+
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">{t('subtitle')}</p>
-        </div>
-        <Link to="/admin/campaigns/new" className="adm-btn adm-btn-primary">
-          ✉️ {t('newCampaign')}
-        </Link>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={<Button to="/admin/campaigns/new" variant="primary" icon="plus">{t('newCampaign')}</Button>}
+      />
 
-      {msg && (
-        <div className={`adm-alert ${msg.startsWith('✅') ? 'adm-alert-success' : 'adm-alert-error'}`}
-             style={{ marginBottom: 16 }}>
-          {msg}
-        </div>
-      )}
+      {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /></div>}
-      {error   && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {loading && <Loading label={tc('loading')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       {!loading && !error && (
         <>
-          {/* Summary cards */}
           {data?.campaigns && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginBottom: 24 }}>
-              {([
-                { label: 'cardTotal',     value: data.campaigns.length,                              color: 'var(--adm-accent)' },
-                { label: 'cardDrafts',    value: data.campaigns.filter(c => c.status === 'draft').length,    color: '#f59e0b' },
-                { label: 'cardScheduled', value: data.campaigns.filter(c => c.status === 'scheduled').length, color: '#4f6ef7' },
-                { label: 'cardQueued',    value: data.campaigns.filter(c => c.status === 'queued').length,    color: '#0ea5e9' },
-                { label: 'cardSent',      value: data.campaigns.filter(c => c.status === 'sent').length,     color: '#22c55e' },
-                { label: 'cardOpens',     value: data.campaigns.reduce((s, c) => s + c.open_count, 0),       color: '#8b5cf6' },
-                { label: 'cardClicks',    value: data.campaigns.reduce((s, c) => s + (c.click_count ?? 0), 0), color: '#f59e0b' },
-              ] satisfies { label: Key; value: number; color: string }[]).map(card => (
-                <div key={card.label} className="adm-stat-card" style={{ padding: '16px 18px' }}>
-                  <div className="adm-stat-label">{t(card.label)}</div>
-                  <div className="adm-stat-value" style={{ color: card.color, fontSize: 24 }}>{fmtNumber(card.value)}</div>
-                </div>
+            <StatGrid min={140}>
+              {summary.map(card => (
+                <StatCard key={card.label} icon={card.icon} tone={card.tone} label={t(card.label)} value={fmtNumber(card.value)} />
               ))}
-            </div>
+            </StatGrid>
           )}
 
-          {!data?.campaigns?.length ? (
-            <div className="adm-card" style={{ textAlign: 'center', padding: 48 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
-              <p className="adm-text-muted">{t('noCampaigns')}</p>
-              <Link to="/admin/campaigns/new" className="adm-btn adm-btn-primary" style={{ marginTop: 16, display: 'inline-block' }}>
-                {t('createFirst')}
-              </Link>
-            </div>
+          {!campaigns.length ? (
+            <Card>
+              <EmptyState
+                icon="mail"
+                title={t('noCampaigns')}
+                text={t('noCampaignsText')}
+                action={<Button to="/admin/campaigns/new" variant="primary" icon="plus" size="sm">{t('createFirst')}</Button>}
+              />
+            </Card>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {data!.campaigns.map(c => (
-                <div key={c.id} style={{
-                  background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
-                  borderRadius: 12, padding: '18px 20px',
-                  borderInlineStart: `3px solid ${STATUS_COLOR[c.status] || 'var(--adm-border)'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        <span style={{ fontSize: 18 }}>{STATUS_ICON[c.status]}</span>
-                        <span dir="auto" style={{ fontWeight: 700, fontSize: 15, color: 'var(--adm-text)' }}>{c.title}</span>
-                        <span style={{
-                          fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                          background: `${STATUS_COLOR[c.status]}22`, color: STATUS_COLOR[c.status],
-                          fontWeight: 600, textTransform: 'capitalize',
-                        }}>{statusText(c.status)}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: 'var(--adm-text-muted)' }}>
-                        <span>{templateText(c.template_type)}</span>
-                        <span>{t('createdAt', { date: fmtDate(c.created_at) })}</span>
-                        {c.sent_at && <span style={{ color: '#22c55e' }}>{t('sentAt', { date: fmtDateTime(c.sent_at) })}</span>}
-                        {c.scheduled_at && c.status === 'scheduled' && (
-                          <span style={{ color: '#4f6ef7' }}>{t('scheduledAt', { date: fmtDateTime(c.scheduled_at) })}</span>
-                        )}
-                        {c.status === 'queued' && (
-                          <span style={{ color: '#0ea5e9' }}>{t('queuedNote')}</span>
-                        )}
-                        {c.status === 'sending' && (
-                          <span style={{ color: '#0ea5e9' }}>{t('sendingNow')}</span>
-                        )}
-                        {c.status === 'sent' && (
-                          <>
-                            <span>👥 {t.plural('recipients', c.recipient_count)}</span>
-                            <span>👁 {t.plural('opens', c.open_count)}
+            <div className="adm-stack">
+              {campaigns.map(c => {
+                const tpl = TPL_LABEL[c.template_type];
+                const editable = c.status === 'draft' || c.status === 'scheduled';
+                return (
+                  <Card key={c.id}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                          <h2 className="adm-card-title" style={{ margin: 0 }} dir="auto">{c.title}</h2>
+                          <StatusBadge status={c.status} />
+                        </div>
+                        <div className="adm-text-sm adm-text-muted" style={{ display: 'flex', gap: '6px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {tpl ? <Meta icon={tpl.icon}>{t(tpl.label)}</Meta> : <span>{c.template_type}</span>}
+                          <Meta icon="calendar">{t('createdAt', { date: fmtDate(c.created_at) })}</Meta>
+                          {c.sent_at && <Meta icon="send">{t('sentAt', { date: fmtDateTime(c.sent_at) })}</Meta>}
+                          {c.scheduled_at && c.status === 'scheduled' && (
+                            <Meta icon="clock">{t('scheduledAt', { date: fmtDateTime(c.scheduled_at) })}</Meta>
+                          )}
+                          {c.status === 'queued' && <Meta icon="hourglass">{t('queuedNote')}</Meta>}
+                          {c.status === 'sending' && <Meta icon="send">{t('sendingNow')}</Meta>}
+                          {c.status === 'sent' && (
+                            <>
+                              <Meta icon="cohorts">{t.plural('recipients', c.recipient_count)}</Meta>
+                              <Meta icon="eye">{t.plural('opens', c.open_count)}</Meta>
                               {c.recipient_count > 0 && (
-                                <span style={{ color: '#22c55e', marginInlineStart: 4 }}>
-                                  ({Math.round((c.open_count / c.recipient_count) * 100)}%)
-                                </span>
+                                <Badge tone="success" title={t('openRate')}>
+                                  {Math.round((c.open_count / c.recipient_count) * 100)}%
+                                </Badge>
                               )}
-                            </span>
-                            {/* Raw count: it includes repeat clicks, so a
-                                per-recipient rate could pass 100 %. */}
-                            <span>🖱 {t.plural('clicks', c.click_count ?? 0)}</span>
-                          </>
+                              {/* Raw count: it includes repeat clicks, so a
+                                  per-recipient rate could pass 100 %. */}
+                              <Meta icon="pointer">{t.plural('clicks', c.click_count ?? 0)}</Meta>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="adm-row-actions" style={{ flexShrink: 0, gap: 6 }}>
+                        {c.status === 'sent' && (
+                          <Button to={`/admin/campaigns/${c.id}?tab=stats`} variant="secondary" size="sm" icon="insights">
+                            {t('stats')}
+                          </Button>
+                        )}
+                        {editable && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon="send"
+                            onClick={() => handleSend(c.id)}
+                            loading={sending === c.id}
+                          >
+                            {sending === c.id ? t('queueing') : t('queueSend')}
+                          </Button>
+                        )}
+                        <IconButton
+                          icon={editable ? 'edit' : 'eye'}
+                          size="sm"
+                          label={t(editable ? 'editCampaignLabel' : 'viewCampaignLabel', { title: c.title })}
+                          to={`/admin/campaigns/${c.id}`}
+                        />
+                        {c.status !== 'sending' && (
+                          <IconButton
+                            icon="trash"
+                            tone="danger"
+                            size="sm"
+                            label={t('deleteCampaignLabel', { title: c.title })}
+                            onClick={() => handleDelete(c.id, c.title)}
+                          />
                         )}
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                      {c.status === 'sent' && (
-                        <Link to={`/admin/campaigns/${c.id}?tab=stats`}
-                              className="adm-btn adm-btn-sm"
-                              style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.25)' }}>
-                          📊 {t('stats')}
-                        </Link>
-                      )}
-                      {(c.status === 'draft' || c.status === 'scheduled') && (
-                        <button
-                          className="adm-btn adm-btn-sm adm-btn-primary"
-                          onClick={() => handleSend(c.id)}
-                          disabled={sending === c.id}
-                        >
-                          {sending === c.id ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {t('queueing')}</> : `🚀 ${t('queueSend')}`}
-                        </button>
-                      )}
-                      <Link to={`/admin/campaigns/${c.id}`} className="adm-btn adm-btn-sm">
-                        {c.status === 'draft' || c.status === 'scheduled' ? `✏️ ${tc('edit')}` : `👁 ${tc('view')}`}
-                      </Link>
-                      {c.status !== 'sending' && (
-                        <button
-                          className="adm-btn adm-btn-sm adm-btn-danger"
-                          onClick={() => handleDelete(c.id, c.title)}
-                          aria-label={t('deleteCampaignLabel', { title: c.title })}
-                          title={tc('delete')}
-                        >🗑</button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </>

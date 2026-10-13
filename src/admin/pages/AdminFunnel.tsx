@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtNumber } from '../utils/dateUtils';
-import { defineMessages, useAdminLang, useT } from '../i18n/core';
+import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import {
+  AdminIcon, Alert, Badge, Card, EmptyState, LangTag, Loading, PageHeader, Tabs, Toolbar, type IconName,
+} from '../ui';
 
 /**
  * Conversion funnel + search-terms dashboard (Phase G1 + G2).
  *
  * The funnel shows unique visitors at each step of the canonical
- * KARAHOCA path (page_view → product_view → chat_open →
- * chat_message_sent → whatsapp_click) and the per-step drop-off, so
+ * KARAHOCA path (page_view, product_view, chat_open,
+ * chat_message_sent, whatsapp_click) and the per-step drop-off, so
  * the team can see EXACTLY where the conversion leaks happen.
  *
  * The search-terms block is the sister G2 panel — top normalised
@@ -21,9 +24,10 @@ import { common } from '../i18n/common';
 
 const messages = defineMessages({
   en: {
-    title: 'Conversion Funnel',
+    title: 'Conversion funnel',
     subtitle: 'Unique visitors at every step of the KARAHOCA conversion path, plus the most common search terms over the same window.',
     allLanguages: 'All languages',
+    period: 'Period',
     lastDays: { other: 'Last {n} days' },
     from: 'From',
     to: 'To',
@@ -48,6 +52,7 @@ const messages = defineMessages({
     title: 'قمع التحويل',
     subtitle: 'عدد الزوار الفريدين في كل مرحلة من مسار التحويل في KARAHOCA، مع أكثر عبارات البحث شيوعًا خلال الفترة نفسها.',
     allLanguages: 'كل اللغات',
+    period: 'الفترة',
     lastDays: { one: 'آخر يوم', two: 'آخر يومين', few: 'آخر {n} أيام', many: 'آخر {n} يومًا', other: 'آخر {n} يوم' },
     from: 'من',
     to: 'إلى',
@@ -79,8 +84,9 @@ const messages = defineMessages({
 
 type Key = keyof typeof messages.en;
 
-// The server sends English step labels; known steps are shown in the
-// admin's language, any other step as sent.
+// The server sends English step labels (and emoji icons, which the admin
+// doesn't show); known steps get the admin's language and icon, any other
+// step its label as sent.
 const STEP_LABEL: Record<string, Key> = {
   page_view: 'step_page_view',
   product_view: 'step_product_view',
@@ -88,6 +94,17 @@ const STEP_LABEL: Record<string, Key> = {
   chat_message_sent: 'step_chat_message_sent',
   whatsapp_click: 'step_whatsapp_click',
 };
+
+const STEP_ICON: Record<string, IconName> = {
+  page_view: 'file',
+  product_view: 'products',
+  chat_open: 'bot',
+  chat_message_sent: 'chats',
+  whatsapp_click: 'whatsapp',
+};
+
+/** Funnel bar colour (chart series). */
+const FUNNEL_COLOR = '#4f6ef7';
 
 // Language names are written in their own language ("All" is translated).
 const LANGS = [
@@ -97,7 +114,9 @@ const LANGS = [
   { code: 'ru', label: 'Русский' },
 ];
 
-const PRESET_RANGES = [
+type PresetKey = '7d' | '30d' | '90d' | 'custom';
+
+const PRESET_RANGES: { key: PresetKey; days: number }[] = [
   { key: '7d',  days: 7 },
   { key: '30d', days: 30 },
   { key: '90d', days: 90 },
@@ -114,9 +133,8 @@ const presetRange = (days: number) => {
 export const AdminFunnel: React.FC = () => {
   const t = useT(messages);
   const tc = useT(common);
-  const { dir } = useAdminLang();
   const [{ from, to }, setRange] = useState(() => presetRange(30));
-  const [activePreset, setActivePreset] = useState<string>('30d');
+  const [activePreset, setActivePreset] = useState<PresetKey>('30d');
   const [lang, setLang] = useState('');
 
   const { data, loading, error } = useAsync(
@@ -128,35 +146,29 @@ export const AdminFunnel: React.FC = () => {
   const searchTerms = data?.searchTerms ?? [];
   const peak = funnel.length > 0 ? funnel[0].visitors : 0;
 
+  const pickPreset = (key: PresetKey) => {
+    const preset = PRESET_RANGES.find((p) => p.key === key);
+    if (!preset) return;
+    setActivePreset(key);
+    setRange(presetRange(preset.days));
+  };
+
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">{t('subtitle')}</p>
-        </div>
-      </div>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      {/* Filters */}
-      <div
-        className="adm-card"
-        style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}
-      >
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {PRESET_RANGES.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              className={`adm-btn adm-btn-sm ${activePreset === p.key ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
-              onClick={() => { setActivePreset(p.key); setRange(presetRange(p.days)); }}
-            >
-              {t.plural('lastDays', p.days)}
-            </button>
-          ))}
-        </div>
-
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('from')}</span>
+      {/* A typed date leaves the presets ("custom" matches no tab). */}
+      <Toolbar>
+        <Tabs
+          variant="segmented"
+          size="sm"
+          ariaLabel={t('period')}
+          items={PRESET_RANGES.map((p) => ({ value: p.key, label: t.plural('lastDays', p.days) }))}
+          value={activePreset}
+          onChange={pickPreset}
+        />
+        <label className="adm-flex">
+          <span className="adm-toolbar-label">{t('from')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -165,8 +177,8 @@ export const AdminFunnel: React.FC = () => {
             onChange={(e) => { setActivePreset('custom'); setRange((r) => ({ ...r, from: e.target.value })); }}
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('to')}</span>
+        <label className="adm-flex">
+          <span className="adm-toolbar-label">{t('to')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -176,107 +188,71 @@ export const AdminFunnel: React.FC = () => {
             onChange={(e) => { setActivePreset('custom'); setRange((r) => ({ ...r, to: e.target.value })); }}
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{tc('language')}</span>
+        <label className="adm-flex">
+          <span className="adm-toolbar-label">{tc('language')}</span>
           <select
-            className="adm-select adm-input-sm"
+            className="adm-select adm-select-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
-            style={{ width: 160 }}
           >
             <option value="">{t('allLanguages')}</option>
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
-      </div>
+      </Toolbar>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
-      {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
+      {loading && <Loading label={tc('loading')} />}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       {!loading && !error && (
-        <>
-          <div className="adm-card" style={{ marginBottom: 16 }}>
-            <div className="adm-card-title">{t('funnel')}</div>
+        <div className="adm-stack">
+          <Card title={t('funnel')} icon="funnel">
             {/* The server always returns all five steps, so "nothing
                 happened" is a top step of 0 — five empty bars said nothing. */}
             {peak === 0 ? (
-              <div style={{ color: 'var(--adm-text-dim)', fontSize: 13, marginTop: 12 }}>
-                {t('noVisitors')}
-              </div>
+              <EmptyState compact icon="funnel" title={t('noVisitors')} />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              // Same rows as the Analytics rankings: the step on top, a
+              // full-width track under it filled to its share of the top step.
+              <div className="adm-ranking-list">
                 {funnel.map((step, idx) => {
                   const widthPct = (step.visitors / peak) * 100;
-                  // Full-width row: a track with the fill drawn under the
-                  // text. The fill used to BE the row, so a small step
-                  // shrank to its 200px minimum and the text wrapped onto
-                  // three lines.
                   return (
-                    <div
-                      key={step.key}
-                      style={{
-                        position: 'relative',
-                        height: 48,
-                        borderRadius: 6,
-                        overflow: 'hidden',
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        borderInlineStart: '3px solid #4f6ef7',
-                      }}
-                    >
-                      <div
-                        aria-hidden="true"
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          insetInlineStart: 0,
-                          width: `${widthPct}%`,
-                          // Strongest at the start of the row in either direction.
-                          background: `linear-gradient(${dir === 'rtl' ? '270deg' : '90deg'}, rgba(79, 110, 247, 0.32), rgba(79, 110, 247, 0.12))`,
-                          transition: 'width 0.4s ease',
-                        }}
-                      />
-                      <div
-                        style={{
-                          position: 'relative',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '0 14px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{step.icon}</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {STEP_LABEL[step.key] ? t(STEP_LABEL[step.key]) : step.label}
-                        </span>
-                        <span style={{ marginInlineStart: 'auto', fontSize: 12, color: 'var(--adm-text-muted)', flexShrink: 0 }}>
-                          <strong style={{ color: 'var(--adm-text)' }}>{fmtNumber(step.visitors)}</strong>{' '}
-                          {t.plural('visitorsOfTop', step.visitors, { pct: String(step.conversionFromStart) })}
-                        </span>
-                        {idx > 0 && step.dropFromPrev > 0 && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', flexShrink: 0 }}>
-                            {t('drop', { pct: String(step.dropFromPrev) })}
+                    <div key={step.key} className="adm-ranking-row">
+                      <div className="adm-ranking-top">
+                        <div className="adm-ranking-label-wrap">
+                          <AdminIcon name={STEP_ICON[step.key] ?? 'target'} size="sm" className="adm-ranking-icon adm-text-muted" />
+                          <span className="adm-ranking-label">
+                            {STEP_LABEL[step.key] ? t(STEP_LABEL[step.key]) : step.label}
                           </span>
-                        )}
+                        </div>
+                        <div className="adm-flex" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <strong>{fmtNumber(step.visitors)}</strong>
+                          <span className="adm-text-sm adm-text-muted">
+                            {t.plural('visitorsOfTop', step.visitors, { pct: String(step.conversionFromStart) })}
+                          </span>
+                          {idx > 0 && step.dropFromPrev > 0 && (
+                            <Badge tone="danger">{t('drop', { pct: String(step.dropFromPrev) })}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="adm-ranking-track">
+                        <div className="adm-ranking-fill" style={{ width: `${widthPct}%`, background: FUNNEL_COLOR }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
+          </Card>
 
-          <div className="adm-card">
-            <div className="adm-card-title">{t('topSearchTerms')}</div>
-            <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 4, marginBottom: 12 }}>
-              {t('searchNote')}
-            </p>
+          <Card title={t('topSearchTerms')} icon="search" subtitle={t('searchNote')}>
             {searchTerms.length === 0 ? (
-              <div style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>
-                {t('noSearchBefore')} <code>search_query</code> {t('noSearchAfter')}
-              </div>
+              <EmptyState
+                compact
+                icon="search"
+                title={<>{t('noSearchBefore')} <code>search_query</code> {t('noSearchAfter')}</>}
+              />
             ) : (
               <div className="adm-table-wrap">
                 <table className="adm-table">
@@ -291,15 +267,11 @@ export const AdminFunnel: React.FC = () => {
                   <tbody>
                     {searchTerms.map((s, idx) => (
                       <tr key={s.term}>
-                        <td style={{ color: 'var(--adm-text-dim)', fontSize: 12 }}>{idx + 1}</td>
-                        <td>
-                          <span dir="auto" style={{ fontSize: 14 }}>{s.term}</span>
-                        </td>
+                        <td><span className="adm-text-sm adm-text-muted">{idx + 1}</span></td>
+                        <td dir="auto">{s.term}</td>
                         <td><strong>{fmtNumber(s.count)}</strong></td>
                         <td>
-                          <span className="adm-badge adm-badge-blue" style={{ fontSize: 11 }}>
-                            {s.topLang || '—'}
-                          </span>
+                          {s.topLang ? <LangTag lang={s.topLang} /> : <span className="adm-text-muted">—</span>}
                         </td>
                       </tr>
                     ))}
@@ -307,8 +279,8 @@ export const AdminFunnel: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
-        </>
+          </Card>
+        </div>
       )}
     </div>
   );

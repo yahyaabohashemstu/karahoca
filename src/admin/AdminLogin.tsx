@@ -3,20 +3,21 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi } from './utils/adminApi';
 import { useAdminAuth } from './utils/useAdminAuth';
 import { defineMessages, useAdminLang, useT } from './i18n/core';
+import { Alert, Button, Field } from './ui';
 
 const messages = defineMessages({
   en: {
-    subtitle: 'Admin Dashboard',
+    subtitle: 'Admin dashboard',
     sessionExpired: 'Your session expired. Sign in again to continue where you left off.',
     username: 'Username',
     usernamePlaceholder: 'Enter your username',
     password: 'Password',
     checking: 'Checking session…',
     signingIn: 'Signing in…',
-    signIn: 'Sign In',
+    signIn: 'Sign in',
     invalidCredentials: 'Invalid username or password.',
     cookieBlocked: 'Signed in, but the browser did not keep the session cookie. Allow cookies for this site and try again.',
-    footer: 'KARAHOCA © {year} — Secure Area',
+    footer: 'KARAHOCA © {year} — Secure area',
     switchLang: 'العربية',
   },
   ar: {
@@ -87,14 +88,16 @@ export const AdminLogin: React.FC = () => {
 
   return (
     <div className="adm-login-bg">
-      <button
-        type="button"
-        className="adm-btn adm-btn-ghost adm-btn-sm adm-login-lang"
+      <Button
+        variant="ghost"
+        size="sm"
+        icon="language"
+        className="adm-login-lang"
         onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
         lang={lang === 'ar' ? 'en' : 'ar'}
       >
         {t('switchLang')}
-      </button>
+      </Button>
       <div className="adm-login-card">
 
         {/* Logo */}
@@ -103,15 +106,10 @@ export const AdminLogin: React.FC = () => {
           <p>{t('subtitle')}</p>
         </div>
 
-        {sessionExpired && !error && (
-          <div className="adm-alert adm-alert-info" role="status">
-            {t('sessionExpired')}
-          </div>
-        )}
+        {sessionExpired && !error && <Alert tone="info">{t('sessionExpired')}</Alert>}
 
         <form onSubmit={handleSubmit}>
-          <div className="adm-form-group">
-            <label className="adm-label" htmlFor="adm-login-username">{t('username')}</label>
+          <Field label={t('username')}>
             <input
               id="adm-login-username"
               className="adm-input"
@@ -124,10 +122,9 @@ export const AdminLogin: React.FC = () => {
               autoFocus
               required
             />
-          </div>
+          </Field>
 
-          <div className="adm-form-group">
-            <label className="adm-label" htmlFor="adm-login-password">{t('password')}</label>
+          <Field label={t('password')}>
             <input
               id="adm-login-password"
               className="adm-input"
@@ -139,30 +136,24 @@ export const AdminLogin: React.FC = () => {
               dir="ltr"
               required
             />
-          </div>
+          </Field>
 
           {errorText && (
-            <div className="adm-alert adm-alert-error" role="alert">
-              ⚠ {errorText}
-            </div>
+            <Alert tone="danger">{errorText}</Alert>
           )}
 
-          <button
-            className="adm-btn adm-btn-primary"
+          <Button
             type="submit"
-            disabled={isLoading || isCheckingSession}
-            style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: '12px 20px', fontSize: '14px' }}
+            variant="primary"
+            block
+            className="adm-login-submit"
+            loading={isLoading || isCheckingSession}
           >
-            {isCheckingSession
-              ? <><span className="adm-spinner" style={{ width: 15, height: 15 }} /> {t('checking')}</>
-              : isLoading
-              ? <><span className="adm-spinner" style={{ width: 15, height: 15 }} /> {t('signingIn')}</>
-              : t('signIn')
-            }
-          </button>
+            {isCheckingSession ? t('checking') : isLoading ? t('signingIn') : t('signIn')}
+          </Button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 11, color: 'var(--adm-text-dim)' }}>
+        <p className="adm-login-footer">
           {t('footer', { year: String(new Date().getFullYear()) })}
         </p>
       </div>

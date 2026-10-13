@@ -1,66 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { adminApi, type AiQA } from '../utils/adminApi';
+import { adminApi, type AiQA, type AiQuestion } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT, type AdminLang } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Badge, Button, Card, EmptyState, Field, IconButton, LangLabel, LangTag, Loading, PageHeader, StatusBadge, Tabs, Toolbar, type IconName } from '../ui';
 
 const messages = defineMessages({
   en: {
-    title: 'AI Knowledge Base',
+    title: 'AI knowledge base',
     subtitle: 'Teach the AI — manage custom Q&A and review what users ask',
     tabQa: 'Custom Q&A',
-    tabQuestions: 'User Questions',
-    tabPreview: 'AI Knowledge Preview',
-    // Language tabs of the editor (flags stay in the code).
-    code_ar: 'AR',
-    code_en: 'EN',
-    code_tr: 'TR',
-    code_ru: 'RU',
+    tabQuestions: 'Visitor questions',
+    tabPreview: 'AI knowledge preview',
     translateFirst: 'Write the question or the answer in any language first, then translate.',
     translationFailed: 'Translation failed',
     saveFailed: 'Save failed',
     translateTitle: 'Fill the other languages from the one that is filled in',
     translating: 'Translating…',
-    aiTranslate: 'AI Translate',
+    aiTranslate: 'AI translate',
     question: 'Question ({lang})',
     answer: 'Answer ({lang})',
     tags: 'Tags (comma-separated keywords)',
     tagsPlaceholder: 'price, shipping, order, diox, aylux',
-    saveEntry: 'Save Entry',
+    saveEntry: 'Save entry',
     confirmDiscard: 'Discard the unsaved changes to the entry you are editing?',
     confirmDelete: 'Delete this entry?',
     deleteFailed: 'Delete failed',
     updateFailed: 'Update failed',
     previewFailed: 'Failed to load the preview',
-    addEntry: '+ Add Q&A Entry',
+    addEntry: 'Add Q&A entry',
     loadQaFailed: "Couldn't load the Q&A entries: {error}",
     noEntries: 'No custom Q&A entries yet.',
     noEntriesHint: 'Add Q&A pairs to teach the AI specific answers about pricing, shipping, minimum orders, etc.',
     qPrefix: 'Q:',
     aPrefix: 'A:',
     editEntryLabel: 'Edit entry: {name}',
-    editEntry: 'Edit entry',
     deleteEntryLabel: 'Delete entry: {name}',
-    deleteEntry: 'Delete entry',
     status_new: 'New',
     status_reviewed: 'Reviewed',
     status_ignored: 'Ignored',
+    statusFilter: 'Question status',
     selected: { one: '{n} selected', other: '{n} selected' },
-    markReviewed: 'Mark Reviewed',
+    markReviewed: 'Mark reviewed',
     ignore: 'Ignore',
-    loadQuestionsFailed: "Couldn't load the user questions: {error}",
+    loadQuestionsFailed: "Couldn't load the visitor questions: {error}",
     empty_new: 'No new questions.',
     empty_reviewed: 'No reviewed questions.',
     empty_ignored: 'No ignored questions.',
+    colSelect: 'Select',
+    colQuestion: 'Question',
+    colDate: 'Date',
     selectQuestion: 'Select question: {question}',
     convertTitle: 'Convert to Q&A entry',
-    addAnswer: '+ Add Answer',
+    addAnswer: 'Add answer',
     previewNote: 'Shows only the product catalogue and custom Q&A the AI gets for this language — not the full prompt (its standing instructions and website knowledge are added on top).',
     loadPreviewFailed: "Couldn't load the preview: {error}",
-    catalogTitle: 'Product Catalog (Auto-Synced from DB)',
+    catalogTitle: 'Product catalog (auto-synced from DB)',
     noProducts: '(no products in database)',
-    customQaTitle: 'Custom Q&A (Admin-Defined)',
+    customQaTitle: 'Custom Q&A (admin-defined)',
     noCustomQa: '(no custom Q&A entries yet)',
   },
   ar: {
@@ -69,10 +67,6 @@ const messages = defineMessages({
     tabQa: 'الأسئلة والأجوبة المخصصة',
     tabQuestions: 'أسئلة الزوار',
     tabPreview: 'معاينة معرفة المساعد',
-    code_ar: 'العربية',
-    code_en: 'الإنجليزية',
-    code_tr: 'التركية',
-    code_ru: 'الروسية',
     translateFirst: 'اكتب السؤال أو الإجابة بأي لغة أولًا، ثم ترجم.',
     translationFailed: 'فشلت الترجمة',
     saveFailed: 'فشل الحفظ',
@@ -89,19 +83,18 @@ const messages = defineMessages({
     deleteFailed: 'فشل الحذف',
     updateFailed: 'فشل التحديث',
     previewFailed: 'تعذّر تحميل المعاينة',
-    addEntry: '+ إضافة سؤال وجواب',
+    addEntry: 'إضافة سؤال وجواب',
     loadQaFailed: 'تعذّر تحميل الأسئلة والأجوبة: {error}',
     noEntries: 'لا توجد أسئلة وأجوبة مخصصة بعد.',
     noEntriesHint: 'أضف أسئلة وأجوبة لتعليم المساعد إجابات محددة عن الأسعار والشحن والحد الأدنى للطلب وغيرها.',
     qPrefix: 'س:',
     aPrefix: 'ج:',
     editEntryLabel: 'تعديل الإدخال: {name}',
-    editEntry: 'تعديل الإدخال',
     deleteEntryLabel: 'حذف الإدخال: {name}',
-    deleteEntry: 'حذف الإدخال',
     status_new: 'جديدة',
     status_reviewed: 'تمت مراجعتها',
     status_ignored: 'متجاهَلة',
+    statusFilter: 'حالة السؤال',
     selected: {
       zero: 'لم يُحدَّد أي سؤال',
       one: 'سؤال واحد محدد',
@@ -116,9 +109,12 @@ const messages = defineMessages({
     empty_new: 'لا توجد أسئلة جديدة.',
     empty_reviewed: 'لا توجد أسئلة تمت مراجعتها.',
     empty_ignored: 'لا توجد أسئلة متجاهَلة.',
+    colSelect: 'تحديد',
+    colQuestion: 'السؤال',
+    colDate: 'التاريخ',
     selectQuestion: 'تحديد السؤال: {question}',
     convertTitle: 'تحويل إلى سؤال وجواب',
-    addAnswer: '+ إضافة إجابة',
+    addAnswer: 'إضافة إجابة',
     previewNote: 'تعرض فقط كتالوج المنتجات والأسئلة والأجوبة المخصصة التي يتلقاها المساعد بهذه اللغة — لا التعليمات الكاملة (تُضاف إليها تعليماته الثابتة ومعرفته بالموقع).',
     loadPreviewFailed: 'تعذّر تحميل المعاينة: {error}',
     catalogTitle: 'كتالوج المنتجات (مُزامَن تلقائيًا من قاعدة البيانات)',
@@ -130,14 +126,21 @@ const messages = defineMessages({
 
 type LangKey = 'ar' | 'en' | 'tr' | 'ru';
 
-const LANGS: Array<{ key: LangKey; flag: string; dir: 'rtl' | 'ltr' }> = [
-  { key: 'ar', flag: '🇸🇦', dir: 'rtl' },
-  { key: 'en', flag: '🇬🇧', dir: 'ltr' },
-  { key: 'tr', flag: '🇹🇷', dir: 'ltr' },
-  { key: 'ru', flag: '🇷🇺', dir: 'ltr' },
+const LANGS: Array<{ key: LangKey; dir: 'rtl' | 'ltr' }> = [
+  { key: 'ar', dir: 'rtl' },
+  { key: 'en', dir: 'ltr' },
+  { key: 'tr', dir: 'ltr' },
+  { key: 'ru', dir: 'ltr' },
 ];
 
 const LANG_KEYS: LangKey[] = ['ar', 'en', 'tr', 'ru'];
+
+type QuestionStatus = AiQuestion['status'];
+const QUESTION_STATUSES: Array<{ value: QuestionStatus; icon: IconName }> = [
+  { value: 'new', icon: 'flame' },
+  { value: 'reviewed', icon: 'check' },
+  { value: 'ignored', icon: 'ban' },
+];
 
 const QA_TEXT_FIELDS = [
   'question_ar', 'question_en', 'question_tr', 'question_ru',
@@ -157,6 +160,20 @@ const firstFilled = (qa: AiQA, prefix: 'question' | 'answer', adminLang: AdminLa
   (adminLang === 'ar' ? (['ar', 'en', 'tr', 'ru'] as const) : (['en', 'ar', 'tr', 'ru'] as const))
     .map((l) => textOf(qa, `${prefix}_${l}`)).find(Boolean) || '';
 
+/** Language picker for the four content languages: code chip + name, never flags. */
+const LangTabs: React.FC<{ value: LangKey; onChange: (lang: LangKey) => void }> = ({ value, onChange }) => {
+  const tc = useT(common);
+  return (
+    <Tabs
+      variant="segmented"
+      ariaLabel={tc('language')}
+      value={value}
+      onChange={onChange}
+      items={LANGS.map((l) => ({ value: l.key, label: <LangLabel lang={l.key} /> }))}
+    />
+  );
+};
+
 const QAForm: React.FC<{
   initial?: Partial<AiQA>;
   onSave: (data: Partial<AiQA>) => Promise<void>;
@@ -171,7 +188,7 @@ const QAForm: React.FC<{
   const [error, setError] = useState('');
   const t = useT(messages);
   const tc = useT(common);
-  const langLabel = (l: (typeof LANGS)[number]) => `${l.flag} ${t(`code_${l.key}`)}`;
+  const langName = (l: LangKey) => tc(`lang_${l}`);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -232,79 +249,50 @@ const QAForm: React.FC<{
   const busy = saving || translating;
 
   return (
-    <div style={{ background: 'var(--adm-surface2)', borderRadius: 12, padding: 20, marginBottom: 12 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>
-        {LANGS.map((l) => (
-          <button
-            key={l.key}
-            type="button"
-            onClick={() => setLang(l.key)}
-            aria-pressed={lang === l.key}
-            style={{
-              padding: '5px 12px',
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 12,
-              background: lang === l.key ? 'var(--adm-accent)' : 'var(--adm-surface)',
-              color: lang === l.key ? '#fff' : 'var(--adm-text-muted)',
-              fontWeight: 600,
-            }}
-          >
-            {langLabel(l)}
-          </button>
-        ))}
-        <button
-          type="button"
+    <Card>
+      <div className="adm-flex-between" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        <LangTabs value={lang} onChange={setLang} />
+        <Button
+          variant="ai"
+          icon="ai"
+          size="sm"
           onClick={handleTranslate}
+          loading={translating}
           disabled={busy}
           title={t('translateTitle')}
-          style={{
-            marginInlineStart: 'auto',
-            padding: '5px 12px',
-            borderRadius: 6,
-            border: '1px solid var(--adm-border)',
-            background: 'var(--adm-surface)',
-            color: 'var(--adm-text-muted)',
-            cursor: 'pointer',
-            fontSize: 12,
-          }}
         >
-          {translating ? <><span className="adm-spinner" style={{ width: 10, height: 10 }} /> {t('translating')}</> : `🤖 ${t('aiTranslate')}`}
-        </button>
+          {translating ? t('translating') : t('aiTranslate')}
+        </Button>
       </div>
 
+      {/* The boxes follow the language being written; labels stay in the
+          dashboard's direction. */}
       {LANGS.filter((l) => l.key === lang).map((l) => (
-        <div key={l.key} style={{ direction: l.dir, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label className="adm-label" style={{ marginBottom: 4 }}>{t('question', { lang: langLabel(l) })}</label>
+        <div key={l.key} className="adm-grid-2">
+          <Field label={t('question', { lang: langName(l.key) })}>
             <textarea
-              className="adm-input"
+              className="adm-textarea"
               rows={3}
               dir={l.dir}
               value={(form as Record<string, string>)[`question_${l.key}`] || ''}
               onChange={(e) => set(`question_${l.key}`, e.target.value)}
               placeholder={l.key === 'ar' ? 'ما هي المنتجات المتوفرة؟' : 'What products do you offer?'}
-              style={{ resize: 'vertical' }}
             />
-          </div>
-          <div>
-            <label className="adm-label" style={{ marginBottom: 4 }}>{t('answer', { lang: langLabel(l) })}</label>
+          </Field>
+          <Field label={t('answer', { lang: langName(l.key) })}>
             <textarea
-              className="adm-input"
+              className="adm-textarea"
               rows={3}
               dir={l.dir}
               value={(form as Record<string, string>)[`answer_${l.key}`] || ''}
               onChange={(e) => set(`answer_${l.key}`, e.target.value)}
               placeholder={l.key === 'ar' ? 'نقدم منتجات DIOX وAYLUX...' : 'We offer DIOX and AYLUX products...'}
-              style={{ resize: 'vertical' }}
             />
-          </div>
+          </Field>
         </div>
       ))}
 
-      <div className="adm-form-group" style={{ marginTop: 12 }}>
-        <label className="adm-label">{t('tags')}</label>
+      <Field label={t('tags')}>
         <input
           className="adm-input"
           dir="auto"
@@ -312,17 +300,17 @@ const QAForm: React.FC<{
           onChange={(e) => set('tags', e.target.value)}
           placeholder={t('tagsPlaceholder')}
         />
-      </div>
+      </Field>
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginTop: 8, marginBottom: 8 }}>⚠ {error}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button type="button" onClick={submit} className="adm-btn adm-btn-primary" disabled={busy}>
-          {saving ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {tc('saving')}</> : `💾 ${t('saveEntry')}`}
-        </button>
-        <button type="button" onClick={onCancel} className="adm-btn">{tc('cancel')}</button>
+      <div className="adm-flex">
+        <Button variant="primary" icon="save" onClick={submit} loading={saving} disabled={busy}>
+          {saving ? tc('saving') : t('saveEntry')}
+        </Button>
+        <Button onClick={onCancel}>{tc('cancel')}</Button>
       </div>
-    </div>
+    </Card>
   );
 };
 
@@ -334,11 +322,11 @@ export const AdminAiKnowledge: React.FC = () => {
   const [previewAttempt, setPreviewAttempt] = useState(0);
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [draftEntry, setDraftEntry] = useState<Partial<AiQA> | null>(null);
-  // Remounts the "new" form when it is re-seeded (e.g. a second "+ Add
+  // Remounts the "new" form when it is re-seeded (e.g. a second "Add
   // Answer"), which useState's initial value would otherwise ignore.
   const [draftSeq, setDraftSeq] = useState(0);
   const [formDirty, setFormDirty] = useState(false);
-  const [qStatus, setQStatus] = useState<'new' | 'reviewed' | 'ignored'>('new');
+  const [qStatus, setQStatus] = useState<QuestionStatus>('new');
   const [selected, setSelected] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -434,79 +422,67 @@ export const AdminAiKnowledge: React.FC = () => {
 
   const counts = qsData.data?.counts ?? [];
   const getCount = (s: string) => counts.find((c) => c.status === s)?.c ?? 0;
+  const entries = qaList.data?.entries ?? [];
+  const questions = qsData.data?.questions ?? [];
+  const newCount = getCount('new');
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">🤖 {t('title')}</h1>
-          <p className="adm-page-subtitle">{t('subtitle')}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={<Button variant="primary" icon="plus" onClick={() => startNewEntry()}>{t('addEntry')}</Button>}
+      />
 
-      <div className="adm-tabs">
-        {[
-          { key: 'qa', label: `💡 ${t('tabQa')}`, badge: qaList.data?.entries?.length },
-          { key: 'questions', label: `❓ ${t('tabQuestions')}`, badge: getCount('new') || undefined },
-          { key: 'preview', label: `👁 ${t('tabPreview')}` },
-        ].map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setTab(item.key as typeof tab)}
-            className={`adm-tab-btn${tab === item.key ? ' active' : ''}`}
-          >
-            {item.label}
-            {item.badge !== undefined && item.badge > 0 && (
-              <span className="adm-tab-badge">{fmtNumber(item.badge)}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        variant="underline"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { value: 'qa', label: t('tabQa'), icon: 'help', badge: entries.length ? fmtNumber(entries.length) : undefined },
+          { value: 'questions', label: t('tabQuestions'), icon: 'chats', badge: newCount ? fmtNumber(newCount) : undefined },
+          { value: 'preview', label: t('tabPreview'), icon: 'eye' },
+        ]}
+      />
 
-      {actionError && <div className="adm-alert adm-alert-error" role="alert" style={{ marginBottom: 16 }}>⚠ {actionError}</div>}
+      {actionError && <Alert tone="danger">{actionError}</Alert>}
 
       {/* All three panels stay mounted (only hidden), so an entry being
-          typed survives a look at the User Questions tab. */}
+          typed survives a look at the Visitor Questions tab. */}
       <div hidden={tab !== 'qa'}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <button type="button" onClick={() => startNewEntry()} className="adm-btn adm-btn-primary">{t('addEntry')}</button>
-        </div>
-
-        {editing === 'new' && (
-          <QAForm
-            key={`new-${draftSeq}`}
-            initial={draftEntry ?? emptyQA()}
-            onSave={handleSaveQA}
-            onCancel={() => { setFormDirty(false); setEditing(null); setDraftEntry(null); }}
-            onDirtyChange={setFormDirty}
-          />
-        )}
-
-        {qaList.loading && <div className="adm-loading-center"><span className="adm-spinner" /></div>}
-
         {qaList.error && (
-          <div className="adm-alert adm-alert-error" role="alert" style={{ marginBottom: 12 }}>
-            ⚠ {t('loadQaFailed', { error: qaList.error })}{' '}
-            <button type="button" className="adm-btn adm-btn-sm" onClick={() => qaList.reload()}>{tc('retry')}</button>
-          </div>
+          <Alert
+            tone="danger"
+            action={<Button size="sm" icon="refresh" onClick={() => qaList.reload()}>{tc('retry')}</Button>}
+          >
+            {t('loadQaFailed', { error: qaList.error })}
+          </Alert>
         )}
 
-        {!qaList.loading && !qaList.error && !qaList.data?.entries?.length && editing !== 'new' && (
-          <div className="adm-card" style={{ textAlign: 'center', padding: 48 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
-            <p className="adm-text-muted" style={{ marginBottom: 16 }}>{t('noEntries')}</p>
-            <p className="adm-text-muted adm-text-sm">
-              {t('noEntriesHint')}
-            </p>
-          </div>
-        )}
+        <div className="adm-stack">
+          {editing === 'new' && (
+            <QAForm
+              key={`new-${draftSeq}`}
+              initial={draftEntry ?? emptyQA()}
+              onSave={handleSaveQA}
+              onCancel={() => { setFormDirty(false); setEditing(null); setDraftEntry(null); }}
+              onDirtyChange={setFormDirty}
+            />
+          )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {(qaList.data?.entries ?? []).map((entry) => {
+          {qaList.loading && <Loading label={tc('loading')} />}
+
+          {!qaList.loading && !qaList.error && !entries.length && editing !== 'new' && (
+            <Card>
+              <EmptyState icon="bot" title={t('noEntries')} text={t('noEntriesHint')} />
+            </Card>
+          )}
+
+          {entries.map((entry) => {
             const question = firstFilled(entry, 'question', t.lang);
             const answer = firstFilled(entry, 'answer', t.lang);
             const name = question || `#${entry.id}`;
+            const tags = (entry.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean);
             return editing === entry.id ? (
               <QAForm
                 key={entry.id}
@@ -516,225 +492,172 @@ export const AdminAiKnowledge: React.FC = () => {
                 onDirtyChange={setFormDirty}
               />
             ) : (
-              <div
+              <Card
                 key={entry.id}
-                style={{
-                  background: 'var(--adm-surface)',
-                  border: '1px solid var(--adm-border)',
-                  borderRadius: 12,
-                  padding: '14px 18px',
-                  borderInlineStart: `3px solid ${entry.active ? 'var(--adm-success)' : 'var(--adm-border)'}`,
-                  opacity: entry.active ? 1 : 0.5,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--adm-text)', marginBottom: 4 }}>
-                      {t('qPrefix')} <span dir="auto">{question || '—'}</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--adm-text-muted)', marginBottom: 6 }}>
-                      {t('aPrefix')} <span dir="auto">{answer.slice(0, 120)}{answer.length > 120 ? '…' : ''}</span>
-                    </div>
-                    {entry.tags && (
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {entry.tags.split(',').map((tag) => tag.trim()).filter(Boolean).map((tag) => (
-                          <span key={tag} dir="auto" style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: 'var(--adm-surface2)', color: 'var(--adm-text-dim)' }}>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() => openEditor(entry.id)}
-                      className="adm-btn adm-btn-sm"
-                      aria-label={t('editEntryLabel', { name })}
-                      title={t('editEntry')}
-                    >
-                      <span aria-hidden="true">✏️</span>
-                    </button>
-                    <button
-                      type="button"
+                title={<><span className="adm-text-muted">{t('qPrefix')}</span> <span dir="auto">{question || '—'}</span></>}
+                actions={(
+                  <div className="adm-row-actions">
+                    <IconButton icon="edit" size="sm" label={t('editEntryLabel', { name })} onClick={() => openEditor(entry.id)} />
+                    <IconButton
+                      icon="trash"
+                      tone="danger"
+                      size="sm"
+                      label={t('deleteEntryLabel', { name })}
                       onClick={() => handleDelete(entry.id)}
-                      className="adm-btn adm-btn-sm adm-btn-danger"
-                      disabled={deletingId === entry.id}
-                      aria-label={t('deleteEntryLabel', { name })}
-                      title={t('deleteEntry')}
-                    >
-                      <span aria-hidden="true">{deletingId === entry.id ? '…' : '🗑'}</span>
-                    </button>
+                      loading={deletingId === entry.id}
+                    />
                   </div>
-                </div>
-              </div>
+                )}
+              >
+                <p className="adm-text-muted" style={{ margin: 0 }}>
+                  {t('aPrefix')} <span dir="auto">{answer.slice(0, 120)}{answer.length > 120 ? '…' : ''}</span>
+                </p>
+                {(!entry.active || tags.length > 0) && (
+                  <div className="adm-flex" style={{ flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+                    {!entry.active && <StatusBadge status="inactive" />}
+                    {tags.map((tag) => (
+                      <Badge key={tag}><bdi>{tag}</bdi></Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
             );
           })}
         </div>
       </div>
 
       <div hidden={tab !== 'questions'}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          {(['new', 'reviewed', 'ignored'] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={qStatus === s}
-              onClick={() => {
-                // The ticked ids belong to the list being left; carrying them
-                // over bulk-updated rows the admin could no longer see.
-                if (s !== qStatus) setSelected([]);
-                setQStatus(s);
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 20,
-                border: '1px solid var(--adm-border)',
-                background: qStatus === s ? 'var(--adm-accent)' : 'var(--adm-surface2)',
-                color: qStatus === s ? '#fff' : 'var(--adm-text-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {t(`status_${s}`)} ({fmtNumber(getCount(s))})
-            </button>
-          ))}
-          {selected.length > 0 && (
-            <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 6 }}>
-              <span style={{ fontSize: 12, color: 'var(--adm-text-muted)', alignSelf: 'center' }}>{t.plural('selected', selected.length)}</span>
-              <button
-                type="button"
-                onClick={() => handleBulkReview('reviewed')}
-                disabled={saving}
-                className="adm-btn adm-btn-sm"
-                style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}
-              >
-                ✅ {t('markReviewed')}
-              </button>
-              <button type="button" onClick={() => handleBulkReview('ignored')} disabled={saving} className="adm-btn adm-btn-sm">
-                🚫 {t('ignore')}
-              </button>
-            </div>
+        <Toolbar
+          end={selected.length > 0 && (
+            <>
+              <span className="adm-toolbar-label">{t.plural('selected', selected.length)}</span>
+              <Button size="sm" icon="check" onClick={() => handleBulkReview('reviewed')} disabled={saving}>
+                {t('markReviewed')}
+              </Button>
+              <Button size="sm" variant="ghost" icon="ban" onClick={() => handleBulkReview('ignored')} disabled={saving}>
+                {t('ignore')}
+              </Button>
+            </>
           )}
-        </div>
-
-        {qsData.loading && <div className="adm-loading-center"><span className="adm-spinner" /></div>}
+        >
+          <Tabs
+            variant="segmented"
+            ariaLabel={t('statusFilter')}
+            value={qStatus}
+            onChange={(s) => {
+              // The ticked ids belong to the list being left; carrying them
+              // over bulk-updated rows the admin could no longer see.
+              if (s !== qStatus) setSelected([]);
+              setQStatus(s);
+            }}
+            items={QUESTION_STATUSES.map((s) => ({
+              value: s.value,
+              label: t(`status_${s.value}`),
+              icon: s.icon,
+              badge: fmtNumber(getCount(s.value)),
+            }))}
+          />
+        </Toolbar>
 
         {qsData.error && (
-          <div className="adm-alert adm-alert-error" role="alert" style={{ marginBottom: 12 }}>
-            ⚠ {t('loadQuestionsFailed', { error: qsData.error })}{' '}
-            <button type="button" className="adm-btn adm-btn-sm" onClick={() => qsData.reload()}>{tc('retry')}</button>
-          </div>
+          <Alert
+            tone="danger"
+            action={<Button size="sm" icon="refresh" onClick={() => qsData.reload()}>{tc('retry')}</Button>}
+          >
+            {t('loadQuestionsFailed', { error: qsData.error })}
+          </Alert>
         )}
 
-        {!qsData.loading && !qsData.error && !qsData.data?.questions?.length && (
-          <div className="adm-card" style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
-            <p className="adm-text-muted">{t(`empty_${qStatus}`)}</p>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(qsData.data?.questions ?? []).map((q) => (
-            <div
-              key={q.id}
-              style={{
-                background: 'var(--adm-surface)',
-                border: '1px solid var(--adm-border)',
-                borderRadius: 10,
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <input
-                type="checkbox"
-                aria-label={t('selectQuestion', { question: q.question })}
-                checked={selected.includes(q.id)}
-                onChange={(e) => setSelected((sel) => e.target.checked ? [...sel, q.id] : sel.filter((i) => i !== q.id))}
-                style={{ flexShrink: 0, width: 16, height: 16, cursor: 'pointer' }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div dir="auto" style={{ fontSize: 14, color: 'var(--adm-text)', marginBottom: 2 }}>{q.question}</div>
-                <div style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>
-                  <span className="adm-badge adm-badge-blue" style={{ fontSize: 10 }}>{q.language}</span>
-                  &nbsp;·&nbsp;{fmtDateTime(q.created_at)}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const entry = emptyQA();
-                  const languageKey = (['ar', 'en', 'tr', 'ru'].includes(q.language) ? q.language : 'en') as LangKey;
-                  (entry as Record<string, string>)[`question_${languageKey}`] = q.question;
-                  startNewEntry(entry);
-                }}
-                className="adm-btn adm-btn-sm"
-                title={t('convertTitle')}
-                style={{ flexShrink: 0, background: 'rgba(79,110,247,0.12)', color: 'var(--adm-accent)', border: '1px solid rgba(79,110,247,0.25)' }}
-              >
-                {t('addAnswer')}
-              </button>
+        {qsData.loading ? (
+          <Loading label={tc('loading')} />
+        ) : !qsData.error && !questions.length ? (
+          <Card>
+            <EmptyState icon="checkCircle" title={t(`empty_${qStatus}`)} compact />
+          </Card>
+        ) : questions.length > 0 && (
+          <Card flush>
+            <div className="adm-table-wrap">
+              <table className="adm-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '1%' }}><span className="adm-sr-only">{t('colSelect')}</span></th>
+                    <th>{t('colQuestion')}</th>
+                    <th>{tc('language')}</th>
+                    <th>{t('colDate')}</th>
+                    <th>{tc('status')}</th>
+                    <th className="adm-col-actions"><span className="adm-sr-only">{tc('actions')}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {questions.map((q) => {
+                    const status = QUESTION_STATUSES.some((s) => s.value === q.status) ? q.status : qStatus;
+                    return (
+                      <tr key={q.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={t('selectQuestion', { question: q.question })}
+                            checked={selected.includes(q.id)}
+                            onChange={(e) => setSelected((sel) => e.target.checked ? [...sel, q.id] : sel.filter((i) => i !== q.id))}
+                          />
+                        </td>
+                        <td dir="auto">{q.question}</td>
+                        <td>{q.language ? <LangTag lang={q.language} /> : <span className="adm-text-muted">—</span>}</td>
+                        <td className="adm-cell-date">{fmtDateTime(q.created_at)}</td>
+                        <td><StatusBadge status={status} label={t(`status_${status}`)} /></td>
+                        <td className="adm-col-actions">
+                          <Button
+                            size="sm"
+                            icon="plus"
+                            title={t('convertTitle')}
+                            onClick={() => {
+                              const entry = emptyQA();
+                              const languageKey = (['ar', 'en', 'tr', 'ru'].includes(q.language) ? q.language : 'en') as LangKey;
+                              (entry as Record<string, string>)[`question_${languageKey}`] = q.question;
+                              startNewEntry(entry);
+                            }}
+                          >
+                            {t('addAnswer')}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          </Card>
+        )}
       </div>
 
       <div hidden={tab !== 'preview'}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-          {LANGS.map((l) => (
-            <button
-              key={l.key}
-              type="button"
-              aria-pressed={previewLang === l.key}
-              onClick={() => setPreviewLang(l.key)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 6,
-                border: '1px solid var(--adm-border)',
-                background: previewLang === l.key ? 'var(--adm-accent)' : 'var(--adm-surface2)',
-                color: previewLang === l.key ? '#fff' : 'var(--adm-text-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {l.flag} {t(`code_${l.key}`)}
-            </button>
-          ))}
-        </div>
-        <p className="adm-text-muted adm-text-sm" style={{ marginBottom: 16 }}>
-          {t('previewNote')}
-        </p>
+        <Toolbar>
+          <LangTabs value={previewLang} onChange={setPreviewLang} />
+        </Toolbar>
+        <Alert tone="info">{t('previewNote')}</Alert>
 
         {previewError ? (
-          <div className="adm-alert adm-alert-error" role="alert">
-            ⚠ {t('loadPreviewFailed', { error: previewError.message ?? t('previewFailed') })}{' '}
-            <button type="button" className="adm-btn adm-btn-sm" onClick={() => setPreviewAttempt((n) => n + 1)}>{tc('retry')}</button>
-          </div>
+          <Alert
+            tone="danger"
+            action={<Button size="sm" icon="refresh" onClick={() => setPreviewAttempt((n) => n + 1)}>{tc('retry')}</Button>}
+          >
+            {t('loadPreviewFailed', { error: previewError.message ?? t('previewFailed') })}
+          </Alert>
         ) : !preview ? (
-          <div className="adm-loading-center"><span className="adm-spinner" /></div>
+          <Loading label={tc('loading')} />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="adm-card">
-              <div className="adm-card-title" style={{ color: '#22c55e', marginBottom: 12 }}>
-                🧴 {t('catalogTitle')}
-              </div>
+          <div className="adm-stack">
+            <Card title={t('catalogTitle')} icon="products">
               {/* The assistant's prompt text (English structure): left to right. */}
-              <pre dir="ltr" style={{ fontSize: 11, color: 'var(--adm-text-muted)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto', background: 'var(--adm-bg)', padding: 12, borderRadius: 8 }}>
+              <pre dir="ltr" className="adm-mono adm-text-muted" style={{ margin: 0, whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto' }}>
                 {preview.productContext || t('noProducts')}
               </pre>
-            </div>
-            <div className="adm-card">
-              <div className="adm-card-title" style={{ color: '#4f6ef7', marginBottom: 12 }}>
-                💡 {t('customQaTitle')}
-              </div>
-              <pre dir="ltr" style={{ fontSize: 11, color: 'var(--adm-text-muted)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto', background: 'var(--adm-bg)', padding: 12, borderRadius: 8 }}>
+            </Card>
+            <Card title={t('customQaTitle')} icon="lightbulb">
+              <pre dir="ltr" className="adm-mono adm-text-muted" style={{ margin: 0, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto' }}>
                 {preview.customQA || t('noCustomQa')}
               </pre>
-            </div>
+            </Card>
           </div>
         )}
       </div>

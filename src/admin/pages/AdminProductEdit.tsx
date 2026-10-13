@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { adminApi, type Product, type ProductCategory } from '../utils/adminApi';
 import { TranslationHelper } from '../components/TranslationHelper';
 import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
@@ -9,6 +9,7 @@ import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeL
 import { confirmPastSchedule, prerenderNote } from '../utils/publishing';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Button, Card, EmptyState, Field, IconButton, LangLabel, Loading, NumberInput, PageHeader, Tabs } from '../ui';
 
 const messages = defineMessages({
   en: {
@@ -18,61 +19,62 @@ const messages = defineMessages({
     uploadFailed: 'Upload failed',
     errRequired: 'Please fill required fields: Arabic name, brand, and category.',
     saveFailed: 'Save failed',
-    newProduct: 'New Product',
-    editProduct: 'Edit Product',
+    newProduct: 'New product',
+    editProduct: 'Edit product',
+    backToProducts: 'Products',
     waitForUpload: 'Wait for the image upload to finish',
-    saveProduct: '💾 Save Product',
-    productInfo: 'Product Info',
-    brandRequired: 'Brand *',
-    categoryRequired: 'Category *',
+    saveProduct: 'Save product',
+    productInfo: 'Product info',
+    brand: 'Brand',
+    category: 'Category',
     selectOption: '— Select —',
     imagePlaceholder: '/products/image.webp or paste URL',
-    upload: '📁 Upload',
     cropUploadTitle: 'Open the image in a cropper before uploading',
-    cropUpload: '✂️ Crop & upload',
-    weightVolume: 'Weight / Volume',
+    cropUpload: 'Crop & upload',
+    weightVolume: 'Weight / volume',
     weightPlaceholder: 'e.g. 500ml',
-    weightCountTable: 'Weight / Count Table',
-    hideTable: '✕ Hide Table',
-    addTable: '📊 Add Table',
+    weightCountTable: 'Weight / count table',
+    hideTable: 'Hide table',
+    addTable: 'Add table',
     countPerBox: 'Count (per box)',
     rowWeightPlaceholder: 'e.g. 1.2 kg',
     rowCountPlaceholder: 'e.g. 6',
-    remove: 'Remove',
-    addRow: '+ Add Row',
-    clearTable: 'Clear Table',
-    displayOrder: 'Display Order',
+    removeRowLabel: 'Remove row {n}',
+    addRow: 'Add row',
+    clearTable: 'Clear table',
+    displayOrder: 'Display order',
     publishingStatus: 'Publishing status',
-    statusPublished: '✅ Published — visible to everyone',
-    statusDraft: '📝 Draft — hidden, work in progress',
-    statusScheduled: '🕐 Scheduled — auto-publish at set time',
+    statusPublished: 'Published — visible to everyone',
+    statusDraft: 'Draft — hidden, work in progress',
+    statusScheduled: 'Scheduled — auto-publish at set time',
     publishAt: 'Publish at',
     publishAtHelp: 'The product will appear in the public catalogue automatically at this time (your local time). The catalogue cache is busted on flip.',
-    imagePreview: 'Image Preview',
-    imageScale: 'Image Scale',
+    imagePreview: 'Image preview',
+    imageScale: 'Image scale',
     previewAlt: 'preview',
-    previewName: 'Product Name',
+    previewName: 'Product name',
     previewDescription: 'Description',
-    galleryImages: 'Gallery Images',
-    addImage: '+ Add Image',
-    noGallery: 'No gallery images. Click "+ Add Image" to add colour variants or extra views.',
+    galleryImages: 'Gallery images',
+    addImage: 'Add image',
+    noGallery: 'No gallery images.',
+    noGalleryText: 'Use "Add Image" to add colour variants or extra views.',
     galleryAlt: 'gallery-{index}',
     galleryPlaceholder: 'Image path or URL #{n}',
-    uploadDirectTitle: 'Upload directly without cropping',
-    uploadGalleryLabel: 'Upload gallery image {n}',
+    uploadGalleryLabel: 'Upload gallery image {n} without cropping',
     cropGalleryLabel: 'Crop and upload gallery image {n}',
     removeGalleryLabel: 'Remove gallery image {n}',
-    storeListings: 'Online Store Listings',
+    storeListings: 'Online store listings',
     storeListingsHelp: 'This product\'s own page on the brand\'s store. The site\'s "buy online" buttons in the product window open it — currently shown on the Turkish and Arabic AYLUX pages. Leave empty to send buyers to the store\'s main page.',
     trendyolListing: 'Trendyol listing',
     hepsiburadaListing: 'Hepsiburada listing',
     openListingTitle: 'Open the listing in a new tab to check it',
-    openListing: '↗ Open',
+    openListing: 'Open',
     content: 'Content',
-    nameLabel: 'Name ({lang}) *',
+    contentLanguage: 'Content language',
+    nameLabel: 'Name ({lang})',
     descriptionLabel: 'Description ({lang})',
     aiWriteTitle: 'Generate a draft description in all 4 languages from the product name + an optional hint',
-    aiWrite: '✨ AI write',
+    aiWrite: 'AI write',
     altLabel: 'Image Alt ({lang})',
     materialLabel: 'Material ({lang})',
     countLabel: 'Count / Package ({lang})',
@@ -87,32 +89,32 @@ const messages = defineMessages({
     saveFailed: 'فشل الحفظ',
     newProduct: 'منتج جديد',
     editProduct: 'تعديل المنتج',
+    backToProducts: 'المنتجات',
     waitForUpload: 'انتظر حتى يكتمل رفع الصورة',
-    saveProduct: '💾 حفظ المنتج',
+    saveProduct: 'حفظ المنتج',
     productInfo: 'بيانات المنتج',
-    brandRequired: 'العلامة التجارية *',
-    categoryRequired: 'الفئة *',
+    brand: 'العلامة التجارية',
+    category: 'الفئة',
     selectOption: '— اختر —',
     imagePlaceholder: '/products/image.webp أو الصق رابطًا',
-    upload: '📁 رفع',
     cropUploadTitle: 'فتح الصورة في أداة القص قبل رفعها',
-    cropUpload: '✂️ قص ورفع',
+    cropUpload: 'قص ورفع',
     weightVolume: 'الوزن / الحجم',
     weightPlaceholder: 'مثال: 500ml',
     weightCountTable: 'جدول الوزن / العدد',
-    hideTable: '✕ إخفاء الجدول',
-    addTable: '📊 إضافة جدول',
+    hideTable: 'إخفاء الجدول',
+    addTable: 'إضافة جدول',
     countPerBox: 'العدد (لكل صندوق)',
     rowWeightPlaceholder: 'مثال: 1.2 kg',
     rowCountPlaceholder: 'مثال: 6',
-    remove: 'إزالة',
-    addRow: '+ إضافة صف',
+    removeRowLabel: 'إزالة الصف {n}',
+    addRow: 'إضافة صف',
     clearTable: 'مسح الجدول',
     displayOrder: 'ترتيب العرض',
     publishingStatus: 'حالة النشر',
-    statusPublished: '✅ منشور — ظاهر للجميع',
-    statusDraft: '📝 مسودة — مخفي، قيد الإعداد',
-    statusScheduled: '🕐 مجدول — يُنشر تلقائيًا في الوقت المحدد',
+    statusPublished: 'منشور — ظاهر للجميع',
+    statusDraft: 'مسودة — مخفي، قيد الإعداد',
+    statusScheduled: 'مجدول — يُنشر تلقائيًا في الوقت المحدد',
     publishAt: 'موعد النشر',
     publishAtHelp: 'سيظهر المنتج في الكتالوج العام تلقائيًا في هذا الوقت (بتوقيتك المحلي). ويُحدَّث التخزين المؤقت للكتالوج لحظة النشر.',
     imagePreview: 'معاينة الصورة',
@@ -121,12 +123,12 @@ const messages = defineMessages({
     previewName: 'اسم المنتج',
     previewDescription: 'الوصف',
     galleryImages: 'صور المعرض',
-    addImage: '+ إضافة صورة',
-    noGallery: 'لا توجد صور في المعرض. انقر «+ إضافة صورة» لإضافة ألوان أخرى للمنتج أو لقطات إضافية.',
+    addImage: 'إضافة صورة',
+    noGallery: 'لا توجد صور في المعرض.',
+    noGalleryText: 'استخدم «إضافة صورة» لإضافة ألوان أخرى للمنتج أو لقطات إضافية.',
     galleryAlt: 'صورة المعرض {n}',
     galleryPlaceholder: 'مسار الصورة أو رابطها #{n}',
-    uploadDirectTitle: 'رفع مباشر دون قص',
-    uploadGalleryLabel: 'رفع صورة المعرض {n}',
+    uploadGalleryLabel: 'رفع صورة المعرض {n} دون قص',
     cropGalleryLabel: 'قص صورة المعرض {n} ورفعها',
     removeGalleryLabel: 'إزالة صورة المعرض {n}',
     storeListings: 'صفحات المتاجر الإلكترونية',
@@ -134,12 +136,13 @@ const messages = defineMessages({
     trendyolListing: 'صفحة المنتج على Trendyol',
     hepsiburadaListing: 'صفحة المنتج على Hepsiburada',
     openListingTitle: 'فتح الصفحة في علامة تبويب جديدة للتحقق منها',
-    openListing: '↗ فتح',
+    openListing: 'فتح',
     content: 'المحتوى',
-    nameLabel: 'الاسم ({lang}) *',
+    contentLanguage: 'لغة المحتوى',
+    nameLabel: 'الاسم ({lang})',
     descriptionLabel: 'الوصف ({lang})',
     aiWriteTitle: 'توليد مسودة وصف باللغات الأربع من اسم المنتج مع توجيه اختياري',
-    aiWrite: '✨ كتابة بالذكاء الاصطناعي',
+    aiWrite: 'كتابة بالذكاء الاصطناعي',
     altLabel: 'النص البديل للصورة ({lang})',
     materialLabel: 'المادة ({lang})',
     countLabel: 'العدد / العبوة ({lang})',
@@ -223,7 +226,7 @@ export const AdminProductEdit: React.FC = () => {
   // Gallery slots with an upload in flight (one spinner per slot; several
   // uploads can run at once).
   const [uploadingSlots, setUploadingSlots] = useState<ReadonlySet<number>>(() => new Set());
-  // In-flight gallery upload → the slot it will fill. Kept in a ref so an
+  // In-flight gallery upload -> the slot it will fill. Kept in a ref so an
   // upload that finishes reads the slot's CURRENT index: removing a slot
   // above it shifts it down one, removing the slot itself cancels it.
   const pendingGalleryUploads = useRef(new Map<symbol, number>());
@@ -422,178 +425,184 @@ export const AdminProductEdit: React.FC = () => {
 
   const filteredCategories = categories.filter(c => !form.brand || c.brand === form.brand);
 
-  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
+  if (loading) return <Loading label={tc('loading')} />;
+
+  const gallery = getGalleryImages();
+  const wcRows = getWCRows();
+  const scalePct = Math.round((form.image_scale ?? 0.85) * 100);
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/admin/products" className="adm-btn adm-btn-ghost adm-btn-sm">{tc('back')}</Link>
-          <h1 className="adm-page-title">{isNew ? t('newProduct') : t('editProduct')}</h1>
-        </div>
-        {/* Saving navigates away, which would drop an image still uploading. */}
-        <button
-          className="adm-btn adm-btn-primary"
-          onClick={handleSave}
-          disabled={saving || uploading || uploadingSlots.size > 0}
-          title={uploading || uploadingSlots.size > 0 ? t('waitForUpload') : undefined}
-        >
-          {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {tc('saving')}</> : t('saveProduct')}
-        </button>
-      </div>
+      <PageHeader
+        title={isNew ? t('newProduct') : t('editProduct')}
+        back={{ to: '/admin/products', label: t('backToProducts') }}
+        actions={(
+          // Saving navigates away, which would drop an image still uploading.
+          <Button
+            variant="primary"
+            icon="save"
+            onClick={handleSave}
+            loading={saving}
+            disabled={uploading || uploadingSlots.size > 0}
+            title={uploading || uploadingSlots.size > 0 ? t('waitForUpload') : undefined}
+          >
+            {saving ? tc('saving') : t('saveProduct')}
+          </Button>
+        )}
+      />
 
-      {error && <div className="adm-alert adm-alert-error" style={{ marginBottom: 16 }}>⚠ {error}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       <div className="adm-grid-2">
         {/* Left: metadata */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="adm-card">
-            <div className="adm-card-title">{t('productInfo')}</div>
-            <div className="adm-form-group">
-              <label className="adm-label">{t('brandRequired')}</label>
-              <select className="adm-input" value={form.brand} onChange={e => { set('brand', e.target.value as 'DIOX' | 'AYLUX'); set('category_id', ''); }}>
+        <div className="adm-stack">
+          <Card title={t('productInfo')} icon="products">
+            <Field label={t('brand')} required>
+              <select className="adm-select" value={form.brand} onChange={e => { set('brand', e.target.value as 'DIOX' | 'AYLUX'); set('category_id', ''); }}>
                 <option value="DIOX">DIOX</option>
                 <option value="AYLUX">AYLUX</option>
               </select>
-            </div>
-            <div className="adm-form-group">
-              <label className="adm-label">{t('categoryRequired')}</label>
-              <select className="adm-input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+            </Field>
+            <Field label={t('category')} required>
+              <select className="adm-select" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
                 <option value="">{t('selectOption')}</option>
                 {filteredCategories.map(c => (
                   <option key={c.id} value={c.id}>{c.title_en} / {c.title_ar}</option>
                 ))}
               </select>
-            </div>
-            <div className="adm-form-group">
-              <label className="adm-label">{tc('image')}</label>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                <input
-                  className="adm-input"
-                  dir="ltr"
-                  value={form.image ?? ''}
-                  onChange={e => set('image', e.target.value)}
-                  placeholder={t('imagePlaceholder')}
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-secondary adm-btn-sm"
-                  onClick={() => {
-                    // Clear a target left by a cancelled "Crop & upload"
-                    // (closing the file picker doesn't fire onChange), or
-                    // this plain upload would open the cropper.
-                    setCropTarget(null);
-                    fileInputRef.current?.click();
-                  }}
-                  disabled={uploading}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {tc('uploading')}</> : t('upload')}
-                </button>
-                {/* Routes the picked file through the cropper before
-                    uploading. Same File object, just clipped first.
-                    The hidden input is shared with the plain upload
-                    button via fileInputRef — we hijack onChange below
-                    based on which button opened it. */}
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-ghost adm-btn-sm"
-                  onClick={() => {
-                    setCropTarget('main');
-                    fileInputRef.current?.click();
-                  }}
-                  disabled={uploading}
-                  style={{ whiteSpace: 'nowrap' }}
-                  title={t('cropUploadTitle')}
-                >
-                  {t('cropUpload')}
-                </button>
-              </div>
+            </Field>
+            <Field
+              label={tc('image')}
+              labelAction={(
+                <div className="adm-flex">
+                  <Button
+                    size="sm"
+                    icon="upload"
+                    onClick={() => {
+                      // Clear a target left by a cancelled "Crop & upload"
+                      // (closing the file picker doesn't fire onChange), or
+                      // this plain upload would open the cropper.
+                      setCropTarget(null);
+                      fileInputRef.current?.click();
+                    }}
+                    loading={uploading}
+                  >
+                    {uploading ? tc('uploading') : tc('upload')}
+                  </Button>
+                  {/* Routes the picked file through the cropper before
+                      uploading. Same File object, just clipped first.
+                      The hidden input is shared with the plain upload
+                      button via fileInputRef — we hijack onChange below
+                      based on which button opened it. */}
+                  <Button
+                    size="sm"
+                    icon="crop"
+                    onClick={() => {
+                      setCropTarget('main');
+                      fileInputRef.current?.click();
+                    }}
+                    disabled={uploading}
+                    title={t('cropUploadTitle')}
+                  >
+                    {t('cropUpload')}
+                  </Button>
+                </div>
+              )}
+            >
               <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  e.target.value = '';
-                  if (!f) { setCropTarget(null); return; }
-                  // If "Crop & upload" was clicked we have a pending
-                  // target — route via the cropper. Otherwise straight
-                  // upload as before.
-                  if (cropTarget === 'main') {
-                    setCropFile(f);
-                  } else {
-                    handleImageUpload(f);
-                  }
-                }}
+                className="adm-input"
+                dir="ltr"
+                value={form.image ?? ''}
+                onChange={e => set('image', e.target.value)}
+                placeholder={t('imagePlaceholder')}
               />
-            </div>
-            <div className="adm-form-group">
-              <label className="adm-label">{t('weightVolume')}</label>
-              <input className="adm-input" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder={t('weightPlaceholder')} />
-            </div>
+            </Field>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f) { setCropTarget(null); return; }
+                // If "Crop & upload" was clicked we have a pending
+                // target — route via the cropper. Otherwise straight
+                // upload as before.
+                if (cropTarget === 'main') {
+                  setCropFile(f);
+                } else {
+                  handleImageUpload(f);
+                }
+              }}
+            />
+            <Field label={t('weightVolume')}>
+              <input className="adm-input" dir="auto" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder={t('weightPlaceholder')} />
+            </Field>
             {/* Weight-Count Table (optional) */}
-            <div className="adm-form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="adm-label" style={{ margin: 0 }}>{t('weightCountTable')}</label>
-                <button
-                  type="button"
-                  className={`adm-btn adm-btn-sm ${showWCTable ? 'adm-btn-warning' : 'adm-btn-secondary'}`}
+            <Field
+              label={t('weightCountTable')}
+              labelAction={(
+                <Button
+                  size="sm"
+                  icon={showWCTable ? 'close' : 'table'}
                   onClick={() => {
                     if (!showWCTable && getWCRows().length === 0) setWCRows([{ weight: '', count: '' }, { weight: '', count: '' }]);
                     setShowWCTable(!showWCTable);
                   }}
                 >
                   {showWCTable ? t('hideTable') : t('addTable')}
-                </button>
-              </div>
-
-              {showWCTable && (
-                <div style={{ marginTop: 10, border: '1px solid var(--adm-border, rgba(255,255,255,0.12))', borderRadius: 8, padding: 12, background: 'rgba(255,255,255,0.02)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: 'start', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>{t('weightVolume')}</th>
-                        <th style={{ textAlign: 'start', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>{t('countPerBox')}</th>
-                        <th style={{ width: 36 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getWCRows().map((row, i) => (
-                        <tr key={i}>
-                          <td style={{ padding: '3px 4px' }}>
-                            <input className="adm-input" value={row.weight} onChange={e => updateWCRow(i, 'weight', e.target.value)} placeholder={t('rowWeightPlaceholder')} style={{ fontSize: 13 }} />
-                          </td>
-                          <td style={{ padding: '3px 4px' }}>
-                            <input className="adm-input" type="number" dir="ltr" min={1} value={row.count} onChange={e => updateWCRow(i, 'count', e.target.value)} placeholder={t('rowCountPlaceholder')} style={{ fontSize: 13 }} />
-                          </td>
-                          <td style={{ padding: '3px 4px' }}>
-                            <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => removeWCRow(i)} title={t('remove')} style={{ padding: '4px 8px' }}>✕</button>
-                          </td>
+                </Button>
+              )}
+            >
+              {showWCTable ? (
+                <div>
+                  <div className="adm-table-wrap">
+                    <table className="adm-table adm-table-compact">
+                      <thead>
+                        <tr>
+                          <th>{t('weightVolume')}</th>
+                          <th>{t('countPerBox')}</th>
+                          <th className="adm-col-actions"><span className="adm-sr-only">{tc('actions')}</span></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addWCRow}>{t('addRow')}</button>
-                    {getWCRows().length > 0 && (
-                      <button type="button" className="adm-btn adm-btn-sm" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
-                        onClick={() => { setWCRows([]); setShowWCTable(false); }}>{t('clearTable')}</button>
+                      </thead>
+                      <tbody>
+                        {wcRows.map((row, i) => (
+                          <tr key={i}>
+                            <td>
+                              <input className="adm-input adm-input-sm" dir="auto" value={row.weight} onChange={e => updateWCRow(i, 'weight', e.target.value)} placeholder={t('rowWeightPlaceholder')} />
+                            </td>
+                            <td>
+                              <NumberInput className="adm-input adm-input-sm" min={1} value={row.count} onChange={e => updateWCRow(i, 'count', e.target.value)} placeholder={t('rowCountPlaceholder')} />
+                            </td>
+                            <td className="adm-col-actions">
+                              <IconButton icon="close" tone="danger" size="sm" label={t('removeRowLabel', { n: i + 1 })} onClick={() => removeWCRow(i)} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="adm-flex" style={{ marginTop: 8 }}>
+                    <Button size="sm" icon="plus" onClick={addWCRow}>{t('addRow')}</Button>
+                    {wcRows.length > 0 && (
+                      <Button size="sm" variant="danger" icon="trash" onClick={() => { setWCRows([]); setShowWCTable(false); }}>
+                        {t('clearTable')}
+                      </Button>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
+              ) : null}
+            </Field>
 
-            <div className="adm-form-group">
-              <label className="adm-label">{t('displayOrder')}</label>
-              <input className="adm-input" type="number" dir="ltr" value={form.display_order ?? 0} onChange={e => set('display_order', Number(e.target.value))} />
-            </div>
-            <div className="adm-form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label className="adm-label" style={{ margin: 0 }}>{tc('active')}</label>
-              <input type="checkbox" checked={!!form.active} onChange={e => set('active', e.target.checked ? 1 : 0)} style={{ width: 18, height: 18 }} />
+            <Field label={t('displayOrder')}>
+              <NumberInput className="adm-input" value={form.display_order ?? 0} onChange={e => set('display_order', Number(e.target.value))} />
+            </Field>
+            <div className="adm-field">
+              <label className="adm-check">
+                <input type="checkbox" checked={!!form.active} onChange={e => set('active', e.target.checked ? 1 : 0)} />
+                <span>{tc('active')}</span>
+              </label>
             </div>
 
             {/* D5 publishing controls — mirrors AdminNewsEdit so admins
@@ -601,10 +610,9 @@ export const AdminProductEdit: React.FC = () => {
                 datetime-local picker only renders when status='scheduled'
                 so the field never holds a stale value for a draft / live
                 product. */}
-            <div className="adm-form-group">
-              <label className="adm-label">{t('publishingStatus')}</label>
+            <Field label={t('publishingStatus')} hint={prerenderNote()}>
               <select
-                className="adm-input"
+                className="adm-select"
                 value={form.status ?? 'published'}
                 onChange={(e) => {
                   const next = e.target.value as 'draft' | 'scheduled' | 'published';
@@ -622,13 +630,13 @@ export const AdminProductEdit: React.FC = () => {
                 <option value="draft">{t('statusDraft')}</option>
                 <option value="scheduled">{t('statusScheduled')}</option>
               </select>
-              <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                {prerenderNote()}
-              </small>
-            </div>
+            </Field>
             {form.status === 'scheduled' && (
-              <div className="adm-form-group">
-                <label className="adm-label">{t('publishAt')}</label>
+              // The picker is in the admin's local time; datetimeLocal.ts
+              // converts it to UTC for the server. The old text said
+              // "server time, UTC", so admins entered UTC and the
+              // product went live hours early or late.
+              <Field label={t('publishAt')} hint={t('publishAtHelp')}>
                 <input
                   className="adm-input"
                   type="datetime-local"
@@ -641,37 +649,24 @@ export const AdminProductEdit: React.FC = () => {
                     }))
                   }
                 />
-                {/* The picker is in the admin's local time; datetimeLocal.ts
-                    converts it to UTC for the server. The old text said
-                    "server time, UTC", so admins entered UTC and the
-                    product went live hours early or late. */}
-                <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                  {t('publishAtHelp')}
-                </small>
-              </div>
+              </Field>
             )}
-          </div>
+          </Card>
 
           {form.image && (
-            <div className="adm-card">
-              <div className="adm-card-title">{t('imagePreview')}</div>
-
+            <Card title={t('imagePreview')} icon="image">
               {/* Scale slider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0' }}>
-                <span style={{ fontSize: 12, opacity: 0.6, whiteSpace: 'nowrap' }}>{t('imageScale')}</span>
+              <Field label={t('imageScale')} labelAction={<strong>{scalePct}%</strong>}>
                 <input
                   type="range"
                   min={30}
                   max={150}
                   step={5}
-                  value={Math.round((form.image_scale ?? 0.85) * 100)}
+                  value={scalePct}
                   onChange={e => set('image_scale', Number(e.target.value) / 100)}
-                  style={{ flex: 1 }}
+                  style={{ width: '100%' }}
                 />
-                <span style={{ fontSize: 13, fontWeight: 600, minWidth: 42, textAlign: 'center' }}>
-                  {Math.round((form.image_scale ?? 0.85) * 100)}%
-                </span>
-              </div>
+              </Field>
 
               {/* Card-like preview (matches product card 300×450) */}
               <div style={{
@@ -679,11 +674,11 @@ export const AdminProductEdit: React.FC = () => {
                 width: 240,
                 height: 360,
                 margin: '0 auto',
-                borderRadius: 16,
+                borderRadius: 'var(--adm-radius)',
                 overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                background: 'var(--adm-panel-solid)',
+                border: '1px solid var(--adm-glass-border-strong)',
+                boxShadow: 'var(--adm-shadow-sm)',
               }}>
                 <img
                   src={resolveAdminImage(form.image)}
@@ -698,7 +693,6 @@ export const AdminProductEdit: React.FC = () => {
                     left: '50%',
                     transform: `translateX(-50%) scale(${(form.image_scale ?? 0.85) / 0.85})`,
                     margin: 'auto 0',
-                    filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.3))',
                   }}
                 />
                 <div style={{
@@ -707,138 +701,130 @@ export const AdminProductEdit: React.FC = () => {
                   left: 0,
                   right: 0,
                   height: 72,
-                  background: 'rgba(255,255,255,0.06)',
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--adm-surface2)',
+                  borderTop: '1px solid var(--adm-glass-border)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '0 12px',
                 }}>
-                  <div style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#fff',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    maxWidth: '100%',
-                  }}>
+                  <strong className="adm-truncate" style={{ maxWidth: '100%' }}>
                     {form.name_ar || form.name_en || t('previewName')}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                  </strong>
+                  <div className="adm-truncate adm-text-sm adm-text-muted" style={{ maxWidth: '100%', marginTop: 2 }}>
                     {form.description_ar || form.description_en || t('previewDescription')}
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Gallery Images (optional) */}
-          <div className="adm-card">
-            <div className="adm-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{t('galleryImages')}</span>
-              <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addGallerySlot}>
-                {t('addImage')}
-              </button>
-            </div>
-            {getGalleryImages().length === 0 && (
-              <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '8px 0 0' }}>
-                {t('noGallery')}
-              </p>
-            )}
-            {getGalleryImages().map((img, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-                {img && (
-                  <img src={resolveAdminImage(img)} alt={t('galleryAlt', { index: idx, n: idx + 1 })}
-                    style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--adm-border, #ddd)' }} />
-                )}
-                <input className="adm-input" dir="ltr" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
-                  placeholder={t('galleryPlaceholder', { n: idx + 1 })} style={{ flex: 1 }} />
-                <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
-                  onClick={() => { setCropTarget(null); galleryFileRefs.current[idx]?.click(); }}
-                  disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
-                  title={t('uploadDirectTitle')} aria-label={t('uploadGalleryLabel', { n: idx + 1 })}>
-                  {uploadingSlots.has(idx)
-                    ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> ...</>
-                    : '📁'}
-                </button>
-                {/* Cropper path. Sets the target index so the
-                    shared cropFile pipeline knows which gallery slot
-                    receives the cropped File. */}
-                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
-                  onClick={() => { setCropTarget(idx); galleryFileRefs.current[idx]?.click(); }}
-                  disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
-                  title={t('cropUploadTitle')} aria-label={t('cropGalleryLabel', { n: idx + 1 })}>
-                  ✂️
-                </button>
-                <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    e.target.value = '';
-                    if (!f) { setCropTarget(null); return; }
-                    if (cropTarget === idx) {
-                      setCropFile(f);
-                    } else {
-                      handleGalleryUpload(idx, f);
-                    }
-                  }} />
-                <button type="button" className="adm-btn adm-btn-sm"
-                  style={{ background: '#dc3545', color: '#fff', border: 'none' }}
-                  onClick={() => removeGalleryImage(idx)} title={t('remove')} aria-label={t('removeGalleryLabel', { n: idx + 1 })}>
-                  ✕
-                </button>
+          <Card
+            title={t('galleryImages')}
+            icon="image"
+            actions={<Button size="sm" icon="plus" onClick={addGallerySlot}>{t('addImage')}</Button>}
+          >
+            {gallery.length === 0 ? (
+              <EmptyState icon="image" title={t('noGallery')} text={t('noGalleryText')} compact />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {gallery.map((img, idx) => (
+                  <div key={idx} className="adm-flex">
+                    {img && (
+                      <img src={resolveAdminImage(img)} alt={t('galleryAlt', { index: idx, n: idx + 1 })} className="adm-thumb-sq" />
+                    )}
+                    <input
+                      className="adm-input"
+                      dir="ltr"
+                      value={img}
+                      onChange={e => updateGalleryImage(idx, e.target.value)}
+                      placeholder={t('galleryPlaceholder', { n: idx + 1 })}
+                      aria-label={t('galleryPlaceholder', { n: idx + 1 })}
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                    <IconButton
+                      icon="upload"
+                      label={t('uploadGalleryLabel', { n: idx + 1 })}
+                      onClick={() => { setCropTarget(null); galleryFileRefs.current[idx]?.click(); }}
+                      loading={uploadingSlots.has(idx)}
+                    />
+                    {/* Cropper path. Sets the target index so the
+                        shared cropFile pipeline knows which gallery slot
+                        receives the cropped File. */}
+                    <IconButton
+                      icon="crop"
+                      label={t('cropGalleryLabel', { n: idx + 1 })}
+                      onClick={() => { setCropTarget(idx); galleryFileRefs.current[idx]?.click(); }}
+                      disabled={uploadingSlots.has(idx)}
+                    />
+                    <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!f) { setCropTarget(null); return; }
+                        if (cropTarget === idx) {
+                          setCropFile(f);
+                        } else {
+                          handleGalleryUpload(idx, f);
+                        }
+                      }} />
+                    <IconButton
+                      icon="close"
+                      tone="danger"
+                      label={t('removeGalleryLabel', { n: idx + 1 })}
+                      onClick={() => removeGalleryImage(idx)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </Card>
 
           {/* Marketplace listings (optional) */}
-          <div className="adm-card">
-            <div className="adm-card-title">{t('storeListings')}</div>
-            <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '4px 0 12px' }}>
-              {t('storeListingsHelp')}
-            </p>
+          <Card title={t('storeListings')} icon="link" subtitle={t('storeListingsHelp')}>
             {MARKETPLACE_URL_FIELDS.map(({ key, labelKey, placeholder }) => {
               const value = form[key] ?? '';
               return (
-                <div key={key} className="adm-form-group">
-                  <label className="adm-label">{t(labelKey)}</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      className="adm-input"
-                      type="url"
-                      inputMode="url"
-                      dir="ltr"
-                      value={value}
-                      onChange={e => set(key, e.target.value)}
-                      placeholder={placeholder}
-                      style={{ flex: 1 }}
-                    />
-                    {/^https:\/\//i.test(value) && (
-                      <a
-                        className="adm-btn adm-btn-ghost adm-btn-sm"
-                        href={value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ whiteSpace: 'nowrap' }}
-                        title={t('openListingTitle')}
-                      >
-                        {t('openListing')}
-                      </a>
-                    )}
-                  </div>
-                </div>
+                <Field
+                  key={key}
+                  label={t(labelKey)}
+                  labelAction={/^https:\/\//i.test(value) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconEnd="external"
+                      href={value}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t('openListingTitle')}
+                    >
+                      {t('openListing')}
+                    </Button>
+                  )}
+                >
+                  <input
+                    className="adm-input"
+                    type="url"
+                    inputMode="url"
+                    dir="ltr"
+                    value={value}
+                    onChange={e => set(key, e.target.value)}
+                    placeholder={placeholder}
+                  />
+                </Field>
               );
             })}
-          </div>
+          </Card>
         </div>
 
         {/* Right: multilingual content */}
-        <div className="adm-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <div className="adm-card-title" style={{ margin: 0 }}>{t('content')}</div>
+        <Card
+          title={t('content')}
+          icon="language"
+          actions={(
             <TranslationHelper
               fields={{
                 name: form.name_ar || '',
@@ -850,45 +836,47 @@ export const AdminProductEdit: React.FC = () => {
               sourceLang="ar"
               onTranslated={handleTranslated}
             />
-          </div>
-
-          {/* Lang tabs */}
-          <div className="adm-lang-tabs">
-            {LANGS.map(l => (
-              <button key={l} className={`adm-lang-tab ${activeLang === l ? 'active' : ''}`} onClick={() => setActiveLang(l)}>
-                {l.toUpperCase()}
-              </button>
-            ))}
+          )}
+        >
+          <div className="adm-mb-16">
+            <Tabs<Lang>
+              variant="segmented"
+              ariaLabel={t('contentLanguage')}
+              value={activeLang}
+              onChange={setActiveLang}
+              items={LANGS.map(l => ({ value: l, label: <LangLabel lang={l} /> }))}
+            />
           </div>
 
           {LANGS.map(l => (
-            <div key={l} style={{ display: activeLang === l ? 'block' : 'none' }}>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('nameLabel', { lang: l.toUpperCase() })}</label>
+            <div key={l} hidden={activeLang !== l}>
+              <Field label={t('nameLabel', { lang: l.toUpperCase() })} required={l === SOURCE_LANG}>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`name_${l}`] ?? ''}
                   onChange={e => set(`name_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
-              <div className="adm-form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <label className="adm-label" style={{ margin: 0 }}>{t('descriptionLabel', { lang: l.toUpperCase() })}</label>
-                  {/* AI writer is mounted once per language tab; the
-                      dialog body decides for itself whether to use
-                      the visible language as the source. Clicking
-                      from any tab opens the SAME dialog state. */}
-                  <button
-                    type="button"
-                    className="adm-btn adm-btn-ghost adm-btn-sm"
+              </Field>
+              {/* AI writer is mounted once per language tab; the
+                  dialog body decides for itself whether to use
+                  the visible language as the source. Clicking
+                  from any tab opens the SAME dialog state. */}
+              <Field
+                label={t('descriptionLabel', { lang: l.toUpperCase() })}
+                labelAction={(
+                  <Button
+                    variant="ai"
+                    size="sm"
+                    icon="ai"
                     onClick={() => setAiDescOpen(true)}
                     title={t('aiWriteTitle')}
                     disabled={!form.name_ar && !form.name_en}
                   >
                     {t('aiWrite')}
-                  </button>
-                </div>
+                  </Button>
+                )}
+              >
                 <textarea
                   className="adm-textarea"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -896,36 +884,32 @@ export const AdminProductEdit: React.FC = () => {
                   value={(form as Record<string, string>)[`description_${l}`] ?? ''}
                   onChange={e => set(`description_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('altLabel', { lang: l.toUpperCase() })}</label>
+              </Field>
+              <Field label={t('altLabel', { lang: l.toUpperCase() })}>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`alt_${l}`] ?? ''}
                   onChange={e => set(`alt_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('materialLabel', { lang: l.toUpperCase() })}</label>
+              </Field>
+              <Field label={t('materialLabel', { lang: l.toUpperCase() })}>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`material_${l}`] ?? ''}
                   onChange={e => set(`material_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('countLabel', { lang: l.toUpperCase() })}</label>
+              </Field>
+              <Field label={t('countLabel', { lang: l.toUpperCase() })}>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`count_${l}`] ?? ''}
                   onChange={e => set(`count_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
-              <div className="adm-form-group">
-                <label className="adm-label">{t('giftLabel', { lang: l.toUpperCase() })}</label>
+              </Field>
+              <Field label={t('giftLabel', { lang: l.toUpperCase() })}>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -933,10 +917,10 @@ export const AdminProductEdit: React.FC = () => {
                   value={(form as Record<string, string>)[`gift_${l}`] ?? ''}
                   onChange={e => set(`gift_${l}` as keyof Product, e.target.value)}
                 />
-              </div>
+              </Field>
             </div>
           ))}
-        </div>
+        </Card>
       </div>
 
       {/* AI description writer modal. Reads its inputs from the current
@@ -982,5 +966,3 @@ export const AdminProductEdit: React.FC = () => {
     </div>
   );
 };
-
-

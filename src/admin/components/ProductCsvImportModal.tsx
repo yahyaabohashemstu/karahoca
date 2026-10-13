@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { adminApi, localizeServerMessage, type AdminRequestError } from '../utils/adminApi';
-import { useModalDialog } from '../utils/useModalDialog';
 import { fmtNumber } from '../utils/dateUtils';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Button, Field, Modal, StatCard, StatGrid } from '../ui';
 
 // CSV column names (brand, category_id, name_ar, id) are the file format:
 // they stay as they are in both languages.
 const messages = defineMessages({
   en: {
-    title: '📥 Import products from CSV',
+    title: 'Import products from CSV',
     intro: 'Paste CSV content below or pick a file. Export the current catalogue first to get the exact column layout — required fields are {brand}, {categoryId}, and {nameAr}. Rows with an existing {id} get updated; rows with a blank {id} are inserted.',
+    chooseFile: 'Choose CSV file',
+    noFile: 'No file chosen',
+    csvContent: 'CSV content',
     errTooLarge: 'File too large (max 5 MB).',
-    errNotUtf8: 'This file is not UTF-8, so its Arabic/Turkish/Russian text would be corrupted. In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and pick that file.',
+    errNotUtf8: 'This file is not UTF-8, so its Arabic/Turkish/Russian text would be corrupted. In Excel choose Save As from the File menu, pick "CSV UTF-8 (Comma delimited)" as the type, and select that file.',
     errRead: 'Could not read file.',
     errPasteFirst: 'Paste CSV content or pick a file first.',
     rowsFailed: { other: '{n} row(s) failed validation. Fix them before applying.' },
@@ -23,20 +26,23 @@ const messages = defineMessages({
     updates: 'Updates',
     errors: 'Errors',
     rowError: 'Row {line}: {error}',
-    imported: '✓ Imported {inserted} new and {updated} updated product(s).',
+    imported: 'Imported {inserted} new and {updated} updated product(s).',
     validating: 'Validating…',
-    preview: '🔍 Preview',
+    preview: 'Preview',
     runPreviewFirst: 'Run preview first',
     fixErrorsFirst: 'Fix validation errors before applying',
     commit: 'Commit the import',
     importing: 'Importing…',
-    applyImport: '✓ Apply import',
+    applyImport: 'Apply import',
   },
   ar: {
-    title: '📥 استيراد المنتجات من CSV',
+    title: 'استيراد المنتجات من CSV',
     intro: 'الصق محتوى CSV أدناه أو اختر ملفًا. صدّر الكتالوج الحالي أولًا لتحصل على ترتيب الأعمدة الصحيح — الحقول المطلوبة هي {brand} و {categoryId} و {nameAr}. الصفوف التي تحمل قيمة {id} موجودة تُحدَّث، والصفوف التي يكون فيها {id} فارغًا تُضاف منتجات جديدة.',
+    chooseFile: 'اختيار ملف CSV',
+    noFile: 'لم يُختر ملف',
+    csvContent: 'محتوى CSV',
     errTooLarge: 'الملف كبير جدًا (الحد الأقصى 5 ميغابايت).',
-    errNotUtf8: 'هذا الملف ليس بترميز UTF-8، لذا ستتلف نصوصه العربية والتركية والروسية. في Excel اختر «ملف ← حفظ باسم» ثم النوع "CSV UTF-8 (Comma delimited)"، واختر ذلك الملف.',
+    errNotUtf8: 'هذا الملف ليس بترميز UTF-8، لذا ستتلف نصوصه العربية والتركية والروسية. في Excel اختر «حفظ باسم» من قائمة «ملف» ثم النوع "CSV UTF-8 (Comma delimited)"، واختر ذلك الملف.',
     errRead: 'تعذّرت قراءة الملف.',
     errPasteFirst: 'الصق محتوى CSV أو اختر ملفًا أولًا.',
     rowsFailed: {
@@ -53,14 +59,14 @@ const messages = defineMessages({
     updates: 'تحديثات',
     errors: 'أخطاء',
     rowError: 'الصف {line}: {error}',
-    imported: '✓ اكتمل الاستيراد — منتجات جديدة: {inserted}، منتجات محدَّثة: {updated}.',
+    imported: 'اكتمل الاستيراد — منتجات جديدة: {inserted}، منتجات محدَّثة: {updated}.',
     validating: 'جارٍ التحقق…',
-    preview: '🔍 معاينة',
+    preview: 'معاينة',
     runPreviewFirst: 'شغّل المعاينة أولًا',
     fixErrorsFirst: 'أصلح أخطاء التحقق قبل التطبيق',
     commit: 'تنفيذ الاستيراد',
     importing: 'جارٍ الاستيراد…',
-    applyImport: '✓ تطبيق الاستيراد',
+    applyImport: 'تطبيق الاستيراد',
   },
 });
 
@@ -75,13 +81,13 @@ const withParts = (text: string, parts: Record<string, React.ReactNode>) =>
  * Two-step CSV import modal:
  *
  *   Step 1 (preview)
- *       Admin pastes CSV / picks a file → we POST with dryRun:true →
+ *       Admin pastes CSV / picks a file -> we POST with dryRun:true ->
  *       server validates every row and returns { inserted, updated,
  *       errors[] } WITHOUT writing. The dialog renders the summary so
  *       the admin sees exactly what's about to happen.
  *
  *   Step 2 (confirm)
- *       Admin clicks "Apply" → we POST the same CSV with dryRun:false.
+ *       Admin clicks "Apply" -> we POST the same CSV with dryRun:false.
  *       Server runs the import in a single transaction — partial
  *       failures roll back so the catalogue is never half-updated.
  *
@@ -103,30 +109,30 @@ interface PreviewSummary {
 
 export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComplete }) => {
   const [csvText, setCsvText] = useState('');
+  const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState<PreviewSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useT(messages);
   const tc = useT(common);
 
   const reset = () => {
     setCsvText('');
+    setFileName('');
     setPreview(null);
     setError(null);
     setApplied(false);
   };
 
+  // Escape, the close button and the backdrop all land here: not while a
+  // request is running.
   const handleClose = () => {
     if (busy) return;
     reset();
     onClose();
   };
-
-  // Called before the early return below so the hook order never changes.
-  const panelRef = useModalDialog<HTMLDivElement>(open, handleClose);
-
-  if (!open) return null;
 
   const handleFile = async (file: File | null) => {
     if (!file) return;
@@ -140,11 +146,12 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
       // U+FFFD. A file Excel saved as plain "CSV" (Windows-1254/1256/1251)
       // would otherwise import with every Turkish/Arabic/Russian letter
       // replaced by "�".
-      if (text.includes('\uFFFD')) {
+      if (text.includes('�')) {
         setError(t('errNotUtf8'));
         return;
       }
       setCsvText(text);
+      setFileName(file.name);
       setPreview(null);
       setError(null);
     } catch {
@@ -198,155 +205,31 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
   };
 
   return (
-    <div
-      role="presentation"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 23, 42, 0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: 16,
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="csv-import-title"
-        tabIndex={-1}
-        className="adm-card"
-        style={{
-          width: 'min(720px, 100%)',
-          maxHeight: 'calc(100vh - 32px)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          padding: 20,
-          overflow: 'auto',
-          outline: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 id="csv-import-title" style={{ margin: 0, fontSize: 18 }}>{t('title')}</h2>
-          <button
-            type="button"
-            className="adm-btn adm-btn-ghost adm-btn-sm"
-            onClick={handleClose}
-            disabled={busy}
-            aria-label={tc('close')}
-          >
-            ✕
-          </button>
-        </div>
-
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--adm-text-muted)' }}>
-          {withParts(t('intro'), {
-            brand: <strong>brand</strong>,
-            categoryId: <strong>category_id</strong>,
-            nameAr: <strong>name_ar</strong>,
-            id: <code>id</code>,
-          })}
-        </p>
-
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => handleFile(e.target.files?.[0] || null)}
-          disabled={busy}
-          style={{ fontSize: 12 }}
-        />
-
-        <textarea
-          className="adm-input"
-          rows={10}
-          spellCheck={false}
-          placeholder="id,brand,category_id,name_ar,…"
-          dir="ltr"
-          value={csvText}
-          onChange={(e) => { setCsvText(e.target.value); setPreview(null); }}
-          disabled={busy}
-          style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
-        />
-
-        {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
-
-        {preview && (
-          <div
-            className="adm-card"
-            style={{
-              padding: 12,
-              background: 'var(--adm-surface2)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 8,
-              fontSize: 13,
-            }}
-          >
-            <div><strong>{fmtNumber(preview.total)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('totalRows')}</span></div>
-            <div style={{ color: '#22c55e' }}><strong>{fmtNumber(preview.inserted)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('newRows')}</span></div>
-            <div style={{ color: '#4f6ef7' }}><strong>{fmtNumber(preview.updated)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('updates')}</span></div>
-            <div style={{ color: preview.errors.length > 0 ? '#ef4444' : 'var(--adm-text-dim)' }}>
-              <strong>{fmtNumber(preview.errors.length)}</strong><br />
-              <span style={{ color: 'var(--adm-text-dim)' }}>{t('errors')}</span>
-            </div>
-          </div>
-        )}
-
-        {preview && preview.errors.length > 0 && (
-          <div
-            className="adm-card"
-            style={{
-              padding: 12,
-              background: 'rgba(239, 68, 68, 0.05)',
-              maxHeight: 160,
-              overflow: 'auto',
-              fontFamily: 'ui-monospace, monospace',
-              fontSize: 12,
-            }}
-          >
-            {/* The server's messages already start with "Row N:". */}
-            {preview.errors.map((e, i) => (
-              <div key={i} style={{ color: '#dc2626' }}>
-                {e.error.startsWith('Row ')
-                  ? localizeServerMessage(e.error)
-                  : t('rowError', { line: e.line, error: localizeServerMessage(e.error) })}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {applied && (
-          <div className="adm-alert adm-alert-success">
-            {t('imported', { inserted: preview?.inserted ?? 0, updated: preview?.updated ?? 0 })}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button
-            type="button"
-            className="adm-btn adm-btn-ghost adm-btn-sm"
-            onClick={handleClose}
-            disabled={busy}
-          >
+    <Modal
+      open={open}
+      title={t('title')}
+      onClose={handleClose}
+      closeLabel={tc('close')}
+      closeOnBackdrop
+      footer={(
+        <>
+          <Button variant="ghost" onClick={handleClose} disabled={busy}>
             {tc('cancel')}
-          </button>
-          <button
-            type="button"
-            className="adm-btn adm-btn-secondary adm-btn-sm"
+          </Button>
+          <Button
+            icon="search"
             onClick={runPreview}
             disabled={busy || !csvText.trim()}
+            loading={busy && !preview}
           >
             {busy && !preview ? t('validating') : t('preview')}
-          </button>
-          <button
-            type="button"
-            className="adm-btn adm-btn-primary adm-btn-sm"
+          </Button>
+          <Button
+            variant="primary"
+            icon="check"
             onClick={runApply}
             disabled={busy || !preview || preview.errors.length > 0 || applied}
+            loading={busy && !!preview}
             title={
               !preview
                 ? t('runPreviewFirst')
@@ -356,9 +239,87 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
             }
           >
             {busy && preview ? t('importing') : t('applyImport')}
-          </button>
-        </div>
+          </Button>
+        </>
+      )}
+    >
+      <p className="adm-text-muted" style={{ marginBottom: 16 }}>
+        {withParts(t('intro'), {
+          brand: <strong>brand</strong>,
+          categoryId: <strong>category_id</strong>,
+          nameAr: <strong>name_ar</strong>,
+          id: <code>id</code>,
+        })}
+      </p>
+
+      <div className="adm-field adm-flex">
+        <Button size="sm" icon="upload" onClick={() => fileInputRef.current?.click()} disabled={busy}>
+          {t('chooseFile')}
+        </Button>
+        <span className="adm-text-sm adm-text-muted adm-truncate" dir="auto">{fileName || t('noFile')}</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0] || null;
+            // Lets the same file be picked again after fixing it.
+            e.target.value = '';
+            handleFile(file);
+          }}
+        />
       </div>
-    </div>
+
+      <Field label={t('csvContent')}>
+        <textarea
+          className="adm-textarea adm-mono"
+          rows={10}
+          spellCheck={false}
+          placeholder="id,brand,category_id,name_ar,…"
+          dir="ltr"
+          value={csvText}
+          onChange={(e) => { setCsvText(e.target.value); setPreview(null); }}
+          disabled={busy}
+        />
+      </Field>
+
+      {error && <Alert tone="danger">{error}</Alert>}
+
+      {preview && (
+        <StatGrid min={120}>
+          <StatCard icon="table" tone="neutral" label={t('totalRows')} value={fmtNumber(preview.total)} />
+          <StatCard icon="plus" tone="success" label={t('newRows')} value={fmtNumber(preview.inserted)} />
+          <StatCard icon="refresh" tone="info" label={t('updates')} value={fmtNumber(preview.updated)} />
+          <StatCard
+            icon="alert"
+            tone={preview.errors.length > 0 ? 'danger' : 'neutral'}
+            label={t('errors')}
+            value={fmtNumber(preview.errors.length)}
+          />
+        </StatGrid>
+      )}
+
+      {preview && preview.errors.length > 0 && (
+        <Alert tone="danger" title={t('errors')}>
+          <div className="adm-mono" style={{ maxHeight: 160, overflow: 'auto' }}>
+            {/* The server's messages already start with "Row N:". */}
+            {preview.errors.map((e, i) => (
+              <div key={i}>
+                {e.error.startsWith('Row ')
+                  ? localizeServerMessage(e.error)
+                  : t('rowError', { line: e.line, error: localizeServerMessage(e.error) })}
+              </div>
+            ))}
+          </div>
+        </Alert>
+      )}
+
+      {applied && (
+        <Alert tone="success">
+          {t('imported', { inserted: preview?.inserted ?? 0, updated: preview?.updated ?? 0 })}
+        </Alert>
+      )}
+    </Modal>
   );
 };

@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { adminApi, type BlogCategoryItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { normalizeSlug } from '../utils/slug';
 import { confirmSlugChange } from '../utils/publishing';
 import { defineMessages, useT } from '../i18n/core';
 import { common } from '../i18n/common';
+import { Alert, Button, Card, IconButton, Loading, NumberInput, PageHeader } from '../ui';
 
 const messages = defineMessages({
   en: {
     confirmDelete: 'Soft-delete this category? Posts in it will keep their reference but the category will be hidden.',
     nameRequired: 'Need at least an Arabic or English name.',
-    title: 'Blog Categories',
-    backToPosts: '← Back to posts',
+    title: 'Blog categories',
+    backToPosts: 'Blog',
+    subtitle: 'Edit a row and save it; add a new category in the last row.',
     colIcon: 'Icon',
     colColor: 'Color',
     colSlug: 'Slug',
@@ -33,13 +34,16 @@ const messages = defineMessages({
     orderLabel: 'Display order — {row}',
     activeLabel: 'Active — {row}',
     slugPlaceholder: 'auto from name',
-    add: '+ Add',
+    add: 'Add',
+    saveLabel: 'Save {row}',
+    deleteLabel: 'Delete {row}',
   },
   ar: {
     confirmDelete: 'حذف هذه الفئة حذفًا مؤقتًا؟ ستبقى المقالات التابعة لها مرتبطة بها، لكن الفئة ستُخفى.',
     nameRequired: 'يلزم اسم عربي أو إنجليزي على الأقل.',
     title: 'فئات المدونة',
-    backToPosts: '→ العودة إلى المقالات',
+    backToPosts: 'المدونة',
+    subtitle: 'عدِّل الصف ثم احفظه، وأضف فئة جديدة من الصف الأخير.',
     colIcon: 'الأيقونة',
     colColor: 'اللون',
     colSlug: 'الـ slug',
@@ -60,7 +64,9 @@ const messages = defineMessages({
     orderLabel: 'ترتيب العرض — {row}',
     activeLabel: 'مفعّلة — {row}',
     slugPlaceholder: 'من الاسم تلقائيًا',
-    add: '+ إضافة',
+    add: 'إضافة',
+    saveLabel: 'حفظ {row}',
+    deleteLabel: 'حذف {row}',
   },
 });
 
@@ -73,10 +79,14 @@ const messages = defineMessages({
  * inline, hit Save per row. Keeps the workflow as light as possible.
  */
 
+// Defaults for a new category. Colour and icon are the category's own
+// data, shown on the public blog (not admin interface): the icon is the
+// label emoji, written as an escape.
+const DEFAULT_COLOR = '#1a4d8f';
 const EMPTY_CAT: Partial<BlogCategoryItem> = {
   slug: '',
-  color: '#1a4d8f',
-  icon: '🏷',
+  color: DEFAULT_COLOR,
+  icon: '\u{1F3F7}',
   name_ar: '', name_en: '', name_tr: '', name_ru: '',
   description_ar: '', description_en: '', description_tr: '', description_ru: '',
   display_order: 0,
@@ -101,7 +111,7 @@ export const AdminBlogCategories: React.FC = () => {
     if (!drafts[id] || Object.keys(drafts[id]).length === 0) return;
     const patch = { ...drafts[id] };
     if (patch.slug !== undefined) {
-      // Blank → the server derives one from the names.
+      // Blank: the server derives one from the names.
       patch.slug = normalizeSlug(patch.slug);
       const cat = items.find((c) => c.id === id);
       if (!confirmSlugChange('category', Boolean(cat?.active), cat?.slug, patch.slug)) return;
@@ -152,22 +162,18 @@ export const AdminBlogCategories: React.FC = () => {
 
   return (
     <div>
-      <div className="adm-page-header">
-        <div>
-          <h1 className="adm-page-title">{t('title')}</h1>
-          <p className="adm-page-subtitle">
-            <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>{t('backToPosts')}</Link>
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        back={{ to: '/admin/blog', label: t('backToPosts') }}
+      />
 
-      {(err || error) && <div className="adm-alert adm-alert-error">⚠ {err || error}</div>}
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
+      {(err || error) && <Alert tone="danger">{err || error}</Alert>}
 
-      {!loading && (
-        <div className="adm-card" style={{ padding: 0 }}>
+      {loading ? <Loading label={tc('loading')} /> : (
+        <Card flush>
           <div className="adm-table-wrap">
-            <table className="adm-table">
+            <table className="adm-table adm-table-compact">
               <thead>
                 <tr>
                   <th>{t('colIcon')}</th>
@@ -179,7 +185,7 @@ export const AdminBlogCategories: React.FC = () => {
                   <th>{t('colNameRu')}</th>
                   <th>{t('colOrder')}</th>
                   <th>{t('colActive')}</th>
-                  <th></th>
+                  <th className="adm-col-actions"><span className="adm-sr-only">{tc('actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -195,7 +201,7 @@ export const AdminBlogCategories: React.FC = () => {
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
-                          style={{ width: 60 }}
+                          style={{ width: 56 }}
                           value={d.icon || ''}
                           onChange={(e) => updateDraft(cat.id, { icon: e.target.value })}
                           aria-label={t('iconLabel', { row })}
@@ -204,17 +210,17 @@ export const AdminBlogCategories: React.FC = () => {
                       <td>
                         <input
                           type="color"
-                          value={d.color || '#1a4d8f'}
+                          value={d.color || DEFAULT_COLOR}
                           onChange={(e) => updateDraft(cat.id, { color: e.target.value })}
                           aria-label={t('colorLabel', { row })}
-                          style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
+                          className="adm-color-input adm-color-input-sm"
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
-                          style={{ width: 130 }}
+                          style={{ width: 120 }}
                           dir="ltr"
                           value={d.slug || ''}
                           onChange={(e) => updateDraft(cat.id, { slug: normalizeSlug(e.target.value, { partial: true }) })}
@@ -226,7 +232,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="text"
                           className="adm-input adm-input-sm"
                           dir="rtl"
-                          style={{ width: 140 }}
+                          style={{ width: 120 }}
                           value={d.name_ar || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ar: e.target.value })}
                           aria-label={t('nameArLabel', { row })}
@@ -237,7 +243,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="text"
                           className="adm-input adm-input-sm"
                           dir="ltr"
-                          style={{ width: 140 }}
+                          style={{ width: 120 }}
                           value={d.name_en || ''}
                           onChange={(e) => updateDraft(cat.id, { name_en: e.target.value })}
                           aria-label={t('nameEnLabel', { row })}
@@ -248,7 +254,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="text"
                           className="adm-input adm-input-sm"
                           dir="ltr"
-                          style={{ width: 140 }}
+                          style={{ width: 120 }}
                           value={d.name_tr || ''}
                           onChange={(e) => updateDraft(cat.id, { name_tr: e.target.value })}
                           aria-label={t('nameTrLabel', { row })}
@@ -259,18 +265,16 @@ export const AdminBlogCategories: React.FC = () => {
                           type="text"
                           className="adm-input adm-input-sm"
                           dir="ltr"
-                          style={{ width: 140 }}
+                          style={{ width: 120 }}
                           value={d.name_ru || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ru: e.target.value })}
                           aria-label={t('nameRuLabel', { row })}
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <NumberInput
                           className="adm-input adm-input-sm"
-                          dir="ltr"
-                          style={{ width: 60 }}
+                          style={{ width: 56 }}
                           value={d.display_order || 0}
                           onChange={(e) => updateDraft(cat.id, { display_order: parseInt(e.target.value, 10) || 0 })}
                           aria-label={t('orderLabel', { row })}
@@ -284,58 +288,59 @@ export const AdminBlogCategories: React.FC = () => {
                           aria-label={t('activeLabel', { row })}
                         />
                       </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {dirty && (
-                          <button
-                            type="button"
-                            className="adm-btn adm-btn-primary adm-btn-sm"
-                            onClick={() => saveDraft(cat.id)}
+                      <td className="adm-col-actions">
+                        <div className="adm-row-actions">
+                          {/* Shown once the row has unsaved edits. */}
+                          {dirty && (
+                            <IconButton
+                              icon="save"
+                              tone="accent"
+                              size="sm"
+                              label={t('saveLabel', { row })}
+                              onClick={() => saveDraft(cat.id)}
+                              disabled={busy}
+                            />
+                          )}
+                          <IconButton
+                            icon="trash"
+                            tone="danger"
+                            size="sm"
+                            label={t('deleteLabel', { row })}
+                            onClick={() => handleDelete(cat.id)}
                             disabled={busy}
-                          >
-                            {tc('save')}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="adm-btn adm-btn-danger adm-btn-sm"
-                          onClick={() => handleDelete(cat.id)}
-                          disabled={busy}
-                          style={{ marginInlineStart: 6 }}
-                        >
-                          {tc('delete')}
-                        </button>
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
 
                 {/* New-category row */}
-                <tr style={{ background: 'rgba(0,0,0,0.03)' }}>
+                <tr>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
-                      style={{ width: 60 }}
+                      style={{ width: 56 }}
                       value={newCat.icon || ''}
                       onChange={(e) => setNewCat({ ...newCat, icon: e.target.value })}
-                      placeholder="🏷"
                       aria-label={t('iconLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
                     <input
                       type="color"
-                      value={newCat.color || '#1a4d8f'}
+                      value={newCat.color || DEFAULT_COLOR}
                       onChange={(e) => setNewCat({ ...newCat, color: e.target.value })}
                       aria-label={t('colorLabel', { row: t('newCategory') })}
-                      style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
+                      className="adm-color-input adm-color-input-sm"
                     />
                   </td>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
-                      style={{ width: 130 }}
+                      style={{ width: 120 }}
                       dir="ltr"
                       value={newCat.slug || ''}
                       onChange={(e) => setNewCat({ ...newCat, slug: normalizeSlug(e.target.value, { partial: true }) })}
@@ -348,7 +353,7 @@ export const AdminBlogCategories: React.FC = () => {
                       type="text"
                       className="adm-input adm-input-sm"
                       dir="rtl"
-                      style={{ width: 140 }}
+                      style={{ width: 120 }}
                       value={newCat.name_ar || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ar: e.target.value })}
                       aria-label={t('nameArLabel', { row: t('newCategory') })}
@@ -359,7 +364,7 @@ export const AdminBlogCategories: React.FC = () => {
                       type="text"
                       className="adm-input adm-input-sm"
                       dir="ltr"
-                      style={{ width: 140 }}
+                      style={{ width: 120 }}
                       value={newCat.name_en || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_en: e.target.value })}
                       aria-label={t('nameEnLabel', { row: t('newCategory') })}
@@ -370,7 +375,7 @@ export const AdminBlogCategories: React.FC = () => {
                       type="text"
                       className="adm-input adm-input-sm"
                       dir="ltr"
-                      style={{ width: 140 }}
+                      style={{ width: 120 }}
                       value={newCat.name_tr || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_tr: e.target.value })}
                       aria-label={t('nameTrLabel', { row: t('newCategory') })}
@@ -381,39 +386,32 @@ export const AdminBlogCategories: React.FC = () => {
                       type="text"
                       className="adm-input adm-input-sm"
                       dir="ltr"
-                      style={{ width: 140 }}
+                      style={{ width: 120 }}
                       value={newCat.name_ru || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ru: e.target.value })}
                       aria-label={t('nameRuLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
-                    <input
-                      type="number"
+                    <NumberInput
                       className="adm-input adm-input-sm"
-                      dir="ltr"
-                      style={{ width: 60 }}
+                      style={{ width: 56 }}
                       value={newCat.display_order || 0}
                       onChange={(e) => setNewCat({ ...newCat, display_order: parseInt(e.target.value, 10) || 0 })}
                       aria-label={t('orderLabel', { row: t('newCategory') })}
                     />
                   </td>
-                  <td>—</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="adm-btn adm-btn-primary adm-btn-sm"
-                      onClick={handleCreate}
-                      disabled={busy}
-                    >
+                  <td><span className="adm-text-muted">—</span></td>
+                  <td className="adm-col-actions">
+                    <Button variant="primary" size="sm" icon="plus" onClick={handleCreate} disabled={busy}>
                       {t('add')}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
