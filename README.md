@@ -654,6 +654,11 @@ the http hop entirely.)
 - Persistent volume mount for `server/data/` (SQLite + backups)
 - `REDIS_URL` optional — falls back to in-memory cache / rate-limits
 - S3/R2 credentials optional — local rotation as fallback
+- Edge setting: same as the frontend's, with its own middleware name —
+  define `kh-api-https-301` (`redirectscheme.scheme=https`,
+  `redirectscheme.permanent=true`) and put it in place of
+  `redirect-to-https` on the `http-0-…` router. Traefik then answers 301 for
+  GET and 308 for other methods, so a POST over http keeps its method and body
 
 ### Environment Checklist
 
