@@ -1,7 +1,10 @@
-import React, { lazy, Suspense, useLayoutEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminErrorBoundary } from './components/AdminErrorBoundary';
+import { AdminI18nProvider } from './i18n/AdminI18nProvider';
+import { useT } from './i18n/core';
+import { common } from './i18n/common';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import '../styles/admin.css';
@@ -28,44 +31,24 @@ const AdminFunnel = lazy(() => import('./pages/AdminFunnel').then((m) => ({ defa
 const AdminCohorts = lazy(() => import('./pages/AdminCohorts').then((m) => ({ default: m.AdminCohorts })));
 const AdminAbTests = lazy(() => import('./pages/AdminAbTests').then((m) => ({ default: m.AdminAbTests })));
 
-const Fallback = () => (
-  <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>
-);
+const Fallback = () => {
+  const tc = useT(common);
+  return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
+};
 
 const wrap = (C: React.ComponentType) => (
   <Suspense fallback={<Fallback />}><C /></Suspense>
 );
 
-// The admin UI is English, but it lives on the same document as the public
-// site, whose <html> starts as lang="ar" dir="rtl" (and /admin has no
-// language prefix to change that). The whole panel — labels, inputs,
-// tables, sidebar, dialogs — therefore rendered mirrored right-to-left.
-// Arabic content fields keep their own dir="rtl".
-// The tab also kept the public site's title (the Arabic home-page title),
-// so an admin tab couldn't be told apart from a site tab.
-const useAdminDocumentDirection = () => {
-  useLayoutEffect(() => {
-    const html = document.documentElement;
-    const previous = { dir: html.dir, lang: html.lang, title: document.title };
-    html.dir = 'ltr';
-    html.lang = 'en';
-    document.title = 'KARAHOCA Admin';
-    return () => {
-      html.dir = previous.dir;
-      html.lang = previous.lang;
-      document.title = previous.title;
-    };
-  }, []);
-};
-
-export const AdminApp: React.FC = () => {
-  useAdminDocumentDirection();
-  return (
+// The provider owns the admin language (Arabic by default) and sets the
+// document's lang/dir/title to match while the admin is mounted.
+export const AdminApp: React.FC = () => (
+  <AdminI18nProvider>
     <AdminErrorBoundary>
       <AdminRoutes />
     </AdminErrorBoundary>
-  );
-};
+  </AdminI18nProvider>
+);
 
 const AdminRoutes: React.FC = () => (
   <Routes>

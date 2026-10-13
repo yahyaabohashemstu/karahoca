@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useModalDialog } from '../utils/useModalDialog';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
 
 /**
  * Lightweight modal that asks the AI provider chain for a polished
@@ -38,12 +40,73 @@ interface Props {
   onApply: (descriptions: Partial<Record<'ar' | 'en' | 'tr' | 'ru', string>>) => void;
 }
 
-const LANG_LABELS: Record<string, string> = {
-  ar: 'العربية',
-  en: 'English',
-  tr: 'Türkçe',
-  ru: 'Русский',
-};
+const messages = defineMessages({
+  en: {
+    title: '✨ AI Description Writer',
+    intro: 'Generates a commercial description in all four languages from the brief below. The output is shown for review — nothing is applied to your form until you click {apply}.',
+    applyWord: 'Apply',
+    product: 'Product:',
+    fillNameFirst: '(fill in the product name first)',
+    brand: 'Brand:',
+    category: 'Category:',
+    sourceLanguage: 'Source language',
+    optionAr: 'العربية (Arabic)',
+    optionEn: 'English',
+    optionTr: 'Türkçe',
+    optionRu: 'Русский',
+    label_ar: 'العربية',
+    label_en: 'English',
+    label_tr: 'Türkçe',
+    label_ru: 'Русский',
+    optionalHint: 'Optional hint',
+    hintPlaceholder: 'e.g. "for tile floors and laminates, lavender scent, eco-friendly packaging"',
+    modelOmitted: '(model omitted this language — re-run or fill manually)',
+    generating: 'Generating…',
+    reroll: '🔄 Re-roll',
+    generate: '✨ Generate',
+    applyTitle: 'Replace the description fields with this draft',
+    generateFirst: 'Generate something first',
+    applyAll: '✓ Apply to all four descriptions',
+    errNameFirst: 'Fill in the product name first, then try again.',
+    errFailed: 'AI generation failed.',
+  },
+  ar: {
+    title: '✨ كتابة الوصف بالذكاء الاصطناعي',
+    intro: 'يكتب وصفًا تسويقيًا باللغات الأربع انطلاقًا من الموجز أدناه. تُعرض النتيجة للمراجعة أولًا — ولا يُطبَّق شيء على النموذج قبل الضغط على {apply}.',
+    applyWord: 'تطبيق',
+    product: 'المنتج:',
+    fillNameFirst: '(أدخل اسم المنتج أولًا)',
+    brand: 'العلامة التجارية:',
+    category: 'الفئة:',
+    sourceLanguage: 'لغة المصدر',
+    optionAr: 'العربية',
+    optionEn: 'الإنجليزية',
+    optionTr: 'التركية',
+    optionRu: 'الروسية',
+    label_ar: 'العربية',
+    label_en: 'الإنجليزية',
+    label_tr: 'التركية',
+    label_ru: 'الروسية',
+    optionalHint: 'توجيه اختياري',
+    hintPlaceholder: 'مثال: «للأرضيات المبلّطة والباركيه، برائحة اللافندر، بعبوة صديقة للبيئة»',
+    modelOmitted: '(لم يكتب النموذج هذه اللغة — أعد التوليد أو املأها يدويًا)',
+    generating: 'جارٍ التوليد…',
+    reroll: '🔄 إعادة التوليد',
+    generate: '✨ توليد',
+    applyTitle: 'استبدال حقول الوصف بهذه المسودة',
+    generateFirst: 'ولّد وصفًا أولًا',
+    applyAll: '✓ تطبيق على الأوصاف الأربعة',
+    errNameFirst: 'أدخل اسم المنتج أولًا، ثم أعد المحاولة.',
+    errFailed: 'فشل التوليد بالذكاء الاصطناعي.',
+  },
+});
+
+/** Puts `parts` in place of the {name} tokens of a message. */
+const withParts = (text: string, parts: Record<string, React.ReactNode>) =>
+  text.split(/(\{\w+\})/).map((piece, i) => {
+    const name = /^\{(\w+)\}$/.exec(piece)?.[1];
+    return <React.Fragment key={i}>{name && name in parts ? parts[name] : piece}</React.Fragment>;
+  });
 
 export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, onApply }) => {
   const [hint, setHint] = useState('');
@@ -51,6 +114,8 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
   const [result, setResult] = useState<Partial<Record<'ar' | 'en' | 'tr' | 'ru', string>> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT(messages);
+  const tc = useT(common);
 
   // Reset every time the dialog opens so the previous run's output
   // doesn't leak into a fresh attempt for a different product.
@@ -75,7 +140,7 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
 
   const generate = async () => {
     if (!defaults.name || !defaults.brand) {
-      setError('Fill in the product name first, then try again.');
+      setError(t('errNameFirst'));
       return;
     }
     setBusy(true);
@@ -93,7 +158,7 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
       // The server already returns a user-friendly message in Arabic
       // and English for known failure modes (provider 503, parse fail).
       // Surface it verbatim — no further wrapping needed.
-      setError((err as Error).message || 'AI generation failed.');
+      setError((err as Error).message || t('errFailed'));
     } finally {
       setBusy(false);
     }
@@ -139,35 +204,33 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 id="ai-description-title" style={{ margin: 0, fontSize: 18 }}>✨ AI Description Writer</h2>
+          <h2 id="ai-description-title" style={{ margin: 0, fontSize: 18 }}>{t('title')}</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={handleClose}
             disabled={busy}
-            aria-label="Close"
+            aria-label={tc('close')}
           >
             ✕
           </button>
         </div>
 
         <p style={{ margin: 0, fontSize: 13, color: 'var(--adm-text-muted)' }}>
-          Generates a commercial description in all four languages from
-          the brief below. The output is shown for review — nothing is
-          applied to your form until you click <strong>Apply</strong>.
+          {withParts(t('intro'), { apply: <strong>{t('applyWord')}</strong> })}
         </p>
 
         <div
           className="adm-card"
           style={{ padding: 12, background: 'var(--adm-surface2)', fontSize: 13 }}
         >
-          <div><strong>Product:</strong> {defaults.name || <em style={{ color: '#dc2626' }}>(fill in the product name first)</em>}</div>
-          <div><strong>Brand:</strong> {defaults.brand}</div>
-          {defaults.category && <div><strong>Category:</strong> {defaults.category}</div>}
+          <div><strong>{t('product')}</strong> {defaults.name || <em style={{ color: '#dc2626' }}>{t('fillNameFirst')}</em>}</div>
+          <div><strong>{t('brand')}</strong> {defaults.brand}</div>
+          {defaults.category && <div><strong>{t('category')}</strong> {defaults.category}</div>}
         </div>
 
         <label className="adm-form-group">
-          <span className="adm-label">Source language</span>
+          <span className="adm-label">{t('sourceLanguage')}</span>
           <select
             className="adm-input adm-input-sm"
             value={sourceLang}
@@ -175,19 +238,19 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
             disabled={busy}
             style={{ width: 200 }}
           >
-            <option value="ar">العربية (Arabic)</option>
-            <option value="en">English</option>
-            <option value="tr">Türkçe</option>
-            <option value="ru">Русский</option>
+            <option value="ar">{t('optionAr')}</option>
+            <option value="en">{t('optionEn')}</option>
+            <option value="tr">{t('optionTr')}</option>
+            <option value="ru">{t('optionRu')}</option>
           </select>
         </label>
 
         <label className="adm-form-group">
-          <span className="adm-label">Optional hint</span>
+          <span className="adm-label">{t('optionalHint')}</span>
           <textarea
             className="adm-textarea"
             rows={2}
-            placeholder='e.g. "for tile floors and laminates, lavender scent, eco-friendly packaging"'
+            placeholder={t('hintPlaceholder')}
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             disabled={busy}
@@ -207,13 +270,13 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
                   color: 'var(--adm-text-dim)',
                   marginBottom: 4,
                 }}>
-                  {LANG_LABELS[lang]} ({lang.toUpperCase()})
+                  {t(`label_${lang}`)} ({lang.toUpperCase()})
                 </div>
                 <div
                   dir={lang === 'ar' ? 'rtl' : 'ltr'}
                   style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}
                 >
-                  {result[lang] || <em style={{ color: '#dc2626' }}>(model omitted this language — re-run or fill manually)</em>}
+                  {result[lang] || <em style={{ color: '#dc2626' }}>{t('modelOmitted')}</em>}
                 </div>
               </div>
             ))}
@@ -227,7 +290,7 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
             onClick={handleClose}
             disabled={busy}
           >
-            Cancel
+            {tc('cancel')}
           </button>
           <button
             type="button"
@@ -235,16 +298,16 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
             onClick={generate}
             disabled={busy || !defaults.name}
           >
-            {busy ? 'Generating…' : result ? '🔄 Re-roll' : '✨ Generate'}
+            {busy ? t('generating') : result ? t('reroll') : t('generate')}
           </button>
           <button
             type="button"
             className="adm-btn adm-btn-primary adm-btn-sm"
             onClick={apply}
             disabled={busy || !result}
-            title={result ? 'Replace the description fields with this draft' : 'Generate something first'}
+            title={result ? t('applyTitle') : t('generateFirst')}
           >
-            ✓ Apply to all four descriptions
+            {t('applyAll')}
           </button>
         </div>
       </div>

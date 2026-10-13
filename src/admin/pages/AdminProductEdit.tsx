@@ -6,7 +6,146 @@ import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
 import { ImageCropperDialog } from '../components/ImageCropperDialog';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
-import { PRERENDER_NOTE, confirmPastSchedule } from '../utils/publishing';
+import { confirmPastSchedule, prerenderNote } from '../utils/publishing';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    errUnsupportedType: 'Unsupported file type. Use JPG, PNG, WebP, or GIF.',
+    errGalleryTooLarge: 'File too large. Maximum 10 MB.',
+    errImageTooLarge: 'File too large. Maximum size is 10 MB.',
+    uploadFailed: 'Upload failed',
+    errRequired: 'Please fill required fields: Arabic name, brand, and category.',
+    saveFailed: 'Save failed',
+    newProduct: 'New Product',
+    editProduct: 'Edit Product',
+    waitForUpload: 'Wait for the image upload to finish',
+    saveProduct: '💾 Save Product',
+    productInfo: 'Product Info',
+    brandRequired: 'Brand *',
+    categoryRequired: 'Category *',
+    selectOption: '— Select —',
+    imagePlaceholder: '/products/image.webp or paste URL',
+    upload: '📁 Upload',
+    cropUploadTitle: 'Open the image in a cropper before uploading',
+    cropUpload: '✂️ Crop & upload',
+    weightVolume: 'Weight / Volume',
+    weightPlaceholder: 'e.g. 500ml',
+    weightCountTable: 'Weight / Count Table',
+    hideTable: '✕ Hide Table',
+    addTable: '📊 Add Table',
+    countPerBox: 'Count (per box)',
+    rowWeightPlaceholder: 'e.g. 1.2 kg',
+    rowCountPlaceholder: 'e.g. 6',
+    remove: 'Remove',
+    addRow: '+ Add Row',
+    clearTable: 'Clear Table',
+    displayOrder: 'Display Order',
+    publishingStatus: 'Publishing status',
+    statusPublished: '✅ Published — visible to everyone',
+    statusDraft: '📝 Draft — hidden, work in progress',
+    statusScheduled: '🕐 Scheduled — auto-publish at set time',
+    publishAt: 'Publish at',
+    publishAtHelp: 'The product will appear in the public catalogue automatically at this time (your local time). The catalogue cache is busted on flip.',
+    imagePreview: 'Image Preview',
+    imageScale: 'Image Scale',
+    previewAlt: 'preview',
+    previewName: 'Product Name',
+    previewDescription: 'Description',
+    galleryImages: 'Gallery Images',
+    addImage: '+ Add Image',
+    noGallery: 'No gallery images. Click "+ Add Image" to add colour variants or extra views.',
+    galleryAlt: 'gallery-{index}',
+    galleryPlaceholder: 'Image path or URL #{n}',
+    uploadDirectTitle: 'Upload directly without cropping',
+    uploadGalleryLabel: 'Upload gallery image {n}',
+    cropGalleryLabel: 'Crop and upload gallery image {n}',
+    removeGalleryLabel: 'Remove gallery image {n}',
+    storeListings: 'Online Store Listings',
+    storeListingsHelp: 'This product\'s own page on the brand\'s store. The site\'s "buy online" buttons in the product window open it — currently shown on the Turkish and Arabic AYLUX pages. Leave empty to send buyers to the store\'s main page.',
+    trendyolListing: 'Trendyol listing',
+    hepsiburadaListing: 'Hepsiburada listing',
+    openListingTitle: 'Open the listing in a new tab to check it',
+    openListing: '↗ Open',
+    content: 'Content',
+    nameLabel: 'Name ({lang}) *',
+    descriptionLabel: 'Description ({lang})',
+    aiWriteTitle: 'Generate a draft description in all 4 languages from the product name + an optional hint',
+    aiWrite: '✨ AI write',
+    altLabel: 'Image Alt ({lang})',
+    materialLabel: 'Material ({lang})',
+    countLabel: 'Count / Package ({lang})',
+    giftLabel: 'Free gift ({lang}) — optional',
+  },
+  ar: {
+    errUnsupportedType: 'نوع الملف غير مدعوم. استخدم JPG أو PNG أو WebP أو GIF.',
+    errGalleryTooLarge: 'الملف كبير جدًا. الحد الأقصى 10 ميغابايت.',
+    errImageTooLarge: 'الملف كبير جدًا. الحد الأقصى للحجم 10 ميغابايت.',
+    uploadFailed: 'فشل الرفع',
+    errRequired: 'املأ الحقول المطلوبة: الاسم بالعربية، والعلامة التجارية، والفئة.',
+    saveFailed: 'فشل الحفظ',
+    newProduct: 'منتج جديد',
+    editProduct: 'تعديل المنتج',
+    waitForUpload: 'انتظر حتى يكتمل رفع الصورة',
+    saveProduct: '💾 حفظ المنتج',
+    productInfo: 'بيانات المنتج',
+    brandRequired: 'العلامة التجارية *',
+    categoryRequired: 'الفئة *',
+    selectOption: '— اختر —',
+    imagePlaceholder: '/products/image.webp أو الصق رابطًا',
+    upload: '📁 رفع',
+    cropUploadTitle: 'فتح الصورة في أداة القص قبل رفعها',
+    cropUpload: '✂️ قص ورفع',
+    weightVolume: 'الوزن / الحجم',
+    weightPlaceholder: 'مثال: 500ml',
+    weightCountTable: 'جدول الوزن / العدد',
+    hideTable: '✕ إخفاء الجدول',
+    addTable: '📊 إضافة جدول',
+    countPerBox: 'العدد (لكل صندوق)',
+    rowWeightPlaceholder: 'مثال: 1.2 kg',
+    rowCountPlaceholder: 'مثال: 6',
+    remove: 'إزالة',
+    addRow: '+ إضافة صف',
+    clearTable: 'مسح الجدول',
+    displayOrder: 'ترتيب العرض',
+    publishingStatus: 'حالة النشر',
+    statusPublished: '✅ منشور — ظاهر للجميع',
+    statusDraft: '📝 مسودة — مخفي، قيد الإعداد',
+    statusScheduled: '🕐 مجدول — يُنشر تلقائيًا في الوقت المحدد',
+    publishAt: 'موعد النشر',
+    publishAtHelp: 'سيظهر المنتج في الكتالوج العام تلقائيًا في هذا الوقت (بتوقيتك المحلي). ويُحدَّث التخزين المؤقت للكتالوج لحظة النشر.',
+    imagePreview: 'معاينة الصورة',
+    imageScale: 'حجم الصورة',
+    previewAlt: 'معاينة',
+    previewName: 'اسم المنتج',
+    previewDescription: 'الوصف',
+    galleryImages: 'صور المعرض',
+    addImage: '+ إضافة صورة',
+    noGallery: 'لا توجد صور في المعرض. انقر «+ إضافة صورة» لإضافة ألوان أخرى للمنتج أو لقطات إضافية.',
+    galleryAlt: 'صورة المعرض {n}',
+    galleryPlaceholder: 'مسار الصورة أو رابطها #{n}',
+    uploadDirectTitle: 'رفع مباشر دون قص',
+    uploadGalleryLabel: 'رفع صورة المعرض {n}',
+    cropGalleryLabel: 'قص صورة المعرض {n} ورفعها',
+    removeGalleryLabel: 'إزالة صورة المعرض {n}',
+    storeListings: 'صفحات المتاجر الإلكترونية',
+    storeListingsHelp: 'صفحة هذا المنتج نفسه في متجر العلامة التجارية. تفتحها أزرار «اشترِ عبر الإنترنت» في نافذة المنتج على الموقع — وتظهر حاليًا في صفحات AYLUX التركية والعربية. اتركه فارغًا لتوجيه المشترين إلى الصفحة الرئيسية للمتجر.',
+    trendyolListing: 'صفحة المنتج على Trendyol',
+    hepsiburadaListing: 'صفحة المنتج على Hepsiburada',
+    openListingTitle: 'فتح الصفحة في علامة تبويب جديدة للتحقق منها',
+    openListing: '↗ فتح',
+    content: 'المحتوى',
+    nameLabel: 'الاسم ({lang}) *',
+    descriptionLabel: 'الوصف ({lang})',
+    aiWriteTitle: 'توليد مسودة وصف باللغات الأربع من اسم المنتج مع توجيه اختياري',
+    aiWrite: '✨ كتابة بالذكاء الاصطناعي',
+    altLabel: 'النص البديل للصورة ({lang})',
+    materialLabel: 'المادة ({lang})',
+    countLabel: 'العدد / العبوة ({lang})',
+    giftLabel: 'هدية مجانية ({lang}) — اختياري',
+  },
+});
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -40,12 +179,12 @@ const EMPTY: Partial<Product> = {
 const MARKETPLACE_URL_FIELDS = [
   {
     key: 'trendyol_url',
-    label: 'Trendyol listing',
+    labelKey: 'trendyolListing',
     placeholder: 'https://www.trendyol.com/aylux/...-p-123456789?merchantId=1277496',
   },
   {
     key: 'hepsiburada_url',
-    label: 'Hepsiburada listing',
+    labelKey: 'hepsiburadaListing',
     placeholder: 'https://www.hepsiburada.com/...-pm-HBC0000XXXXXX?magaza=AYLUX',
   },
 ] as const;
@@ -70,6 +209,8 @@ export const AdminProductEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
+  const t = useT(messages);
+  const tc = useT(common);
 
   const [form, setForm] = useState<Partial<Product>>(EMPTY);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -142,8 +283,8 @@ export const AdminProductEdit: React.FC = () => {
     updateGallery(a => a.map((img, i) => (i === idx ? val : img)));
   const handleGalleryUpload = async (idx: number, file: File) => {
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!ALLOWED.includes(file.type)) { setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.'); return; }
-    if (file.size > 10 * 1024 * 1024) { setError('File too large. Maximum 10 MB.'); return; }
+    if (!ALLOWED.includes(file.type)) { setError(t('errUnsupportedType')); return; }
+    if (file.size > 10 * 1024 * 1024) { setError(t('errGalleryTooLarge')); return; }
     const token = Symbol('gallery-upload');
     pendingGalleryUploads.current.set(token, idx);
     syncUploadingSlots();
@@ -156,11 +297,11 @@ export const AdminProductEdit: React.FC = () => {
         reader.readAsDataURL(file);
       });
       const data = await adminApi.uploadImage(base64, file.name);
-      if (!data.success) throw new Error('Upload failed');
+      if (!data.success) throw new Error(t('uploadFailed'));
       const slot = pendingGalleryUploads.current.get(token);
       // undefined: the slot was removed while the file was uploading.
       if (slot !== undefined) updateGalleryImage(slot, data.url || data.path);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); }
+    } catch (e) { setError(e instanceof Error ? e.message : t('uploadFailed')); }
     finally {
       pendingGalleryUploads.current.delete(token);
       syncUploadingSlots();
@@ -198,7 +339,7 @@ export const AdminProductEdit: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.name_ar || !form.brand || !form.category_id) {
-      setError('Please fill required fields: Arabic name, brand, and category.');
+      setError(t('errRequired'));
       return;
     }
     if (!confirmPastSchedule(form.status, form.publish_at)) return;
@@ -228,7 +369,7 @@ export const AdminProductEdit: React.FC = () => {
       }
       navigate('/admin/products');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -237,11 +378,11 @@ export const AdminProductEdit: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.');
+      setError(t('errUnsupportedType'));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setError('File too large. Maximum size is 10 MB.');
+      setError(t('errImageTooLarge'));
       return;
     }
     setUploading(true);
@@ -254,10 +395,10 @@ export const AdminProductEdit: React.FC = () => {
         reader.readAsDataURL(file);
       });
       const data = await adminApi.uploadImage(base64, file.name);
-      if (!data.success) throw new Error('Upload failed');
+      if (!data.success) throw new Error(t('uploadFailed'));
       set('image', data.url || data.path);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      setError(e instanceof Error ? e.message : t('uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -281,23 +422,23 @@ export const AdminProductEdit: React.FC = () => {
 
   const filteredCategories = categories.filter(c => !form.brand || c.brand === form.brand);
 
-  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>;
+  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
 
   return (
     <div>
       <div className="adm-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/admin/products" className="adm-btn adm-btn-ghost adm-btn-sm">← Back</Link>
-          <h1 className="adm-page-title">{isNew ? 'New Product' : 'Edit Product'}</h1>
+          <Link to="/admin/products" className="adm-btn adm-btn-ghost adm-btn-sm">{tc('back')}</Link>
+          <h1 className="adm-page-title">{isNew ? t('newProduct') : t('editProduct')}</h1>
         </div>
         {/* Saving navigates away, which would drop an image still uploading. */}
         <button
           className="adm-btn adm-btn-primary"
           onClick={handleSave}
           disabled={saving || uploading || uploadingSlots.size > 0}
-          title={uploading || uploadingSlots.size > 0 ? 'Wait for the image upload to finish' : undefined}
+          title={uploading || uploadingSlots.size > 0 ? t('waitForUpload') : undefined}
         >
-          {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving...</> : '💾 Save Product'}
+          {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {tc('saving')}</> : t('saveProduct')}
         </button>
       </div>
 
@@ -307,31 +448,32 @@ export const AdminProductEdit: React.FC = () => {
         {/* Left: metadata */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="adm-card">
-            <div className="adm-card-title">Product Info</div>
+            <div className="adm-card-title">{t('productInfo')}</div>
             <div className="adm-form-group">
-              <label className="adm-label">Brand *</label>
+              <label className="adm-label">{t('brandRequired')}</label>
               <select className="adm-input" value={form.brand} onChange={e => { set('brand', e.target.value as 'DIOX' | 'AYLUX'); set('category_id', ''); }}>
                 <option value="DIOX">DIOX</option>
                 <option value="AYLUX">AYLUX</option>
               </select>
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Category *</label>
+              <label className="adm-label">{t('categoryRequired')}</label>
               <select className="adm-input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
-                <option value="">— Select —</option>
+                <option value="">{t('selectOption')}</option>
                 {filteredCategories.map(c => (
                   <option key={c.id} value={c.id}>{c.title_en} / {c.title_ar}</option>
                 ))}
               </select>
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Image</label>
+              <label className="adm-label">{tc('image')}</label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                 <input
                   className="adm-input"
+                  dir="ltr"
                   value={form.image ?? ''}
                   onChange={e => set('image', e.target.value)}
-                  placeholder="/products/image.webp or paste URL"
+                  placeholder={t('imagePlaceholder')}
                   style={{ flex: 1 }}
                 />
                 <button
@@ -347,7 +489,7 @@ export const AdminProductEdit: React.FC = () => {
                   disabled={uploading}
                   style={{ whiteSpace: 'nowrap' }}
                 >
-                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading...</> : '📁 Upload'}
+                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {tc('uploading')}</> : t('upload')}
                 </button>
                 {/* Routes the picked file through the cropper before
                     uploading. Same File object, just clipped first.
@@ -363,9 +505,9 @@ export const AdminProductEdit: React.FC = () => {
                   }}
                   disabled={uploading}
                   style={{ whiteSpace: 'nowrap' }}
-                  title="Open the image in a cropper before uploading"
+                  title={t('cropUploadTitle')}
                 >
-                  ✂️ Crop & upload
+                  {t('cropUpload')}
                 </button>
               </div>
               <input
@@ -389,13 +531,13 @@ export const AdminProductEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Weight / Volume</label>
-              <input className="adm-input" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder="e.g. 500ml" />
+              <label className="adm-label">{t('weightVolume')}</label>
+              <input className="adm-input" value={form.weight ?? ''} onChange={e => set('weight', e.target.value)} placeholder={t('weightPlaceholder')} />
             </div>
             {/* Weight-Count Table (optional) */}
             <div className="adm-form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="adm-label" style={{ margin: 0 }}>Weight / Count Table</label>
+                <label className="adm-label" style={{ margin: 0 }}>{t('weightCountTable')}</label>
                 <button
                   type="button"
                   className={`adm-btn adm-btn-sm ${showWCTable ? 'adm-btn-warning' : 'adm-btn-secondary'}`}
@@ -404,7 +546,7 @@ export const AdminProductEdit: React.FC = () => {
                     setShowWCTable(!showWCTable);
                   }}
                 >
-                  {showWCTable ? '✕ Hide Table' : '📊 Add Table'}
+                  {showWCTable ? t('hideTable') : t('addTable')}
                 </button>
               </div>
 
@@ -413,8 +555,8 @@ export const AdminProductEdit: React.FC = () => {
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>Weight / Volume</th>
-                        <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>Count (per box)</th>
+                        <th style={{ textAlign: 'start', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>{t('weightVolume')}</th>
+                        <th style={{ textAlign: 'start', padding: '6px 8px', fontSize: 12, color: 'var(--adm-text-muted, #888)', fontWeight: 600 }}>{t('countPerBox')}</th>
                         <th style={{ width: 36 }}></th>
                       </tr>
                     </thead>
@@ -422,23 +564,23 @@ export const AdminProductEdit: React.FC = () => {
                       {getWCRows().map((row, i) => (
                         <tr key={i}>
                           <td style={{ padding: '3px 4px' }}>
-                            <input className="adm-input" value={row.weight} onChange={e => updateWCRow(i, 'weight', e.target.value)} placeholder="e.g. 1.2 kg" style={{ fontSize: 13 }} />
+                            <input className="adm-input" value={row.weight} onChange={e => updateWCRow(i, 'weight', e.target.value)} placeholder={t('rowWeightPlaceholder')} style={{ fontSize: 13 }} />
                           </td>
                           <td style={{ padding: '3px 4px' }}>
-                            <input className="adm-input" type="number" min={1} value={row.count} onChange={e => updateWCRow(i, 'count', e.target.value)} placeholder="e.g. 6" style={{ fontSize: 13 }} />
+                            <input className="adm-input" type="number" dir="ltr" min={1} value={row.count} onChange={e => updateWCRow(i, 'count', e.target.value)} placeholder={t('rowCountPlaceholder')} style={{ fontSize: 13 }} />
                           </td>
                           <td style={{ padding: '3px 4px' }}>
-                            <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => removeWCRow(i)} title="Remove" style={{ padding: '4px 8px' }}>✕</button>
+                            <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => removeWCRow(i)} title={t('remove')} style={{ padding: '4px 8px' }}>✕</button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addWCRow}>+ Add Row</button>
+                    <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addWCRow}>{t('addRow')}</button>
                     {getWCRows().length > 0 && (
                       <button type="button" className="adm-btn adm-btn-sm" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
-                        onClick={() => { setWCRows([]); setShowWCTable(false); }}>Clear Table</button>
+                        onClick={() => { setWCRows([]); setShowWCTable(false); }}>{t('clearTable')}</button>
                     )}
                   </div>
                 </div>
@@ -446,11 +588,11 @@ export const AdminProductEdit: React.FC = () => {
             </div>
 
             <div className="adm-form-group">
-              <label className="adm-label">Display Order</label>
-              <input className="adm-input" type="number" value={form.display_order ?? 0} onChange={e => set('display_order', Number(e.target.value))} />
+              <label className="adm-label">{t('displayOrder')}</label>
+              <input className="adm-input" type="number" dir="ltr" value={form.display_order ?? 0} onChange={e => set('display_order', Number(e.target.value))} />
             </div>
             <div className="adm-form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label className="adm-label" style={{ margin: 0 }}>Active</label>
+              <label className="adm-label" style={{ margin: 0 }}>{tc('active')}</label>
               <input type="checkbox" checked={!!form.active} onChange={e => set('active', e.target.checked ? 1 : 0)} style={{ width: 18, height: 18 }} />
             </div>
 
@@ -460,7 +602,7 @@ export const AdminProductEdit: React.FC = () => {
                 so the field never holds a stale value for a draft / live
                 product. */}
             <div className="adm-form-group">
-              <label className="adm-label">Publishing status</label>
+              <label className="adm-label">{t('publishingStatus')}</label>
               <select
                 className="adm-input"
                 value={form.status ?? 'published'}
@@ -476,20 +618,21 @@ export const AdminProductEdit: React.FC = () => {
                   }));
                 }}
               >
-                <option value="published">✅ Published — visible to everyone</option>
-                <option value="draft">📝 Draft — hidden, work in progress</option>
-                <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
+                <option value="published">{t('statusPublished')}</option>
+                <option value="draft">{t('statusDraft')}</option>
+                <option value="scheduled">{t('statusScheduled')}</option>
               </select>
               <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                {PRERENDER_NOTE}
+                {prerenderNote()}
               </small>
             </div>
             {form.status === 'scheduled' && (
               <div className="adm-form-group">
-                <label className="adm-label">Publish at</label>
+                <label className="adm-label">{t('publishAt')}</label>
                 <input
                   className="adm-input"
                   type="datetime-local"
+                  dir="ltr"
                   value={toDatetimeLocalValue(form.publish_at)}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -503,8 +646,7 @@ export const AdminProductEdit: React.FC = () => {
                     "server time, UTC", so admins entered UTC and the
                     product went live hours early or late. */}
                 <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                  The product will appear in the public catalogue automatically at this
-                  time (your local time). The catalogue cache is busted on flip.
+                  {t('publishAtHelp')}
                 </small>
               </div>
             )}
@@ -512,11 +654,11 @@ export const AdminProductEdit: React.FC = () => {
 
           {form.image && (
             <div className="adm-card">
-              <div className="adm-card-title">Image Preview</div>
+              <div className="adm-card-title">{t('imagePreview')}</div>
 
               {/* Scale slider */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0' }}>
-                <span style={{ fontSize: 12, opacity: 0.6, whiteSpace: 'nowrap' }}>Image Scale</span>
+                <span style={{ fontSize: 12, opacity: 0.6, whiteSpace: 'nowrap' }}>{t('imageScale')}</span>
                 <input
                   type="range"
                   min={30}
@@ -545,7 +687,7 @@ export const AdminProductEdit: React.FC = () => {
               }}>
                 <img
                   src={resolveAdminImage(form.image)}
-                  alt="preview"
+                  alt={t('previewAlt')}
                   style={{
                     width: '85%',
                     objectFit: 'contain',
@@ -583,10 +725,10 @@ export const AdminProductEdit: React.FC = () => {
                     whiteSpace: 'nowrap',
                     maxWidth: '100%',
                   }}>
-                    {form.name_ar || form.name_en || 'Product Name'}
+                    {form.name_ar || form.name_en || t('previewName')}
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
-                    {form.description_ar || form.description_en || 'Description'}
+                    {form.description_ar || form.description_en || t('previewDescription')}
                   </div>
                 </div>
               </div>
@@ -596,28 +738,28 @@ export const AdminProductEdit: React.FC = () => {
           {/* Gallery Images (optional) */}
           <div className="adm-card">
             <div className="adm-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Gallery Images</span>
+              <span>{t('galleryImages')}</span>
               <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm" onClick={addGallerySlot}>
-                + Add Image
+                {t('addImage')}
               </button>
             </div>
             {getGalleryImages().length === 0 && (
               <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '8px 0 0' }}>
-                No gallery images. Click "+ Add Image" to add colour variants or extra views.
+                {t('noGallery')}
               </p>
             )}
             {getGalleryImages().map((img, idx) => (
               <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
                 {img && (
-                  <img src={resolveAdminImage(img)} alt={`gallery-${idx}`}
+                  <img src={resolveAdminImage(img)} alt={t('galleryAlt', { index: idx, n: idx + 1 })}
                     style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--adm-border, #ddd)' }} />
                 )}
-                <input className="adm-input" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
-                  placeholder={`Image path or URL #${idx + 1}`} style={{ flex: 1 }} />
+                <input className="adm-input" dir="ltr" value={img} onChange={e => updateGalleryImage(idx, e.target.value)}
+                  placeholder={t('galleryPlaceholder', { n: idx + 1 })} style={{ flex: 1 }} />
                 <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
                   onClick={() => { setCropTarget(null); galleryFileRefs.current[idx]?.click(); }}
                   disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
-                  title="Upload directly without cropping" aria-label={`Upload gallery image ${idx + 1}`}>
+                  title={t('uploadDirectTitle')} aria-label={t('uploadGalleryLabel', { n: idx + 1 })}>
                   {uploadingSlots.has(idx)
                     ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> ...</>
                     : '📁'}
@@ -628,7 +770,7 @@ export const AdminProductEdit: React.FC = () => {
                 <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
                   onClick={() => { setCropTarget(idx); galleryFileRefs.current[idx]?.click(); }}
                   disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
-                  title="Open the image in a cropper before uploading" aria-label={`Crop and upload gallery image ${idx + 1}`}>
+                  title={t('cropUploadTitle')} aria-label={t('cropGalleryLabel', { n: idx + 1 })}>
                   ✂️
                 </button>
                 <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
@@ -645,7 +787,7 @@ export const AdminProductEdit: React.FC = () => {
                   }} />
                 <button type="button" className="adm-btn adm-btn-sm"
                   style={{ background: '#dc3545', color: '#fff', border: 'none' }}
-                  onClick={() => removeGalleryImage(idx)} title="Remove" aria-label={`Remove gallery image ${idx + 1}`}>
+                  onClick={() => removeGalleryImage(idx)} title={t('remove')} aria-label={t('removeGalleryLabel', { n: idx + 1 })}>
                   ✕
                 </button>
               </div>
@@ -654,17 +796,15 @@ export const AdminProductEdit: React.FC = () => {
 
           {/* Marketplace listings (optional) */}
           <div className="adm-card">
-            <div className="adm-card-title">Online Store Listings</div>
+            <div className="adm-card-title">{t('storeListings')}</div>
             <p style={{ color: 'var(--adm-text-muted, #888)', fontSize: 13, margin: '4px 0 12px' }}>
-              This product's own page on the brand's store. The site's "buy online"
-              buttons in the product window open it — currently shown on the Turkish
-              and Arabic AYLUX pages. Leave empty to send buyers to the store's main page.
+              {t('storeListingsHelp')}
             </p>
-            {MARKETPLACE_URL_FIELDS.map(({ key, label, placeholder }) => {
+            {MARKETPLACE_URL_FIELDS.map(({ key, labelKey, placeholder }) => {
               const value = form[key] ?? '';
               return (
                 <div key={key} className="adm-form-group">
-                  <label className="adm-label">{label}</label>
+                  <label className="adm-label">{t(labelKey)}</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       className="adm-input"
@@ -683,9 +823,9 @@ export const AdminProductEdit: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ whiteSpace: 'nowrap' }}
-                        title="Open the listing in a new tab to check it"
+                        title={t('openListingTitle')}
                       >
-                        ↗ Open
+                        {t('openListing')}
                       </a>
                     )}
                   </div>
@@ -698,7 +838,7 @@ export const AdminProductEdit: React.FC = () => {
         {/* Right: multilingual content */}
         <div className="adm-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <div className="adm-card-title" style={{ margin: 0 }}>Content</div>
+            <div className="adm-card-title" style={{ margin: 0 }}>{t('content')}</div>
             <TranslationHelper
               fields={{
                 name: form.name_ar || '',
@@ -724,7 +864,7 @@ export const AdminProductEdit: React.FC = () => {
           {LANGS.map(l => (
             <div key={l} style={{ display: activeLang === l ? 'block' : 'none' }}>
               <div className="adm-form-group">
-                <label className="adm-label">Name ({l.toUpperCase()}) *</label>
+                <label className="adm-label">{t('nameLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -734,7 +874,7 @@ export const AdminProductEdit: React.FC = () => {
               </div>
               <div className="adm-form-group">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <label className="adm-label" style={{ margin: 0 }}>Description ({l.toUpperCase()})</label>
+                  <label className="adm-label" style={{ margin: 0 }}>{t('descriptionLabel', { lang: l.toUpperCase() })}</label>
                   {/* AI writer is mounted once per language tab; the
                       dialog body decides for itself whether to use
                       the visible language as the source. Clicking
@@ -743,10 +883,10 @@ export const AdminProductEdit: React.FC = () => {
                     type="button"
                     className="adm-btn adm-btn-ghost adm-btn-sm"
                     onClick={() => setAiDescOpen(true)}
-                    title="Generate a draft description in all 4 languages from the product name + an optional hint"
+                    title={t('aiWriteTitle')}
                     disabled={!form.name_ar && !form.name_en}
                   >
-                    ✨ AI write
+                    {t('aiWrite')}
                   </button>
                 </div>
                 <textarea
@@ -758,7 +898,7 @@ export const AdminProductEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Image Alt ({l.toUpperCase()})</label>
+                <label className="adm-label">{t('altLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -767,7 +907,7 @@ export const AdminProductEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Material ({l.toUpperCase()})</label>
+                <label className="adm-label">{t('materialLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -776,7 +916,7 @@ export const AdminProductEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Count / Package ({l.toUpperCase()})</label>
+                <label className="adm-label">{t('countLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -785,7 +925,7 @@ export const AdminProductEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Free gift ({l.toUpperCase()}) — optional</label>
+                <label className="adm-label">{t('giftLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}

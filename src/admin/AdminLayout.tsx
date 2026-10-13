@@ -3,10 +3,31 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AdminSidebar } from './components/AdminSidebar';
 import { AdminErrorBoundary } from './components/AdminErrorBoundary';
 import { adminApi, SESSION_EXPIRED_EVENT } from './utils/adminApi';
+import { defineMessages, useT } from './i18n/core';
+
+const messages = defineMessages({
+  en: {
+    openMenu: 'Open menu',
+    brand: 'KARAHOCA Admin',
+    sessionExpired: 'Your session has expired. Nothing you typed is lost: sign in again in a new tab, then come back here and save.',
+    signInNewTab: 'Sign in (new tab)',
+    dismiss: 'Dismiss',
+    logoutFailed: 'Logout failed — you are still signed in. Check your connection and try again.',
+  },
+  ar: {
+    openMenu: 'فتح القائمة',
+    brand: 'إدارة KARAHOCA',
+    sessionExpired: 'انتهت الجلسة. لم يضِع شيء مما كتبته: سجّل الدخول من جديد في تبويب جديد، ثم ارجع إلى هنا واحفظ.',
+    signInNewTab: 'تسجيل الدخول (تبويب جديد)',
+    dismiss: 'إخفاء',
+    logoutFailed: 'تعذّر تسجيل الخروج، وما زلت مسجّلًا. تحقّق من الاتصال وحاول مرة أخرى.',
+  },
+});
 
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const t = useT(messages);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -40,7 +61,7 @@ export const AdminLayout: React.FC = () => {
         // Navigating anyway sent the admin to the login page, whose session
         // check found the still-valid cookie and opened the dashboard again —
         // on a shared computer they'd believe they had logged out.
-        setLogoutError('Logout failed — you are still signed in. Check your connection and try again.');
+        setLogoutError(t('logoutFailed'));
       }
     })();
   };
@@ -67,25 +88,23 @@ export const AdminLayout: React.FC = () => {
           <button
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
+            aria-label={t('openMenu')}
             aria-expanded={sidebarOpen}
           >
             ☰
           </button>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>KARAHOCA Admin</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>{t('brand')}</span>
         </div>
 
         <div className="adm-content">
           {sessionExpired && (
             <div className="adm-alert adm-alert-error adm-session-banner" role="alert">
-              <span>
-                Your session has expired. Nothing you typed is lost: sign in again in a new tab, then come back here and save.
-              </span>
+              <span>{t('sessionExpired')}</span>
               <a href="/admin" target="_blank" rel="noopener" className="adm-btn adm-btn-sm adm-btn-primary">
-                Sign in (new tab)
+                {t('signInNewTab')}
               </a>
               <button type="button" className="adm-btn adm-btn-sm adm-btn-ghost" onClick={() => setSessionExpired(false)}>
-                Dismiss
+                {t('dismiss')}
               </button>
             </div>
           )}

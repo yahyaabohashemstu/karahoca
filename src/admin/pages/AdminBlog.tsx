@@ -2,8 +2,70 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type BlogPostItem, type BlogCategoryItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDate, fmtNumber } from '../utils/dateUtils';
 import { resolveAdminImage } from '../../utils/image';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    title: 'Blog',
+    postCount: { other: '{n} posts' },
+    manageCategories: 'Manage categories →',
+    allStatuses: 'All statuses',
+    filterPublished: '✅ Published',
+    filterDrafts: '📝 Drafts',
+    filterScheduled: '🕐 Scheduled',
+    filterFeatured: '⭐ Featured',
+    searchPlaceholder: 'Search title or tag…',
+    addPost: '+ Add Post',
+    colTitleAr: 'Title (AR)',
+    colTitleEn: 'Title (EN)',
+    colCategory: 'Category',
+    colViews: 'Views',
+    colReading: 'Reading',
+    colDate: 'Date',
+    empty: 'No posts match the filter.',
+    readingMinutes: { other: '{n} min' },
+    confirmDelete: 'Delete this blog post?',
+    deleteFailed: 'Failed to delete post',
+  },
+  ar: {
+    title: 'المدونة',
+    postCount: {
+      zero: 'لا توجد مقالات',
+      one: 'مقال واحد',
+      two: 'مقالان',
+      few: '{n} مقالات',
+      many: '{n} مقالًا',
+      other: '{n} مقال',
+    },
+    manageCategories: 'إدارة الفئات ←',
+    allStatuses: 'كل الحالات',
+    filterPublished: '✅ المنشورة',
+    filterDrafts: '📝 المسودات',
+    filterScheduled: '🕐 المجدولة',
+    filterFeatured: '⭐ المميّزة',
+    searchPlaceholder: 'البحث بالعنوان أو الوسم…',
+    addPost: '+ إضافة مقال',
+    colTitleAr: 'العنوان (AR)',
+    colTitleEn: 'العنوان (EN)',
+    colCategory: 'الفئة',
+    colViews: 'المشاهدات',
+    colReading: 'مدة القراءة',
+    colDate: 'التاريخ',
+    empty: 'لا توجد مقالات مطابقة للتصفية.',
+    readingMinutes: {
+      one: 'دقيقة واحدة',
+      two: 'دقيقتان',
+      few: '{n} دقائق',
+      many: '{n} دقيقة',
+      other: '{n} دقيقة',
+    },
+    confirmDelete: 'حذف هذا المقال؟',
+    deleteFailed: 'تعذّر حذف المقال',
+  },
+});
 
 /**
  * /admin/blog — list view for blog posts.
@@ -20,6 +82,8 @@ export const AdminBlog: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const t = useT(messages);
+  const tc = useT(common);
 
   const postsAsync = useAsync(() => adminApi.getBlogPosts(true), []);
   const catsAsync = useAsync(() => adminApi.getBlogCategories(), []);
@@ -31,14 +95,14 @@ export const AdminBlog: React.FC = () => {
   }, [catsAsync.data]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this blog post?')) return;
+    if (!confirm(t('confirmDelete'))) return;
     setDeleting(id);
     try {
       await adminApi.deleteBlogPost(id);
       postsAsync.reload();
     } catch (e) {
       // Show the real reason (e.g. "session expired — sign in again").
-      alert(e instanceof Error ? e.message : 'Failed to delete post');
+      alert(e instanceof Error ? e.message : t('deleteFailed'));
     } finally {
       setDeleting(null);
     }
@@ -53,7 +117,7 @@ export const AdminBlog: React.FC = () => {
     return (
       (item.title_en || '').toLowerCase().includes(q) ||
       (item.title_ar || '').includes(q) ||
-      (item.tags || []).some((t: string) => t.toLowerCase().includes(q))
+      (item.tags || []).some((tag: string) => tag.toLowerCase().includes(q))
     );
   });
 
@@ -61,11 +125,11 @@ export const AdminBlog: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Blog</h1>
+          <h1 className="adm-page-title">{t('title')}</h1>
           <p className="adm-page-subtitle">
-            {items.length} posts ·{' '}
+            {t.plural('postCount', items.length)} ·{' '}
             <Link to="/admin/blog/categories" style={{ color: 'var(--adm-accent)' }}>
-              Manage categories →
+              {t('manageCategories')}
             </Link>
           </p>
         </div>
@@ -76,29 +140,29 @@ export const AdminBlog: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             style={{ width: 140 }}
           >
-            <option value="all">All statuses</option>
-            <option value="published">✅ Published</option>
-            <option value="draft">📝 Drafts</option>
-            <option value="scheduled">🕐 Scheduled</option>
-            <option value="featured">⭐ Featured</option>
+            <option value="all">{t('allStatuses')}</option>
+            <option value="published">{t('filterPublished')}</option>
+            <option value="draft">{t('filterDrafts')}</option>
+            <option value="scheduled">{t('filterScheduled')}</option>
+            <option value="featured">{t('filterFeatured')}</option>
           </select>
           <input
             type="search"
             className="adm-input adm-input-sm"
-            placeholder="Search title or tag…"
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 220 }}
           />
           <Link to="/admin/blog/new" className="adm-btn adm-btn-primary adm-btn-sm">
-            + Add Post
+            {t('addPost')}
           </Link>
         </div>
       </div>
 
       {postsAsync.loading && (
         <div className="adm-loading-center">
-          <span className="adm-spinner" /> Loading...
+          <span className="adm-spinner" /> {tc('loading')}
         </div>
       )}
       {postsAsync.error && <div className="adm-alert adm-alert-error">⚠ {postsAsync.error}</div>}
@@ -109,14 +173,15 @@ export const AdminBlog: React.FC = () => {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Image</th>
-                  <th style={{ textAlign: 'right' }}>Title (AR)</th>
-                  <th>Title (EN)</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Views</th>
-                  <th>Reading</th>
-                  <th>Date</th>
+                  <th>{tc('image')}</th>
+                  {/* Aligned with the Arabic titles below it. */}
+                  <th style={{ textAlign: 'right' }}>{t('colTitleAr')}</th>
+                  <th>{t('colTitleEn')}</th>
+                  <th>{t('colCategory')}</th>
+                  <th>{tc('status')}</th>
+                  <th>{t('colViews')}</th>
+                  <th>{t('colReading')}</th>
+                  <th>{t('colDate')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -124,7 +189,7 @@ export const AdminBlog: React.FC = () => {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
-                      No posts match the filter.
+                      {t('empty')}
                     </td>
                   </tr>
                 ) : filtered.map((item) => {
@@ -146,10 +211,11 @@ export const AdminBlog: React.FC = () => {
                         {item.featured ? '⭐ ' : ''}
                         {item.title_ar || '—'}
                       </td>
-                      <td>{item.title_en || '—'}</td>
+                      <td dir="auto">{item.title_en || '—'}</td>
                       <td>
                         {cat ? (
                           <span
+                            dir="auto"
                             style={{
                               background: cat.color || 'var(--adm-bg-3)',
                               color: '#fff',
@@ -168,15 +234,15 @@ export const AdminBlog: React.FC = () => {
                       <td>
                         <StatusBadge status={item.status} active={item.active} />
                       </td>
-                      <td>{item.view_count}</td>
-                      <td>{item.reading_time} min</td>
+                      <td>{fmtNumber(item.view_count)}</td>
+                      <td>{t.plural('readingMinutes', item.reading_time)}</td>
                       <td>{fmtDate(item.published_at)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <Link
                           to={`/admin/blog/${encodeURIComponent(item.id)}`}
                           className="adm-btn adm-btn-ghost adm-btn-sm"
                         >
-                          Edit
+                          {tc('edit')}
                         </Link>
                         <button
                           type="button"
@@ -185,7 +251,7 @@ export const AdminBlog: React.FC = () => {
                           disabled={deleting === item.id}
                           style={{ marginInlineStart: 6 }}
                         >
-                          {deleting === item.id ? '…' : 'Delete'}
+                          {deleting === item.id ? '…' : tc('delete')}
                         </button>
                       </td>
                     </tr>
@@ -200,21 +266,23 @@ export const AdminBlog: React.FC = () => {
   );
 };
 
+const STATUS_BADGES = {
+  published: { bg: '#10b981', icon: '✅', label: 'live' },
+  draft:     { bg: '#6b7280', icon: '📝', label: 'draft' },
+  scheduled: { bg: '#f59e0b', icon: '🕐', label: 'scheduled' },
+  deleted:   { bg: '#ef4444', icon: '🗑', label: 'deletedStatus' },
+} as const;
+
 const StatusBadge: React.FC<{ status: BlogPostItem['status']; active?: number | boolean }> = ({ status, active }) => {
-  const cfg: Record<string, { bg: string; label: string }> = {
-    published: { bg: '#10b981', label: '✅ Live' },
-    draft:     { bg: '#6b7280', label: '📝 Draft' },
-    scheduled: { bg: '#f59e0b', label: '🕐 Scheduled' },
-    deleted:   { bg: '#ef4444', label: '🗑 Deleted' },
-  };
+  const tc = useT(common);
   // Delete only sets active=0 (drafts are active=0 too). A deleted post kept
   // showing "Live", so it looked as if Delete had done nothing — and
   // re-saving it from the editor quietly republished it.
   const isDeleted = !active && status !== 'draft';
-  const c = isDeleted ? cfg.deleted : cfg[status] || cfg.draft;
+  const c = isDeleted ? STATUS_BADGES.deleted : STATUS_BADGES[status] || STATUS_BADGES.draft;
   return (
     <span style={{ background: c.bg, color: '#fff', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600 }}>
-      {c.label}
+      {c.icon} {tc(c.label)}
     </span>
   );
 };

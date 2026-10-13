@@ -11,6 +11,7 @@
    every admin visit. */
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/700.css';
+@import '@fontsource-variable/cairo/wght.css';
 
 /* ─── Design Tokens ──────────────────────────────────────────── */
 :root {
@@ -82,8 +83,7 @@
 
 /* ─── Reset ──────────────────────────────────────────────────── */
 .adm-root {
-  direction: ltr;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Cairo Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   color: var(--adm-text);
   min-height: 100vh;
@@ -120,6 +120,7 @@
 .adm-login-wrap,
 .adm-login-bg {
   color-scheme: dark;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,12 +193,12 @@
   width: var(--adm-sidebar-w);
   background: rgba(7,14,26,0.70);
   backdrop-filter: var(--adm-blur);
-  border-right: 1px solid var(--adm-glass-border);
+  border-inline-end: 1px solid var(--adm-glass-border);
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   height: 100vh;
   z-index: 100;
   transition: transform var(--adm-transition-slow);
@@ -298,12 +299,13 @@
 .adm-nav-link.active::before {
   content: '';
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 20%;
   height: 60%;
   width: 3px;
   background: linear-gradient(180deg, var(--adm-orange), var(--adm-orange-light));
-  border-radius: 0 3px 3px 0;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
 }
 
 .adm-nav-icon {
@@ -337,7 +339,7 @@
 
 /* ─── Main ───────────────────────────────────────────────────── */
 .adm-main {
-  margin-left: var(--adm-sidebar-w);
+  margin-inline-start: var(--adm-sidebar-w);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -434,7 +436,7 @@
 .adm-stat-card::before {
   content: '';
   position: absolute;
-  top: 0; right: 0;
+  top: 0; inset-inline-end: 0;
   width: 80px; height: 80px;
   background: radial-gradient(circle at top right, rgba(255,91,46,0.08), transparent 70%);
   pointer-events: none;
@@ -494,7 +496,7 @@
 .adm-table th {
   background: rgba(255,255,255,0.04);
   padding: 13px 16px;
-  text-align: left;
+  text-align: start;
   font-size: 11px;
   font-weight: 700;
   color: var(--adm-text-muted);
@@ -511,7 +513,7 @@
   color: var(--adm-text);
   font-size: 13.5px;
   vertical-align: middle;
-  text-align: left;
+  text-align: start;
 }
 
 /* Arabic columns — explicit RTL alignment so header & cell match */
@@ -563,7 +565,7 @@
   border-radius: 4px;
   padding: 1px 7px;
   font-size: 10px;
-  margin-right: 6px;
+  margin-inline-end: 6px;
 }
 
 .adm-input, .adm-textarea, .adm-select {
@@ -837,7 +839,7 @@
 .adm-page-title::after {
   content: '';
   position: absolute;
-  bottom: 0; left: 0;
+  bottom: 0; inset-inline-start: 0;
   width: 36px; height: 3px;
   background: linear-gradient(90deg, var(--adm-orange), var(--adm-orange-light));
   border-radius: 2px;
@@ -875,12 +877,12 @@
   align-items: flex-start;
   gap: 10px;
   margin-bottom: 18px;
-  border-left: 3px solid transparent;
+  border-inline-start: 3px solid transparent;
 }
 
-.adm-alert-error   { background: var(--adm-danger-soft);  color: var(--adm-danger);  border-left-color: var(--adm-danger); }
-.adm-alert-success { background: var(--adm-success-soft); color: var(--adm-success); border-left-color: var(--adm-success); }
-.adm-alert-info    { background: var(--adm-info-soft);    color: var(--adm-info);    border-left-color: var(--adm-info); }
+.adm-alert-error   { background: var(--adm-danger-soft);  color: var(--adm-danger);  border-inline-start-color: var(--adm-danger); }
+.adm-alert-success { background: var(--adm-success-soft); color: var(--adm-success); border-inline-start-color: var(--adm-success); }
+.adm-alert-info    { background: var(--adm-info-soft);    color: var(--adm-info);    border-inline-start-color: var(--adm-info); }
 
 /* ─── Chat bubbles ───────────────────────────────────────────── */
 .adm-chat-thread {
@@ -906,7 +908,7 @@
 .adm-chat-user {
   background: rgba(255,255,255,0.07);
   color: var(--adm-text);
-  border-bottom-left-radius: 4px;
+  border-end-start-radius: 4px;
   border: 1px solid var(--adm-glass-border);
   backdrop-filter: blur(6px);
 }
@@ -918,7 +920,7 @@
   background: rgba(255,91,46,0.10);
   color: var(--adm-text);
   border: 1px solid rgba(255,91,46,0.28);
-  border-bottom-right-radius: 4px;
+  border-end-end-radius: 4px;
 }
 
 .adm-chat-thread-page {
@@ -1192,7 +1194,7 @@
 /* ─── Mobile sidebar ─────────────────────────────────────────── */
 .adm-sidebar-wrap {
   position: fixed;
-  top: 0; left: 0;
+  top: 0; inset-inline-start: 0;
   height: 100vh;
   z-index: 200;
   transform: translateX(-100%);
@@ -1235,7 +1237,7 @@
 
 @media (min-width: 769px) {
   .adm-sidebar-wrap { position: relative; transform: none; height: auto; }
-  .adm-main { margin-left: 0; }
+  .adm-main { margin-inline-start: 0; }
 }
 
 /* ─── Section divider (orange, matches website) ──────────────── */
@@ -1528,8 +1530,14 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 91, 46, 0.12);
-  border: 1px solid rgba(255, 91, 46, 0.18);
-  font-size: 18px;
+  border: 1px solid rgba(255, 91, 46, 0.22);
+  color: var(--adm-orange-light);
+  line-height: 0;
+}
+.adm-dashboard-shortcut-icon svg { width: 22px; height: 22px; }
+.adm-dashboard-shortcut:hover .adm-dashboard-shortcut-icon {
+  background: rgba(255, 91, 46, 0.2);
+  border-color: rgba(255, 91, 46, 0.4);
 }
 
 .adm-dashboard-shortcut strong {
@@ -1539,7 +1547,10 @@
   margin-bottom: 4px;
 }
 
-.adm-dashboard-shortcut span {
+/* Only the description: a plain "span" here also matched the icon box and,
+   being more specific, made it display:block (icon stuck in the top-left
+   corner) and muted its colour. */
+.adm-dashboard-shortcut div > span {
   display: block;
   color: var(--adm-text-muted);
   font-size: 12px;
@@ -1757,7 +1768,7 @@
   padding: 10px 0 18px;
   color: var(--adm-text-dim);
   font-size: 11px;
-  text-align: right;
+  text-align: end;
 }
 
 .adm-trend-svg {
@@ -1809,7 +1820,7 @@
   width: 20px;
   color: var(--adm-text-dim);
   font-size: 11px;
-  text-align: right;
+  text-align: end;
   flex-shrink: 0;
 }
 
@@ -1954,7 +1965,7 @@
 }
 
 .adm-analytics-user-metric {
-  text-align: right;
+  text-align: end;
 }
 
 .adm-analytics-user-metric strong {
@@ -2001,7 +2012,7 @@
     order: 2;
     flex-direction: row;
     padding: 0;
-    text-align: left;
+    text-align: start;
   }
 
   .adm-analytics-user-row {
@@ -2226,7 +2237,7 @@
 }
 
 .adm-trend-footer span:last-child {
-  text-align: right;
+  text-align: end;
 }
 
 .adm-ranking-list {
@@ -2318,7 +2329,7 @@
     order: 2;
     flex-direction: row;
     padding: 0;
-    text-align: left;
+    text-align: start;
   }
 
   .adm-device-chart {
@@ -2378,7 +2389,7 @@
 
 @media (max-width: 768px) {
   .adm-main {
-    margin-left: 0;
+    margin-inline-start: 0;
     width: 100%;
   }
 }
@@ -2391,7 +2402,7 @@
   .adm-sidebar-wrap {
     position: relative;
     top: auto;
-    left: auto;
+    inset-inline-start: auto;
     width: var(--adm-sidebar-w);
     min-width: var(--adm-sidebar-w);
     flex: 0 0 var(--adm-sidebar-w);
@@ -2403,13 +2414,13 @@
   .adm-sidebar {
     position: sticky;
     top: 0;
-    left: auto;
+    inset-inline-start: auto;
     width: var(--adm-sidebar-w);
     height: 100vh;
   }
 
   .adm-main {
-    margin-left: 0;
+    margin-inline-start: 0;
     width: auto;
     flex: 1 1 auto;
   }
@@ -2546,7 +2557,7 @@
   }
 
   .analytics-print-header-right {
-    text-align: right !important;
+    text-align: end !important;
   }
 
   .analytics-print-date {
@@ -2766,7 +2777,7 @@
     font-size: 6.5pt !important;
     color: #8892aa !important;
     min-width: 18pt !important;
-    text-align: right !important;
+    text-align: end !important;
   }
 
   .adm-trend-svg {
@@ -3002,7 +3013,7 @@
   }
 
   .adm-analytics-user-metric {
-    text-align: right !important;
+    text-align: end !important;
     flex-shrink: 0 !important;
   }
 
@@ -3073,7 +3084,6 @@
   color: var(--adm-orange-light);
   display: inline-flex;
 }
-.adm-dashboard-shortcut-icon { color: var(--adm-orange-light); }
 
 @media (max-width: 1280px) {
   .adm-dashboard-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3105,4 +3115,126 @@
     max-width: 85vw;
   }
   .adm-sidebar { width: 100%; }
+}
+
+/* ─── Campaign audience by language ─────────────────────────── */
+.adm-campaign-audience {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--adm-radius-sm);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--adm-glass-border);
+  font-size: 12.5px;
+}
+.adm-campaign-audience-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--adm-text-muted);
+  margin-bottom: 8px;
+}
+.adm-campaign-audience-table { width: 100%; border-collapse: collapse; }
+.adm-campaign-audience-table th,
+.adm-campaign-audience-table td {
+  padding: 6px 8px;
+  text-align: start;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.adm-campaign-audience-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--adm-text-dim);
+}
+.adm-campaign-audience-table tr:last-child td { border-bottom: none; }
+.adm-campaign-audience-ok { color: var(--adm-success); }
+.adm-campaign-audience-fallback { color: var(--adm-warning); }
+.adm-campaign-audience-warn { color: var(--adm-warning); margin-top: 8px; }
+
+/* ─── Newsletter language filter ─────────────────────────────── */
+.adm-newsletter-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.adm-newsletter-hint {
+  flex-basis: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--adm-text-muted);
+}
+.adm-select-sm {
+  width: auto;
+  min-width: 140px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 12.5px;
+}
+
+/* ─── Search-engine copy (site rebuild) card ─────────────────── */
+.adm-site-rebuild-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13.5px;
+}
+.adm-site-rebuild-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+.adm-site-rebuild-ok   { color: var(--adm-success); }
+.adm-site-rebuild-wait { color: var(--adm-info); }
+.adm-site-rebuild-warn { color: var(--adm-warning); }
+.adm-site-rebuild-status strong { color: var(--adm-text); font-weight: 600; }
+.adm-site-rebuild-detail {
+  margin: 8px 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--adm-text-muted);
+}
+
+/* ─── Right-to-left (Arabic admin) ───────────────────────────── */
+/* What logical properties can't express: the select arrow's background
+   position, the toggle knob, the off-canvas drawer and icons that point
+   along the reading direction. */
+[dir="rtl"] .adm-select {
+  background-position: left 14px center;
+  padding-right: 14px;
+  padding-left: 36px;
+}
+[dir="rtl"] .adm-toggle-track::after { left: auto; right: 3px; }
+[dir="rtl"] .adm-toggle input:checked + .adm-toggle-track::after { transform: translateX(-16px); }
+[dir="rtl"] .adm-sidebar-wrap { transform: translateX(100%); }
+[dir="rtl"] .adm-sidebar-wrap.open { transform: translateX(0); }
+@media (min-width: 769px) {
+  [dir="rtl"] .adm-sidebar-wrap { transform: none; }
+}
+[dir="rtl"] .adm-nav-logout svg { transform: scaleX(-1); }
+
+/* Charts and code-like values keep left-to-right (time runs left to
+   right; e-mails, URLs and ids read left to right). */
+[dir="rtl"] .adm-ltr,
+[dir="rtl"] .adm-mono { direction: ltr; unicode-bidi: isolate; }
+
+.adm-layout,
+.adm-login-bg {
+  font-family: 'Inter', 'Cairo Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+[lang="ar"] .adm-layout,
+[lang="ar"] .adm-login-bg {
+  /* Arabic glyphs sit lower and need a little more line height. */
+  line-height: 1.6;
+}
+
+.adm-nav-lang { color: var(--adm-text-muted); }
+.adm-login-lang {
+  position: absolute;
+  top: 18px;
+  inset-inline-end: 18px;
 }

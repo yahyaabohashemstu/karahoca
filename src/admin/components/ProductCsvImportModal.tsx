@@ -1,6 +1,75 @@
 import React, { useState } from 'react';
-import { adminApi, type AdminRequestError } from '../utils/adminApi';
+import { adminApi, localizeServerMessage, type AdminRequestError } from '../utils/adminApi';
 import { useModalDialog } from '../utils/useModalDialog';
+import { fmtNumber } from '../utils/dateUtils';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+// CSV column names (brand, category_id, name_ar, id) are the file format:
+// they stay as they are in both languages.
+const messages = defineMessages({
+  en: {
+    title: '📥 Import products from CSV',
+    intro: 'Paste CSV content below or pick a file. Export the current catalogue first to get the exact column layout — required fields are {brand}, {categoryId}, and {nameAr}. Rows with an existing {id} get updated; rows with a blank {id} are inserted.',
+    errTooLarge: 'File too large (max 5 MB).',
+    errNotUtf8: 'This file is not UTF-8, so its Arabic/Turkish/Russian text would be corrupted. In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and pick that file.',
+    errRead: 'Could not read file.',
+    errPasteFirst: 'Paste CSV content or pick a file first.',
+    rowsFailed: { other: '{n} row(s) failed validation. Fix them before applying.' },
+    errPreview: 'Preview failed.',
+    errImport: 'Import failed.',
+    totalRows: 'Total rows',
+    newRows: 'New',
+    updates: 'Updates',
+    errors: 'Errors',
+    rowError: 'Row {line}: {error}',
+    imported: '✓ Imported {inserted} new and {updated} updated product(s).',
+    validating: 'Validating…',
+    preview: '🔍 Preview',
+    runPreviewFirst: 'Run preview first',
+    fixErrorsFirst: 'Fix validation errors before applying',
+    commit: 'Commit the import',
+    importing: 'Importing…',
+    applyImport: '✓ Apply import',
+  },
+  ar: {
+    title: '📥 استيراد المنتجات من CSV',
+    intro: 'الصق محتوى CSV أدناه أو اختر ملفًا. صدّر الكتالوج الحالي أولًا لتحصل على ترتيب الأعمدة الصحيح — الحقول المطلوبة هي {brand} و {categoryId} و {nameAr}. الصفوف التي تحمل قيمة {id} موجودة تُحدَّث، والصفوف التي يكون فيها {id} فارغًا تُضاف منتجات جديدة.',
+    errTooLarge: 'الملف كبير جدًا (الحد الأقصى 5 ميغابايت).',
+    errNotUtf8: 'هذا الملف ليس بترميز UTF-8، لذا ستتلف نصوصه العربية والتركية والروسية. في Excel اختر «ملف ← حفظ باسم» ثم النوع "CSV UTF-8 (Comma delimited)"، واختر ذلك الملف.',
+    errRead: 'تعذّرت قراءة الملف.',
+    errPasteFirst: 'الصق محتوى CSV أو اختر ملفًا أولًا.',
+    rowsFailed: {
+      one: 'صف واحد لم يجتز التحقق. أصلحه قبل التطبيق.',
+      two: 'صفّان لم يجتازا التحقق. أصلحهما قبل التطبيق.',
+      few: '{n} صفوف لم تجتز التحقق. أصلحها قبل التطبيق.',
+      many: '{n} صفًا لم تجتز التحقق. أصلحها قبل التطبيق.',
+      other: '{n} صف لم تجتز التحقق. أصلحها قبل التطبيق.',
+    },
+    errPreview: 'فشلت المعاينة.',
+    errImport: 'فشل الاستيراد.',
+    totalRows: 'إجمالي الصفوف',
+    newRows: 'جديدة',
+    updates: 'تحديثات',
+    errors: 'أخطاء',
+    rowError: 'الصف {line}: {error}',
+    imported: '✓ اكتمل الاستيراد — منتجات جديدة: {inserted}، منتجات محدَّثة: {updated}.',
+    validating: 'جارٍ التحقق…',
+    preview: '🔍 معاينة',
+    runPreviewFirst: 'شغّل المعاينة أولًا',
+    fixErrorsFirst: 'أصلح أخطاء التحقق قبل التطبيق',
+    commit: 'تنفيذ الاستيراد',
+    importing: 'جارٍ الاستيراد…',
+    applyImport: '✓ تطبيق الاستيراد',
+  },
+});
+
+/** Puts `parts` in place of the {name} tokens of a message. */
+const withParts = (text: string, parts: Record<string, React.ReactNode>) =>
+  text.split(/(\{\w+\})/).map((piece, i) => {
+    const name = /^\{(\w+)\}$/.exec(piece)?.[1];
+    return <React.Fragment key={i}>{name && name in parts ? parts[name] : piece}</React.Fragment>;
+  });
 
 /**
  * Two-step CSV import modal:
@@ -38,6 +107,8 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const t = useT(messages);
+  const tc = useT(common);
 
   const reset = () => {
     setCsvText('');
@@ -60,7 +131,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
   const handleFile = async (file: File | null) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setError('File too large (max 5 MB).');
+      setError(t('errTooLarge'));
       return;
     }
     try {
@@ -70,20 +141,20 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
       // would otherwise import with every Turkish/Arabic/Russian letter
       // replaced by "�".
       if (text.includes('\uFFFD')) {
-        setError('This file is not UTF-8, so its Arabic/Turkish/Russian text would be corrupted. In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and pick that file.');
+        setError(t('errNotUtf8'));
         return;
       }
       setCsvText(text);
       setPreview(null);
       setError(null);
     } catch {
-      setError('Could not read file.');
+      setError(t('errRead'));
     }
   };
 
   const runPreview = async () => {
     if (!csvText.trim()) {
-      setError('Paste CSV content or pick a file first.');
+      setError(t('errPasteFirst'));
       return;
     }
     setBusy(true);
@@ -92,10 +163,10 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
       const res = await adminApi.importProductsCsv(csvText, true);
       setPreview(res.summary);
       if (res.summary.errors.length > 0) {
-        setError(`${res.summary.errors.length} row(s) failed validation. Fix them before applying.`);
+        setError(t.plural('rowsFailed', res.summary.errors.length));
       }
     } catch (err) {
-      const msg = (err as Error).message || 'Preview failed.';
+      const msg = (err as Error).message || t('errPreview');
       setError(msg);
       // Server returns the partial summary on validation errors so the
       // admin still sees per-row messages.
@@ -120,7 +191,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
         onClose();
       }, 1400);
     } catch (err) {
-      setError((err as Error).message || 'Import failed.');
+      setError((err as Error).message || t('errImport'));
     } finally {
       setBusy(false);
     }
@@ -160,24 +231,25 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 id="csv-import-title" style={{ margin: 0, fontSize: 18 }}>📥 Import products from CSV</h2>
+          <h2 id="csv-import-title" style={{ margin: 0, fontSize: 18 }}>{t('title')}</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={handleClose}
             disabled={busy}
-            aria-label="Close"
+            aria-label={tc('close')}
           >
             ✕
           </button>
         </div>
 
         <p style={{ margin: 0, fontSize: 13, color: 'var(--adm-text-muted)' }}>
-          Paste CSV content below or pick a file. Export the current
-          catalogue first to get the exact column layout — required
-          fields are <strong>brand</strong>, <strong>category_id</strong>,
-          and <strong>name_ar</strong>. Rows with an existing <code>id</code>
-          get updated; rows with a blank <code>id</code> are inserted.
+          {withParts(t('intro'), {
+            brand: <strong>brand</strong>,
+            categoryId: <strong>category_id</strong>,
+            nameAr: <strong>name_ar</strong>,
+            id: <code>id</code>,
+          })}
         </p>
 
         <input
@@ -193,6 +265,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
           rows={10}
           spellCheck={false}
           placeholder="id,brand,category_id,name_ar,…"
+          dir="ltr"
           value={csvText}
           onChange={(e) => { setCsvText(e.target.value); setPreview(null); }}
           disabled={busy}
@@ -213,12 +286,12 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
               fontSize: 13,
             }}
           >
-            <div><strong>{preview.total}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>Total rows</span></div>
-            <div style={{ color: '#22c55e' }}><strong>{preview.inserted}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>New</span></div>
-            <div style={{ color: '#4f6ef7' }}><strong>{preview.updated}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>Updates</span></div>
+            <div><strong>{fmtNumber(preview.total)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('totalRows')}</span></div>
+            <div style={{ color: '#22c55e' }}><strong>{fmtNumber(preview.inserted)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('newRows')}</span></div>
+            <div style={{ color: '#4f6ef7' }}><strong>{fmtNumber(preview.updated)}</strong><br /><span style={{ color: 'var(--adm-text-dim)' }}>{t('updates')}</span></div>
             <div style={{ color: preview.errors.length > 0 ? '#ef4444' : 'var(--adm-text-dim)' }}>
-              <strong>{preview.errors.length}</strong><br />
-              <span style={{ color: 'var(--adm-text-dim)' }}>Errors</span>
+              <strong>{fmtNumber(preview.errors.length)}</strong><br />
+              <span style={{ color: 'var(--adm-text-dim)' }}>{t('errors')}</span>
             </div>
           </div>
         )}
@@ -238,7 +311,9 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
             {/* The server's messages already start with "Row N:". */}
             {preview.errors.map((e, i) => (
               <div key={i} style={{ color: '#dc2626' }}>
-                {e.error.startsWith('Row ') ? e.error : `Row ${e.line}: ${e.error}`}
+                {e.error.startsWith('Row ')
+                  ? localizeServerMessage(e.error)
+                  : t('rowError', { line: e.line, error: localizeServerMessage(e.error) })}
               </div>
             ))}
           </div>
@@ -246,7 +321,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
 
         {applied && (
           <div className="adm-alert adm-alert-success">
-            ✓ Imported {preview?.inserted ?? 0} new and {preview?.updated ?? 0} updated product(s).
+            {t('imported', { inserted: preview?.inserted ?? 0, updated: preview?.updated ?? 0 })}
           </div>
         )}
 
@@ -257,7 +332,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
             onClick={handleClose}
             disabled={busy}
           >
-            Cancel
+            {tc('cancel')}
           </button>
           <button
             type="button"
@@ -265,7 +340,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
             onClick={runPreview}
             disabled={busy || !csvText.trim()}
           >
-            {busy && !preview ? 'Validating…' : '🔍 Preview'}
+            {busy && !preview ? t('validating') : t('preview')}
           </button>
           <button
             type="button"
@@ -274,13 +349,13 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
             disabled={busy || !preview || preview.errors.length > 0 || applied}
             title={
               !preview
-                ? 'Run preview first'
+                ? t('runPreviewFirst')
                 : preview.errors.length > 0
-                  ? 'Fix validation errors before applying'
-                  : 'Commit the import'
+                  ? t('fixErrorsFirst')
+                  : t('commit')
             }
           >
-            {busy && preview ? 'Importing…' : '✓ Apply import'}
+            {busy && preview ? t('importing') : t('applyImport')}
           </button>
         </div>
       </div>

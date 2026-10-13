@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtNumber } from '../utils/dateUtils';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
 
 /**
  * Cohort retention dashboard (Phase G3).
@@ -20,8 +22,49 @@ import { fmtNumber } from '../utils/dateUtils';
  * empty hatched cell, distinct from a real 0%.
  */
 
+const messages = defineMessages({
+  en: {
+    title: 'Cohort retention',
+    subtitleWeek: 'Visitors are grouped by the week of their first-ever visit; each cell shows how many of them came back in the weeks that follow. Hover a cell to see absolute counts.',
+    subtitleMonth: 'Visitors are grouped by the month of their first-ever visit; each cell shows how many of them came back in the months that follow. Hover a cell to see absolute counts.',
+    bucket: 'Bucket',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    periods: 'Periods',
+    allLanguages: 'All languages',
+    noCohorts: 'No cohorts found in this window.',
+    colCohort: 'Cohort',
+    colSize: 'Size',
+    colWeek: 'W+{n}',
+    colMonth: 'M+{n}',
+    notStarted: '{label} hasn\'t started yet',
+    notReached: 'Not reached yet',
+    returnedWeek: '{returners} of {size} returned in the week of {label}',
+    returnedMonth: '{returners} of {size} returned in the month of {label}',
+  },
+  ar: {
+    title: 'مجموعات الاحتفاظ',
+    subtitleWeek: 'يُجمَّع الزوار حسب أسبوع زيارتهم الأولى؛ وتُظهر كل خلية نسبة من عاد منهم في الأسابيع التالية. مرّر المؤشر فوق أي خلية لرؤية الأعداد الفعلية.',
+    subtitleMonth: 'يُجمَّع الزوار حسب شهر زيارتهم الأولى؛ وتُظهر كل خلية نسبة من عاد منهم في الأشهر التالية. مرّر المؤشر فوق أي خلية لرؤية الأعداد الفعلية.',
+    bucket: 'التجميع',
+    weekly: 'أسبوعي',
+    monthly: 'شهري',
+    periods: 'عدد الفترات',
+    allLanguages: 'كل اللغات',
+    noCohorts: 'لا توجد مجموعات في هذه الفترة.',
+    colCohort: 'المجموعة',
+    colSize: 'الحجم',
+    colWeek: 'الأسبوع {n}',
+    colMonth: 'الشهر {n}',
+    notStarted: 'الفترة {label} لم تبدأ بعد',
+    notReached: 'لم تُبلَغ بعد',
+    returnedWeek: 'عاد {returners} من أصل {size} في الأسبوع الذي يبدأ {label}',
+    returnedMonth: 'عاد {returners} من أصل {size} في الشهر الذي يبدأ {label}',
+  },
+});
+
+// Language names are written in their own language ("All" is translated).
 const LANGS = [
-  { code: '',   label: 'All languages' },
   { code: 'ar', label: 'العربية' },
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
@@ -55,6 +98,8 @@ const FUTURE_CELL_BG =
 const STICKY_BG = 'linear-gradient(var(--adm-glass), var(--adm-glass)), var(--adm-bg-mid)';
 
 export const AdminCohorts: React.FC = () => {
+  const t = useT(messages);
+  const tc = useT(common);
   const [bucket, setBucket] = useState<'week' | 'month'>('week');
   const [periods, setPeriods] = useState(8);
   const [lang, setLang] = useState('');
@@ -70,10 +115,9 @@ export const AdminCohorts: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Cohort retention</h1>
+          <h1 className="adm-page-title">{t('title')}</h1>
           <p className="adm-page-subtitle">
-            Visitors are grouped by the {bucket} of their first-ever visit; each cell shows how many of
-            them came back in the {bucket}s that follow. Hover a cell to see absolute counts.
+            {bucket === 'week' ? t('subtitleWeek') : t('subtitleMonth')}
           </p>
         </div>
       </div>
@@ -83,19 +127,19 @@ export const AdminCohorts: React.FC = () => {
         style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}
       >
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Bucket</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('bucket')}</span>
           <select
             className="adm-select adm-input-sm"
             value={bucket}
             onChange={(e) => setBucket(e.target.value === 'month' ? 'month' : 'week')}
             style={{ width: 110 }}
           >
-            <option value="week">Weekly</option>
-            <option value="month">Monthly</option>
+            <option value="week">{t('weekly')}</option>
+            <option value="month">{t('monthly')}</option>
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Periods</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('periods')}</span>
           <select
             className="adm-select adm-input-sm"
             value={periods}
@@ -106,38 +150,39 @@ export const AdminCohorts: React.FC = () => {
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Language</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{tc('language')}</span>
           <select
             className="adm-select adm-input-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
             style={{ width: 160 }}
           >
+            <option value="">{t('allLanguages')}</option>
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
       </div>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>}
+      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
 
       {!loading && !error && (
         <div className="adm-card" style={{ padding: 0, overflow: 'auto' }}>
           {cohorts.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center', color: 'var(--adm-text-dim)' }}>
-              No cohorts found in this window.
+              {t('noCohorts')}
             </div>
           ) : (
             <table className="adm-table" style={{ minWidth: 'max-content' }}>
               <thead>
                 <tr>
-                  <th style={{ position: 'sticky', left: 0, background: STICKY_BG, minWidth: 130, zIndex: 1 }}>
-                    Cohort
+                  <th style={{ position: 'sticky', insetInlineStart: 0, background: STICKY_BG, minWidth: 130, zIndex: 1 }}>
+                    {t('colCohort')}
                   </th>
-                  <th style={{ minWidth: 60 }}>Size</th>
+                  <th style={{ minWidth: 60 }}>{t('colSize')}</th>
                   {Array.from({ length: periods }, (_, p) => (
                     <th key={p} style={{ textAlign: 'center', minWidth: 70 }}>
-                      {bucket === 'week' ? `W+${p}` : `M+${p}`}
+                      {bucket === 'week' ? t('colWeek', { n: p }) : t('colMonth', { n: p })}
                     </th>
                   ))}
                 </tr>
@@ -147,7 +192,7 @@ export const AdminCohorts: React.FC = () => {
                   <tr key={c.cohort}>
                     <td style={{
                       position: 'sticky',
-                      left: 0,
+                      insetInlineStart: 0,
                       background: STICKY_BG,
                       fontWeight: 600,
                       fontSize: 12,
@@ -165,8 +210,8 @@ export const AdminCohorts: React.FC = () => {
                         return (
                           <td
                             key={r.period}
-                            title={`${r.label} hasn't started yet`}
-                            aria-label="Not reached yet"
+                            title={t('notStarted', { label: r.label })}
+                            aria-label={t('notReached')}
                             style={{ background: FUTURE_CELL_BG }}
                           />
                         );
@@ -174,7 +219,11 @@ export const AdminCohorts: React.FC = () => {
                       return (
                         <td
                           key={r.period}
-                          title={`${fmtNumber(r.returners)} of ${fmtNumber(c.size)} returned in the ${bucket} of ${r.label}`}
+                          title={t(bucket === 'week' ? 'returnedWeek' : 'returnedMonth', {
+                            returners: fmtNumber(r.returners),
+                            size: fmtNumber(c.size),
+                            label: r.label,
+                          })}
                           style={{
                             textAlign: 'center',
                             fontSize: 12,

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { adminApi } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtNumber } from '../utils/dateUtils';
+import { defineMessages, useAdminLang, useT } from '../i18n/core';
+import { common } from '../i18n/common';
 
 /**
  * Conversion funnel + search-terms dashboard (Phase G1 + G2).
@@ -17,8 +19,78 @@ import { fmtNumber } from '../utils/dateUtils';
  * the search terms ALSO scoped to that audience.
  */
 
+const messages = defineMessages({
+  en: {
+    title: 'Conversion Funnel',
+    subtitle: 'Unique visitors at every step of the KARAHOCA conversion path, plus the most common search terms over the same window.',
+    allLanguages: 'All languages',
+    lastDays: { other: 'Last {n} days' },
+    from: 'From',
+    to: 'To',
+    funnel: 'Funnel',
+    noVisitors: 'No visitors recorded in this window. Try a wider date range.',
+    step_page_view: 'Visited the site',
+    step_product_view: 'Viewed a product',
+    step_chat_open: 'Opened Karo chat',
+    step_chat_message_sent: 'Sent a chat message',
+    step_whatsapp_click: 'Clicked WhatsApp',
+    visitorsOfTop: { other: 'visitors · {pct}% of top' },
+    drop: '–{pct}% drop',
+    topSearchTerms: 'Top search terms',
+    searchNote: 'Normalised (whitespace + case) so "  منظف " and "منظف  " roll up together. Filtered to terms of 2+ characters.',
+    noSearchBefore: 'No search activity in this window — or the SPA isn\'t emitting',
+    noSearchAfter: 'events yet for the search inputs you care about.',
+    colTerm: 'Term',
+    colHits: 'Hits',
+    colTopLang: 'Top lang',
+  },
+  ar: {
+    title: 'قمع التحويل',
+    subtitle: 'عدد الزوار الفريدين في كل مرحلة من مسار التحويل في KARAHOCA، مع أكثر عبارات البحث شيوعًا خلال الفترة نفسها.',
+    allLanguages: 'كل اللغات',
+    lastDays: { one: 'آخر يوم', two: 'آخر يومين', few: 'آخر {n} أيام', many: 'آخر {n} يومًا', other: 'آخر {n} يوم' },
+    from: 'من',
+    to: 'إلى',
+    funnel: 'مراحل القمع',
+    noVisitors: 'لم يُسجَّل أي زائر في هذه الفترة. جرّب نطاقًا زمنيًا أوسع.',
+    step_page_view: 'زار الموقع',
+    step_product_view: 'شاهد منتجًا',
+    step_chat_open: 'فتح محادثة كارو',
+    step_chat_message_sent: 'أرسل رسالة في المحادثة',
+    step_whatsapp_click: 'نقر على WhatsApp',
+    visitorsOfTop: {
+      zero: 'زائر · {pct}% من المرحلة الأولى',
+      one: 'زائر · {pct}% من المرحلة الأولى',
+      two: 'زائران · {pct}% من المرحلة الأولى',
+      few: 'زوار · {pct}% من المرحلة الأولى',
+      many: 'زائرًا · {pct}% من المرحلة الأولى',
+      other: 'زائر · {pct}% من المرحلة الأولى',
+    },
+    drop: 'تراجع {pct}%',
+    topSearchTerms: 'أكثر عبارات البحث',
+    searchNote: 'تُوحَّد العبارات (المسافات وحالة الأحرف) بحيث تُحتسب "  منظف " و"منظف  " عبارة واحدة. تُعرض فقط العبارات المكوّنة من حرفين أو أكثر.',
+    noSearchBefore: 'لا يوجد نشاط بحث في هذه الفترة — أو أن الموقع لا يرسل بعد أحداث',
+    noSearchAfter: 'من حقول البحث المطلوبة.',
+    colTerm: 'العبارة',
+    colHits: 'مرات البحث',
+    colTopLang: 'اللغة الأكثر',
+  },
+});
+
+type Key = keyof typeof messages.en;
+
+// The server sends English step labels; known steps are shown in the
+// admin's language, any other step as sent.
+const STEP_LABEL: Record<string, Key> = {
+  page_view: 'step_page_view',
+  product_view: 'step_product_view',
+  chat_open: 'step_chat_open',
+  chat_message_sent: 'step_chat_message_sent',
+  whatsapp_click: 'step_whatsapp_click',
+};
+
+// Language names are written in their own language ("All" is translated).
 const LANGS = [
-  { code: '',   label: 'All languages' },
   { code: 'ar', label: 'العربية' },
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
@@ -26,9 +98,9 @@ const LANGS = [
 ];
 
 const PRESET_RANGES = [
-  { key: '7d',  label: 'Last 7 days',  days: 7 },
-  { key: '30d', label: 'Last 30 days', days: 30 },
-  { key: '90d', label: 'Last 90 days', days: 90 },
+  { key: '7d',  days: 7 },
+  { key: '30d', days: 30 },
+  { key: '90d', days: 90 },
 ];
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -40,6 +112,9 @@ const presetRange = (days: number) => {
 };
 
 export const AdminFunnel: React.FC = () => {
+  const t = useT(messages);
+  const tc = useT(common);
+  const { dir } = useAdminLang();
   const [{ from, to }, setRange] = useState(() => presetRange(30));
   const [activePreset, setActivePreset] = useState<string>('30d');
   const [lang, setLang] = useState('');
@@ -57,11 +132,8 @@ export const AdminFunnel: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Conversion Funnel</h1>
-          <p className="adm-page-subtitle">
-            Unique visitors at every step of the KARAHOCA conversion path,
-            plus the most common search terms over the same window.
-          </p>
+          <h1 className="adm-page-title">{t('title')}</h1>
+          <p className="adm-page-subtitle">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -78,13 +150,13 @@ export const AdminFunnel: React.FC = () => {
               className={`adm-btn adm-btn-sm ${activePreset === p.key ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
               onClick={() => { setActivePreset(p.key); setRange(presetRange(p.days)); }}
             >
-              {p.label}
+              {t.plural('lastDays', p.days)}
             </button>
           ))}
         </div>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>From</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('from')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -94,7 +166,7 @@ export const AdminFunnel: React.FC = () => {
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>To</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('to')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -105,30 +177,31 @@ export const AdminFunnel: React.FC = () => {
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Language</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{tc('language')}</span>
           <select
             className="adm-select adm-input-sm"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
             style={{ width: 160 }}
           >
+            <option value="">{t('allLanguages')}</option>
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
       </div>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>}
+      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
 
       {!loading && !error && (
         <>
           <div className="adm-card" style={{ marginBottom: 16 }}>
-            <div className="adm-card-title">Funnel</div>
+            <div className="adm-card-title">{t('funnel')}</div>
             {/* The server always returns all five steps, so "nothing
                 happened" is a top step of 0 — five empty bars said nothing. */}
             {peak === 0 ? (
               <div style={{ color: 'var(--adm-text-dim)', fontSize: 13, marginTop: 12 }}>
-                No visitors recorded in this window. Try a wider date range.
+                {t('noVisitors')}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
@@ -147,7 +220,7 @@ export const AdminFunnel: React.FC = () => {
                         borderRadius: 6,
                         overflow: 'hidden',
                         background: 'rgba(255, 255, 255, 0.04)',
-                        borderLeft: '3px solid #4f6ef7',
+                        borderInlineStart: '3px solid #4f6ef7',
                       }}
                     >
                       <div
@@ -156,9 +229,10 @@ export const AdminFunnel: React.FC = () => {
                           position: 'absolute',
                           top: 0,
                           bottom: 0,
-                          left: 0,
+                          insetInlineStart: 0,
                           width: `${widthPct}%`,
-                          background: 'linear-gradient(90deg, rgba(79, 110, 247, 0.32), rgba(79, 110, 247, 0.12))',
+                          // Strongest at the start of the row in either direction.
+                          background: `linear-gradient(${dir === 'rtl' ? '270deg' : '90deg'}, rgba(79, 110, 247, 0.32), rgba(79, 110, 247, 0.12))`,
                           transition: 'width 0.4s ease',
                         }}
                       />
@@ -175,14 +249,15 @@ export const AdminFunnel: React.FC = () => {
                       >
                         <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{step.icon}</span>
                         <span style={{ fontSize: 14, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {step.label}
+                          {STEP_LABEL[step.key] ? t(STEP_LABEL[step.key]) : step.label}
                         </span>
-                        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--adm-text-muted)', flexShrink: 0 }}>
-                          <strong style={{ color: 'var(--adm-text)' }}>{fmtNumber(step.visitors)}</strong> visitors · {step.conversionFromStart}% of top
+                        <span style={{ marginInlineStart: 'auto', fontSize: 12, color: 'var(--adm-text-muted)', flexShrink: 0 }}>
+                          <strong style={{ color: 'var(--adm-text)' }}>{fmtNumber(step.visitors)}</strong>{' '}
+                          {t.plural('visitorsOfTop', step.visitors, { pct: String(step.conversionFromStart) })}
                         </span>
                         {idx > 0 && step.dropFromPrev > 0 && (
                           <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', flexShrink: 0 }}>
-                            –{step.dropFromPrev}% drop
+                            {t('drop', { pct: String(step.dropFromPrev) })}
                           </span>
                         )}
                       </div>
@@ -194,15 +269,13 @@ export const AdminFunnel: React.FC = () => {
           </div>
 
           <div className="adm-card">
-            <div className="adm-card-title">Top search terms</div>
+            <div className="adm-card-title">{t('topSearchTerms')}</div>
             <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 4, marginBottom: 12 }}>
-              Normalised (whitespace + case) so "  منظف " and "منظف  " roll up together.
-              Filtered to terms of 2+ characters.
+              {t('searchNote')}
             </p>
             {searchTerms.length === 0 ? (
               <div style={{ color: 'var(--adm-text-dim)', fontSize: 13 }}>
-                No search activity in this window — or the SPA isn't emitting <code>search_query</code> events yet for the
-                search inputs you care about.
+                {t('noSearchBefore')} <code>search_query</code> {t('noSearchAfter')}
               </div>
             ) : (
               <div className="adm-table-wrap">
@@ -210,9 +283,9 @@ export const AdminFunnel: React.FC = () => {
                   <thead>
                     <tr>
                       <th style={{ width: 50 }}>#</th>
-                      <th>Term</th>
-                      <th style={{ width: 100 }}>Hits</th>
-                      <th style={{ width: 100 }}>Top lang</th>
+                      <th>{t('colTerm')}</th>
+                      <th style={{ width: 100 }}>{t('colHits')}</th>
+                      <th style={{ width: 100 }}>{t('colTopLang')}</th>
                     </tr>
                   </thead>
                   <tbody>

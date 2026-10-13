@@ -5,7 +5,98 @@ import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
 import { normalizeSlug } from '../utils/slug';
-import { PRERENDER_NOTE, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
+import { prerenderNote, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+import { getCurrentAdminLang } from '../i18n/currentLang';
+
+const messages = defineMessages({
+  en: {
+    loadFailed: 'Failed to load post',
+    uploadFailed: 'Upload failed: {error}',
+    titleRequired: 'Please provide at least an Arabic or English title.',
+    slugInvalid: 'The slug must contain at least one letter or digit.',
+    newPost: 'New Post',
+    editPost: 'Edit Post',
+    backToPosts: '← Back to all posts',
+    savedBadge: '✓ Saved',
+    create: 'Create',
+    deletedBanner: '🗑 This post was deleted and is hidden from the site. Saving it as Published or Scheduled will put it back on the site.',
+    titleLabel: 'Title',
+    excerptLabel: 'Excerpt (short summary, 1-2 lines)',
+    bodyLabel: 'Body (markdown)',
+    seoOverrides: 'SEO overrides ({lang})',
+    metaTitle: 'Meta title (defaults to Title if empty)',
+    metaDescription: 'Meta description (defaults to Excerpt if empty)',
+    publishing: 'Publishing',
+    optDraft: '📝 Draft',
+    optPublished: '✅ Published',
+    optScheduled: '🕐 Scheduled',
+    publishAt: 'Publish at (your local time)',
+    publishedDate: 'Published date',
+    featured: '⭐ Featured (shown in hero strip)',
+    category: 'Category',
+    noCategory: '— No category —',
+    manageCategories: 'Manage categories →',
+    slugLabel: 'Slug (URL path)',
+    slugPlaceholder: 'auto-generated if blank',
+    authorName: 'Author name',
+    readingTime: 'Reading time (minutes — recalculated on save unless you change it)',
+    images: 'Images',
+    thumbnail: 'Thumbnail (card)',
+    pasteUrl: 'or paste URL',
+    hero: 'Hero (article page, 21:9 ideal)',
+    heroPlaceholder: 'defaults to thumbnail',
+    tags: 'Tags',
+    removeTag: 'Remove {tag}',
+    tagPlaceholder: 'add tag…',
+    newTag: 'New tag',
+    addTag: 'Add tag',
+  },
+  ar: {
+    loadFailed: 'تعذّر تحميل المقال',
+    uploadFailed: 'فشل الرفع: {error}',
+    titleRequired: 'يُرجى إدخال عنوان عربي أو إنجليزي على الأقل.',
+    slugInvalid: 'يجب أن يحتوي الـ slug على حرف أو رقم واحد على الأقل.',
+    newPost: 'مقال جديد',
+    editPost: 'تعديل المقال',
+    backToPosts: '→ العودة إلى كل المقالات',
+    savedBadge: '✓ تم الحفظ',
+    create: 'إنشاء',
+    deletedBanner: '🗑 هذا المقال محذوف ومخفي عن الموقع. حفظه بحالة «منشور» أو «مجدول» يعيده إلى الموقع.',
+    titleLabel: 'العنوان',
+    excerptLabel: 'الملخص (موجز قصير في سطر أو سطرين)',
+    bodyLabel: 'النص (Markdown)',
+    // \u200F keeps the bracket after the Latin "SEO" in right-to-left text.
+    seoOverrides: 'تخصيص SEO \u200F({lang})',
+    metaTitle: 'عنوان الميتا (يُستخدم العنوان إذا تُرك فارغًا)',
+    metaDescription: 'وصف الميتا (يُستخدم الملخص إذا تُرك فارغًا)',
+    publishing: 'النشر',
+    optDraft: '📝 مسودة',
+    optPublished: '✅ منشور',
+    optScheduled: '🕐 مجدول',
+    publishAt: 'موعد النشر (بالتوقيت المحلي للجهاز)',
+    publishedDate: 'تاريخ النشر',
+    featured: '⭐ مميّز (يظهر في الشريط الرئيسي)',
+    category: 'الفئة',
+    noCategory: '— بلا فئة —',
+    manageCategories: 'إدارة الفئات ←',
+    slugLabel: 'الـ slug (مسار الرابط)',
+    slugPlaceholder: 'يُولَّد تلقائيًا إذا تُرك فارغًا',
+    authorName: 'اسم الكاتب',
+    readingTime: 'مدة القراءة (بالدقائق — تُحسب من جديد عند الحفظ ما لم تُعدَّل يدويًا)',
+    images: 'الصور',
+    thumbnail: 'الصورة المصغّرة (البطاقة)',
+    pasteUrl: 'أو الصق رابطًا',
+    hero: 'صورة الواجهة (صفحة المقال، يُفضّل 21:9)',
+    heroPlaceholder: 'الصورة المصغّرة افتراضيًا',
+    tags: 'الوسوم',
+    removeTag: 'إزالة {tag}',
+    tagPlaceholder: 'إضافة وسم…',
+    newTag: 'وسم جديد',
+    addTag: 'إضافة وسم',
+  },
+});
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -34,6 +125,8 @@ export const AdminBlogEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
+  const t = useT(messages);
+  const tc = useT(common);
 
   const [form, setForm] = useState<Partial<BlogPostItem>>(EMPTY);
   const [categories, setCategories] = useState<BlogCategoryItem[]>([]);
@@ -71,7 +164,9 @@ export const AdminBlogEdit: React.FC = () => {
         setLoaded(true);
       })
       .catch((e) => {
-        setError(e.message || 'Failed to load post');
+        // Read outside React: `t` as a dependency would reload the post
+        // (and drop unsaved edits) whenever the admin language changes.
+        setError(e.message || String(messages[getCurrentAdminLang()].loadFailed));
         setLoaded(true);
       });
   }, [id, isNew]);
@@ -96,7 +191,7 @@ export const AdminBlogEdit: React.FC = () => {
         const data = await adminApi.uploadImage(base64, file.name);
         if (data?.url) setField(which, data.url);
       } catch (err) {
-        alert('Upload failed: ' + (err instanceof Error ? err.message : err));
+        alert(t('uploadFailed', { error: err instanceof Error ? err.message : String(err) }));
       } finally {
         setUploading(false);
       }
@@ -107,13 +202,13 @@ export const AdminBlogEdit: React.FC = () => {
   const addTag = () => {
     // Letters/digits of any script (same rule as the server): the old
     // [a-z0-9] filter reduced Arabic and Russian tags to nothing.
-    const t = tagInput.trim().toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, '-').replace(/^-+|-+$/g, '');
-    if (!t || (form.tags || []).includes(t)) { setTagInput(''); return; }
-    setField('tags', [...(form.tags || []), t]);
+    const tag = tagInput.trim().toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, '-').replace(/^-+|-+$/g, '');
+    if (!tag || (form.tags || []).includes(tag)) { setTagInput(''); return; }
+    setField('tags', [...(form.tags || []), tag]);
     setTagInput('');
   };
 
-  const removeTag = (t: string) => setField('tags', (form.tags || []).filter((x) => x !== t));
+  const removeTag = (tag: string) => setField('tags', (form.tags || []).filter((x) => x !== tag));
 
   const showSaved = () => {
     setSavedFlash(true);
@@ -123,14 +218,14 @@ export const AdminBlogEdit: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.title_ar?.trim() && !form.title_en?.trim()) {
-      setError('Please provide at least an Arabic or English title.');
+      setError(t('titleRequired'));
       return;
     }
     // Blank is fine (the server derives one from the title); text with
     // no letters or digits is not.
     const slug = normalizeSlug(form.slug);
     if (form.slug?.trim() && !slug) {
-      setError('The slug must contain at least one letter or digit.');
+      setError(t('slugInvalid'));
       return;
     }
     const wasLive = stored?.status === 'published' && Boolean(stored.active);
@@ -166,24 +261,24 @@ export const AdminBlogEdit: React.FC = () => {
   };
 
   if (!loaded) {
-    return <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>;
+    return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
   }
 
   return (
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">{isNew ? 'New Post' : 'Edit Post'}</h1>
+          <h1 className="adm-page-title">{isNew ? t('newPost') : t('editPost')}</h1>
           <p className="adm-page-subtitle">
-            <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>← Back to all posts</Link>
+            <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>{t('backToPosts')}</Link>
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* Saving keeps the editor open, so without this nothing showed
               that it had worked. */}
-          {savedFlash && <span className="adm-badge adm-badge-green" role="status">✓ Saved</span>}
+          {savedFlash && <span className="adm-badge adm-badge-green" role="status">{t('savedBadge')}</span>}
           <button type="button" className="adm-btn adm-btn-primary" disabled={saving} onClick={handleSave}>
-            {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
+            {saving ? tc('saving') : isNew ? t('create') : tc('save')}
           </button>
         </div>
       </div>
@@ -191,14 +286,15 @@ export const AdminBlogEdit: React.FC = () => {
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
       {stored && !stored.active && stored.status !== 'draft' && (
         <div className="adm-alert adm-alert-info">
-          🗑 This post was deleted and is hidden from the site. Saving it as Published or Scheduled will put it back on the site.
+          {t('deletedBanner')}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20 }}>
         {/* Main column */}
         <div className="adm-card">
-          {/* Language tabs */}
+          {/* Language tabs — each language named in itself, whatever the
+              admin language. */}
           <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--adm-border)', marginBottom: 18 }}>
             {LANGS.map((l) => (
               <button
@@ -212,8 +308,9 @@ export const AdminBlogEdit: React.FC = () => {
             ))}
           </div>
 
-          {/* Title */}
-          <label className="adm-label">Title</label>
+          {/* Title. Placeholders follow the field's language, not the
+              admin's, like the text typed into it. */}
+          <label className="adm-label">{t('titleLabel')}</label>
           <input
             type="text"
             className="adm-input"
@@ -224,7 +321,7 @@ export const AdminBlogEdit: React.FC = () => {
           />
 
           {/* Excerpt */}
-          <label className="adm-label" style={{ marginTop: 14 }}>Excerpt (short summary, 1-2 lines)</label>
+          <label className="adm-label" style={{ marginTop: 14 }}>{t('excerptLabel')}</label>
           <textarea
             className="adm-input"
             rows={3}
@@ -235,7 +332,7 @@ export const AdminBlogEdit: React.FC = () => {
           />
 
           {/* Body — markdown editor */}
-          <label className="adm-label" style={{ marginTop: 14 }}>Body (markdown)</label>
+          <label className="adm-label" style={{ marginTop: 14 }}>{t('bodyLabel')}</label>
           <MarkdownEditor
             value={(form as Record<string, unknown>)[`body_${activeLang}`] as string || ''}
             onChange={(v) => setField(`body_${activeLang}` as keyof BlogPostItem, v as never)}
@@ -245,9 +342,9 @@ export const AdminBlogEdit: React.FC = () => {
 
           {/* SEO overrides — collapsed by default to keep the editor uncluttered */}
           <details style={{ marginTop: 18 }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>SEO overrides ({activeLang.toUpperCase()})</summary>
+            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>{t('seoOverrides', { lang: activeLang.toUpperCase() })}</summary>
             <div style={{ marginTop: 10 }}>
-              <label className="adm-label">Meta title (defaults to Title if empty)</label>
+              <label className="adm-label">{t('metaTitle')}</label>
               <input
                 type="text"
                 className="adm-input"
@@ -255,7 +352,7 @@ export const AdminBlogEdit: React.FC = () => {
                 onChange={(e) => setField(`meta_title_${activeLang}` as keyof BlogPostItem, e.target.value as never)}
                 dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
               />
-              <label className="adm-label" style={{ marginTop: 10 }}>Meta description (defaults to Excerpt if empty)</label>
+              <label className="adm-label" style={{ marginTop: 10 }}>{t('metaDescription')}</label>
               <textarea
                 className="adm-input"
                 rows={2}
@@ -271,23 +368,23 @@ export const AdminBlogEdit: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Publishing */}
           <div className="adm-card">
-            <h3 style={{ margin: '0 0 12px' }}>Publishing</h3>
+            <h3 style={{ margin: '0 0 12px' }}>{t('publishing')}</h3>
 
-            <label className="adm-label">Status</label>
+            <label className="adm-label">{tc('status')}</label>
             <select
               className="adm-input"
               value={form.status || 'draft'}
               onChange={(e) => setField('status', e.target.value as BlogPostItem['status'])}
             >
-              <option value="draft">📝 Draft</option>
-              <option value="published">✅ Published</option>
-              <option value="scheduled">🕐 Scheduled</option>
+              <option value="draft">{t('optDraft')}</option>
+              <option value="published">{t('optPublished')}</option>
+              <option value="scheduled">{t('optScheduled')}</option>
             </select>
-            <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', margin: '6px 0 0' }}>{PRERENDER_NOTE}</p>
+            <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', margin: '6px 0 0' }}>{prerenderNote()}</p>
 
             {form.status === 'scheduled' && (
               <>
-                <label className="adm-label" style={{ marginTop: 10 }}>Publish at (your local time)</label>
+                <label className="adm-label" style={{ marginTop: 10 }}>{t('publishAt')}</label>
                 <input
                   type="datetime-local"
                   className="adm-input"
@@ -297,7 +394,7 @@ export const AdminBlogEdit: React.FC = () => {
               </>
             )}
 
-            <label className="adm-label" style={{ marginTop: 10 }}>Published date</label>
+            <label className="adm-label" style={{ marginTop: 10 }}>{t('publishedDate')}</label>
             <input
               type="date"
               className="adm-input"
@@ -316,19 +413,19 @@ export const AdminBlogEdit: React.FC = () => {
                 checked={Boolean(form.featured)}
                 onChange={(e) => setField('featured', e.target.checked ? 1 : 0)}
               />
-              ⭐ Featured (shown in hero strip)
+              {t('featured')}
             </label>
           </div>
 
           {/* Category */}
           <div className="adm-card">
-            <h3 style={{ margin: '0 0 12px' }}>Category</h3>
+            <h3 style={{ margin: '0 0 12px' }}>{t('category')}</h3>
             <select
               className="adm-input"
               value={form.category_id || ''}
               onChange={(e) => setField('category_id', e.target.value || null)}
             >
-              <option value="">— No category —</option>
+              <option value="">{t('noCategory')}</option>
               {categories.filter((c) => c.active).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name_en || c.name_ar}
@@ -337,14 +434,14 @@ export const AdminBlogEdit: React.FC = () => {
             </select>
             <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', margin: '8px 0 0' }}>
               <Link to="/admin/blog/categories" style={{ color: 'var(--adm-accent)' }}>
-                Manage categories →
+                {t('manageCategories')}
               </Link>
             </p>
           </div>
 
           {/* Slug + author */}
           <div className="adm-card">
-            <label className="adm-label">Slug (URL path)</label>
+            <label className="adm-label">{t('slugLabel')}</label>
             <input
               type="text"
               className="adm-input"
@@ -354,21 +451,23 @@ export const AdminBlogEdit: React.FC = () => {
               // can be typed), fully normalised when leaving the field.
               onChange={(e) => setField('slug', normalizeSlug(e.target.value, { partial: true }))}
               onBlur={(e) => setField('slug', normalizeSlug(e.target.value))}
-              placeholder="auto-generated if blank"
+              placeholder={t('slugPlaceholder')}
             />
 
-            <label className="adm-label" style={{ marginTop: 10 }}>Author name</label>
+            <label className="adm-label" style={{ marginTop: 10 }}>{t('authorName')}</label>
             <input
               type="text"
               className="adm-input"
+              dir="auto"
               value={form.author_name || ''}
               onChange={(e) => setField('author_name', e.target.value)}
             />
 
-            <label className="adm-label" style={{ marginTop: 10 }}>Reading time (minutes — recalculated on save unless you change it)</label>
+            <label className="adm-label" style={{ marginTop: 10 }}>{t('readingTime')}</label>
             <input
               type="number"
               className="adm-input"
+              dir="ltr"
               min={1}
               value={form.reading_time || 0}
               onChange={(e) => {
@@ -380,8 +479,8 @@ export const AdminBlogEdit: React.FC = () => {
 
           {/* Images */}
           <div className="adm-card">
-            <h3 style={{ margin: '0 0 12px' }}>Images</h3>
-            <label className="adm-label">Thumbnail (card)</label>
+            <h3 style={{ margin: '0 0 12px' }}>{t('images')}</h3>
+            <label className="adm-label">{t('thumbnail')}</label>
             {form.image && (
               <img src={resolveAdminImage(form.image)} alt="" style={{ width: '100%', borderRadius: 6, marginBottom: 8 }} />
             )}
@@ -395,13 +494,14 @@ export const AdminBlogEdit: React.FC = () => {
             <input
               type="text"
               className="adm-input"
+              dir="ltr"
               style={{ marginTop: 6 }}
               value={form.image || ''}
               onChange={(e) => setField('image', e.target.value)}
-              placeholder="or paste URL"
+              placeholder={t('pasteUrl')}
             />
 
-            <label className="adm-label" style={{ marginTop: 14 }}>Hero (article page, 21:9 ideal)</label>
+            <label className="adm-label" style={{ marginTop: 14 }}>{t('hero')}</label>
             {form.hero_image && form.hero_image !== form.image && (
               <img src={resolveAdminImage(form.hero_image)} alt="" style={{ width: '100%', borderRadius: 6, marginBottom: 8 }} />
             )}
@@ -415,25 +515,26 @@ export const AdminBlogEdit: React.FC = () => {
             <input
               type="text"
               className="adm-input"
+              dir="ltr"
               style={{ marginTop: 6 }}
               value={form.hero_image || ''}
               onChange={(e) => setField('hero_image', e.target.value)}
-              placeholder="defaults to thumbnail"
+              placeholder={t('heroPlaceholder')}
             />
           </div>
 
           {/* Tags */}
           <div className="adm-card">
-            <h3 style={{ margin: '0 0 12px' }}>Tags</h3>
+            <h3 style={{ margin: '0 0 12px' }}>{t('tags')}</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-              {(form.tags || []).map((t) => (
-                <span key={t} style={{ background: 'var(--adm-bg-3)', padding: '4px 10px', borderRadius: 999, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  #{t}
+              {(form.tags || []).map((tag) => (
+                <span key={tag} dir="auto" style={{ background: 'var(--adm-bg-3)', padding: '4px 10px', borderRadius: 999, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  #{tag}
                   <button
                     type="button"
-                    onClick={() => removeTag(t)}
+                    onClick={() => removeTag(tag)}
                     style={{ background: 'transparent', border: 0, cursor: 'pointer', color: 'var(--adm-text-dim)' }}
-                    aria-label={`Remove ${t}`}
+                    aria-label={t('removeTag', { tag })}
                   >×</button>
                 </span>
               ))}
@@ -445,11 +546,11 @@ export const AdminBlogEdit: React.FC = () => {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                placeholder="add tag…"
+                placeholder={t('tagPlaceholder')}
                 dir="auto"
-                aria-label="New tag"
+                aria-label={t('newTag')}
               />
-              <button type="button" className="adm-btn adm-btn-ghost" onClick={addTag} aria-label="Add tag" title="Add tag">+</button>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={addTag} aria-label={t('addTag')} title={t('addTag')}>+</button>
             </div>
           </div>
         </div>

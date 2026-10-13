@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { adminApi, loginPathFor } from '../utils/adminApi';
+import { defineMessages, useT } from '../i18n/core';
+
+const messages = defineMessages({
+  en: { checking: 'Checking session…' },
+  ar: { checking: 'جارٍ التحقق من الجلسة…' },
+});
 
 type SessionState = 'checking' | 'authenticated' | 'unauthenticated';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessionState, setSessionState] = useState<SessionState>('checking');
   const location = useLocation();
+  const t = useT(messages);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +38,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   if (sessionState === 'checking') {
-    return <div className="adm-loading-center"><span className="adm-spinner" /> Checking session...</div>;
+    return <div className="adm-loading-center"><span className="adm-spinner" /> {t('checking')}</div>;
   }
 
   if (sessionState !== 'authenticated') {

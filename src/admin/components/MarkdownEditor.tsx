@@ -1,6 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
 
 /**
  * Lightweight markdown editor for the blog body field (Phase F).
@@ -29,6 +31,41 @@ import remarkGfm from 'remark-gfm';
  *     element wrapping the full markdown.
  */
 
+const messages = defineMessages({
+  en: {
+    bold: 'Bold (Ctrl+B)',
+    italic: 'Italic (Ctrl+I)',
+    h1: 'Heading 1',
+    h2: 'Heading 2',
+    h3: 'Heading 3',
+    ul: 'Bullet list',
+    ol: 'Numbered list',
+    quote: 'Blockquote',
+    link: 'Link (Ctrl+K)',
+    image: 'Image',
+    code: 'Inline code',
+    preview: 'Preview',
+    placeholder: 'Write in markdown — **bold**, *italic*, # heading, - list, [link](url)…',
+    emptyPreview: 'Nothing to preview yet — switch back to Edit and write something.',
+  },
+  ar: {
+    bold: 'غامق (Ctrl+B)',
+    italic: 'مائل (Ctrl+I)',
+    h1: 'عنوان 1',
+    h2: 'عنوان 2',
+    h3: 'عنوان 3',
+    ul: 'قائمة نقطية',
+    ol: 'قائمة مرقّمة',
+    quote: 'اقتباس',
+    link: 'رابط (Ctrl+K)',
+    image: 'صورة',
+    code: 'شيفرة ضمن السطر',
+    preview: 'معاينة',
+    placeholder: 'اكتب بصيغة Markdown — **غامق**، *مائل*، # عنوان، - قائمة، [رابط](url)…',
+    emptyPreview: 'لا يوجد ما يُعاين بعد — عُد إلى «تعديل» واكتب شيئًا.',
+  },
+});
+
 interface Props {
   value: string;
   onChange: (next: string) => void;
@@ -44,21 +81,21 @@ type ToolbarAction =
 interface ToolbarButton {
   action: ToolbarAction;
   label: string;
-  title: string;
 }
 
+// The button's name (title / aria-label) is the message keyed by its action.
 const TOOLBAR: ToolbarButton[] = [
-  { action: 'bold',   label: 'B',  title: 'Bold (Ctrl+B)' },
-  { action: 'italic', label: 'I',  title: 'Italic (Ctrl+I)' },
-  { action: 'h1',     label: 'H1', title: 'Heading 1' },
-  { action: 'h2',     label: 'H2', title: 'Heading 2' },
-  { action: 'h3',     label: 'H3', title: 'Heading 3' },
-  { action: 'ul',     label: '•',  title: 'Bullet list' },
-  { action: 'ol',     label: '1.', title: 'Numbered list' },
-  { action: 'quote',  label: '❝', title: 'Blockquote' },
-  { action: 'link',   label: '🔗', title: 'Link (Ctrl+K)' },
-  { action: 'image',  label: '🖼', title: 'Image' },
-  { action: 'code',   label: '⟨⟩', title: 'Inline code' },
+  { action: 'bold',   label: 'B'  },
+  { action: 'italic', label: 'I'  },
+  { action: 'h1',     label: 'H1' },
+  { action: 'h2',     label: 'H2' },
+  { action: 'h3',     label: 'H3' },
+  { action: 'ul',     label: '•'  },
+  { action: 'ol',     label: '1.' },
+  { action: 'quote',  label: '❝' },
+  { action: 'link',   label: '🔗' },
+  { action: 'image',  label: '🖼' },
+  { action: 'code',   label: '⟨⟩' },
 ];
 
 /**
@@ -139,6 +176,8 @@ export const MarkdownEditor: React.FC<Props> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const t = useT(messages);
+  const tc = useT(common);
 
   const applyAction = useCallback((action: ToolbarAction) => {
     const ta = textareaRef.current;
@@ -183,10 +222,10 @@ export const MarkdownEditor: React.FC<Props> = ({
           <button
             key={b.action}
             type="button"
-            title={b.title}
+            title={t(b.action)}
             // The labels are symbols ("❝", "⟨⟩", "1."); give screen
             // readers the action's name instead.
-            aria-label={b.title}
+            aria-label={t(b.action)}
             onClick={() => applyAction(b.action)}
             disabled={mode === 'preview'}
             style={{
@@ -204,20 +243,20 @@ export const MarkdownEditor: React.FC<Props> = ({
             {b.label}
           </button>
         ))}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+        <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 4 }}>
           <button
             type="button"
             className={`adm-btn adm-btn-sm ${mode === 'edit' ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
             onClick={() => setMode('edit')}
           >
-            ✏️ Edit
+            ✏️ {tc('edit')}
           </button>
           <button
             type="button"
             className={`adm-btn adm-btn-sm ${mode === 'preview' ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
             onClick={() => setMode('preview')}
           >
-            👁 Preview
+            👁 {t('preview')}
           </button>
         </div>
       </div>
@@ -230,7 +269,7 @@ export const MarkdownEditor: React.FC<Props> = ({
           onKeyDown={handleKeyDown}
           dir={dir}
           rows={rows}
-          placeholder={placeholder ?? 'Write in markdown — **bold**, *italic*, # heading, - list, [link](url)…'}
+          placeholder={placeholder ?? t('placeholder')}
           style={{
             width: '100%',
             border: 0,
@@ -273,11 +312,11 @@ export const MarkdownEditor: React.FC<Props> = ({
                 blockquote: ({ node, ...rest }) => (
                   <blockquote
                     {...rest}
+                    // Logical sides follow the preview's own dir (the
+                    // content language), so the bar sits where lines start.
                     style={{
-                      borderLeft: dir === 'rtl' ? 0 : '4px solid #4f6ef7',
-                      borderRight: dir === 'rtl' ? '4px solid #4f6ef7' : 0,
-                      paddingLeft: dir === 'rtl' ? 0 : 14,
-                      paddingRight: dir === 'rtl' ? 14 : 0,
+                      borderInlineStart: '4px solid #4f6ef7',
+                      paddingInlineStart: 14,
                       margin: '12px 0',
                       color: 'var(--adm-text-muted)',
                     }}
@@ -299,7 +338,7 @@ export const MarkdownEditor: React.FC<Props> = ({
               {value}
             </ReactMarkdown>
           ) : (
-            <em style={{ color: 'var(--adm-text-dim)' }}>Nothing to preview yet — switch back to Edit and write something.</em>
+            <em style={{ color: 'var(--adm-text-dim)' }}>{t('emptyPreview')}</em>
           )}
         </div>
       )}

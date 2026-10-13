@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { adminApi, type AdminRequestError } from './adminApi';
 
+/** Known failures are codes the login page words in the admin language. */
+export type LoginError = 'invalidCredentials' | 'cookieBlocked' | { message: string };
+
 interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  error: string | null;
+  error: LoginError | null;
 }
 
 export const useAdminAuth = () => {
@@ -23,7 +26,7 @@ export const useAdminAuth = () => {
       setState({
         isAuthenticated: false,
         isLoading: false,
-        error: status === 401 ? 'Invalid credentials.' : err instanceof Error ? err.message : 'Login failed',
+        error: status === 401 ? 'invalidCredentials' : { message: err instanceof Error ? err.message : 'Login failed' },
       });
       return false;
     }
@@ -32,11 +35,7 @@ export const useAdminAuth = () => {
     } catch {
       // The password was right, but the follow-up request carried no
       // session cookie — this used to read "Invalid credentials."
-      setState({
-        isAuthenticated: false,
-        isLoading: false,
-        error: 'Signed in, but the browser did not keep the session cookie. Allow cookies for this site and try again.',
-      });
+      setState({ isAuthenticated: false, isLoading: false, error: 'cookieBlocked' });
       return false;
     }
     setState({ isAuthenticated: true, isLoading: false, error: null });

@@ -1,5 +1,52 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from '../utils/useModalDialog';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    title: '✂️ Crop image',
+    aspect_free: 'Free',
+    aspect_square: '1:1 Square (catalogue default)',
+    aspect_banner: '3:2 Banner (hero / flipbook)',
+    cropSource: 'Crop source',
+    cropSelection: 'Crop selection',
+    resize_nw: 'Resize nw',
+    resize_ne: 'Resize ne',
+    resize_sw: 'Resize sw',
+    resize_se: 'Resize se',
+    sizeInfo: '{w} × {h} px (preview) — saves at {outW} × {outH} px',
+    pickFile: 'Pick a file to crop',
+    cropping: 'Cropping…',
+    applyCrop: '✓ Apply crop',
+    errImageMissing: 'Image element missing.',
+    errCanvas: 'Canvas 2D context unavailable.',
+    errBlob: 'Canvas → blob conversion failed.',
+    errTooBig: 'The cropped image is {size} MB, over the 10 MB upload limit. Crop a smaller area.',
+    cropFailed: 'Crop failed.',
+  },
+  ar: {
+    title: '✂️ قص الصورة',
+    aspect_free: 'حرّ',
+    aspect_square: '1:1 مربع (الافتراضي في الكتالوج)',
+    aspect_banner: '3:2 لافتة (الواجهة الرئيسية / الكتيّب)',
+    cropSource: 'الصورة المراد قصها',
+    cropSelection: 'منطقة القص',
+    resize_nw: 'تغيير الحجم من الزاوية العلوية اليسرى',
+    resize_ne: 'تغيير الحجم من الزاوية العلوية اليمنى',
+    resize_sw: 'تغيير الحجم من الزاوية السفلية اليسرى',
+    resize_se: 'تغيير الحجم من الزاوية السفلية اليمنى',
+    sizeInfo: '{w} × {h} بكسل (معاينة) — تُحفظ بحجم {outW} × {outH} بكسل',
+    pickFile: 'اختر ملفًا لقصه',
+    cropping: 'جارٍ القص…',
+    applyCrop: '✓ تطبيق القص',
+    errImageMissing: 'عنصر الصورة غير موجود.',
+    errCanvas: 'لا يتيح المتصفح الرسم على Canvas 2D.',
+    errBlob: 'تعذّر تحويل الصورة المقصوصة إلى ملف.',
+    errTooBig: 'حجم الصورة المقصوصة {size} ميغابايت، وهو أكبر من حد الرفع البالغ 10 ميغابايت. اختر منطقة أصغر.',
+    cropFailed: 'فشل القص.',
+  },
+});
 
 /**
  * Pure-client image cropper.
@@ -59,12 +106,6 @@ const ASPECT_VALUES: Record<AspectRatio, number | null> = {
   free: null,
   square: 1,
   banner: 3 / 2,
-};
-
-const ASPECT_LABELS: Record<AspectRatio, string> = {
-  free: 'Free',
-  square: '1:1 Square (catalogue default)',
-  banner: '3:2 Banner (hero / flipbook)',
 };
 
 const MIN_BOX_SIDE = 24; // px in viewport space — anything smaller is gesture noise
@@ -152,6 +193,8 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
   const [box, setBox] = useState<Box | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT(messages);
+  const tc = useT(common);
   const containerRef = useRef<HTMLDivElement | null>(null);
   // Drag state is kept in refs because pointer-move fires at high
   // frequency and triggering React re-renders on every event would
@@ -258,7 +301,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     let fallbackUrl: string | null = null;
     try {
       const img = containerRef.current?.querySelector('img');
-      if (!img) throw new Error('Image element missing.');
+      if (!img) throw new Error(t('errImageMissing'));
       const renderedW = img.clientWidth;
       const renderedH = img.clientHeight;
       const scaleX = imgDims.w / renderedW;
@@ -290,7 +333,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas 2D context unavailable.');
+      if (!ctx) throw new Error(t('errCanvas'));
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, h);
 
@@ -310,9 +353,9 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
         // A browser that can't encode WebP hands back a PNG instead (or null).
         blob = webp?.type === 'image/webp' ? webp : await canvasToBlob(canvas, 'image/jpeg', EXPORT_QUALITY);
       }
-      if (!blob) throw new Error('Canvas → blob conversion failed.');
+      if (!blob) throw new Error(t('errBlob'));
       if (blob.size > MAX_UPLOAD_BYTES) {
-        throw new Error(`The cropped image is ${(blob.size / 1048576).toFixed(1)} MB, over the 10 MB upload limit. Crop a smaller area.`);
+        throw new Error(t('errTooBig', { size: (blob.size / 1048576).toFixed(1) }));
       }
 
       // Preserve the original filename stem so the uploaded file is
@@ -324,7 +367,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
       const cropped = new File([blob], `${stem}-cropped.${ext}`, { type });
       onCropped(cropped);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Crop failed.');
+      setError(e instanceof Error ? e.message : t('cropFailed'));
     } finally {
       if (bitmap && 'close' in bitmap) bitmap.close();
       if (fallbackUrl) URL.revokeObjectURL(fallbackUrl);
@@ -396,13 +439,13 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 id="image-cropper-title" style={{ margin: 0, fontSize: 18 }}>✂️ Crop image</h2>
+          <h2 id="image-cropper-title" style={{ margin: 0, fontSize: 18 }}>{t('title')}</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={onCancel}
             disabled={working}
-            aria-label="Close"
+            aria-label={tc('close')}
           >
             ✕
           </button>
@@ -417,14 +460,16 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
               className={`adm-btn adm-btn-sm ${aspect === a ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
               onClick={() => setAspect(a)}
             >
-              {ASPECT_LABELS[a]}
+              {t(`aspect_${a}`)}
             </button>
           ))}
         </div>
 
-        {/* The image + crop overlay */}
+        {/* The image + crop overlay. Always left-to-right: the box,
+            strips and handles are positioned in px from the left edge. */}
         <div
           ref={containerRef}
+          dir="ltr"
           style={{
             position: 'relative',
             display: 'inline-block',
@@ -440,7 +485,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
           {imageUrl && (
             <img
               src={imageUrl}
-              alt="Crop source"
+              alt={t('cropSource')}
               onLoad={handleImageLoad}
               draggable={false}
               style={{ display: 'block', maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }}
@@ -465,7 +510,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
               {/* The crop box itself */}
               <div
                 role="region"
-                aria-label="Crop selection"
+                aria-label={t('cropSelection')}
                 onPointerDown={(e) => startDrag(e, 'move')}
                 style={{
                   position: 'absolute',
@@ -485,7 +530,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
                 <div
                   key={corner}
                   role="slider"
-                  aria-label={`Resize ${corner}`}
+                  aria-label={t(`resize_${corner}`)}
                   onPointerDown={(e) => startDrag(e, corner)}
                   style={{
                     position: 'absolute',
@@ -508,8 +553,8 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: 'var(--adm-text-dim)' }}>
             {box && outputSize
-              ? `${Math.round(box.width)} × ${Math.round(box.height)} px (preview) — saves at ${outputSize.w} × ${outputSize.h} px`
-              : 'Pick a file to crop'}
+              ? t('sizeInfo', { w: Math.round(box.width), h: Math.round(box.height), outW: outputSize.w, outH: outputSize.h })
+              : t('pickFile')}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
@@ -518,7 +563,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
               onClick={onCancel}
               disabled={working}
             >
-              Cancel
+              {tc('cancel')}
             </button>
             <button
               type="button"
@@ -526,7 +571,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
               onClick={applyCrop}
               disabled={working || !box || !imgDims}
             >
-              {working ? 'Cropping…' : '✓ Apply crop'}
+              {working ? t('cropping') : t('applyCrop')}
             </button>
           </div>
         </div>

@@ -1,5 +1,24 @@
-import { Component } from 'react';
+import React, { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { AdminLangContext, defineMessages } from '../i18n/core';
+
+// A class component can't call useT; it reads the language from context.
+const messages = defineMessages({
+  en: {
+    updatedTitle: 'The dashboard was updated',
+    updatedText: 'A new version was deployed while this tab was open. Reload to continue.',
+    errorTitle: 'Something went wrong on this page',
+    errorText: 'An unexpected error occurred.',
+    reload: 'Reload',
+  },
+  ar: {
+    updatedTitle: 'تم تحديث لوحة التحكم',
+    updatedText: 'نُشرت نسخة جديدة أثناء فتح هذا التبويب. أعد تحميل الصفحة للمتابعة.',
+    errorTitle: 'حدث خطأ في هذه الصفحة',
+    errorText: 'حدث خطأ غير متوقع.',
+    reload: 'إعادة التحميل',
+  },
+});
 
 // A render error or a page chunk that no longer exists used to fall through
 // to the public site's boundary: an Arabic error screen whose button led to
@@ -22,6 +41,8 @@ interface State {
 }
 
 export class AdminErrorBoundary extends Component<Props, State> {
+  static contextType = AdminLangContext;
+  declare context: React.ContextType<typeof AdminLangContext>;
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -53,18 +74,17 @@ export class AdminErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     const chunk = isChunkLoadError(error);
+    const m = messages[this.context?.lang ?? 'ar'] as Record<keyof typeof messages.en, string>;
     return (
       <div className="adm-card" role="alert" style={{ maxWidth: 560, margin: '48px auto', textAlign: 'center' }}>
         <div className="adm-card-title" style={{ marginBottom: 8 }}>
-          {chunk ? 'The dashboard was updated' : 'Something went wrong on this page'}
+          {chunk ? m.updatedTitle : m.errorTitle}
         </div>
         <p className="adm-text-muted" style={{ marginBottom: 20 }}>
-          {chunk
-            ? 'A new version was deployed while this tab was open. Reload to continue.'
-            : error.message || 'An unexpected error occurred.'}
+          {chunk ? m.updatedText : error.message || m.errorText}
         </p>
         <button type="button" className="adm-btn adm-btn-primary" onClick={() => window.location.reload()}>
-          Reload
+          {m.reload}
         </button>
       </div>
     );

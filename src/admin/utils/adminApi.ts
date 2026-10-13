@@ -1,16 +1,28 @@
 import { buildApiUrl } from '../../utils/api';
+import { getCurrentAdminLang } from '../i18n/currentLang';
+import { translateServerError } from '../i18n/serverErrors';
 
-/** `data` is the parsed error body (e.g. the CSV import's per-row errors). */
-export type AdminRequestError = Error & { status?: number; data?: unknown };
+/**
+ * `message` is in the admin language; `serverMessage` keeps the server's
+ * English text for code that inspects it. `data` is the parsed error body
+ * (e.g. the CSV import's per-row errors — still English; show them through
+ * localizeServerMessage).
+ */
+export type AdminRequestError = Error & { status?: number; data?: unknown; serverMessage?: string };
 
 interface RequestOptions {
   redirectOn401?: boolean;
 }
 
+/** A server/API message in the admin language (Arabic table, else as is). */
+export const localizeServerMessage = (message: string) =>
+  getCurrentAdminLang() === 'ar' ? translateServerError(message) : message;
+
 const buildRequestError = (message: string, status: number, data?: unknown): AdminRequestError => {
-  const error = new Error(message) as AdminRequestError;
+  const error = new Error(localizeServerMessage(message)) as AdminRequestError;
   error.status = status;
   error.data = data;
+  error.serverMessage = message;
   return error;
 };
 
@@ -56,12 +68,18 @@ const request = async <T>(method: string, path: string, body?: unknown, options:
     if (csrf) headers['X-CSRF-Token'] = csrf;
   }
 
-  const response = await fetch(buildApiUrl(path), {
-    method,
-    credentials: 'include',
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      method,
+      credentials: 'include',
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (err) {
+    // Offline / DNS / CORS: the browser's own text ("Failed to fetch").
+    throw buildRequestError(err instanceof Error ? err.message : 'Failed to fetch', 0);
+  }
 
   const data = await response.json().catch(() => ({})) as T & { success?: boolean; error?: string };
 
@@ -101,6 +119,10 @@ export const adminApi = {
     request<AdminSessionResponse>('GET', '/api/admin/session', undefined, { redirectOn401: false }),
 
   getStats: () => request<AdminStats>('GET', '/api/admin/stats'),
+
+  // Pre-rendered public pages (search engines / link previews)
+  getSiteRebuild: () => request<SiteRebuildStatus>('GET', '/api/admin/site-rebuild'),
+  triggerSiteRebuild: () => request<SiteRebuildStatus>('POST', '/api/admin/site-rebuild'),
 
   getAnalytics: (days?: number) => request<AdminAnalytics>('GET', `/api/admin/analytics${days ? `?days=${days}` : ''}`),
 
@@ -233,24 +255,32 @@ export const adminApi = {
     request<{ success: boolean }>('DELETE', `/api/admin/blog/categories/${encodeURIComponent(id)}`),
 
   // Newsletter
-  getNewsletter: (page?: number, limit?: number) => {
+  /** lang: 'ar' | 'en' | 'tr' | 'ru' | 'unknown' filters the list. */
+  getNewsletter: (page?: number, limit?: number, lang?: string) => {
     const params = new URLSearchParams();
     if (page) params.set('page', String(page));
     if (limit) params.set('limit', String(limit));
+    if (lang) params.set('lang', lang);
     const q = params.toString();
     return request<NewsletterResponse>('GET', `/api/admin/newsletter${q ? `?${q}` : ''}`);
   },
-  /** Every active subscriber's e-mail (the list endpoint pages at ≤200). */
-  getAllNewsletterEmails: async (): Promise<string[]> => {
-    const emails: string[] = [];
+  /** Every active subscriber (the list endpoint pages at ≤200). */
+  getAllNewsletterSubscribers: async (): Promise<NewsletterSubscriber[]> => {
+    const all: NewsletterSubscriber[] = [];
     for (let page = 1; page <= 500; page++) {
       const r = await adminApi.getNewsletter(page, 200);
       const batch = r.subscribers ?? [];
-      emails.push(...batch.map((s) => s.email));
-      if (batch.length < 200 || emails.length >= r.total) break;
+      all.push(...batch);
+      if (batch.length < 200 || all.length >= r.total) break;
     }
-    return emails;
+    return all;
   },
+  /** Every active subscriber's e-mail. */
+  getAllNewsletterEmails: async (): Promise<string[]> =>
+    (await adminApi.getAllNewsletterSubscribers()).map((s) => s.email),
+  /** null clears it ("unknown"). */
+  setSubscriberLang: (email: string, lang: string | null) =>
+    request<{ success: boolean; lang: string | null }>('PUT', `/api/admin/newsletter/${encodeURIComponent(email)}`, { lang }),
   deleteSubscriber: (email: string) =>
     request<{ success: boolean }>('DELETE', `/api/admin/newsletter/${encodeURIComponent(email)}`),
   /**
@@ -487,6 +517,22 @@ export const adminApi = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface SiteRebuildStatus {
+  success: boolean;
+  /** SITE_REBUILD_WEBHOOK_URL is set on the API. */
+  configured: boolean;
+  delayMinutes: number;
+  /** Content changed since the pre-rendered pages were last rebuilt. */
+  pending: boolean;
+  pendingSince: string | null;
+  lastChangeAt: string | null;
+  lastChangeReason: string | null;
+  lastTriggeredAt: string | null;
+  lastStatus: 'ok' | 'error' | null;
+  lastError: string | null;
+  nextRunAt: string | null;
+}
+
 export interface AdminStats {
   success: boolean;
   stats: {
@@ -681,10 +727,19 @@ export interface NewsItem {
   updated_at: string;
 }
 
+export interface NewsletterSubscriber {
+  email: string;
+  subscribed_at: string;
+  /** Site language at sign-up; null for older subscribers. */
+  lang?: string | null;
+}
+
 export interface NewsletterResponse {
   success: boolean;
-  subscribers: Array<{ email: string; subscribed_at: string }>;
+  subscribers: NewsletterSubscriber[];
   total: number;
+  /** Active subscribers per language; unknown = signed up before it was stored. */
+  langCounts?: Record<'ar' | 'en' | 'tr' | 'ru' | 'unknown', number>;
   page: number;
   limit: number;
 }
@@ -723,6 +778,8 @@ export interface CampaignSend {
   opened_at?: string;
   created_at: string;
   ab_variant?: 'a' | 'b';
+  /** Language this e-mail went out in (null for sends before it was stored). */
+  lang?: string | null;
   click_count?: number;
 }
 

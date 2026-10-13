@@ -6,7 +6,70 @@ import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
 import { normalizeSlug } from '../utils/slug';
-import { PRERENDER_NOTE, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
+import { prerenderNote, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    unsupportedType: 'Unsupported file type. Use JPG, PNG, WebP, or GIF.',
+    tooLarge: 'File too large. Maximum size is 10 MB.',
+    uploadFailed: 'Upload failed',
+    requiredFields: 'Please fill required fields: Arabic title and slug (letters or digits).',
+    saveFailed: 'Save failed',
+    newArticle: 'New Article',
+    editArticle: 'Edit Article',
+    saveArticle: '💾 Save Article',
+    articleInfo: 'Article Info',
+    slugLabel: 'Slug (URL) *',
+    imagePlaceholder: '/news/image.webp or paste URL',
+    uploadButton: '📁 Upload',
+    publishedDate: 'Published Date',
+    optPublished: '✅ Published — visible to everyone',
+    optDraft: '📝 Draft — hidden, work in progress',
+    optScheduled: '🕐 Scheduled — auto-publish at set time',
+    publishAt: 'Publish Date & Time',
+    publishAtHelp: 'Article will be published automatically at this time (your local time).',
+    imagePreview: 'Image Preview',
+    previewAlt: 'preview',
+    content: 'Content',
+    categoryLabel: 'Category ({lang})',
+    categoryPlaceholder: 'e.g. Announcement',
+    titleLabel: 'Title ({lang}) *',
+    excerptLabel: 'Excerpt ({lang})',
+    bodyLabel: 'Body ({lang}) — supports **bold**, *italic*, # headings, lists, [links](url), > quotes',
+  },
+  ar: {
+    unsupportedType: 'نوع الملف غير مدعوم. استخدم JPG أو PNG أو WebP أو GIF.',
+    tooLarge: 'الملف كبير جدًا. الحد الأقصى للحجم 10 ميغابايت.',
+    uploadFailed: 'فشل الرفع',
+    requiredFields: 'يُرجى تعبئة الحقول المطلوبة: العنوان العربي والـ slug (أحرف أو أرقام).',
+    saveFailed: 'فشل الحفظ',
+    newArticle: 'خبر جديد',
+    editArticle: 'تعديل الخبر',
+    saveArticle: '💾 حفظ الخبر',
+    articleInfo: 'بيانات الخبر',
+    slugLabel: 'الـ slug (الرابط) *',
+    imagePlaceholder: '/news/image.webp أو الصق رابطًا',
+    uploadButton: '📁 رفع',
+    publishedDate: 'تاريخ النشر',
+    optPublished: '✅ منشور — ظاهر للجميع',
+    optDraft: '📝 مسودة — مخفي، قيد الإعداد',
+    optScheduled: '🕐 مجدول — يُنشر تلقائيًا في الوقت المحدد',
+    publishAt: 'تاريخ النشر ووقته',
+    publishAtHelp: 'سيُنشر الخبر تلقائيًا في هذا الوقت (بالتوقيت المحلي للجهاز).',
+    imagePreview: 'معاينة الصورة',
+    previewAlt: 'معاينة',
+    content: 'المحتوى',
+    categoryLabel: 'الفئة ({lang})',
+    categoryPlaceholder: 'مثال: إعلان',
+    titleLabel: 'العنوان ({lang}) *',
+    excerptLabel: 'الملخص ({lang})',
+    // \u2066…\u2069 isolate the Markdown samples so brackets and asterisks
+    // stay in place inside right-to-left text.
+    bodyLabel: 'النص ({lang}) — يدعم: \u2066**bold**\u2069، \u2066*italic*\u2069، \u2066#\u2069 للعناوين، القوائم، \u2066[links](url)\u2069، \u2066>\u2069 للاقتباس',
+  },
+});
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -36,6 +99,8 @@ export const AdminNewsEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
+  const t = useT(messages);
+  const tc = useT(common);
 
   const [form, setForm] = useState<Partial<NewsItem>>(EMPTY);
   const [activeLang, setActiveLang] = useState<Lang>('ar');
@@ -115,11 +180,11 @@ export const AdminNewsEdit: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.');
+      setError(t('unsupportedType'));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setError('File too large. Maximum size is 10 MB.');
+      setError(t('tooLarge'));
       return;
     }
     setUploading(true);
@@ -132,10 +197,10 @@ export const AdminNewsEdit: React.FC = () => {
         reader.readAsDataURL(file);
       });
       const data = await adminApi.uploadImage(base64, file.name);
-      if (!data.success) throw new Error('Upload failed');
+      if (!data.success) throw new Error(t('uploadFailed'));
       setStr('image', data.url || data.path);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      setError(e instanceof Error ? e.message : t('uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -144,7 +209,7 @@ export const AdminNewsEdit: React.FC = () => {
   const handleSave = async () => {
     const slug = normalizeSlug(form.slug);
     if (!form.title_ar || !slug) {
-      setError('Please fill required fields: Arabic title and slug (letters or digits).');
+      setError(t('requiredFields'));
       return;
     }
     const wasLive = loaded?.status === 'published' && Boolean(loaded.active);
@@ -162,23 +227,23 @@ export const AdminNewsEdit: React.FC = () => {
       }
       navigate('/admin/news');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>;
+  if (loading) return <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>;
 
   return (
     <div>
       <div className="adm-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/admin/news" className="adm-btn adm-btn-ghost adm-btn-sm">← Back</Link>
-          <h1 className="adm-page-title">{isNew ? 'New Article' : 'Edit Article'}</h1>
+          <Link to="/admin/news" className="adm-btn adm-btn-ghost adm-btn-sm">{tc('back')}</Link>
+          <h1 className="adm-page-title">{isNew ? t('newArticle') : t('editArticle')}</h1>
         </div>
         <button className="adm-btn adm-btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving...</> : '💾 Save Article'}
+          {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> {tc('saving')}</> : t('saveArticle')}
         </button>
       </div>
 
@@ -188,9 +253,9 @@ export const AdminNewsEdit: React.FC = () => {
         {/* Left: metadata */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="adm-card">
-            <div className="adm-card-title">Article Info</div>
+            <div className="adm-card-title">{t('articleInfo')}</div>
             <div className="adm-form-group">
-              <label className="adm-label">Slug (URL) *</label>
+              <label className="adm-label">{t('slugLabel')}</label>
               <input
                 className="adm-input"
                 dir="ltr"
@@ -203,13 +268,14 @@ export const AdminNewsEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Image</label>
+              <label className="adm-label">{tc('image')}</label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                 <input
                   className="adm-input"
+                  dir="ltr"
                   value={form.image ?? ''}
                   onChange={e => setStr('image', e.target.value)}
-                  placeholder="/news/image.webp or paste URL"
+                  placeholder={t('imagePlaceholder')}
                   style={{ flex: 1 }}
                 />
                 <button
@@ -219,7 +285,7 @@ export const AdminNewsEdit: React.FC = () => {
                   disabled={uploading}
                   style={{ whiteSpace: 'nowrap' }}
                 >
-                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> Uploading...</> : '📁 Upload'}
+                  {uploading ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> {tc('uploading')}</> : t('uploadButton')}
                 </button>
               </div>
               <input
@@ -231,7 +297,7 @@ export const AdminNewsEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Published Date</label>
+              <label className="adm-label">{t('publishedDate')}</label>
               <input
                 className="adm-input"
                 type="date"
@@ -240,23 +306,23 @@ export const AdminNewsEdit: React.FC = () => {
               />
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Status</label>
+              <label className="adm-label">{tc('status')}</label>
               <select
                 className="adm-input"
                 value={form.status ?? 'published'}
                 onChange={e => setStr('status', e.target.value as NewsItem['status'])}
               >
-                <option value="published">✅ Published — visible to everyone</option>
-                <option value="draft">📝 Draft — hidden, work in progress</option>
-                <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
+                <option value="published">{t('optPublished')}</option>
+                <option value="draft">{t('optDraft')}</option>
+                <option value="scheduled">{t('optScheduled')}</option>
               </select>
               <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                {PRERENDER_NOTE}
+                {prerenderNote()}
               </small>
             </div>
             {form.status === 'scheduled' && (
               <div className="adm-form-group">
-                <label className="adm-label">Publish Date & Time</label>
+                <label className="adm-label">{t('publishAt')}</label>
                 <input
                   className="adm-input"
                   type="datetime-local"
@@ -264,7 +330,7 @@ export const AdminNewsEdit: React.FC = () => {
                   onChange={e => setStr('publish_at', fromDatetimeLocalValue(e.target.value))}
                 />
                 <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                  Article will be published automatically at this time (your local time).
+                  {t('publishAtHelp')}
                 </small>
               </div>
             )}
@@ -272,8 +338,8 @@ export const AdminNewsEdit: React.FC = () => {
 
           {form.image && (
             <div className="adm-card">
-              <div className="adm-card-title">Image Preview</div>
-              <img src={resolveAdminImage(form.image)} alt="preview" style={{ maxWidth: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, marginTop: 8 }} />
+              <div className="adm-card-title">{t('imagePreview')}</div>
+              <img src={resolveAdminImage(form.image)} alt={t('previewAlt')} style={{ maxWidth: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, marginTop: 8 }} />
             </div>
           )}
         </div>
@@ -281,7 +347,7 @@ export const AdminNewsEdit: React.FC = () => {
         {/* Right: multilingual content */}
         <div className="adm-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <div className="adm-card-title" style={{ margin: 0 }}>Content</div>
+            <div className="adm-card-title" style={{ margin: 0 }}>{t('content')}</div>
             <TranslationHelper
               fields={{
                 category: form.category_ar || '',
@@ -305,17 +371,17 @@ export const AdminNewsEdit: React.FC = () => {
           {LANGS.map(l => (
             <div key={l} style={{ display: activeLang === l ? 'block' : 'none' }}>
               <div className="adm-form-group">
-                <label className="adm-label">Category ({l.toUpperCase()})</label>
+                <label className="adm-label">{t('categoryLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
                   value={(form as Record<string, string>)[`category_${l}`] ?? ''}
                   onChange={e => setStr(`category_${l}` as keyof NewsItem, e.target.value)}
-                  placeholder="e.g. Announcement"
+                  placeholder={t('categoryPlaceholder')}
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Title ({l.toUpperCase()}) *</label>
+                <label className="adm-label">{t('titleLabel', { lang: l.toUpperCase() })}</label>
                 <input
                   className="adm-input"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -324,7 +390,7 @@ export const AdminNewsEdit: React.FC = () => {
                 />
               </div>
               <div className="adm-form-group">
-                <label className="adm-label">Excerpt ({l.toUpperCase()})</label>
+                <label className="adm-label">{t('excerptLabel', { lang: l.toUpperCase() })}</label>
                 <textarea
                   className="adm-textarea"
                   dir={l === 'ar' ? 'rtl' : 'ltr'}
@@ -335,7 +401,7 @@ export const AdminNewsEdit: React.FC = () => {
               </div>
               <div className="adm-form-group">
                 <label className="adm-label">
-                  Body ({l.toUpperCase()}) — supports **bold**, *italic*, # headings, lists, [links](url), &gt; quotes
+                  {t('bodyLabel', { lang: l.toUpperCase() })}
                 </label>
                 <MarkdownEditor
                   value={getBodyText(l)}

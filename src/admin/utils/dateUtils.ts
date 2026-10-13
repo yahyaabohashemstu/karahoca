@@ -3,13 +3,21 @@
  * JavaScript's Date constructor requires ISO 8601 format.
  * These helpers convert SQLite dates before parsing.
  *
- * The admin UI is English, so dates and numbers are formatted in one fixed
- * locale. They used to follow the browser's: in an Arabic browser
- * "18/4/2026" came out with right-to-left marks between the parts, and in
- * the left-to-right admin tables it rendered as "182026/4/".
+ * Dates follow the admin language (set by AdminI18nProvider) — never the
+ * browser's: in an Arabic browser the English UI used to get
+ * "18/4/2026" with right-to-left marks, which rendered as "182026/4/".
+ * Both languages use Western digits and a 24-hour clock, so numbers read
+ * the same whichever language the admin picks.
  */
 
-const LOCALE = 'en-GB';
+import { getCurrentAdminLang } from '../i18n/currentLang';
+
+const LOCALES = {
+  en: 'en-GB',
+  ar: 'ar-u-nu-latn',
+} as const;
+
+const locale = () => LOCALES[getCurrentAdminLang()];
 
 const toISO = (d: string): string => {
   if (!d) return '';
@@ -22,11 +30,11 @@ const parse = (d: string): Date | null => {
   return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
-/** "13 Oct 2026" */
+/** "13 Oct 2026" / "13 أكتوبر 2026" */
 export const fmtDate = (d: string | null | undefined): string => {
   if (!d) return '—';
   const dt = parse(d);
-  return dt ? dt.toLocaleDateString(LOCALE, { day: '2-digit', month: 'short', year: 'numeric' }) : d;
+  return dt ? dt.toLocaleDateString(locale(), { day: '2-digit', month: 'short', year: 'numeric' }) : d;
 };
 
 /** "13 Oct 2026, 14:05" (the viewer's local time) */
@@ -34,7 +42,9 @@ export const fmtDateTime = (d: string | null | undefined): string => {
   if (!d) return '—';
   const dt = parse(d);
   return dt
-    ? dt.toLocaleString(LOCALE, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? dt.toLocaleString(locale(), {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    })
     : d;
 };
 
@@ -42,9 +52,9 @@ export const fmtDateTime = (d: string | null | undefined): string => {
 export const fmtTime = (d: string | null | undefined): string => {
   if (!d) return '—';
   const dt = parse(d);
-  return dt ? dt.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' }) : d;
+  return dt ? dt.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : d;
 };
 
-/** "12,345" — Western digits whatever the browser language. */
+/** "12,345" — Western digits whatever the language. */
 export const fmtNumber = (n: number | null | undefined): string =>
   typeof n === 'number' && Number.isFinite(n) ? n.toLocaleString('en-US') : '0';

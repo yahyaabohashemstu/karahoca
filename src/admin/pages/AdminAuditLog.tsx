@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { adminApi, type AuditLogEntry } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { fmtDateTime } from '../utils/dateUtils';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
 
 /**
  * Admin audit log viewer.
@@ -19,6 +21,148 @@ import { fmtDateTime } from '../utils/dateUtils';
  * entity_name + entity_id + details, so a query like "newsletter" or
  * "diox-floor" jumps directly to the rows that matter.
  */
+
+const messages = defineMessages({
+  en: {
+    title: 'Audit Log',
+    subtitle: { other: 'All admin create / update / delete / send / export operations — {n} matching entries' },
+    resetFilters: 'Reset filters',
+    entity: 'Entity',
+    allEntities: 'All entities',
+    action: 'Action',
+    allActions: 'All actions',
+    searchLabel: 'Search (name / id / details)',
+    searchPlaceholder: 'e.g. floor cleaner or diox-…',
+    from: 'From',
+    to: 'To',
+    colAction: 'Action',
+    colEntity: 'Entity',
+    colNameId: 'Name / ID',
+    colAdmin: 'Admin',
+    colDetails: 'Details',
+    colTime: 'Time',
+    noEntries: 'No log entries matching the current filters.',
+    idLabel: 'ID:',
+    pageSlash: 'Page {page} / {total}',
+    // Filter dropdown
+    actionOption_CREATE: 'Create',
+    actionOption_UPDATE: 'Update',
+    actionOption_DELETE: 'Delete',
+    actionOption_SEND: 'Send',
+    actionOption_EXPORT: 'Export',
+    actionOption_IMPORT: 'Import',
+    actionOption_REORDER: 'Reorder',
+    actionOption_QUEUE: 'Queue send',
+    // Table badge
+    actionBadge_CREATE: 'CREATE',
+    actionBadge_UPDATE: 'UPDATE',
+    actionBadge_DELETE: 'DELETE',
+    actionBadge_SEND: 'SEND',
+    actionBadge_EXPORT: 'EXPORT',
+    actionBadge_IMPORT: 'IMPORT',
+    actionBadge_REORDER: 'REORDER',
+    actionBadge_QUEUE: 'QUEUE',
+    // One row's entity
+    entity_product: 'Product',
+    entity_category: 'Category',
+    entity_news: 'News',
+    entity_blog_post: 'Blog post',
+    entity_blog_category: 'Blog category',
+    entity_campaign: 'Campaign',
+    entity_newsletter: 'Newsletter',
+    entity_chat: 'Chat',
+    entity_ai_qa: 'AI Q&A',
+    entity_ab_test: 'A/B test',
+    entity_ab_variant: 'A/B variant',
+    entity_audit_log: 'Audit Log',
+    // Filter dropdown
+    entityFilter_product: 'Products',
+    entityFilter_category: 'Categories',
+    entityFilter_news: 'News',
+    entityFilter_blog_post: 'Blog posts',
+    entityFilter_blog_category: 'Blog categories',
+    entityFilter_campaign: 'Campaigns',
+    entityFilter_newsletter: 'Newsletter',
+    entityFilter_chat: 'Chats',
+    entityFilter_ai_qa: 'AI Q&A',
+    entityFilter_ab_test: 'A/B tests',
+    entityFilter_ab_variant: 'A/B variants',
+    entityFilter_audit_log: 'Audit log',
+  },
+  ar: {
+    title: 'سجل العمليات',
+    subtitle: {
+      zero: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — لا توجد سجلات مطابقة',
+      one: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — سجل واحد مطابق',
+      two: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — سجلان مطابقان',
+      few: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — {n} سجلات مطابقة',
+      many: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — {n} سجلًا مطابقًا',
+      other: 'كل عمليات الإنشاء والتعديل والحذف والإرسال والتصدير التي نفّذها المشرفون — {n} سجل مطابق',
+    },
+    resetFilters: 'إعادة ضبط عوامل التصفية',
+    entity: 'النوع',
+    allEntities: 'كل الأنواع',
+    action: 'العملية',
+    allActions: 'كل العمليات',
+    searchLabel: 'بحث (الاسم / المعرّف / التفاصيل)',
+    searchPlaceholder: 'مثال: منظف الأرضيات أو diox-…',
+    from: 'من',
+    to: 'إلى',
+    colAction: 'العملية',
+    colEntity: 'النوع',
+    colNameId: 'الاسم / المعرّف',
+    colAdmin: 'المشرف',
+    colDetails: 'التفاصيل',
+    colTime: 'الوقت',
+    noEntries: 'لا توجد سجلات تطابق عوامل التصفية الحالية.',
+    idLabel: 'المعرّف:',
+    pageSlash: 'صفحة {page} من {total}',
+    actionOption_CREATE: 'إنشاء',
+    actionOption_UPDATE: 'تعديل',
+    actionOption_DELETE: 'حذف',
+    actionOption_SEND: 'إرسال',
+    actionOption_EXPORT: 'تصدير',
+    actionOption_IMPORT: 'استيراد',
+    actionOption_REORDER: 'إعادة ترتيب',
+    actionOption_QUEUE: 'إرسال حملة',
+    actionBadge_CREATE: 'إنشاء',
+    actionBadge_UPDATE: 'تعديل',
+    actionBadge_DELETE: 'حذف',
+    actionBadge_SEND: 'إرسال',
+    actionBadge_EXPORT: 'تصدير',
+    actionBadge_IMPORT: 'استيراد',
+    actionBadge_REORDER: 'إعادة ترتيب',
+    actionBadge_QUEUE: 'إرسال حملة',
+    entity_product: 'منتج',
+    entity_category: 'فئة',
+    entity_news: 'خبر',
+    entity_blog_post: 'مقال',
+    entity_blog_category: 'فئة المدونة',
+    entity_campaign: 'حملة بريدية',
+    entity_newsletter: 'النشرة البريدية',
+    entity_chat: 'محادثة',
+    entity_ai_qa: 'سؤال وجواب للمساعد',
+    entity_ab_test: 'تجربة A/B',
+    entity_ab_variant: 'نسخة A/B',
+    entity_audit_log: 'سجل العمليات',
+    entityFilter_product: 'المنتجات',
+    entityFilter_category: 'الفئات',
+    entityFilter_news: 'الأخبار',
+    entityFilter_blog_post: 'مقالات المدونة',
+    entityFilter_blog_category: 'فئات المدونة',
+    entityFilter_campaign: 'الحملات البريدية',
+    entityFilter_newsletter: 'النشرة البريدية',
+    entityFilter_chat: 'المحادثات',
+    entityFilter_ai_qa: 'أسئلة وأجوبة المساعد',
+    entityFilter_ab_test: 'اختبارات A/B',
+    entityFilter_ab_variant: 'نسخ A/B',
+    entityFilter_audit_log: 'سجل العمليات',
+  },
+});
+
+const ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'SEND', 'QUEUE', 'EXPORT', 'IMPORT', 'REORDER'] as const;
+type Action = typeof ACTIONS[number];
+const isAction = (value: string): value is Action => (ACTIONS as readonly string[]).includes(value);
 
 const ACTION_COLOR: Record<string, string> = {
   CREATE: '#22c55e',
@@ -42,41 +186,31 @@ const ACTION_ICON: Record<string, string> = {
 
 // Keys are the entityType strings the server passes to logAudit — keep
 // in step with `grep -rn "entityType:" server/`. Types missing here showed
-// as raw ids and couldn't be filtered on.
-const ENTITY_LABELS: Record<string, string> = {
-  product:       '🧴 Product',
-  category:      '🗂️ Category',
-  news:          '📰 News',
-  blog_post:     '📝 Blog post',
-  blog_category: '🏷️ Blog category',
-  campaign:      '📧 Campaign',
-  newsletter:    '✉️ Newsletter',
-  chat:          '💬 Chat',
-  ai_qa:         '🤖 AI Q&A',
-  ab_test:       '🧪 A/B test',
-  ab_variant:    '🔀 A/B variant',
-  audit_log:     '🔍 Audit Log',
-};
-
-/** Filter dropdown options, in the same order as the label map. */
-const ENTITY_FILTERS: Array<{ value: string; label: string }> = [
-  { value: 'product',       label: 'Products' },
-  { value: 'category',      label: 'Categories' },
-  { value: 'news',          label: 'News' },
-  { value: 'blog_post',     label: 'Blog posts' },
-  { value: 'blog_category', label: 'Blog categories' },
-  { value: 'campaign',      label: 'Campaigns' },
-  { value: 'newsletter',    label: 'Newsletter' },
-  { value: 'chat',          label: 'Chats' },
-  { value: 'ai_qa',         label: 'AI Q&A' },
-  { value: 'ab_test',       label: 'A/B tests' },
-  { value: 'ab_variant',    label: 'A/B variants' },
-  { value: 'audit_log',     label: 'Audit log' },
-];
+// as raw ids and couldn't be filtered on. Labels: entity_* / entityFilter_*
+// in the messages above; the filter dropdown follows this order.
+const ENTITY_ICON = {
+  product:       '🧴',
+  category:      '🗂️',
+  news:          '📰',
+  blog_post:     '📝',
+  blog_category: '🏷️',
+  campaign:      '📧',
+  newsletter:    '✉️',
+  chat:          '💬',
+  ai_qa:         '🤖',
+  ab_test:       '🧪',
+  ab_variant:    '🔀',
+  audit_log:     '🔍',
+} as const;
+type EntityType = keyof typeof ENTITY_ICON;
+const ENTITY_TYPES = Object.keys(ENTITY_ICON) as EntityType[];
+const isEntityType = (value: string): value is EntityType => Object.prototype.hasOwnProperty.call(ENTITY_ICON, value);
 
 const PAGE_SIZE = 50;
 
 export const AdminAuditLog: React.FC = () => {
+  const t = useT(messages);
+  const tc = useT(common);
   const [page, setPage] = useState(0);
   const [entityFilter, setEntityFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('');
@@ -131,9 +265,9 @@ export const AdminAuditLog: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Audit Log</h1>
+          <h1 className="adm-page-title">{t('title')}</h1>
           <p className="adm-page-subtitle">
-            All admin create / update / delete / send / export operations — {total} matching entries
+            {t.plural('subtitle', total)}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -147,7 +281,7 @@ export const AdminAuditLog: React.FC = () => {
             target="_self"
             rel="noopener"
           >
-            ⬇️ Export CSV
+            ⬇️ {tc('exportCsv')}
           </a>
           <button
             type="button"
@@ -157,7 +291,7 @@ export const AdminAuditLog: React.FC = () => {
               !entityFilter && !actionFilter && !searchApplied && !fromDate && !toDate
             }
           >
-            Reset filters
+            {t('resetFilters')}
           </button>
         </div>
       </div>
@@ -176,37 +310,31 @@ export const AdminAuditLog: React.FC = () => {
         }}
       >
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Entity</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('entity')}</span>
           <select
             className="adm-select adm-input-sm"
             value={entityFilter}
             onChange={(e) => { setEntityFilter(e.target.value); setPage(0); }}
           >
-            <option value="">All entities</option>
-            {ENTITY_FILTERS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+            <option value="">{t('allEntities')}</option>
+            {ENTITY_TYPES.map((type) => <option key={type} value={type}>{t(`entityFilter_${type}`)}</option>)}
           </select>
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Action</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('action')}</span>
           <select
             className="adm-select adm-input-sm"
             value={actionFilter}
             onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
           >
-            <option value="">All actions</option>
-            <option value="CREATE">Create</option>
-            <option value="UPDATE">Update</option>
-            <option value="DELETE">Delete</option>
-            <option value="SEND">Send</option>
-            <option value="EXPORT">Export</option>
-            <option value="IMPORT">Import</option>
-            <option value="REORDER">Reorder</option>
+            <option value="">{t('allActions')}</option>
+            {ACTIONS.map((action) => <option key={action} value={action}>{t(`actionOption_${action}`)}</option>)}
           </select>
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 220px', minWidth: 220 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>Search (name / id / details)</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('searchLabel')}</span>
           <form
             onSubmit={(e) => { e.preventDefault(); setSearchApplied(searchInput.trim()); setPage(0); }}
             style={{ display: 'flex', gap: 4 }}
@@ -214,17 +342,17 @@ export const AdminAuditLog: React.FC = () => {
             <input
               type="search"
               className="adm-input adm-input-sm"
-              placeholder="e.g. floor cleaner or diox-…"
+              placeholder={t('searchPlaceholder')}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               style={{ flex: 1 }}
             />
-            <button type="submit" className="adm-btn adm-btn-primary adm-btn-sm">Search</button>
+            <button type="submit" className="adm-btn adm-btn-primary adm-btn-sm">{tc('search')}</button>
           </form>
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>From</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('from')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -236,7 +364,7 @@ export const AdminAuditLog: React.FC = () => {
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>To</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-text-dim)' }}>{t('to')}</span>
           <input
             type="date"
             className="adm-input adm-input-sm"
@@ -248,7 +376,7 @@ export const AdminAuditLog: React.FC = () => {
         </label>
       </div>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>}
+      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
 
       {!loading && (
@@ -258,19 +386,19 @@ export const AdminAuditLog: React.FC = () => {
               <table className="adm-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 110 }}>Action</th>
-                    <th style={{ width: 130 }}>Entity</th>
-                    <th>Name / ID</th>
-                    <th style={{ width: 100 }}>Admin</th>
-                    <th>Details</th>
-                    <th style={{ width: 160 }}>Time</th>
+                    <th style={{ width: 110 }}>{t('colAction')}</th>
+                    <th style={{ width: 130 }}>{t('colEntity')}</th>
+                    <th>{t('colNameId')}</th>
+                    <th style={{ width: 100 }}>{t('colAdmin')}</th>
+                    <th>{t('colDetails')}</th>
+                    <th style={{ width: 160 }}>{t('colTime')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {logs.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
-                        No log entries matching the current filters.
+                        {t('noEntries')}
                       </td>
                     </tr>
                   ) : logs.map((log) => (
@@ -281,11 +409,13 @@ export const AdminAuditLog: React.FC = () => {
                           fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                           color: ACTION_COLOR[log.action] ?? 'var(--adm-text)',
                         }}>
-                          {ACTION_ICON[log.action] ?? '•'} {log.action}
+                          {ACTION_ICON[log.action] ?? '•'} {isAction(log.action) ? t(`actionBadge_${log.action}`) : log.action}
                         </span>
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>
-                        {ENTITY_LABELS[log.entity_type] ?? log.entity_type}
+                        {isEntityType(log.entity_type)
+                          ? `${ENTITY_ICON[log.entity_type]} ${t(`entity_${log.entity_type}`)}`
+                          : log.entity_type}
                       </td>
                       <td>
                         {/* dir="auto": Arabic product / article names otherwise
@@ -293,7 +423,7 @@ export const AdminAuditLog: React.FC = () => {
                         <div dir="auto" style={{ fontWeight: 600, fontSize: 13 }}>{log.entity_name || '—'}</div>
                         {log.entity_id && (
                           <div style={{ fontSize: 11, color: 'var(--adm-text-dim)', marginTop: 1 }}>
-                            ID: {log.entity_id}
+                            {t('idLabel')} <bdi dir="ltr">{log.entity_id}</bdi>
                           </div>
                         )}
                       </td>
@@ -318,17 +448,17 @@ export const AdminAuditLog: React.FC = () => {
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
-                ← Prev
+                {tc('prev')}
               </button>
               <span style={{ fontSize: 13, color: 'var(--adm-text-muted)' }}>
-                Page {page + 1} / {totalPages}
+                {t('pageSlash', { page: page + 1, total: totalPages })}
               </span>
               <button
                 className="adm-btn adm-btn-ghost adm-btn-sm"
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next →
+                {tc('next')}
               </button>
             </div>
           )}

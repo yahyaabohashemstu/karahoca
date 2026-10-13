@@ -4,6 +4,65 @@ import { adminApi, type BlogCategoryItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
 import { normalizeSlug } from '../utils/slug';
 import { confirmSlugChange } from '../utils/publishing';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    confirmDelete: 'Soft-delete this category? Posts in it will keep their reference but the category will be hidden.',
+    nameRequired: 'Need at least an Arabic or English name.',
+    title: 'Blog Categories',
+    backToPosts: '← Back to posts',
+    colIcon: 'Icon',
+    colColor: 'Color',
+    colSlug: 'Slug',
+    colNameAr: 'Name AR',
+    colNameEn: 'Name EN',
+    colNameTr: 'Name TR',
+    colNameRu: 'Name RU',
+    colOrder: 'Order',
+    colActive: 'Active',
+    newCategory: 'new category',
+    iconLabel: 'Icon — {row}',
+    colorLabel: 'Color — {row}',
+    slugLabel: 'Slug — {row}',
+    nameArLabel: 'Arabic name — {row}',
+    nameEnLabel: 'English name — {row}',
+    nameTrLabel: 'Turkish name — {row}',
+    nameRuLabel: 'Russian name — {row}',
+    orderLabel: 'Display order — {row}',
+    activeLabel: 'Active — {row}',
+    slugPlaceholder: 'auto from name',
+    add: '+ Add',
+  },
+  ar: {
+    confirmDelete: 'حذف هذه الفئة حذفًا مؤقتًا؟ ستبقى المقالات التابعة لها مرتبطة بها، لكن الفئة ستُخفى.',
+    nameRequired: 'يلزم اسم عربي أو إنجليزي على الأقل.',
+    title: 'فئات المدونة',
+    backToPosts: '→ العودة إلى المقالات',
+    colIcon: 'الأيقونة',
+    colColor: 'اللون',
+    colSlug: 'الـ slug',
+    colNameAr: 'الاسم AR',
+    colNameEn: 'الاسم EN',
+    colNameTr: 'الاسم TR',
+    colNameRu: 'الاسم RU',
+    colOrder: 'الترتيب',
+    colActive: 'مفعّلة',
+    newCategory: 'فئة جديدة',
+    iconLabel: 'الأيقونة — {row}',
+    colorLabel: 'اللون — {row}',
+    slugLabel: 'الـ slug — {row}',
+    nameArLabel: 'الاسم العربي — {row}',
+    nameEnLabel: 'الاسم الإنجليزي — {row}',
+    nameTrLabel: 'الاسم التركي — {row}',
+    nameRuLabel: 'الاسم الروسي — {row}',
+    orderLabel: 'ترتيب العرض — {row}',
+    activeLabel: 'مفعّلة — {row}',
+    slugPlaceholder: 'من الاسم تلقائيًا',
+    add: '+ إضافة',
+  },
+});
 
 /**
  * /admin/blog/categories — inline-edit grid for blog categories.
@@ -29,6 +88,8 @@ export const AdminBlogCategories: React.FC = () => {
   const [newCat, setNewCat] = useState<Partial<BlogCategoryItem>>(EMPTY_CAT);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const t = useT(messages);
+  const tc = useT(common);
 
   const items = data?.items || [];
 
@@ -59,7 +120,7 @@ export const AdminBlogCategories: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Soft-delete this category? Posts in it will keep their reference but the category will be hidden.')) return;
+    if (!confirm(t('confirmDelete'))) return;
     setBusy(true);
     try {
       await adminApi.deleteBlogCategory(id);
@@ -73,7 +134,7 @@ export const AdminBlogCategories: React.FC = () => {
 
   const handleCreate = async () => {
     if (!newCat.name_ar?.trim() && !newCat.name_en?.trim()) {
-      setErr('Need at least an Arabic or English name.');
+      setErr(t('nameRequired'));
       return;
     }
     setBusy(true);
@@ -93,15 +154,15 @@ export const AdminBlogCategories: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Blog Categories</h1>
+          <h1 className="adm-page-title">{t('title')}</h1>
           <p className="adm-page-subtitle">
-            <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>← Back to posts</Link>
+            <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>{t('backToPosts')}</Link>
           </p>
         </div>
       </div>
 
       {(err || error) && <div className="adm-alert adm-alert-error">⚠ {err || error}</div>}
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading…</div>}
+      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
 
       {!loading && (
         <div className="adm-card" style={{ padding: 0 }}>
@@ -109,15 +170,15 @@ export const AdminBlogCategories: React.FC = () => {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Icon</th>
-                  <th>Color</th>
-                  <th>Slug</th>
-                  <th>Name AR</th>
-                  <th>Name EN</th>
-                  <th>Name TR</th>
-                  <th>Name RU</th>
-                  <th>Order</th>
-                  <th>Active</th>
+                  <th>{t('colIcon')}</th>
+                  <th>{t('colColor')}</th>
+                  <th>{t('colSlug')}</th>
+                  <th>{t('colNameAr')}</th>
+                  <th>{t('colNameEn')}</th>
+                  <th>{t('colNameTr')}</th>
+                  <th>{t('colNameRu')}</th>
+                  <th>{t('colOrder')}</th>
+                  <th>{t('colActive')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -137,7 +198,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 60 }}
                           value={d.icon || ''}
                           onChange={(e) => updateDraft(cat.id, { icon: e.target.value })}
-                          aria-label={`Icon — ${row}`}
+                          aria-label={t('iconLabel', { row })}
                         />
                       </td>
                       <td>
@@ -145,7 +206,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="color"
                           value={d.color || '#1a4d8f'}
                           onChange={(e) => updateDraft(cat.id, { color: e.target.value })}
-                          aria-label={`Color — ${row}`}
+                          aria-label={t('colorLabel', { row })}
                           style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
                         />
                       </td>
@@ -157,7 +218,7 @@ export const AdminBlogCategories: React.FC = () => {
                           dir="ltr"
                           value={d.slug || ''}
                           onChange={(e) => updateDraft(cat.id, { slug: normalizeSlug(e.target.value, { partial: true }) })}
-                          aria-label={`Slug — ${row}`}
+                          aria-label={t('slugLabel', { row })}
                         />
                       </td>
                       <td>
@@ -168,47 +229,51 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 140 }}
                           value={d.name_ar || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ar: e.target.value })}
-                          aria-label={`Arabic name — ${row}`}
+                          aria-label={t('nameArLabel', { row })}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
+                          dir="ltr"
                           style={{ width: 140 }}
                           value={d.name_en || ''}
                           onChange={(e) => updateDraft(cat.id, { name_en: e.target.value })}
-                          aria-label={`English name — ${row}`}
+                          aria-label={t('nameEnLabel', { row })}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
+                          dir="ltr"
                           style={{ width: 140 }}
                           value={d.name_tr || ''}
                           onChange={(e) => updateDraft(cat.id, { name_tr: e.target.value })}
-                          aria-label={`Turkish name — ${row}`}
+                          aria-label={t('nameTrLabel', { row })}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
+                          dir="ltr"
                           style={{ width: 140 }}
                           value={d.name_ru || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ru: e.target.value })}
-                          aria-label={`Russian name — ${row}`}
+                          aria-label={t('nameRuLabel', { row })}
                         />
                       </td>
                       <td>
                         <input
                           type="number"
                           className="adm-input adm-input-sm"
+                          dir="ltr"
                           style={{ width: 60 }}
                           value={d.display_order || 0}
                           onChange={(e) => updateDraft(cat.id, { display_order: parseInt(e.target.value, 10) || 0 })}
-                          aria-label={`Display order — ${row}`}
+                          aria-label={t('orderLabel', { row })}
                         />
                       </td>
                       <td>
@@ -216,7 +281,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="checkbox"
                           checked={Boolean(d.active)}
                           onChange={(e) => updateDraft(cat.id, { active: e.target.checked ? 1 : 0 })}
-                          aria-label={`Active — ${row}`}
+                          aria-label={t('activeLabel', { row })}
                         />
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
@@ -227,7 +292,7 @@ export const AdminBlogCategories: React.FC = () => {
                             onClick={() => saveDraft(cat.id)}
                             disabled={busy}
                           >
-                            Save
+                            {tc('save')}
                           </button>
                         )}
                         <button
@@ -237,7 +302,7 @@ export const AdminBlogCategories: React.FC = () => {
                           disabled={busy}
                           style={{ marginInlineStart: 6 }}
                         >
-                          Delete
+                          {tc('delete')}
                         </button>
                       </td>
                     </tr>
@@ -254,7 +319,7 @@ export const AdminBlogCategories: React.FC = () => {
                       value={newCat.icon || ''}
                       onChange={(e) => setNewCat({ ...newCat, icon: e.target.value })}
                       placeholder="🏷"
-                      aria-label="Icon — new category"
+                      aria-label={t('iconLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
@@ -262,7 +327,7 @@ export const AdminBlogCategories: React.FC = () => {
                       type="color"
                       value={newCat.color || '#1a4d8f'}
                       onChange={(e) => setNewCat({ ...newCat, color: e.target.value })}
-                      aria-label="Color — new category"
+                      aria-label={t('colorLabel', { row: t('newCategory') })}
                       style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
                     />
                   </td>
@@ -274,8 +339,8 @@ export const AdminBlogCategories: React.FC = () => {
                       dir="ltr"
                       value={newCat.slug || ''}
                       onChange={(e) => setNewCat({ ...newCat, slug: normalizeSlug(e.target.value, { partial: true }) })}
-                      placeholder="auto from name"
-                      aria-label="Slug — new category"
+                      placeholder={t('slugPlaceholder')}
+                      aria-label={t('slugLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
@@ -286,47 +351,51 @@ export const AdminBlogCategories: React.FC = () => {
                       style={{ width: 140 }}
                       value={newCat.name_ar || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ar: e.target.value })}
-                      aria-label="Arabic name — new category"
+                      aria-label={t('nameArLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
+                      dir="ltr"
                       style={{ width: 140 }}
                       value={newCat.name_en || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_en: e.target.value })}
-                      aria-label="English name — new category"
+                      aria-label={t('nameEnLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
+                      dir="ltr"
                       style={{ width: 140 }}
                       value={newCat.name_tr || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_tr: e.target.value })}
-                      aria-label="Turkish name — new category"
+                      aria-label={t('nameTrLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
+                      dir="ltr"
                       style={{ width: 140 }}
                       value={newCat.name_ru || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ru: e.target.value })}
-                      aria-label="Russian name — new category"
+                      aria-label={t('nameRuLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>
                     <input
                       type="number"
                       className="adm-input adm-input-sm"
+                      dir="ltr"
                       style={{ width: 60 }}
                       value={newCat.display_order || 0}
                       onChange={(e) => setNewCat({ ...newCat, display_order: parseInt(e.target.value, 10) || 0 })}
-                      aria-label="Display order — new category"
+                      aria-label={t('orderLabel', { row: t('newCategory') })}
                     />
                   </td>
                   <td>—</td>
@@ -337,7 +406,7 @@ export const AdminBlogCategories: React.FC = () => {
                       onClick={handleCreate}
                       disabled={busy}
                     >
-                      + Add
+                      {t('add')}
                     </button>
                   </td>
                 </tr>

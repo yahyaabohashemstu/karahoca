@@ -2,9 +2,127 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type Product } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDateTime } from '../utils/dateUtils';
+import { fmtDateTime, fmtNumber } from '../utils/dateUtils';
 import { resolveAdminImage } from '../../utils/image';
 import { ProductCsvImportModal } from '../components/ProductCsvImportModal';
+import { defineMessages, useT } from '../i18n/core';
+import { common } from '../i18n/common';
+
+const messages = defineMessages({
+  en: {
+    confirmDelete: 'Delete this product? It will be hidden from the public site.\n\nTo permanently remove it, use "Edit" and then contact your admin.',
+    errDelete: 'Failed to delete product',
+    confirmDiscard: 'Discard unsaved order changes?',
+    errSaveOrder: 'Failed to save order: {error}',
+    errSaveOrderRetry: 'Failed to save order. Please try again.',
+    reorderTitle: '⠿ Reorder Products',
+    reorderSubtitle: 'Drag rows within each category to change display order. Cross-category drag is disabled.',
+    savingOrder: '⏳ Saving…',
+    saveOrder: '💾 Save Order',
+    noChanges: '✓ No Changes',
+    noProductsLoaded: 'No products loaded. Close and open a brand filter first.',
+    groupCount: { one: '{n} product', other: '{n} products' },
+    discard: 'Discard',
+    saveNewOrder: '💾 Save New Order',
+    title: 'Products',
+    subtitle: 'Manage DIOX and AYLUX product catalog',
+    reorderHint: 'Drag-and-drop to reorder products within categories',
+    reorder: '⠿ Reorder',
+    exportBrandTitle: 'Download {brand} products as CSV',
+    exportAllTitle: 'Download full product catalogue as CSV',
+    exportCsv: '⬇️ Export CSV',
+    importTitle: 'Bulk-import or update products from a CSV file',
+    importCsv: '📥 Import CSV',
+    manageCategories: '🗂️ Manage Categories',
+    addProduct: '+ Add Product',
+    allBrands: 'All Brands',
+    hiddenShownTitle: 'Currently showing hidden products — click to hide them',
+    showHiddenTitle: 'Show hidden/deleted products',
+    hideHidden: '👁 Hide Hidden',
+    showHidden: '👁 Show Hidden',
+    statusFilterTitle: 'Filter by publishing status',
+    allStatuses: 'All statuses',
+    filterPublished: '✅ Published',
+    filterDrafts: '📝 Drafts',
+    filterScheduled: '🕐 Scheduled',
+    searchPlaceholder: 'Search by name, category, brand…',
+    countOf: '{shown} of {total}',
+    hiddenCount: '({n} hidden)',
+    colNameAr: 'Name (AR)',
+    colNameEn: 'Name (EN)',
+    colBrand: 'Brand',
+    colCategory: 'Category',
+    colOrder: 'Order',
+    colVisibility: 'Visibility',
+    colPublishing: 'Publishing',
+    empty: 'No products found.',
+    badgeDraft: '📝 Draft',
+    badgeScheduled: '🕐 Scheduled',
+    badgeLive: '✅ Live',
+    deleteLabel: 'Delete product {name}',
+    deleteTitle: 'Delete product',
+  },
+  ar: {
+    confirmDelete: 'حذف هذا المنتج؟ سيُخفى من الموقع العام.\n\nلإزالته نهائيًا، افتح «تعديل» ثم تواصل مع مسؤول الموقع.',
+    errDelete: 'تعذّر حذف المنتج',
+    confirmDiscard: 'تجاهل تغييرات الترتيب غير المحفوظة؟',
+    errSaveOrder: 'تعذّر حفظ الترتيب: {error}',
+    errSaveOrderRetry: 'تعذّر حفظ الترتيب. أعد المحاولة.',
+    reorderTitle: '⠿ إعادة ترتيب المنتجات',
+    reorderSubtitle: 'اسحب الصفوف داخل كل فئة لتغيير ترتيب العرض. لا يمكن السحب بين فئات مختلفة.',
+    savingOrder: '⏳ جارٍ الحفظ…',
+    saveOrder: '💾 حفظ الترتيب',
+    noChanges: '✓ لا توجد تغييرات',
+    noProductsLoaded: 'لم تُحمَّل أي منتجات. أغلق هذا العرض واختر علامة تجارية أولًا.',
+    groupCount: {
+      zero: 'لا منتجات',
+      one: 'منتج واحد',
+      two: 'منتجان',
+      few: '{n} منتجات',
+      many: '{n} منتجًا',
+      other: '{n} منتج',
+    },
+    discard: 'تجاهل التغييرات',
+    saveNewOrder: '💾 حفظ الترتيب الجديد',
+    title: 'المنتجات',
+    subtitle: 'إدارة كتالوج منتجات DIOX و AYLUX',
+    reorderHint: 'اسحب المنتجات وأفلتها لإعادة ترتيبها داخل الفئات',
+    reorder: '⠿ إعادة الترتيب',
+    exportBrandTitle: 'تنزيل منتجات {brand} بصيغة CSV',
+    exportAllTitle: 'تنزيل كتالوج المنتجات كاملًا بصيغة CSV',
+    exportCsv: '⬇️ تصدير CSV',
+    importTitle: 'استيراد المنتجات أو تحديثها دفعةً واحدة من ملف CSV',
+    importCsv: '📥 استيراد CSV',
+    manageCategories: '🗂️ إدارة الفئات',
+    addProduct: '+ إضافة منتج',
+    allBrands: 'كل العلامات التجارية',
+    hiddenShownTitle: 'المنتجات المخفية معروضة الآن — انقر لإخفائها',
+    showHiddenTitle: 'عرض المنتجات المخفية والمحذوفة',
+    hideHidden: '👁 إخفاء المخفية',
+    showHidden: '👁 عرض المخفية',
+    statusFilterTitle: 'التصفية حسب حالة النشر',
+    allStatuses: 'كل الحالات',
+    filterPublished: '✅ المنشورة',
+    filterDrafts: '📝 المسودات',
+    filterScheduled: '🕐 المجدولة',
+    searchPlaceholder: 'ابحث بالاسم أو الفئة أو العلامة التجارية…',
+    countOf: '{shown} من {total}',
+    hiddenCount: '(المخفية: {n})',
+    colNameAr: 'الاسم (AR)',
+    colNameEn: 'الاسم (EN)',
+    colBrand: 'العلامة التجارية',
+    colCategory: 'الفئة',
+    colOrder: 'الترتيب',
+    colVisibility: 'الظهور',
+    colPublishing: 'النشر',
+    empty: 'لا توجد منتجات.',
+    badgeDraft: '📝 مسودة',
+    badgeScheduled: '🕐 مجدول',
+    badgeLive: '✅ ظاهر للزوار',
+    deleteLabel: 'حذف المنتج {name}',
+    deleteTitle: 'حذف المنتج',
+  },
+});
 
 export const AdminProducts: React.FC = () => {
   // ── Browse state ──────────────────────────────────────────────────────────
@@ -31,6 +149,9 @@ export const AdminProducts: React.FC = () => {
   // component stays focused on the table view.
   const [csvImportOpen, setCsvImportOpen] = useState(false);
 
+  const t = useT(messages);
+  const tc = useT(common);
+
   const { data, loading, error, reload } = useAsync(
     () => adminApi.getProducts(brand || undefined, showHidden),
     [brand, showHidden],
@@ -49,6 +170,7 @@ export const AdminProducts: React.FC = () => {
       (p.name_en || '').toLowerCase().includes(q) ||
       (p.name_ar || '').includes(q) ||
       (p.category_title_en || '').toLowerCase().includes(q) ||
+      (p.category_title_ar || '').toLowerCase().includes(q) ||
       (p.brand || '').toLowerCase().includes(q)
     );
   });
@@ -57,14 +179,14 @@ export const AdminProducts: React.FC = () => {
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product? It will be hidden from the public site.\n\nTo permanently remove it, use "Edit" and then contact your admin.')) return;
+    if (!confirm(t('confirmDelete'))) return;
     setDeleting(id);
     try {
       await adminApi.deleteProduct(id);
       reload();
     } catch (e) {
       // Show the real reason (e.g. "session expired — sign in again").
-      alert(e instanceof Error ? e.message : 'Failed to delete product');
+      alert(e instanceof Error ? e.message : t('errDelete'));
     } finally {
       setDeleting(null);
     }
@@ -81,7 +203,7 @@ export const AdminProducts: React.FC = () => {
   };
 
   const cancelReorder = () => {
-    if (dirty && !confirm('Discard unsaved order changes?')) return;
+    if (dirty && !confirm(t('confirmDiscard'))) return;
     setReorderMode(false);
     setDragSrcId(null);
     setDragOverId(null);
@@ -161,7 +283,7 @@ export const AdminProducts: React.FC = () => {
       setReorderMode(false);
       reload();
     } catch (e) {
-      alert(e instanceof Error ? `Failed to save order: ${e.message}` : 'Failed to save order. Please try again.');
+      alert(e instanceof Error ? t('errSaveOrder', { error: e.message }) : t('errSaveOrderRetry'));
     } finally {
       setSaving(false);
     }
@@ -193,9 +315,9 @@ export const AdminProducts: React.FC = () => {
       <div>
         <div className="adm-page-header">
           <div>
-            <h1 className="adm-page-title">⠿ Reorder Products</h1>
+            <h1 className="adm-page-title">{t('reorderTitle')}</h1>
             <p className="adm-page-subtitle">
-              Drag rows within each category to change display order. Cross-category drag is disabled.
+              {t('reorderSubtitle')}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -204,21 +326,21 @@ export const AdminProducts: React.FC = () => {
               onClick={cancelReorder}
               disabled={saving}
             >
-              Cancel
+              {tc('cancel')}
             </button>
             <button
               className={`adm-btn adm-btn-sm ${dirty ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
               onClick={handleSaveReorder}
               disabled={!dirty || saving}
             >
-              {saving ? '⏳ Saving…' : dirty ? '💾 Save Order' : '✓ No Changes'}
+              {saving ? t('savingOrder') : dirty ? t('saveOrder') : t('noChanges')}
             </button>
           </div>
         </div>
 
         {reorderItems.length === 0 && (
           <div className="adm-alert" style={{ marginTop: 16 }}>
-            No products loaded. Close and open a brand filter first.
+            {t('noProductsLoaded')}
           </div>
         )}
 
@@ -233,12 +355,22 @@ export const AdminProducts: React.FC = () => {
               alignItems: 'center',
               gap: 10,
             }}>
-              <strong style={{ fontSize: 14 }}>{group.titleEn}</strong>
-              {group.titleAr && (
-                <span className="adm-text-muted" style={{ fontSize: 13 }} dir="rtl">{group.titleAr}</span>
+              {/* The admin language first, the other one beside it. */}
+              {t.lang === 'ar' && group.titleAr ? (
+                <>
+                  <strong style={{ fontSize: 14 }} dir="rtl">{group.titleAr}</strong>
+                  <span className="adm-text-muted" style={{ fontSize: 13 }} dir="ltr">{group.titleEn}</span>
+                </>
+              ) : (
+                <>
+                  <strong style={{ fontSize: 14 }} dir="ltr">{group.titleEn}</strong>
+                  {group.titleAr && (
+                    <span className="adm-text-muted" style={{ fontSize: 13 }} dir="rtl">{group.titleAr}</span>
+                  )}
+                </>
               )}
-              <span className="adm-badge adm-badge-blue" style={{ marginLeft: 'auto', fontSize: 11 }}>
-                {group.items.length} products
+              <span className="adm-badge adm-badge-blue" style={{ marginInlineStart: 'auto', fontSize: 11 }}>
+                {t.plural('groupCount', group.items.length)}
               </span>
             </div>
 
@@ -273,7 +405,7 @@ export const AdminProducts: React.FC = () => {
                     cursor: isDragging ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     opacity: isDragging ? 0.45 : 1,
-                    borderLeft: isOver && srcInSameCat
+                    borderInlineStart: isOver && srcInSameCat
                       ? '3px solid var(--adm-primary, #6366f1)'
                       : '3px solid transparent',
                     transition: 'background 0.12s, border-color 0.12s, opacity 0.12s',
@@ -326,7 +458,7 @@ export const AdminProducts: React.FC = () => {
 
                   {/* Status badge */}
                   <span className={`adm-badge ${p.active ? 'adm-badge-green' : 'adm-badge-red'}`} style={{ fontSize: 11, flexShrink: 0 }}>
-                    {p.active ? 'Active' : 'Hidden'}
+                    {p.active ? tc('active') : tc('hidden')}
                   </span>
 
                   {/* Brand badge */}
@@ -350,10 +482,10 @@ export const AdminProducts: React.FC = () => {
             padding: '12px 0',
           }}>
             <button className="adm-btn adm-btn-secondary adm-btn-sm" onClick={cancelReorder} disabled={saving}>
-              Discard
+              {t('discard')}
             </button>
             <button className="adm-btn adm-btn-primary" onClick={handleSaveReorder} disabled={saving}>
-              {saving ? '⏳ Saving…' : '💾 Save New Order'}
+              {saving ? t('savingOrder') : t('saveNewOrder')}
             </button>
           </div>
         )}
@@ -368,17 +500,17 @@ export const AdminProducts: React.FC = () => {
     <div>
       <div className="adm-page-header">
         <div>
-          <h1 className="adm-page-title">Products</h1>
-          <p className="adm-page-subtitle">Manage DIOX and AYLUX product catalog</p>
+          <h1 className="adm-page-title">{t('title')}</h1>
+          <p className="adm-page-subtitle">{t('subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={enterReorderMode}
-            title="Drag-and-drop to reorder products within categories"
+            title={t('reorderHint')}
             disabled={loading || products.length === 0}
           >
-            ⠿ Reorder
+            {t('reorder')}
           </button>
           {/* CSV round-trip — export downloads the active brand filter
               (or full catalogue), import opens a two-step preview/apply
@@ -388,27 +520,27 @@ export const AdminProducts: React.FC = () => {
             href={adminApi.productsExportCsvUrl(brand || undefined)}
             className="adm-btn adm-btn-ghost adm-btn-sm"
             title={brand
-              ? `Download ${brand} products as CSV`
-              : 'Download full product catalogue as CSV'}
+              ? t('exportBrandTitle', { brand })
+              : t('exportAllTitle')}
             download
             target="_self"
             rel="noopener"
           >
-            ⬇️ Export CSV
+            {t('exportCsv')}
           </a>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
             onClick={() => setCsvImportOpen(true)}
-            title="Bulk-import or update products from a CSV file"
+            title={t('importTitle')}
           >
-            📥 Import CSV
+            {t('importCsv')}
           </button>
           <Link to="/admin/categories" className="adm-btn adm-btn-secondary adm-btn-sm">
-            🗂️ Manage Categories
+            {t('manageCategories')}
           </Link>
           <Link to="/admin/products/new" className="adm-btn adm-btn-primary adm-btn-sm">
-            + Add Product
+            {t('addProduct')}
           </Link>
         </div>
       </div>
@@ -427,7 +559,7 @@ export const AdminProducts: React.FC = () => {
             className={`adm-btn adm-btn-sm ${brand === b ? 'adm-btn-primary' : 'adm-btn-ghost'}`}
             onClick={() => setBrand(b)}
           >
-            {b || 'All Brands'}
+            {b || t('allBrands')}
           </button>
         ))}
 
@@ -435,9 +567,9 @@ export const AdminProducts: React.FC = () => {
         <button
           className={`adm-btn adm-btn-sm ${showHidden ? 'adm-btn-warning' : 'adm-btn-ghost'}`}
           onClick={() => setShowHidden(v => !v)}
-          title={showHidden ? 'Currently showing hidden products — click to hide them' : 'Show hidden/deleted products'}
+          title={showHidden ? t('hiddenShownTitle') : t('showHiddenTitle')}
         >
-          {showHidden ? '👁 Hide Hidden' : '👁 Show Hidden'}
+          {showHidden ? t('hideHidden') : t('showHidden')}
         </button>
 
         {/* D5 status filter */}
@@ -446,36 +578,36 @@ export const AdminProducts: React.FC = () => {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as '' | 'draft' | 'scheduled' | 'published')}
           style={{ width: 160 }}
-          title="Filter by publishing status"
+          title={t('statusFilterTitle')}
         >
-          <option value="">All statuses</option>
-          <option value="published">✅ Published</option>
-          <option value="draft">📝 Drafts</option>
-          <option value="scheduled">🕐 Scheduled</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="published">{t('filterPublished')}</option>
+          <option value="draft">{t('filterDrafts')}</option>
+          <option value="scheduled">{t('filterScheduled')}</option>
         </select>
 
         {/* Search */}
         <input
           type="search"
           className="adm-input adm-input-sm"
-          placeholder="Search by name, category, brand…"
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          style={{ marginLeft: 'auto', width: 220 }}
+          style={{ marginInlineStart: 'auto', width: 220 }}
         />
 
         {/* Count */}
         <span className="adm-text-muted adm-text-sm">
-          {filtered.length} of {products.length}
+          {t('countOf', { shown: filtered.length, total: products.length })}
           {hiddenCount > 0 && (
-            <span style={{ color: 'var(--adm-danger)', marginLeft: 4 }}>
-              ({hiddenCount} hidden)
+            <span style={{ color: 'var(--adm-danger)', marginInlineStart: 4 }}>
+              {t('hiddenCount', { n: hiddenCount })}
             </span>
           )}
         </span>
       </div>
 
-      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> Loading...</div>}
+      {loading && <div className="adm-loading-center"><span className="adm-spinner" /> {tc('loading')}</div>}
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
 
       {!loading && (
@@ -484,14 +616,14 @@ export const AdminProducts: React.FC = () => {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th>Image</th>
-                  <th style={{ textAlign: 'right' }}>Name (AR)</th>
-                  <th>Name (EN)</th>
-                  <th>Brand</th>
-                  <th>Category</th>
-                  <th>Order</th>
-                  <th>Visibility</th>
-                  <th>Publishing</th>
+                  <th>{tc('image')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('colNameAr')}</th>
+                  <th>{t('colNameEn')}</th>
+                  <th>{t('colBrand')}</th>
+                  <th>{t('colCategory')}</th>
+                  <th>{t('colOrder')}</th>
+                  <th>{t('colVisibility')}</th>
+                  <th>{t('colPublishing')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -499,15 +631,15 @@ export const AdminProducts: React.FC = () => {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--adm-text-dim)' }}>
-                      No products found.
+                      {t('empty')}
                     </td>
                   </tr>
                 ) : filtered.map((p: Product) => {
                   const status = (p.status || 'published') as 'draft' | 'scheduled' | 'published';
                   const statusBadge =
-                    status === 'draft'     ? { color: 'adm-badge-warning', text: '📝 Draft' } :
-                    status === 'scheduled' ? { color: 'adm-badge-blue',    text: '🕐 Scheduled' } :
-                                             { color: 'adm-badge-green',   text: '✅ Live' };
+                    status === 'draft'     ? { color: 'adm-badge-warning', text: t('badgeDraft') } :
+                    status === 'scheduled' ? { color: 'adm-badge-blue',    text: t('badgeScheduled') } :
+                                             { color: 'adm-badge-green',   text: t('badgeLive') };
                   return (
                     <tr
                       key={p.id}
@@ -526,11 +658,13 @@ export const AdminProducts: React.FC = () => {
                       <td dir="rtl" style={{ maxWidth: 160, textAlign: 'right' }} className="adm-truncate">{p.name_ar}</td>
                       <td style={{ maxWidth: 160 }} className="adm-truncate">{p.name_en}</td>
                       <td><span className={`adm-badge ${p.brand === 'DIOX' ? 'adm-badge-blue' : 'adm-badge-green'}`}>{p.brand}</span></td>
-                      <td className="adm-text-sm adm-text-muted">{p.category_title_en || p.category_id}</td>
-                      <td className="adm-text-sm adm-text-muted">{p.display_order}</td>
+                      <td className="adm-text-sm adm-text-muted">
+                        {(t.lang === 'ar' ? p.category_title_ar || p.category_title_en : p.category_title_en) || p.category_id}
+                      </td>
+                      <td className="adm-text-sm adm-text-muted">{fmtNumber(p.display_order)}</td>
                       <td>
                         <span className={`adm-badge ${p.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
-                          {p.active ? 'Active' : 'Hidden'}
+                          {p.active ? tc('active') : tc('hidden')}
                         </span>
                       </td>
                       <td>
@@ -543,13 +677,13 @@ export const AdminProducts: React.FC = () => {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">Edit</Link>
+                          <Link to={`/admin/products/${p.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">{tc('edit')}</Link>
                           <button
                             className="adm-btn adm-btn-danger adm-btn-sm"
                             onClick={() => handleDelete(p.id)}
                             disabled={deleting === p.id}
-                            aria-label={`Delete product ${p.name_en || p.name_ar || p.id}`}
-                            title="Delete product"
+                            aria-label={t('deleteLabel', { name: p.name_en || p.name_ar || p.id })}
+                            title={t('deleteTitle')}
                           >
                             {deleting === p.id ? '…' : '🗑'}
                           </button>
