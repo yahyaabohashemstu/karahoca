@@ -184,6 +184,9 @@ export const MarkdownEditor: React.FC<Props> = ({
             key={b.action}
             type="button"
             title={b.title}
+            // The labels are symbols ("❝", "⟨⟩", "1."); give screen
+            // readers the action's name instead.
+            aria-label={b.title}
             onClick={() => applyAction(b.action)}
             disabled={mode === 'preview'}
             style={{

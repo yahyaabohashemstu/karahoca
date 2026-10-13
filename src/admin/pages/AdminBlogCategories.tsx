@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type BlogCategoryItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { normalizeSlug } from '../utils/slug';
+import { confirmSlugChange } from '../utils/publishing';
 
 /**
  * /admin/blog/categories — inline-edit grid for blog categories.
@@ -35,8 +37,14 @@ export const AdminBlogCategories: React.FC = () => {
   };
 
   const saveDraft = async (id: string) => {
-    const patch = drafts[id];
-    if (!patch || Object.keys(patch).length === 0) return;
+    if (!drafts[id] || Object.keys(drafts[id]).length === 0) return;
+    const patch = { ...drafts[id] };
+    if (patch.slug !== undefined) {
+      // Blank → the server derives one from the names.
+      patch.slug = normalizeSlug(patch.slug);
+      const cat = items.find((c) => c.id === id);
+      if (!confirmSlugChange('category', Boolean(cat?.active), cat?.slug, patch.slug)) return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -71,7 +79,7 @@ export const AdminBlogCategories: React.FC = () => {
     setBusy(true);
     setErr(null);
     try {
-      await adminApi.createBlogCategory(newCat);
+      await adminApi.createBlogCategory({ ...newCat, slug: normalizeSlug(newCat.slug) });
       setNewCat(EMPTY_CAT);
       reload();
     } catch (e) {
@@ -117,6 +125,9 @@ export const AdminBlogCategories: React.FC = () => {
                 {items.map((cat) => {
                   const d = { ...cat, ...(drafts[cat.id] || {}) };
                   const dirty = Boolean(drafts[cat.id]);
+                  // The table header isn't tied to these inputs, so each
+                  // one names its column and row for screen readers.
+                  const row = cat.name_en || cat.name_ar || cat.slug;
                   return (
                     <tr key={cat.id}>
                       <td>
@@ -126,6 +137,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 60 }}
                           value={d.icon || ''}
                           onChange={(e) => updateDraft(cat.id, { icon: e.target.value })}
+                          aria-label={`Icon — ${row}`}
                         />
                       </td>
                       <td>
@@ -133,6 +145,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="color"
                           value={d.color || '#1a4d8f'}
                           onChange={(e) => updateDraft(cat.id, { color: e.target.value })}
+                          aria-label={`Color — ${row}`}
                           style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
                         />
                       </td>
@@ -141,17 +154,21 @@ export const AdminBlogCategories: React.FC = () => {
                           type="text"
                           className="adm-input adm-input-sm"
                           style={{ width: 130 }}
+                          dir="ltr"
                           value={d.slug || ''}
-                          onChange={(e) => updateDraft(cat.id, { slug: e.target.value })}
+                          onChange={(e) => updateDraft(cat.id, { slug: normalizeSlug(e.target.value, { partial: true }) })}
+                          aria-label={`Slug — ${row}`}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           className="adm-input adm-input-sm"
-                          style={{ width: 140, direction: 'rtl' }}
+                          dir="rtl"
+                          style={{ width: 140 }}
                           value={d.name_ar || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ar: e.target.value })}
+                          aria-label={`Arabic name — ${row}`}
                         />
                       </td>
                       <td>
@@ -161,6 +178,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 140 }}
                           value={d.name_en || ''}
                           onChange={(e) => updateDraft(cat.id, { name_en: e.target.value })}
+                          aria-label={`English name — ${row}`}
                         />
                       </td>
                       <td>
@@ -170,6 +188,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 140 }}
                           value={d.name_tr || ''}
                           onChange={(e) => updateDraft(cat.id, { name_tr: e.target.value })}
+                          aria-label={`Turkish name — ${row}`}
                         />
                       </td>
                       <td>
@@ -179,6 +198,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 140 }}
                           value={d.name_ru || ''}
                           onChange={(e) => updateDraft(cat.id, { name_ru: e.target.value })}
+                          aria-label={`Russian name — ${row}`}
                         />
                       </td>
                       <td>
@@ -188,6 +208,7 @@ export const AdminBlogCategories: React.FC = () => {
                           style={{ width: 60 }}
                           value={d.display_order || 0}
                           onChange={(e) => updateDraft(cat.id, { display_order: parseInt(e.target.value, 10) || 0 })}
+                          aria-label={`Display order — ${row}`}
                         />
                       </td>
                       <td>
@@ -195,6 +216,7 @@ export const AdminBlogCategories: React.FC = () => {
                           type="checkbox"
                           checked={Boolean(d.active)}
                           onChange={(e) => updateDraft(cat.id, { active: e.target.checked ? 1 : 0 })}
+                          aria-label={`Active — ${row}`}
                         />
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
@@ -232,6 +254,7 @@ export const AdminBlogCategories: React.FC = () => {
                       value={newCat.icon || ''}
                       onChange={(e) => setNewCat({ ...newCat, icon: e.target.value })}
                       placeholder="🏷"
+                      aria-label="Icon — new category"
                     />
                   </td>
                   <td>
@@ -239,6 +262,7 @@ export const AdminBlogCategories: React.FC = () => {
                       type="color"
                       value={newCat.color || '#1a4d8f'}
                       onChange={(e) => setNewCat({ ...newCat, color: e.target.value })}
+                      aria-label="Color — new category"
                       style={{ width: 40, height: 28, border: 0, cursor: 'pointer' }}
                     />
                   </td>
@@ -247,18 +271,22 @@ export const AdminBlogCategories: React.FC = () => {
                       type="text"
                       className="adm-input adm-input-sm"
                       style={{ width: 130 }}
+                      dir="ltr"
                       value={newCat.slug || ''}
-                      onChange={(e) => setNewCat({ ...newCat, slug: e.target.value })}
+                      onChange={(e) => setNewCat({ ...newCat, slug: normalizeSlug(e.target.value, { partial: true }) })}
                       placeholder="auto from name"
+                      aria-label="Slug — new category"
                     />
                   </td>
                   <td>
                     <input
                       type="text"
                       className="adm-input adm-input-sm"
-                      style={{ width: 140, direction: 'rtl' }}
+                      dir="rtl"
+                      style={{ width: 140 }}
                       value={newCat.name_ar || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ar: e.target.value })}
+                      aria-label="Arabic name — new category"
                     />
                   </td>
                   <td>
@@ -268,6 +296,7 @@ export const AdminBlogCategories: React.FC = () => {
                       style={{ width: 140 }}
                       value={newCat.name_en || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_en: e.target.value })}
+                      aria-label="English name — new category"
                     />
                   </td>
                   <td>
@@ -277,6 +306,7 @@ export const AdminBlogCategories: React.FC = () => {
                       style={{ width: 140 }}
                       value={newCat.name_tr || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_tr: e.target.value })}
+                      aria-label="Turkish name — new category"
                     />
                   </td>
                   <td>
@@ -286,6 +316,7 @@ export const AdminBlogCategories: React.FC = () => {
                       style={{ width: 140 }}
                       value={newCat.name_ru || ''}
                       onChange={(e) => setNewCat({ ...newCat, name_ru: e.target.value })}
+                      aria-label="Russian name — new category"
                     />
                   </td>
                   <td>
@@ -295,6 +326,7 @@ export const AdminBlogCategories: React.FC = () => {
                       style={{ width: 60 }}
                       value={newCat.display_order || 0}
                       onChange={(e) => setNewCat({ ...newCat, display_order: parseInt(e.target.value, 10) || 0 })}
+                      aria-label="Display order — new category"
                     />
                   </td>
                   <td>—</td>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { adminApi } from '../utils/adminApi';
+import { adminApi, type AdminRequestError } from '../utils/adminApi';
+import { useModalDialog } from '../utils/useModalDialog';
 
 /**
  * Two-step CSV import modal:
@@ -38,8 +39,6 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
 
-  if (!open) return null;
-
   const reset = () => {
     setCsvText('');
     setPreview(null);
@@ -53,6 +52,11 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
     onClose();
   };
 
+  // Called before the early return below so the hook order never changes.
+  const panelRef = useModalDialog<HTMLDivElement>(open, handleClose);
+
+  if (!open) return null;
+
   const handleFile = async (file: File | null) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -61,6 +65,14 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
     }
     try {
       const text = await file.text();
+      // file.text() decodes as UTF-8 and turns every invalid byte into
+      // U+FFFD. A file Excel saved as plain "CSV" (Windows-1254/1256/1251)
+      // would otherwise import with every Turkish/Arabic/Russian letter
+      // replaced by "�".
+      if (text.includes('\uFFFD')) {
+        setError('This file is not UTF-8, so its Arabic/Turkish/Russian text would be corrupted. In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and pick that file.');
+        return;
+      }
       setCsvText(text);
       setPreview(null);
       setError(null);
@@ -86,9 +98,8 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
       const msg = (err as Error).message || 'Preview failed.';
       setError(msg);
       // Server returns the partial summary on validation errors so the
-      // admin still sees per-row messages — try to parse it.
-      type ApiError = Error & { status?: number; data?: { summary?: PreviewSummary } };
-      const data = (err as ApiError).data;
+      // admin still sees per-row messages.
+      const data = (err as AdminRequestError).data as { summary?: PreviewSummary } | undefined;
       if (data?.summary) setPreview(data.summary);
     } finally {
       setBusy(false);
@@ -117,9 +128,7 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Import products from CSV"
+      role="presentation"
       style={{
         position: 'fixed',
         inset: 0,
@@ -133,6 +142,11 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="csv-import-title"
+        tabIndex={-1}
         className="adm-card"
         style={{
           width: 'min(720px, 100%)',
@@ -142,10 +156,11 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
           gap: 12,
           padding: 20,
           overflow: 'auto',
+          outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>📥 Import products from CSV</h2>
+          <h2 id="csv-import-title" style={{ margin: 0, fontSize: 18 }}>📥 Import products from CSV</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
@@ -220,8 +235,11 @@ export const ProductCsvImportModal: React.FC<Props> = ({ open, onClose, onComple
               fontSize: 12,
             }}
           >
+            {/* The server's messages already start with "Row N:". */}
             {preview.errors.map((e, i) => (
-              <div key={i} style={{ color: '#dc2626' }}>line {e.line}: {e.error}</div>
+              <div key={i} style={{ color: '#dc2626' }}>
+                {e.error.startsWith('Row ') ? e.error : `Row ${e.line}: ${e.error}`}
+              </div>
             ))}
           </div>
         )}

@@ -5,9 +5,22 @@ import { TranslationHelper } from '../components/TranslationHelper';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
+import { normalizeSlug } from '../utils/slug';
+import { PRERENDER_NOTE, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
+
+// The Arabic copy is the one TranslationHelper translates from.
+const SOURCE_LANG: Lang = 'ar';
+
+/** Trailing whitespace off the end of a body, applied only when saving. */
+const trimBody = (paragraphs: string[] | undefined): string[] => {
+  const out = [...(paragraphs ?? [])];
+  while (out.length > 0 && !out[out.length - 1].trim()) out.pop();
+  if (out.length > 0) out[out.length - 1] = out[out.length - 1].replace(/\s+$/, '');
+  return out;
+};
 
 const EMPTY: Partial<NewsItem> = {
   slug: '', image: '', published_at: new Date().toISOString().split('T')[0],
@@ -30,12 +43,16 @@ export const AdminNewsEdit: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  // The article as loaded: whether it is live, and its slug, decide if a
+  // slug edit needs a "links will break" confirmation.
+  const [loaded, setLoaded] = useState<NewsItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isNew) {
       adminApi.getNewsItem(id!).then(r => {
         setForm(r.item);
+        setLoaded(r.item);
         setLoading(false);
       }).catch(e => {
         setError(e.message);
@@ -67,12 +84,12 @@ export const AdminNewsEdit: React.FC = () => {
     (form[`body_${lang}` as keyof NewsItem] as string[] | undefined)?.join('\n\n') ?? '';
 
   const setBodyText = (lang: Lang, text: string) => {
-    // Trim trailing whitespace only; PRESERVE internal blank lines so
-    // markdown features that need them (lists, code blocks, blockquotes)
-    // continue to parse. Wrapping in a single-element array keeps the
-    // API contract unchanged.
-    const trimmed = text.replace(/\s+$/, '');
-    const payload = trimmed ? [trimmed] : [];
+    // Store the text exactly as typed. It used to be trimmed here, on
+    // every keystroke, so a space or Enter typed at the end vanished at
+    // once — you could not start a new word or paragraph at the end of
+    // the body. trimBody() runs when the save payload is built instead.
+    // Wrapping in a single-element array keeps the API contract unchanged.
+    const payload = text ? [text] : [];
     set(`body_${lang}` as keyof NewsItem, payload as unknown as NewsItem[keyof NewsItem]);
   };
 
@@ -80,9 +97,13 @@ export const AdminNewsEdit: React.FC = () => {
     const updates: Partial<NewsItem> = {};
     for (const [field, langs] of Object.entries(translations)) {
       for (const [lang, value] of Object.entries(langs)) {
+        // Never overwrite the text the admin translated from.
+        if (lang === SOURCE_LANG) continue;
         if (field === 'body') {
-          const paragraphs = value.split(/\n\n+/).map((p: string) => p.trim()).filter(Boolean);
-          (updates as Record<string, string[]>)[`body_${lang}`] = paragraphs;
+          // One markdown block, like setBodyText: splitting on blank lines
+          // and trimming each piece broke indented / fenced code blocks.
+          const text = value.replace(/\s+$/, '');
+          (updates as Record<string, string[]>)[`body_${lang}`] = text ? [text] : [];
         } else {
           (updates as Record<string, string>)[`${field}_${lang}`] = value;
         }
@@ -121,17 +142,23 @@ export const AdminNewsEdit: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!form.title_ar || !form.slug) {
-      setError('Please fill required fields: Arabic title and slug.');
+    const slug = normalizeSlug(form.slug);
+    if (!form.title_ar || !slug) {
+      setError('Please fill required fields: Arabic title and slug (letters or digits).');
       return;
     }
+    const wasLive = loaded?.status === 'published' && Boolean(loaded.active);
+    if (!confirmSlugChange('article', wasLive, loaded?.slug, slug)) return;
+    if (!confirmPastSchedule(form.status, form.publish_at)) return;
+    const payload: Partial<NewsItem> = { ...form, slug };
+    for (const l of LANGS) payload[`body_${l}`] = trimBody(form[`body_${l}`]);
     setSaving(true);
     setError(null);
     try {
       if (isNew) {
-        await adminApi.createNews(form);
+        await adminApi.createNews(payload);
       } else {
-        await adminApi.updateNews(id!, form);
+        await adminApi.updateNews(id!, payload);
       }
       navigate('/admin/news');
     } catch (e) {
@@ -166,8 +193,12 @@ export const AdminNewsEdit: React.FC = () => {
               <label className="adm-label">Slug (URL) *</label>
               <input
                 className="adm-input"
+                dir="ltr"
                 value={form.slug ?? ''}
-                onChange={e => setStr('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                // Partial while typing (keeps a trailing dash so "my slug"
+                // can be typed), fully normalised when leaving the field.
+                onChange={e => setStr('slug', normalizeSlug(e.target.value, { partial: true }))}
+                onBlur={e => setStr('slug', normalizeSlug(e.target.value))}
                 placeholder="my-news-article"
               />
             </div>
@@ -219,6 +250,9 @@ export const AdminNewsEdit: React.FC = () => {
                 <option value="draft">📝 Draft — hidden, work in progress</option>
                 <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
               </select>
+              <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
+                {PRERENDER_NOTE}
+              </small>
             </div>
             {form.status === 'scheduled' && (
               <div className="adm-form-group">
@@ -230,7 +264,7 @@ export const AdminNewsEdit: React.FC = () => {
                   onChange={e => setStr('publish_at', fromDatetimeLocalValue(e.target.value))}
                 />
                 <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
-                  Article will be published automatically at this time.
+                  Article will be published automatically at this time (your local time).
                 </small>
               </div>
             )}

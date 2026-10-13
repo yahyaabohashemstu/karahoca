@@ -5,26 +5,32 @@ interface TranslationHelperProps {
   /** Fields to translate: record of fieldName -> value (in source language) */
   fields: Record<string, string>;
   sourceLang?: string;
-  /** Called with translated values for each lang */
+  /**
+   * Called with translated values for each lang. Never includes
+   * `sourceLang`: the model's "copy" of the source used to overwrite what
+   * the admin had typed (reflowed, trimmed or lightly reworded).
+   */
   onTranslated: (translations: Record<string, Record<string, string>>) => void;
 }
 
 /** Returns a short, user-friendly message for common translation/network errors. */
 function friendlyError(raw: string): string {
   const s = raw.toLowerCase();
-  if (s.includes('503') || s.includes('unavailable') || s.includes('high demand') || s.includes('مشغولة'))
-    return 'خدمة الترجمة مشغولة حالياً — جارٍ المحاولة تلقائياً، يرجى الانتظار قليلاً ثم المحاولة مجدداً.';
+  if (s.includes('503') || s.includes('unavailable') || s.includes('high demand') || s.includes('busy'))
+    return 'The translation service is busy right now. Wait a moment and try again.';
   if (s.includes('429') || s.includes('rate'))
-    return 'تم تجاوز حد الطلبات — يرجى الانتظار دقيقة ثم المحاولة مجدداً.';
+    return 'Too many translation requests. Wait a minute and try again.';
   if (s.includes('timeout') || s.includes('abort'))
-    return 'انتهت مهلة الترجمة — يرجى المحاولة مجدداً.';
+    return 'The translation timed out. Please try again.';
   if (s.includes('api_key') || s.includes('configured'))
-    return 'مفتاح الترجمة غير مهيأ — تواصل مع المسؤول.';
+    return 'Translation is not configured on the server (missing API key). Contact the site administrator.';
   if (s.includes('parse') || s.includes('json'))
-    return 'خطأ في تحليل استجابة الترجمة — حاول مجدداً.';
+    return 'The translation came back in an unreadable format. Please try again.';
   // Fallback: trim the raw error if it's too long
   return raw.length > 120 ? raw.slice(0, 120) + '…' : raw;
 }
+
+const LANG_LABEL: Record<string, string> = { ar: 'Arabic', en: 'English', tr: 'Turkish', ru: 'Russian' };
 
 export const TranslationHelper: React.FC<TranslationHelperProps> = ({
   fields,
@@ -33,7 +39,7 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   const hasContent = Object.values(fields).some(v => v && v.trim());
@@ -42,7 +48,7 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
     if (!hasContent || loading) return;
     setLoading(true);
     setError(null);
-    setSuccess(false);
+    setSuccess(null);
 
     try {
       const result = await adminApi.translate({ fields, sourceLang });
@@ -60,6 +66,8 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
       let translatedLangs = 0;
       let translatedFields = 0;
       for (const [lang, fieldValues] of Object.entries(raw)) {
+        // Never write back into the language the admin typed in.
+        if (lang === sourceLang) continue;
         if (!fieldValues || typeof fieldValues !== 'object') continue;
         const before = translatedFields;
         for (const [field, value] of Object.entries(fieldValues)) {
@@ -77,12 +85,12 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
         if (translatedFields > before) translatedLangs++;
       }
 
-      // Empty-result guard: a false-positive "✓ تمت الترجمة" badge with
-      // no actual translations is the regression the user reported.
-      // If we got nothing usable, surface a real error instead.
+      // Empty-result guard: a false-positive "Translated" badge with no
+      // actual translations is a regression admins have reported. If we
+      // got nothing usable, surface a real error instead.
       if (translatedFields === 0) {
         console.warn('[translate] empty translations payload', { raw });
-        throw new Error('الترجمة عادت فارغة — حاول مجدداً.');
+        throw new Error('The translation came back empty. Please try again.');
       }
 
       // Diagnostic log (kept lightweight so production console isn't
@@ -93,9 +101,18 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
       );
 
       onTranslated(fieldFirst);
-      setSuccess(true);
-      setAttempt(0);
-      setTimeout(() => setSuccess(false), 3000);
+      // The server translates each language separately; name the ones
+      // that failed so the admin knows which tabs to check or retry.
+      const failed = ((result as { failedLangs?: string[] }).failedLangs ?? [])
+        .filter((l) => l !== sourceLang);
+      if (failed.length > 0) {
+        setError(`${failed.map((l) => LANG_LABEL[l] ?? l).join(', ')} could not be translated. Try again for the missing language(s).`);
+        setAttempt(a => a + 1);
+      } else {
+        setAttempt(0);
+      }
+      setSuccess(failed.length > 0 ? '✓ Partly translated' : '✓ Translated');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Translation failed';
       setError(friendlyError(raw));
@@ -112,25 +129,26 @@ export const TranslationHelper: React.FC<TranslationHelperProps> = ({
         className="adm-btn adm-translate-btn adm-btn-sm"
         onClick={handleTranslate}
         disabled={loading || !hasContent}
-        title="Translate to all languages using AI"
+        title={`Translate the ${LANG_LABEL[sourceLang] ?? sourceLang} text into the other languages using AI`}
       >
         {loading
           ? <span className="adm-spinner" style={{ width: 14, height: 14 }} />
           : '🤖'}
         {loading
-          ? ' جارٍ الترجمة…'
+          ? ' Translating…'
           : attempt > 0
-            ? ' حاول مجدداً'
+            ? ' Try again'
             : ' Auto-Translate All Languages'}
       </button>
 
       {success && (
-        <span className="adm-badge adm-badge-green">✓ تمت الترجمة!</span>
+        <span className="adm-badge adm-badge-green" role="status">{success}</span>
       )}
 
       {error && (
         <span
           className="adm-badge adm-badge-red"
+          role="alert"
           style={{ maxWidth: 420, whiteSpace: 'normal', lineHeight: 1.4 }}
         >
           ✗ {error}

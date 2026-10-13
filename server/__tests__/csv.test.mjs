@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvRows, parseCsvObjects, stringifyCsv, formatCsvCell } from '../services/csv.mjs';
+import {
+  parseCsvRows, parseCsvObjects, stringifyCsv, formatCsvCell,
+  detectDelimiter, stripFormulaGuard, hasEncodingDamage,
+} from '../services/csv.mjs';
 
 /**
  * Behaviour pins for the dependency-free CSV reader/writer used by the
@@ -38,6 +41,36 @@ describe('parseCsvRows', () => {
     const out = parseCsvRows('a,b\n1,2\n\n');
     expect(out).toHaveLength(2);
   });
+
+  // Excel in a Turkish / Russian locale saves "CSV" with semicolons.
+  it('reads a semicolon-separated file', () => {
+    const out = parseCsvRows('\uFEFFid;name;note\r\n1;Temizleyici;"a; b"\r\n2;"1,5 L";x\r\n');
+    expect(out).toEqual([['id', 'name', 'note'], ['1', 'Temizleyici', 'a; b'], ['2', '1,5 L', 'x']]);
+  });
+
+  it('keeps commas as the delimiter when the header uses them', () => {
+    const out = parseCsvRows('a,b\n"x;y",2');
+    expect(out).toEqual([['a', 'b'], ['x;y', '2']]);
+  });
+
+  it('honours an explicit delimiter', () => {
+    expect(parseCsvRows('a;b,c', { delimiter: ',' })).toEqual([['a;b', 'c']]);
+  });
+});
+
+describe('detectDelimiter', () => {
+  it('picks whichever of , and ; the header line uses', () => {
+    expect(detectDelimiter('id,brand,name\n1;2;3')).toBe(',');
+    expect(detectDelimiter('id;brand;name\n1,2,3')).toBe(';');
+  });
+
+  it('ignores delimiters inside quoted header cells', () => {
+    expect(detectDelimiter('"a;b;c",d,e')).toBe(',');
+  });
+
+  it('defaults to a comma for a single-column file', () => {
+    expect(detectDelimiter('name\nfoo')).toBe(',');
+  });
 });
 
 describe('parseCsvObjects', () => {
@@ -56,6 +89,49 @@ describe('parseCsvObjects', () => {
   it('returns empty records when the file has only a header', () => {
     const { records } = parseCsvObjects('a,b');
     expect(records).toEqual([]);
+  });
+
+  // Excel leaves ",,,," rows for cells that were once touched.
+  it('skips rows whose cells are all blank and reports the original row numbers', () => {
+    const { records, rowNumbers } = parseCsvObjects('id,name\r\n1,A\r\n,\r\n , \r\n2,B\r\n,,\r\n');
+    expect(records).toEqual([{ id: '1', name: 'A' }, { id: '2', name: 'B' }]);
+    expect(rowNumbers).toEqual([2, 5]);
+  });
+
+  it('parses a semicolon file into objects', () => {
+    const { records } = parseCsvObjects('id;name_tr\n7;Yüzey temizleyici');
+    expect(records).toEqual([{ id: '7', name_tr: 'Yüzey temizleyici' }]);
+  });
+});
+
+describe('stripFormulaGuard', () => {
+  it('undoes the export guard so a round trip is lossless', () => {
+    for (const value of ['- Removes grease', '=SUM(A1)', '+90 212 000', '@home', '\tindented']) {
+      expect(stripFormulaGuard(formatCsvCell(value).replace(/^"|"$/g, ''))).toBe(value);
+    }
+  });
+
+  it('leaves other leading apostrophes alone', () => {
+    expect(stripFormulaGuard("'quoted'")).toBe("'quoted'");
+    expect(stripFormulaGuard("it's fine")).toBe("it's fine");
+    expect(stripFormulaGuard('')).toBe('');
+  });
+
+  it('survives stringify → parse for a whole record', () => {
+    const csv = stringifyCsv([{ id: 'x', description_en: '- Removes grease\n- Safe on tiles' }], ['id', 'description_en']);
+    const { records } = parseCsvObjects(csv);
+    expect(stripFormulaGuard(records[0].description_en)).toBe('- Removes grease\n- Safe on tiles');
+  });
+});
+
+describe('hasEncodingDamage', () => {
+  it('flags text that was not UTF-8 (U+FFFD replacement characters)', () => {
+    expect(hasEncodingDamage('id,name_tr\n1,Y\uFFFDzey')).toBe(true);
+  });
+
+  it('accepts clean UTF-8 text in every site language', () => {
+    expect(hasEncodingDamage('ar,tr,ru\nمنظف,Yüzey,средство')).toBe(false);
+    expect(hasEncodingDamage(undefined)).toBe(false);
   });
 });
 

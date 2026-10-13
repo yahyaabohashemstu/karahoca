@@ -36,8 +36,9 @@ export const AdminBlog: React.FC = () => {
     try {
       await adminApi.deleteBlogPost(id);
       postsAsync.reload();
-    } catch {
-      alert('Failed to delete post');
+    } catch (e) {
+      // Show the real reason (e.g. "session expired — sign in again").
+      alert(e instanceof Error ? e.message : 'Failed to delete post');
     } finally {
       setDeleting(null);
     }

@@ -2,6 +2,10 @@ import { getDb, logAudit } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 import { buildUpdater } from '../services/safeUpdate.mjs';
 import { invalidateNewsCache } from '../services/publicCache.mjs';
+import { EMPTY_SLUG_ERROR, isUniqueViolation, normalizeSlug } from '../services/slug.mjs';
+import { logger } from '../utils/logger.mjs';
+
+const DUPLICATE_SLUG_ERROR = 'An article with this slug already exists.';
 
 const NEWS_FIELDS = [
   'slug', 'image', 'published_at', 'status', 'publish_at',
@@ -64,6 +68,10 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
           return;
         }
       }
+      if (updateBody.slug !== undefined) {
+        updateBody.slug = normalizeSlug(updateBody.slug);
+        if (!updateBody.slug) { sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin); return; }
+      }
       // Auto-set active based on status
       if (updateBody.status === 'draft') updateBody.active = 0;
       else if (updateBody.status === 'published') updateBody.active = 1;
@@ -75,7 +83,14 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
         if (Array.isArray(updateBody[k])) updateBody[k] = JSON.stringify(updateBody[k]);
       }
 
-      const result = updateNewsRow(id, updateBody);
+      // A slug taken by another article used to surface as a bare 500.
+      let result;
+      try {
+        result = updateNewsRow(id, updateBody);
+      } catch (err) {
+        if (isUniqueViolation(err)) { sendJson(res, 409, { success: false, error: DUPLICATE_SLUG_ERROR }, origin); return; }
+        throw err;
+      }
       if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return; }
 
       const updated = db.prepare('SELECT * FROM news WHERE id=?').get(id);
@@ -119,41 +134,60 @@ export const handleAdminNews = (req, res, { body, sendJson, origin, url, admin }
     }
 
     const id = body.id || randomUUID().slice(0, 12);
-    const slug = body.slug || body.title_ar.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').slice(0, 60) || id;
+    const hasSlug = typeof body.slug === 'string' && body.slug.trim() !== '';
+    const slug = hasSlug
+      ? normalizeSlug(body.slug)
+      : body.title_ar.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '').slice(0, 60) || id;
+    if (!slug) {
+      sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin);
+      return;
+    }
     const now = new Date().toISOString();
     const toJson = (v) => Array.isArray(v) ? JSON.stringify(v) : (typeof v === 'string' ? v : JSON.stringify([]));
     // Draft articles are not publicly active
     const active = status === 'draft' ? 0 : 1;
 
-    db.prepare(`
-      INSERT INTO news(
-        id, slug, image, published_at, status, publish_at,
-        category_ar, category_en, category_tr, category_ru,
-        title_ar, title_en, title_tr, title_ru,
-        excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
-        body_ar, body_en, body_tr, body_ru,
-        active, created_at, updated_at
-      ) VALUES(
-        @id, @slug, @image, @published_at, @status, @publish_at,
-        @cat_ar, @cat_en, @cat_tr, @cat_ru,
-        @title_ar, @title_en, @title_tr, @title_ru,
-        @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
-        @body_ar, @body_en, @body_tr, @body_ru,
-        @active, @now, @now
-      )
-    `).run({
-      id, slug, image: body.image || '', published_at: body.published_at,
-      status, publish_at: body.publish_at || null,
-      cat_ar: body.category_ar || '', cat_en: body.category_en || '',
-      cat_tr: body.category_tr || '', cat_ru: body.category_ru || '',
-      title_ar: body.title_ar, title_en: body.title_en || '',
-      title_tr: body.title_tr || '', title_ru: body.title_ru || '',
-      excerpt_ar: body.excerpt_ar || '', excerpt_en: body.excerpt_en || '',
-      excerpt_tr: body.excerpt_tr || '', excerpt_ru: body.excerpt_ru || '',
-      body_ar: toJson(body.body_ar), body_en: toJson(body.body_en),
-      body_tr: toJson(body.body_tr), body_ru: toJson(body.body_ru),
-      active, now,
-    });
+    // Mirrors the blog insert: a duplicate slug is the admin's to fix, not
+    // an unhandled 500.
+    try {
+      db.prepare(`
+        INSERT INTO news(
+          id, slug, image, published_at, status, publish_at,
+          category_ar, category_en, category_tr, category_ru,
+          title_ar, title_en, title_tr, title_ru,
+          excerpt_ar, excerpt_en, excerpt_tr, excerpt_ru,
+          body_ar, body_en, body_tr, body_ru,
+          active, created_at, updated_at
+        ) VALUES(
+          @id, @slug, @image, @published_at, @status, @publish_at,
+          @cat_ar, @cat_en, @cat_tr, @cat_ru,
+          @title_ar, @title_en, @title_tr, @title_ru,
+          @excerpt_ar, @excerpt_en, @excerpt_tr, @excerpt_ru,
+          @body_ar, @body_en, @body_tr, @body_ru,
+          @active, @now, @now
+        )
+      `).run({
+        id, slug, image: body.image || '', published_at: body.published_at,
+        status, publish_at: body.publish_at || null,
+        cat_ar: body.category_ar || '', cat_en: body.category_en || '',
+        cat_tr: body.category_tr || '', cat_ru: body.category_ru || '',
+        title_ar: body.title_ar, title_en: body.title_en || '',
+        title_tr: body.title_tr || '', title_ru: body.title_ru || '',
+        excerpt_ar: body.excerpt_ar || '', excerpt_en: body.excerpt_en || '',
+        excerpt_tr: body.excerpt_tr || '', excerpt_ru: body.excerpt_ru || '',
+        body_ar: toJson(body.body_ar), body_en: toJson(body.body_en),
+        body_tr: toJson(body.body_tr), body_ru: toJson(body.body_ru),
+        active, now,
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        sendJson(res, 409, { success: false, error: DUPLICATE_SLUG_ERROR }, origin);
+        return;
+      }
+      logger.error({ err: err.message }, '[admin-news] insert failed');
+      sendJson(res, 500, { success: false, error: 'Failed to create article.' }, origin);
+      return;
+    }
 
     const created = db.prepare('SELECT * FROM news WHERE id=?').get(id);
     logAudit({ action: 'CREATE', entityType: 'news', entityId: id, entityName: body.title_ar || body.title_en || id, adminUser });

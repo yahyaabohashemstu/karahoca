@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type NewsItem } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
-import { fmtDate } from '../utils/dateUtils';
+import { fmtDate, fmtDateTime } from '../utils/dateUtils';
 import { resolveAdminImage } from '../../utils/image';
 
 export const AdminNews: React.FC = () => {
@@ -16,8 +16,9 @@ export const AdminNews: React.FC = () => {
     try {
       await adminApi.deleteNews(id);
       reload();
-    } catch {
-      alert('Failed to delete article');
+    } catch (e) {
+      // Show the real reason (e.g. "session expired — sign in again").
+      alert(e instanceof Error ? e.message : 'Failed to delete article');
     } finally {
       setDeleting(null);
     }
@@ -94,9 +95,15 @@ export const AdminNews: React.FC = () => {
                     <td className="adm-text-sm adm-text-muted">{item.category_en}</td>
                     <td className="adm-text-sm adm-text-muted">{fmtDate(item.published_at)}</td>
                     <td>
-                      {item.status === 'scheduled' ? (
+                      {/* Delete only sets active=0 (drafts are active=0 too), so a
+                          deleted article used to show its old status — "Hidden"
+                          at best, "Scheduled" for a deleted scheduled one. Same
+                          rule as the blog list. */}
+                      {!item.active && item.status !== 'draft' ? (
+                        <span className="adm-badge adm-badge-red">🗑 Deleted</span>
+                      ) : item.status === 'scheduled' ? (
                         <span className="adm-badge" style={{ background: 'rgba(99,102,241,.18)', color: '#818cf8', border: '1px solid rgba(99,102,241,.3)' }}
-                          title={item.publish_at ? `Publishes: ${new Date(item.publish_at).toLocaleString()}` : ''}>
+                          title={item.publish_at ? `Publishes: ${fmtDateTime(item.publish_at)}` : ''}>
                           🕐 Scheduled
                         </span>
                       ) : item.status === 'draft' ? (
@@ -104,9 +111,7 @@ export const AdminNews: React.FC = () => {
                           📝 Draft
                         </span>
                       ) : (
-                        <span className={`adm-badge ${item.active ? 'adm-badge-green' : 'adm-badge-red'}`}>
-                          {item.active ? '✅ Published' : 'Hidden'}
-                        </span>
+                        <span className="adm-badge adm-badge-green">✅ Published</span>
                       )}
                     </td>
                     <td>
@@ -116,6 +121,8 @@ export const AdminNews: React.FC = () => {
                           className="adm-btn adm-btn-danger adm-btn-sm"
                           onClick={() => handleDelete(item.id)}
                           disabled={deleting === item.id}
+                          aria-label={`Delete article ${item.title_en || item.title_ar || item.slug}`}
+                          title="Delete article"
                         >
                           {deleting === item.id ? '…' : '🗑'}
                         </button>

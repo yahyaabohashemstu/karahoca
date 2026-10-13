@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { adminApi, type BlogPostItem, type BlogCategoryItem } from '../utils/adminApi';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
+import { normalizeSlug } from '../utils/slug';
+import { PRERENDER_NOTE, confirmPastSchedule, confirmSlugChange } from '../utils/publishing';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
@@ -41,6 +43,18 @@ export const AdminBlogEdit: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(isNew);
+  // The post as last loaded / saved. The "deleted" banner and the
+  // "links will break" slug check read this, not the live form: the
+  // banner was derived from the form, so switching a draft's status to
+  // Published made it claim "This post was deleted".
+  const [stored, setStored] = useState<BlogPostItem | null>(null);
+  // reading_time is sent only when the admin typed one. The form always
+  // sent its (loaded) value, so the server — which recalculates only when
+  // the field is absent — never updated it as the body grew.
+  const [readingTimeTouched, setReadingTimeTouched] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const savedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
 
   useEffect(() => {
     adminApi.getBlogCategories()
@@ -53,6 +67,7 @@ export const AdminBlogEdit: React.FC = () => {
     adminApi.getBlogPost(id!)
       .then((r) => {
         setForm(r.item);
+        setStored(r.item);
         setLoaded(true);
       })
       .catch((e) => {
@@ -90,7 +105,9 @@ export const AdminBlogEdit: React.FC = () => {
   };
 
   const addTag = () => {
-    const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+    // Letters/digits of any script (same rule as the server): the old
+    // [a-z0-9] filter reduced Arabic and Russian tags to nothing.
+    const t = tagInput.trim().toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, '-').replace(/^-+|-+$/g, '');
     if (!t || (form.tags || []).includes(t)) { setTagInput(''); return; }
     setField('tags', [...(form.tags || []), t]);
     setTagInput('');
@@ -98,23 +115,49 @@ export const AdminBlogEdit: React.FC = () => {
 
   const removeTag = (t: string) => setField('tags', (form.tags || []).filter((x) => x !== t));
 
+  const showSaved = () => {
+    setSavedFlash(true);
+    window.clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSavedFlash(false), 3000);
+  };
+
   const handleSave = async () => {
+    if (!form.title_ar?.trim() && !form.title_en?.trim()) {
+      setError('Please provide at least an Arabic or English title.');
+      return;
+    }
+    // Blank is fine (the server derives one from the title); text with
+    // no letters or digits is not.
+    const slug = normalizeSlug(form.slug);
+    if (form.slug?.trim() && !slug) {
+      setError('The slug must contain at least one letter or digit.');
+      return;
+    }
+    const wasLive = stored?.status === 'published' && Boolean(stored.active);
+    if (!confirmSlugChange('post', wasLive, stored?.slug, slug)) return;
+    if (!confirmPastSchedule(form.status, form.publish_at)) return;
     setSaving(true);
     setError(null);
+    setSavedFlash(false);
     try {
-      if (!form.title_ar?.trim() && !form.title_en?.trim()) {
-        setError('Please provide at least an Arabic or English title.');
-        setSaving(false);
-        return;
-      }
-      const payload: Partial<BlogPostItem> = { ...form };
+      const payload: Partial<BlogPostItem> = { ...form, slug };
+      if (!readingTimeTouched) delete payload.reading_time;
       if (isNew) {
         const r = await adminApi.createBlogPost(payload);
         navigate(`/admin/blog/${encodeURIComponent(r.item.id)}`, { replace: true });
       } else {
-        await adminApi.updateBlogPost(id!, payload);
-        // Stay on page so the admin can keep editing.
+        const r = await adminApi.updateBlogPost(id!, payload);
+        // Stay on page so the admin can keep editing. Take what the server
+        // decided (normalised / derived slug, recalculated reading time),
+        // unless the admin has changed that field again meanwhile.
+        setStored(r.item);
+        setForm((f) => ({
+          ...f,
+          ...(normalizeSlug(f.slug) === slug ? { slug: r.item.slug } : {}),
+          ...(f.reading_time === form.reading_time ? { reading_time: r.item.reading_time } : {}),
+        }));
       }
+      showSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -135,7 +178,10 @@ export const AdminBlogEdit: React.FC = () => {
             <Link to="/admin/blog" style={{ color: 'var(--adm-accent)' }}>← Back to all posts</Link>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Saving keeps the editor open, so without this nothing showed
+              that it had worked. */}
+          {savedFlash && <span className="adm-badge adm-badge-green" role="status">✓ Saved</span>}
           <button type="button" className="adm-btn adm-btn-primary" disabled={saving} onClick={handleSave}>
             {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
           </button>
@@ -143,9 +189,9 @@ export const AdminBlogEdit: React.FC = () => {
       </div>
 
       {error && <div className="adm-alert adm-alert-error">⚠ {error}</div>}
-      {!isNew && !form.active && form.status !== 'draft' && (
+      {stored && !stored.active && stored.status !== 'draft' && (
         <div className="adm-alert adm-alert-info">
-          🗑 This post was deleted and is hidden from the site. Saving it with this status will publish it again.
+          🗑 This post was deleted and is hidden from the site. Saving it as Published or Scheduled will put it back on the site.
         </div>
       )}
 
@@ -237,10 +283,11 @@ export const AdminBlogEdit: React.FC = () => {
               <option value="published">✅ Published</option>
               <option value="scheduled">🕐 Scheduled</option>
             </select>
+            <p style={{ fontSize: 12, color: 'var(--adm-text-dim)', margin: '6px 0 0' }}>{PRERENDER_NOTE}</p>
 
             {form.status === 'scheduled' && (
               <>
-                <label className="adm-label" style={{ marginTop: 10 }}>Publish at</label>
+                <label className="adm-label" style={{ marginTop: 10 }}>Publish at (your local time)</label>
                 <input
                   type="datetime-local"
                   className="adm-input"
@@ -301,8 +348,12 @@ export const AdminBlogEdit: React.FC = () => {
             <input
               type="text"
               className="adm-input"
+              dir="ltr"
               value={form.slug || ''}
-              onChange={(e) => setField('slug', e.target.value)}
+              // Partial while typing (keeps a trailing dash so "my slug"
+              // can be typed), fully normalised when leaving the field.
+              onChange={(e) => setField('slug', normalizeSlug(e.target.value, { partial: true }))}
+              onBlur={(e) => setField('slug', normalizeSlug(e.target.value))}
               placeholder="auto-generated if blank"
             />
 
@@ -314,13 +365,16 @@ export const AdminBlogEdit: React.FC = () => {
               onChange={(e) => setField('author_name', e.target.value)}
             />
 
-            <label className="adm-label" style={{ marginTop: 10 }}>Reading time (minutes — auto-calc on save)</label>
+            <label className="adm-label" style={{ marginTop: 10 }}>Reading time (minutes — recalculated on save unless you change it)</label>
             <input
               type="number"
               className="adm-input"
               min={1}
               value={form.reading_time || 0}
-              onChange={(e) => setField('reading_time', parseInt(e.target.value, 10) || 0)}
+              onChange={(e) => {
+                setReadingTimeTouched(true);
+                setField('reading_time', parseInt(e.target.value, 10) || 0);
+              }}
             />
           </div>
 
@@ -392,8 +446,10 @@ export const AdminBlogEdit: React.FC = () => {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                 placeholder="add tag…"
+                dir="auto"
+                aria-label="New tag"
               />
-              <button type="button" className="adm-btn adm-btn-ghost" onClick={addTag}>+</button>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={addTag} aria-label="Add tag" title="Add tag">+</button>
             </div>
           </div>
         </div>

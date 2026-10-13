@@ -21,6 +21,7 @@ import { getDb, logAudit } from '../db.mjs';
 import { randomUUID } from 'node:crypto';
 import { buildUpdater } from '../services/safeUpdate.mjs';
 import { invalidateBlogCache } from '../services/publicCache.mjs';
+import { EMPTY_SLUG_ERROR, isUniqueViolation, normalizeSlug } from '../services/slug.mjs';
 import { logger } from '../utils/logger.mjs';
 
 // ─── Field whitelists for safeUpdate ────────────────────────────────────────
@@ -78,7 +79,9 @@ const estimateReadingTime = (post) => {
 /**
  * Normalise the tags field into a JSON-stringified array. Accepts
  * either a comma-separated string OR an array; coerces to lowercase
- * + trims whitespace + dedupes; caps at 15 tags.
+ * + trims whitespace + dedupes; caps at 15 tags. Letters and digits of
+ * any script are kept — the old [a-z0-9] filter turned every Arabic or
+ * Russian tag into nothing, so it was silently dropped.
  */
 const normaliseTags = (input) => {
   let arr = [];
@@ -91,7 +94,7 @@ const normaliseTags = (input) => {
   const out = [];
   for (const raw of arr) {
     if (typeof raw !== 'string') continue;
-    const clean = raw.trim().toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/^-+|-+$/g, '');
+    const clean = raw.trim().toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, '-').replace(/^-+|-+$/g, '');
     if (!clean || clean.length > 32) continue;
     if (seen.has(clean)) continue;
     seen.add(clean);
@@ -123,6 +126,16 @@ const deriveSlug = (post, fallbackId) => {
 };
 
 const sanitiseStatus = (status) => (VALID_STATUSES.has(status) ? status : 'draft');
+
+/**
+ * Slug the admin typed, normalised — or, when the field was left blank
+ * ("auto-generated if blank"), one derived from the titles. Returns ''
+ * when the typed slug has no letters or digits; callers answer 400.
+ */
+const resolveSlug = (rawSlug, titles, fallbackId) => {
+  if (typeof rawSlug === 'string' && rawSlug.trim()) return normalizeSlug(rawSlug);
+  return deriveSlug(titles, fallbackId);
+};
 
 // Serialise tags from DB JSON string back to array for the response —
 // the admin UI expects a real array.
@@ -166,7 +179,11 @@ const handlePostsCollection = (req, res, ctx) => {
     }
 
     const id = body.id || randomUUID().slice(0, 12);
-    const slug = (body.slug && body.slug.trim()) || deriveSlug(body, id);
+    const slug = resolveSlug(body.slug, body, id);
+    if (!slug) {
+      sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin);
+      return true;
+    }
     const reading_time = body.reading_time && Number.isFinite(Number(body.reading_time))
       ? Number(body.reading_time)
       : estimateReadingTime(body);
@@ -219,7 +236,7 @@ const handlePostsCollection = (req, res, ctx) => {
       });
     } catch (err) {
       if (err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-        sendJson(res, 409, { success: false, error: 'A post with that slug already exists.' }, origin);
+        sendJson(res, 409, { success: false, error: 'A post with this slug already exists.' }, origin);
         return true;
       }
       logger.error({ err: err.message }, '[admin-blog] post insert failed');
@@ -267,6 +284,15 @@ const handlePostById = (req, res, ctx, id) => {
         return true;
       }
     }
+    if (updateBody.slug !== undefined) {
+      // Blank → derived from the titles (stored ones merged with this edit).
+      const current = db.prepare('SELECT title_ar, title_en, title_tr, title_ru FROM blog_posts WHERE id=?').get(id) || {};
+      updateBody.slug = resolveSlug(updateBody.slug, { ...current, ...updateBody }, id);
+      if (!updateBody.slug) {
+        sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin);
+        return true;
+      }
+    }
     if (updateBody.tags !== undefined) {
       updateBody.tags = normaliseTags(updateBody.tags);
     }
@@ -285,7 +311,17 @@ const handlePostById = (req, res, ctx, id) => {
       updateBody.reading_time = estimateReadingTime(merged);
     }
 
-    const result = updatePostRow(id, updateBody);
+    // Same 409 as the insert: a slug taken by another post used to be a 500.
+    let result;
+    try {
+      result = updatePostRow(id, updateBody);
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        sendJson(res, 409, { success: false, error: 'A post with this slug already exists.' }, origin);
+        return true;
+      }
+      throw err;
+    }
     if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return true; }
 
     const updated = db.prepare('SELECT * FROM blog_posts WHERE id=?').get(id);
@@ -327,7 +363,11 @@ const handleCategoriesCollection = (req, res, ctx) => {
       return true;
     }
     const id = body.id || randomUUID().slice(0, 12);
-    const slug = (body.slug && body.slug.trim()) || deriveSlug({ title_ar: body.name_ar, title_en: body.name_en }, id);
+    const slug = resolveSlug(body.slug, { title_ar: body.name_ar, title_en: body.name_en }, id);
+    if (!slug) {
+      sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin);
+      return true;
+    }
     try {
       db.prepare(`
         INSERT INTO blog_categories(
@@ -351,7 +391,7 @@ const handleCategoriesCollection = (req, res, ctx) => {
       });
     } catch (err) {
       if (err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-        sendJson(res, 409, { success: false, error: 'A category with that slug already exists.' }, origin);
+        sendJson(res, 409, { success: false, error: 'A category with this slug already exists.' }, origin);
         return true;
       }
       logger.error({ err: err.message }, '[admin-blog] category insert failed');
@@ -382,7 +422,27 @@ const handleCategoryById = (req, res, ctx, id) => {
   }
 
   if (req.method === 'PUT') {
-    const result = updateCategoryRow(id, body || {});
+    const patch = { ...(body || {}) };
+    if (patch.slug !== undefined) {
+      const current = db.prepare('SELECT name_ar, name_en FROM blog_categories WHERE id=?').get(id) || {};
+      const merged = { ...current, ...patch };
+      patch.slug = resolveSlug(patch.slug, { title_ar: merged.name_ar, title_en: merged.name_en }, id);
+      if (!patch.slug) {
+        sendJson(res, 400, { success: false, error: EMPTY_SLUG_ERROR }, origin);
+        return true;
+      }
+    }
+    // A slug taken by another category used to surface as a bare 500.
+    let result;
+    try {
+      result = updateCategoryRow(id, patch);
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        sendJson(res, 409, { success: false, error: 'A category with this slug already exists.' }, origin);
+        return true;
+      }
+      throw err;
+    }
     if (result.skipped) { sendJson(res, 400, { success: false, error: 'No fields to update.' }, origin); return true; }
     const updated = db.prepare('SELECT * FROM blog_categories WHERE id=?').get(id);
     logAudit({ action: 'UPDATE', entityType: 'blog_category', entityId: id, entityName: updated?.name_ar || updated?.name_en || id, adminUser });

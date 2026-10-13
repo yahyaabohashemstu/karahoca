@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type Product } from '../utils/adminApi';
 import { useAsync } from '../utils/useAdminAuth';
+import { fmtDateTime } from '../utils/dateUtils';
 import { resolveAdminImage } from '../../utils/image';
 import { ProductCsvImportModal } from '../components/ProductCsvImportModal';
 
@@ -61,8 +62,9 @@ export const AdminProducts: React.FC = () => {
     try {
       await adminApi.deleteProduct(id);
       reload();
-    } catch {
-      alert('Failed to delete product');
+    } catch (e) {
+      // Show the real reason (e.g. "session expired — sign in again").
+      alert(e instanceof Error ? e.message : 'Failed to delete product');
     } finally {
       setDeleting(null);
     }
@@ -158,8 +160,8 @@ export const AdminProducts: React.FC = () => {
       setDirty(false);
       setReorderMode(false);
       reload();
-    } catch {
-      alert('Failed to save order. Please try again.');
+    } catch (e) {
+      alert(e instanceof Error ? `Failed to save order: ${e.message}` : 'Failed to save order. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -535,7 +537,7 @@ export const AdminProducts: React.FC = () => {
                         <span className={`adm-badge ${statusBadge.color}`}>{statusBadge.text}</span>
                         {status === 'scheduled' && p.publish_at && (
                           <div style={{ fontSize: 10, color: 'var(--adm-text-dim)', marginTop: 2 }}>
-                            {(() => { try { return new Date(p.publish_at).toLocaleString(); } catch { return p.publish_at; } })()}
+                            {fmtDateTime(p.publish_at)}
                           </div>
                         )}
                       </td>
@@ -546,6 +548,8 @@ export const AdminProducts: React.FC = () => {
                             className="adm-btn adm-btn-danger adm-btn-sm"
                             onClick={() => handleDelete(p.id)}
                             disabled={deleting === p.id}
+                            aria-label={`Delete product ${p.name_en || p.name_ar || p.id}`}
+                            title="Delete product"
                           >
                             {deleting === p.id ? '…' : '🗑'}
                           </button>

@@ -125,11 +125,26 @@ export const AdminCategories: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
             <div className="adm-form-group">
-              <label className="adm-label">Brand *</label>
-              <select className="adm-select" value={form.brand || 'DIOX'} onChange={(e) => set('brand', e.target.value as 'DIOX' | 'AYLUX')}>
+              <label className="adm-label" htmlFor="category-brand">Brand *</label>
+              {/* The server never updates a category's brand (its products
+                  stay under the old one), so changing it here was silently
+                  ignored. Only a new category can pick its brand. */}
+              <select
+                id="category-brand"
+                className="adm-select"
+                value={form.brand || 'DIOX'}
+                onChange={(e) => set('brand', e.target.value as 'DIOX' | 'AYLUX')}
+                disabled={editing !== 'new'}
+                aria-describedby={editing !== 'new' ? 'category-brand-hint' : undefined}
+              >
                 <option value="DIOX">DIOX</option>
                 <option value="AYLUX">AYLUX</option>
               </select>
+              {editing !== 'new' && (
+                <small id="category-brand-hint" style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
+                  The brand can't be changed after a category is created.
+                </small>
+              )}
             </div>
             <div className="adm-form-group">
               <label className="adm-label">Key *</label>
@@ -206,7 +221,14 @@ export const AdminCategories: React.FC = () => {
                     <td>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button className="adm-btn adm-btn-ghost adm-btn-sm" onClick={() => startEdit(category)}>Edit</button>
-                        <button className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => handleDelete(category)}>🗑</button>
+                        <button
+                          className="adm-btn adm-btn-danger adm-btn-sm"
+                          onClick={() => handleDelete(category)}
+                          aria-label={`Delete category ${category.title_en || category.key}`}
+                          title="Delete category"
+                        >
+                          🗑
+                        </button>
                       </div>
                     </td>
                   </tr>

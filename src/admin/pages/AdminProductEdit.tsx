@@ -6,9 +6,18 @@ import { AiDescriptionDialog } from '../components/AiDescriptionDialog';
 import { ImageCropperDialog } from '../components/ImageCropperDialog';
 import { resolveAdminImage } from '../../utils/image';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../utils/datetimeLocal';
+import { PRERENDER_NOTE, confirmPastSchedule } from '../utils/publishing';
 
 const LANGS = ['ar', 'en', 'tr', 'ru'] as const;
 type Lang = typeof LANGS[number];
+
+// The Arabic copy is the one TranslationHelper translates from.
+const SOURCE_LANG: Lang = 'ar';
+
+const parseGallery = (raw: string | null | undefined): string[] => {
+  if (!raw) return [];
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+};
 
 const EMPTY: Partial<Product> = {
   brand: 'DIOX',
@@ -70,7 +79,14 @@ export const AdminProductEdit: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [galleryUploading, setGalleryUploading] = useState<number | null>(null);
+  // Gallery slots with an upload in flight (one spinner per slot; several
+  // uploads can run at once).
+  const [uploadingSlots, setUploadingSlots] = useState<ReadonlySet<number>>(() => new Set());
+  // In-flight gallery upload → the slot it will fill. Kept in a ref so an
+  // upload that finishes reads the slot's CURRENT index: removing a slot
+  // above it shifts it down one, removing the slot itself cancels it.
+  const pendingGalleryUploads = useRef(new Map<symbol, number>());
+  const syncUploadingSlots = () => setUploadingSlots(new Set(pendingGalleryUploads.current.values()));
   const galleryFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [showWCTable, setShowWCTable] = useState(false);
   // The AI description writer modal — opens with the current form's
@@ -103,21 +119,35 @@ export const AdminProductEdit: React.FC = () => {
     setForm(f => ({ ...f, [key]: value }));
 
   // ── Gallery helpers ──────────────────────────────────────────────────────
-  const getGalleryImages = (): string[] => {
-    const raw = form.gallery;
-    if (!raw) return [];
-    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+  const getGalleryImages = (): string[] => parseGallery(form.gallery);
+  // Every change is a functional update of the LATEST gallery. They used
+  // to rebuild the array from the `form` captured when the handler began,
+  // so an upload finishing after another upload / add / remove wrote back
+  // a stale list and silently dropped images.
+  const updateGallery = (change: (imgs: string[]) => string[]) =>
+    setForm(f => {
+      const next = change(parseGallery(f.gallery));
+      return { ...f, gallery: next.length > 0 ? JSON.stringify(next) : '' };
+    });
+  const addGallerySlot = () => updateGallery(a => [...a, '']);
+  const removeGalleryImage = (idx: number) => {
+    for (const [token, slot] of pendingGalleryUploads.current) {
+      if (slot === idx) pendingGalleryUploads.current.delete(token);
+      else if (slot > idx) pendingGalleryUploads.current.set(token, slot - 1);
+    }
+    syncUploadingSlots();
+    updateGallery(a => a.filter((_, i) => i !== idx));
   };
-  const setGalleryImages = (imgs: string[]) =>
-    setForm(f => ({ ...f, gallery: imgs.length > 0 ? JSON.stringify(imgs) : '' }));
-  const addGallerySlot = () => setGalleryImages([...getGalleryImages(), '']);
-  const removeGalleryImage = (idx: number) => { const a = getGalleryImages(); a.splice(idx, 1); setGalleryImages(a); };
-  const updateGalleryImage = (idx: number, val: string) => { const a = getGalleryImages(); a[idx] = val; setGalleryImages(a); };
+  const updateGalleryImage = (idx: number, val: string) =>
+    updateGallery(a => a.map((img, i) => (i === idx ? val : img)));
   const handleGalleryUpload = async (idx: number, file: File) => {
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!ALLOWED.includes(file.type)) { setError('Unsupported file type. Use JPG, PNG, WebP, or GIF.'); return; }
     if (file.size > 10 * 1024 * 1024) { setError('File too large. Maximum 10 MB.'); return; }
-    setGalleryUploading(idx); setError(null);
+    const token = Symbol('gallery-upload');
+    pendingGalleryUploads.current.set(token, idx);
+    syncUploadingSlots();
+    setError(null);
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -127,9 +157,14 @@ export const AdminProductEdit: React.FC = () => {
       });
       const data = await adminApi.uploadImage(base64, file.name);
       if (!data.success) throw new Error('Upload failed');
-      updateGalleryImage(idx, data.url || data.path);
+      const slot = pendingGalleryUploads.current.get(token);
+      // undefined: the slot was removed while the file was uploading.
+      if (slot !== undefined) updateGalleryImage(slot, data.url || data.path);
     } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); }
-    finally { setGalleryUploading(null); }
+    finally {
+      pendingGalleryUploads.current.delete(token);
+      syncUploadingSlots();
+    }
   };
 
   // ── Weight-Count Table helpers ──────────────────────────────────────────
@@ -153,6 +188,8 @@ export const AdminProductEdit: React.FC = () => {
     const updates: Partial<Product> = {};
     for (const [field, langs] of Object.entries(translations)) {
       for (const [lang, value] of Object.entries(langs)) {
+        // Never overwrite the text the admin translated from.
+        if (lang === SOURCE_LANG) continue;
         (updates as Record<string, string>)[`${field}_${lang}`] = value;
       }
     }
@@ -164,6 +201,7 @@ export const AdminProductEdit: React.FC = () => {
       setError('Please fill required fields: Arabic name, brand, and category.');
       return;
     }
+    if (!confirmPastSchedule(form.status, form.publish_at)) return;
     setSaving(true);
     setError(null);
     try {
@@ -252,7 +290,13 @@ export const AdminProductEdit: React.FC = () => {
           <Link to="/admin/products" className="adm-btn adm-btn-ghost adm-btn-sm">← Back</Link>
           <h1 className="adm-page-title">{isNew ? 'New Product' : 'Edit Product'}</h1>
         </div>
-        <button className="adm-btn adm-btn-primary" onClick={handleSave} disabled={saving}>
+        {/* Saving navigates away, which would drop an image still uploading. */}
+        <button
+          className="adm-btn adm-btn-primary"
+          onClick={handleSave}
+          disabled={saving || uploading || uploadingSlots.size > 0}
+          title={uploading || uploadingSlots.size > 0 ? 'Wait for the image upload to finish' : undefined}
+        >
           {saving ? <><span className="adm-spinner" style={{ width: 14, height: 14 }} /> Saving...</> : '💾 Save Product'}
         </button>
       </div>
@@ -293,7 +337,13 @@ export const AdminProductEdit: React.FC = () => {
                 <button
                   type="button"
                   className="adm-btn adm-btn-secondary adm-btn-sm"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    // Clear a target left by a cancelled "Crop & upload"
+                    // (closing the file picker doesn't fire onChange), or
+                    // this plain upload would open the cropper.
+                    setCropTarget(null);
+                    fileInputRef.current?.click();
+                  }}
                   disabled={uploading}
                   style={{ whiteSpace: 'nowrap' }}
                 >
@@ -430,6 +480,9 @@ export const AdminProductEdit: React.FC = () => {
                 <option value="draft">📝 Draft — hidden, work in progress</option>
                 <option value="scheduled">🕐 Scheduled — auto-publish at set time</option>
               </select>
+              <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
+                {PRERENDER_NOTE}
+              </small>
             </div>
             {form.status === 'scheduled' && (
               <div className="adm-form-group">
@@ -445,9 +498,13 @@ export const AdminProductEdit: React.FC = () => {
                     }))
                   }
                 />
+                {/* The picker is in the admin's local time; datetimeLocal.ts
+                    converts it to UTC for the server. The old text said
+                    "server time, UTC", so admins entered UTC and the
+                    product went live hours early or late. */}
                 <small style={{ color: 'var(--adm-text-dim)', marginTop: 4, display: 'block' }}>
                   The product will appear in the public catalogue automatically at this
-                  moment (server time, UTC). The catalogue cache is busted on flip.
+                  time (your local time). The catalogue cache is busted on flip.
                 </small>
               </div>
             )}
@@ -559,9 +616,9 @@ export const AdminProductEdit: React.FC = () => {
                   placeholder={`Image path or URL #${idx + 1}`} style={{ flex: 1 }} />
                 <button type="button" className="adm-btn adm-btn-secondary adm-btn-sm"
                   onClick={() => { setCropTarget(null); galleryFileRefs.current[idx]?.click(); }}
-                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}
-                  title="Upload directly without cropping">
-                  {galleryUploading === idx
+                  disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
+                  title="Upload directly without cropping" aria-label={`Upload gallery image ${idx + 1}`}>
+                  {uploadingSlots.has(idx)
                     ? <><span className="adm-spinner" style={{ width: 12, height: 12 }} /> ...</>
                     : '📁'}
                 </button>
@@ -570,8 +627,8 @@ export const AdminProductEdit: React.FC = () => {
                     receives the cropped File. */}
                 <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
                   onClick={() => { setCropTarget(idx); galleryFileRefs.current[idx]?.click(); }}
-                  disabled={galleryUploading === idx} style={{ whiteSpace: 'nowrap' }}
-                  title="Open the image in a cropper before uploading">
+                  disabled={uploadingSlots.has(idx)} style={{ whiteSpace: 'nowrap' }}
+                  title="Open the image in a cropper before uploading" aria-label={`Crop and upload gallery image ${idx + 1}`}>
                   ✂️
                 </button>
                 <input ref={el => { galleryFileRefs.current[idx] = el; }} type="file" accept="image/*"
@@ -588,7 +645,7 @@ export const AdminProductEdit: React.FC = () => {
                   }} />
                 <button type="button" className="adm-btn adm-btn-sm"
                   style={{ background: '#dc3545', color: '#fff', border: 'none' }}
-                  onClick={() => removeGalleryImage(idx)} title="Remove">
+                  onClick={() => removeGalleryImage(idx)} title="Remove" aria-label={`Remove gallery image ${idx + 1}`}>
                   ✕
                 </button>
               </div>

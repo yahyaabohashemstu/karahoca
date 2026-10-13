@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { buildUpdater } from '../services/safeUpdate.mjs';
 import { invalidateProductsCache } from '../services/publicCache.mjs';
 import { invalidateProductOgCache } from '../services/ogImage.mjs';
-import { parseCsvObjects, stringifyCsv } from '../services/csv.mjs';
+import { hasEncodingDamage, parseCsvObjects, stringifyCsv, stripFormulaGuard } from '../services/csv.mjs';
 import { generateProductDescriptions } from '../services/aiDescriptionWriter.mjs';
 import { normalizeMarketplaceUrlFields } from '../services/marketplaceLinks.mjs';
 
@@ -69,7 +69,9 @@ const REQUIRED_IMPORT_FIELDS = ['brand', 'category_id', 'name_ar'];
  */
 const normalizeImportRow = (raw, db, lineNumber) => {
   const data = {};
-  for (const col of CSV_COLUMNS) data[col] = (raw[col] ?? '').toString().trim();
+  // The export prefixes "'" to cells starting with = + - @ (Excel formula
+  // guard); strip it again or every round trip adds it to the field.
+  for (const col of CSV_COLUMNS) data[col] = stripFormulaGuard((raw[col] ?? '').toString()).trim();
 
   for (const req of REQUIRED_IMPORT_FIELDS) {
     if (!data[req]) {
@@ -219,7 +221,15 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
       sendJson(res, 400, { success: false, error: 'csv body required (string).' }, origin);
       return;
     }
-    const { records } = parseCsvObjects(csv);
+    if (hasEncodingDamage(csv)) {
+      sendJson(res, 400, {
+        success: false,
+        error: 'The file is not UTF-8, so its Arabic/Turkish/Russian text arrived corrupted ("�"). '
+          + 'In Excel use File → Save As → "CSV UTF-8 (Comma delimited)" and import that file.',
+      }, origin);
+      return;
+    }
+    const { records, rowNumbers } = parseCsvObjects(csv);
     if (records.length === 0) {
       sendJson(res, 400, { success: false, error: 'CSV contained no data rows.' }, origin);
       return;
@@ -238,9 +248,11 @@ export const handleAdminProducts = async (req, res, { body, sendJson, origin, ur
     const normalized = [];
     const errors = [];
     for (let i = 0; i < records.length; i++) {
-      const out = normalizeImportRow(records[i], db, i + 2); // +2 = header row + 1-based
+      // CSV row number (header = 1); blank rows the parser skipped still count.
+      const line = rowNumbers[i];
+      const out = normalizeImportRow(records[i], db, line);
       if (out.ok) normalized.push(out);
-      else errors.push({ line: i + 2, error: out.error });
+      else errors.push({ line, error: out.error });
     }
     const summary = {
       total: records.length,
@@ -562,13 +574,33 @@ export const handleAdminCategories = (req, res, { body, sendJson, origin, url, a
     }
 
     if (req.method === 'DELETE') {
-      const productCount = db.prepare('SELECT COUNT(*) as c FROM products WHERE category_id=? AND active=1').get(id).c;
-      if (productCount > 0) {
-        sendJson(res, 400, { success: false, error: `Cannot delete: ${productCount} active products in this category.` }, origin);
+      // Hidden (soft-deleted) products still reference the category: only
+      // counting active ones let the DELETE through to a foreign-key
+      // failure, which reached the admin as a bare 500.
+      const counts = db.prepare(
+        'SELECT COUNT(*) AS total, COALESCE(SUM(active=1), 0) AS active FROM products WHERE category_id=?'
+      ).get(id);
+      if (counts.total > 0) {
+        const hidden = counts.total - counts.active;
+        const parts = [];
+        if (counts.active > 0) parts.push(`${counts.active} active product(s)`);
+        if (hidden > 0) parts.push(`${hidden} hidden product(s)`);
+        sendJson(res, 400, {
+          success: false,
+          error: `Cannot delete: ${parts.join(' and ')} still use this category. Move them to another category first.`,
+        }, origin);
         return;
       }
       const cat = db.prepare('SELECT brand, title_ar, title_en FROM product_categories WHERE id=?').get(id);
-      db.prepare('DELETE FROM product_categories WHERE id=?').run(id);
+      try {
+        db.prepare('DELETE FROM product_categories WHERE id=?').run(id);
+      } catch (err) {
+        if (err?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+          sendJson(res, 409, { success: false, error: 'Cannot delete: other records still reference this category.' }, origin);
+          return;
+        }
+        throw err;
+      }
       void invalidateProductsCache(cat?.brand);
       logAudit({
         action: 'DELETE',

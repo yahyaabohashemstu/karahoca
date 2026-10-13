@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../utils/adminApi';
+import { useModalDialog } from '../utils/useModalDialog';
 
 /**
  * Lightweight modal that asks the AI provider chain for a polished
@@ -62,6 +63,14 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
     }
   }, [open, defaults.sourceLang]);
 
+  // Not while a request is running — its result would land in a closed
+  // dialog. Defined before the early return so the hook order is stable.
+  const handleClose = () => {
+    if (busy) return;
+    onClose();
+  };
+  const panelRef = useModalDialog<HTMLDivElement>(open, handleClose);
+
   if (!open) return null;
 
   const generate = async () => {
@@ -96,16 +105,9 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
     onClose();
   };
 
-  const handleClose = () => {
-    if (busy) return;
-    onClose();
-  };
-
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Generate AI description"
+      role="presentation"
       style={{
         position: 'fixed',
         inset: 0,
@@ -119,6 +121,11 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-description-title"
+        tabIndex={-1}
         className="adm-card"
         style={{
           width: 'min(720px, 100%)',
@@ -128,10 +135,11 @@ export const AiDescriptionDialog: React.FC<Props> = ({ open, onClose, defaults, 
           gap: 12,
           padding: 20,
           overflow: 'auto',
+          outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>✨ AI Description Writer</h2>
+          <h2 id="ai-description-title" style={{ margin: 0, fontSize: 18 }}>✨ AI Description Writer</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"

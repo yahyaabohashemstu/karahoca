@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useModalDialog } from '../utils/useModalDialog';
 
 /**
  * Pure-client image cropper.
@@ -18,9 +19,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
  *      so the math stays simple.
  *   3. On confirm, projects the box back into image-space (the original
  *      file's pixel dimensions) and renders the cropped region through
- *      a hidden canvas. We export at the SOURCE resolution — no
- *      downscaling — so the product photo retains the detail it
- *      shipped with.
+ *      a hidden canvas, at most MAX_EXPORT_SIDE px on the long side.
  *
  * Aspect-ratio choices: KARAHOCA's catalogue mixes square pack-shots
  * (most products) with 3:2 hero shots (the brand banners). We support
@@ -30,11 +29,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
  *   - 1:1 Square  (the catalogue default — product cards are square)
  *   - 3:2 Banner  (matches hero / FlipBook layouts)
  *
- * Output format: PNG with sane compression. We considered emitting
- * WebP (smaller) but the existing optimize-images.mjs build step
- * already produces WebP siblings from any PNG it finds — keeping
- * PNG here means the existing image pipeline still recognises the
- * file.
+ * Output format: WebP at 0.9 (JPEG where the browser can't encode WebP),
+ * or PNG when the picture has transparent pixels. It used to be a
+ * full-resolution PNG whatever the source: a cropped 4000 px phone photo
+ * came out at 15–30 MB, over the 10 MB upload limit, so the crop was
+ * rejected. The server makes the resized WebP variants the site serves
+ * from whatever is uploaded (server/services/uploadVariants.mjs).
  */
 
 interface Props {
@@ -69,6 +69,82 @@ const ASPECT_LABELS: Record<AspectRatio, string> = {
 
 const MIN_BOX_SIDE = 24; // px in viewport space — anything smaller is gesture noise
 
+// Long-side cap for the exported file. The site never shows product
+// photos wider than ~1300 px; 2400 leaves room for zoom and retina.
+const MAX_EXPORT_SIDE = 2400;
+const EXPORT_QUALITY = 0.9;
+// Same limit the editors and the upload endpoint enforce.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const EXTENSION_BY_TYPE: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp', 'image/jpeg': 'jpg' };
+
+type Corner = 'nw' | 'ne' | 'sw' | 'se';
+
+const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+
+/**
+ * Keep a box inside the rendered image: an oversize side is shrunk (with
+ * the other side too when a ratio is locked), then the box is slid back in.
+ * The old clamp moved x/y and, when the box was still too big, stretched it
+ * to the full image width or height — which broke the 1:1 / 3:2 lock every
+ * time a resize hit an image edge.
+ */
+const fitInside = (box: Box, boundsW: number, boundsH: number, ratio: number | null): Box => {
+  let { width, height } = box;
+  if (width > boundsW) { if (ratio != null) height = boundsW / ratio; width = boundsW; }
+  if (height > boundsH) { if (ratio != null) width = boundsH * ratio; height = boundsH; }
+  return { x: clamp(box.x, 0, boundsW - width), y: clamp(box.y, 0, boundsH - height), width, height };
+};
+
+/** Corner resize: the opposite corner stays put, the dragged one follows the pointer (inside the image). */
+const resizeFromCorner = (
+  start: Box, corner: Corner, dx: number, dy: number, boundsW: number, boundsH: number, ratio: number | null,
+): Box => {
+  const west = corner === 'nw' || corner === 'sw';
+  const north = corner === 'nw' || corner === 'ne';
+  const anchorX = west ? start.x + start.width : start.x;
+  const anchorY = north ? start.y + start.height : start.y;
+  const cornerX = clamp((west ? start.x : start.x + start.width) + dx, 0, boundsW);
+  const cornerY = clamp((north ? start.y : start.y + start.height) + dy, 0, boundsH);
+  let width = Math.max(MIN_BOX_SIDE, west ? anchorX - cornerX : cornerX - anchorX);
+  let height = Math.max(MIN_BOX_SIDE, north ? anchorY - cornerY : cornerY - anchorY);
+  if (ratio != null) {
+    // Shrink the side that is too long for the ratio — never grow one, so
+    // the box can't pass the (already clamped) pointer position.
+    if (width / height > ratio) width = height * ratio;
+    else height = width / ratio;
+  }
+  return fitInside(
+    { x: west ? anchorX - width : anchorX, y: north ? anchorY - height : anchorY, width, height },
+    boundsW, boundsH, ratio,
+  );
+};
+
+/** Output pixel size for a source-space crop of sw × sh. */
+const exportSize = (sw: number, sh: number) => {
+  const scale = Math.min(1, MAX_EXPORT_SIDE / Math.max(sw, sh, 1));
+  return { w: Math.max(1, Math.round(sw * scale)), h: Math.max(1, Math.round(sh * scale)) };
+};
+
+/** Any non-opaque pixel, checked on a small nearest-neighbour sample (cheap even for big crops). */
+const hasTransparency = (canvas: HTMLCanvasElement): boolean => {
+  const sample = document.createElement('canvas');
+  const scale = Math.min(1, 256 / Math.max(canvas.width, canvas.height));
+  sample.width = Math.max(1, Math.round(canvas.width * scale));
+  sample.height = Math.max(1, Math.round(canvas.height * scale));
+  const ctx = sample.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return true; // can't tell — PNG is the lossless, alpha-safe choice
+  // No smoothing: a filtered edge could blend in transparent padding and
+  // mark an opaque photo as transparent.
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(canvas, 0, 0, sample.width, sample.height);
+  const { data } = ctx.getImageData(0, 0, sample.width, sample.height);
+  for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return true;
+  return false;
+};
+
+const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+
 export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onCancel }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
@@ -82,7 +158,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
   // jank the interaction; we render via a manual CSS-transform style
   // patch instead.
   const dragRef = useRef<{
-    mode: 'move' | 'nw' | 'ne' | 'sw' | 'se' | null;
+    mode: 'move' | Corner | null;
     startX: number;
     startY: number;
     startBox: Box;
@@ -141,34 +217,7 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
   };
 
-  // Bounds-clamp + aspect-ratio fix for a candidate box.
-  const sanitiseBox = (next: Box): Box => {
-    const img = containerRef.current?.querySelector('img');
-    if (!img) return next;
-    const renderedW = img.clientWidth;
-    const renderedH = img.clientHeight;
-    let { x, y, width, height } = next;
-    // Aspect lock — applied AFTER any size change.
-    const targetAspect = ASPECT_VALUES[aspect];
-    if (targetAspect != null) {
-      // Keep the larger side, derive the other.
-      if (width / height > targetAspect) width = height * targetAspect;
-      else height = width / targetAspect;
-    }
-    // Min size.
-    if (width < MIN_BOX_SIDE) width = MIN_BOX_SIDE;
-    if (height < MIN_BOX_SIDE) height = MIN_BOX_SIDE;
-    // Inside the image bounds.
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    if (x + width > renderedW) x = renderedW - width;
-    if (y + height > renderedH) y = renderedH - height;
-    if (x < 0) { x = 0; width = renderedW; }
-    if (y < 0) { y = 0; height = renderedH; }
-    return { x, y, width, height };
-  };
-
-  const startDrag = (e: React.PointerEvent, mode: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
+  const startDrag = (e: React.PointerEvent, mode: 'move' | Corner) => {
     if (!box) return;
     e.preventDefault();
     e.stopPropagation();
@@ -184,35 +233,14 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
   const onPointerMove = (e: React.PointerEvent) => {
     const drag = dragRef.current;
     if (!drag.mode || !box) return;
+    const img = containerRef.current?.querySelector('img');
+    if (!img) return;
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
-    const next: Box = { ...drag.startBox };
-    if (drag.mode === 'move') {
-      next.x = drag.startBox.x + dx;
-      next.y = drag.startBox.y + dy;
-    } else {
-      // Corner-resize: opposite corner stays anchored.
-      const right = drag.startBox.x + drag.startBox.width;
-      const bottom = drag.startBox.y + drag.startBox.height;
-      if (drag.mode === 'nw') {
-        next.x = drag.startBox.x + dx;
-        next.y = drag.startBox.y + dy;
-        next.width = right - next.x;
-        next.height = bottom - next.y;
-      } else if (drag.mode === 'ne') {
-        next.y = drag.startBox.y + dy;
-        next.width = drag.startBox.width + dx;
-        next.height = bottom - next.y;
-      } else if (drag.mode === 'sw') {
-        next.x = drag.startBox.x + dx;
-        next.width = right - next.x;
-        next.height = drag.startBox.height + dy;
-      } else if (drag.mode === 'se') {
-        next.width = drag.startBox.width + dx;
-        next.height = drag.startBox.height + dy;
-      }
-    }
-    setBox(sanitiseBox(next));
+    const ratio = ASPECT_VALUES[aspect];
+    setBox(drag.mode === 'move'
+      ? fitInside({ ...drag.startBox, x: drag.startBox.x + dx, y: drag.startBox.y + dy }, img.clientWidth, img.clientHeight, ratio)
+      : resizeFromCorner(drag.startBox, drag.mode, dx, dy, img.clientWidth, img.clientHeight, ratio));
   };
 
   const endDrag = () => {
@@ -224,6 +252,10 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     if (!file || !box || !imgDims) return;
     setWorking(true);
     setError(null);
+    // Released in `finally`: a decoded full-size bitmap holds tens of MB
+    // until it is closed, and the fallback blob URL leaked on every crop.
+    let bitmap: ImageBitmap | HTMLImageElement | null = null;
+    let fallbackUrl: string | null = null;
     try {
       const img = containerRef.current?.querySelector('img');
       if (!img) throw new Error('Image element missing.');
@@ -231,47 +263,71 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
       const renderedH = img.clientHeight;
       const scaleX = imgDims.w / renderedW;
       const scaleY = imgDims.h / renderedH;
-      // Source rect on the original-resolution image.
-      const sx = box.x * scaleX;
-      const sy = box.y * scaleY;
-      const sw = box.width * scaleX;
-      const sh = box.height * scaleY;
+      // Source rect on the original-resolution image. Float error can put
+      // it a fraction past the edge, which leaves a transparent sliver.
+      const sx = clamp(box.x * scaleX, 0, imgDims.w);
+      const sy = clamp(box.y * scaleY, 0, imgDims.h);
+      const sw = Math.min(box.width * scaleX, imgDims.w - sx);
+      const sh = Math.min(box.height * scaleY, imgDims.h - sy);
 
       // Decode the file via createImageBitmap (fast path) when available;
       // fall back to a plain Image for older Safari.
-      const bitmap: ImageBitmap | HTMLImageElement = typeof createImageBitmap === 'function'
-        ? await createImageBitmap(file)
-        : await new Promise<HTMLImageElement>((resolve, reject) => {
-            const i = new Image();
-            i.onload = () => resolve(i);
-            i.onerror = reject;
-            i.src = URL.createObjectURL(file);
-          });
+      if (typeof createImageBitmap === 'function') {
+        bitmap = await createImageBitmap(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        fallbackUrl = url;
+        bitmap = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const i = new Image();
+          i.onload = () => resolve(i);
+          i.onerror = reject;
+          i.src = url;
+        });
+      }
 
+      const { w, h } = exportSize(sw, sh);
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(sw);
-      canvas.height = Math.round(sh);
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas 2D context unavailable.');
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, h);
 
-      const blob: Blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error('Canvas → blob conversion failed.'))),
-          'image/png',
-          0.92,
-        );
-      });
+      // Only formats that can carry transparency are worth checking.
+      const mayHaveAlpha = ['image/png', 'image/webp', 'image/gif'].includes(file.type);
+      let blob: Blob | null;
+      if (mayHaveAlpha && hasTransparency(canvas)) {
+        blob = await canvasToBlob(canvas, 'image/png');
+        // A detailed 2400 px PNG can still pass 10 MB; WebP keeps the
+        // transparency at a fraction of the size.
+        if (blob && blob.size > MAX_UPLOAD_BYTES) {
+          const webp = await canvasToBlob(canvas, 'image/webp', EXPORT_QUALITY);
+          if (webp?.type === 'image/webp') blob = webp;
+        }
+      } else {
+        const webp = await canvasToBlob(canvas, 'image/webp', EXPORT_QUALITY);
+        // A browser that can't encode WebP hands back a PNG instead (or null).
+        blob = webp?.type === 'image/webp' ? webp : await canvasToBlob(canvas, 'image/jpeg', EXPORT_QUALITY);
+      }
+      if (!blob) throw new Error('Canvas → blob conversion failed.');
+      if (blob.size > MAX_UPLOAD_BYTES) {
+        throw new Error(`The cropped image is ${(blob.size / 1048576).toFixed(1)} MB, over the 10 MB upload limit. Crop a smaller area.`);
+      }
 
       // Preserve the original filename stem so the uploaded file is
       // recognisable in the data/uploads directory after the round-trip.
+      // The extension must match the real type: the server checks both.
+      const ext = EXTENSION_BY_TYPE[blob.type] ?? 'png';
+      const type = EXTENSION_BY_TYPE[blob.type] ? blob.type : 'image/png';
       const stem = file.name.replace(/\.[^.]+$/, '') || 'cropped';
-      const cropped = new File([blob], `${stem}-cropped.png`, { type: 'image/png' });
+      const cropped = new File([blob], `${stem}-cropped.${ext}`, { type });
       onCropped(cropped);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Crop failed.');
     } finally {
+      if (bitmap && 'close' in bitmap) bitmap.close();
+      if (fallbackUrl) URL.revokeObjectURL(fallbackUrl);
       setWorking(false);
     }
   };
@@ -288,17 +344,27 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
     } as const;
   }, [box]);
 
+  // Escape cancels, except mid-export (the result would arrive after close).
+  const panelRef = useModalDialog<HTMLDivElement>(open, () => { if (!working) onCancel(); });
+
   // Early exit only AFTER every hook has run: returning before `useMemo`
   // above made the closed → open render call one more hook than the
   // previous one, which React rejects ("Rendered more hooks than during
   // the previous render") — the "Crop & upload" button crashed the page.
   if (!open) return null;
 
+  const outputSize = (() => {
+    if (!imgDims || !box) return null;
+    const img = containerRef.current?.querySelector('img');
+    return exportSize(
+      box.width * (imgDims.w / (img?.clientWidth || imgDims.w)),
+      box.height * (imgDims.h / (img?.clientHeight || imgDims.h)),
+    );
+  })();
+
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Crop image"
+      role="presentation"
       style={{
         position: 'fixed',
         inset: 0,
@@ -313,6 +379,11 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
       onPointerLeave={endDrag}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-cropper-title"
+        tabIndex={-1}
         className="adm-card"
         style={{
           width: 'min(820px, 100%)',
@@ -321,10 +392,11 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
+          outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>✂️ Crop image</h2>
+          <h2 id="image-cropper-title" style={{ margin: 0, fontSize: 18 }}>✂️ Crop image</h2>
           <button
             type="button"
             className="adm-btn adm-btn-ghost adm-btn-sm"
@@ -435,8 +507,8 @@ export const ImageCropperDialog: React.FC<Props> = ({ open, file, onCropped, onC
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: 'var(--adm-text-dim)' }}>
-            {imgDims && box
-              ? `${Math.round(box.width)} × ${Math.round(box.height)} px (preview) — exports at ${Math.round(box.width * (imgDims.w / (containerRef.current?.querySelector('img')?.clientWidth || imgDims.w)))} × ${Math.round(box.height * (imgDims.h / (containerRef.current?.querySelector('img')?.clientHeight || imgDims.h)))} px (full res)`
+            {box && outputSize
+              ? `${Math.round(box.width)} × ${Math.round(box.height)} px (preview) — saves at ${outputSize.w} × ${outputSize.h} px`
               : 'Pick a file to crop'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>

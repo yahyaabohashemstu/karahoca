@@ -47,11 +47,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // Exponential-backoff delays between retries (ms)
 const RETRY_DELAYS = [1_000, 3_000, 7_000]; // 1 s, 3 s, 7 s
 
-const TIMEOUT_MS = 30_000; // 30 s per attempt
+// Per attempt. A long article's Russian translation is several thousand
+// output tokens; at typical OpenRouter speeds that took longer than the
+// old 30 s, so long bodies timed out on every model.
+const TIMEOUT_MS = 90_000;
 
 /**
- * Single attempt: call one OpenRouter model with a 30-second AbortController
- * timeout. Returns the fetch Response (may not be ok).
+ * Single attempt: call one OpenRouter model with a TIMEOUT_MS
+ * AbortController timeout. Returns the fetch Response (may not be ok).
  */
 async function callOpenRouter(apiKey, model, prompt) {
   const controller = new AbortController();
@@ -137,10 +140,14 @@ async function callOpenRouterWithRetry(apiKey, prompt) {
   }
 
   logger.error('[translate] all models exhausted:', JSON.stringify(log));
-  throw new Error(
-    'خدمة الترجمة مشغولة حالياً. يرجى المحاولة مرة أخرى بعد لحظات. ' +
+  // The admin UI is English (TranslationHelper maps "unavailable" to its
+  // "service is busy" message).
+  const err = new Error(
+    'The translation service is busy right now. Please try again in a moment. ' +
     '(OpenRouter translation service temporarily unavailable after retries on all models.)'
   );
+  err.status = 503;
+  throw err;
 }
 
 // ─── Response shape normalisation ─────────────────────────────────────────────
@@ -152,7 +159,7 @@ async function callOpenRouterWithRetry(apiKey, prompt) {
 // ("العربية"). The frontend pipeline assumes lowercase two-letter
 // codes + exact field names verbatim, so anything else silently
 // produces a `{}` after the field-first transform and the EN/TR/RU
-// tabs stay blank with a misleading "✓ تمت الترجمة" badge.
+// tabs stay blank with a misleading "✓ Translated" badge.
 //
 // We canonicalise here so the FE only ever sees the shape it expects.
 
@@ -230,13 +237,99 @@ const normaliseTranslationsShape = (raw, requestedFields) => {
     if (Object.keys(langBucket).length > 0) out[lang] = langBucket;
   }
 
-  // Refuse if NOTHING came through — the badge "✓ تمت الترجمة" with empty
+  // Refuse if NOTHING came through — the badge "✓ Translated" with empty
   // fields is worse than a clear error message.
   if (Object.keys(out).length === 0) return null;
   return out;
 };
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
+
+const ALL_LANGS = ['ar', 'en', 'tr', 'ru'];
+const LANG_NAMES = { ar: 'Arabic (العربية)', en: 'English', tr: 'Turkish (Türkçe)', ru: 'Russian (Русский)' };
+
+// Brand-name rules injected into every prompt.
+const BRAND_RULES = `
+BRAND NAME RULES (must be followed exactly per language):
+- In Arabic (ar):  "ديوكس" → "ديوكس"  |  "آيلوكس"/"ايلوكس" → "آيلوكس"
+- In English (en): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
+- In Turkish (tr): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
+- In Russian (ru): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"`;
+
+/**
+ * One model call → parsed JSON. Throws with a `status` (502 / 503) the
+ * handler can pass on. `finish_reason: "length"` is reported as its own
+ * error: a cut-off reply is invalid JSON, which used to surface as a vague
+ * "failed to parse" for every long article.
+ */
+async function requestJson(apiKey, prompt) {
+  const response = await callOpenRouterWithRetry(apiKey, prompt);
+  const payload = await response.json();
+  // OpenRouter / OpenAI-compatible response shape.
+  const choice = payload?.choices?.[0];
+  const rawText = choice?.message?.content?.trim();
+  const fail = (message) => Object.assign(new Error(message), { status: 502 });
+
+  if (!rawText) throw fail('Empty response from translation service.');
+  if (choice?.finish_reason === 'length') {
+    throw fail('The text is too long to translate in one go. Translate it in shorter parts.');
+  }
+
+  // Strip markdown code fences if the model wrapped the JSON anyway.
+  const cleaned = rawText
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  // Try parse: as-is first, then with unescaped-newline repair.
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    try {
+      return JSON.parse(fixUnescapedNewlinesInJson(cleaned));
+    } catch { /* fall through */ }
+  }
+  logger.warn('[translate] failed to parse model JSON. Raw (first 400 chars):', rawText.slice(0, 400));
+  throw fail('Failed to parse translation response.');
+}
+
+/**
+ * Translate every field into ONE target language. Each language gets its
+ * own request: asking for all four in one reply ran long articles past the
+ * model's output budget (the reply was cut off and nothing was saved), and
+ * the source language was echoed back too — the editors then overwrote
+ * what the admin had typed with the model's reflowed copy of it.
+ */
+async function translateFieldsInto(apiKey, lang, sourceLang, source, fieldNames) {
+  const prompt = `You are a professional translator for KARAHOCA cleaning products company.
+
+Translate every value of the JSON object below from ${LANG_NAMES[sourceLang] || sourceLang} into ${LANG_NAMES[lang]}.
+Use natural, commercial language.
+${BRAND_RULES}
+
+CRITICAL OUTPUT RULES:
+- Return ONLY a raw JSON object — no markdown fences, no explanation, no extra text.
+- The object has exactly one top-level key, "${lang}", whose value is an object with EXACTLY the same keys as the input (no square brackets, no extra whitespace).
+- Translate each value completely and keep its layout: every line break and blank line, and every markdown marker (#, -, *, **, >, numbered lists, [text](url)), stays where it is in the source. Do not translate URLs.
+- Inside JSON strings, write line breaks as \\n (standard JSON escaping).
+
+Input (JSON):
+${JSON.stringify(source, null, 2)}
+
+Output exactly this shape:
+{ "${lang}": { ${fieldNames.map((f) => `"${f}": "..."`).join(', ')} } }`;
+
+  const parsed = await requestJson(apiKey, prompt);
+  // Normally { "<lang>": { field: value } }; some models drop the wrapper
+  // and return the field object itself.
+  const wrapped = normaliseTranslationsShape(parsed, fieldNames)?.[lang];
+  const values = wrapped || normaliseTranslationsShape({ [lang]: parsed }, fieldNames)?.[lang];
+  if (!values) {
+    logger.warn(`[translate] ${lang}: no recognisable field keys. Top-level keys:`, Object.keys(parsed || {}));
+    throw Object.assign(new Error('The translation came back in an unexpected format. Please try again.'), { status: 502 });
+  }
+  return values;
+}
 
 export const handleAdminTranslate = async (req, res, { body, sendJson, origin }) => {
   const openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
@@ -249,9 +342,8 @@ export const handleAdminTranslate = async (req, res, { body, sendJson, origin })
   const { text, sourceLang = 'ar', fields } = body;
 
   // Resolve the list of field names we'll send to the model — same set the
-  // FE expects back. Filtering out empty values keeps the schema example
-  // concise and stops the model from inventing translations for blank
-  // inputs.
+  // FE expects back. Filtering out empty values keeps the prompt concise
+  // and stops the model from inventing translations for blank inputs.
   const fieldNames = fields
     ? Object.keys(fields).filter((k) => fields[k] && String(fields[k]).trim())
     : [];
@@ -266,68 +358,51 @@ export const handleAdminTranslate = async (req, res, { body, sendJson, origin })
     return;
   }
 
-  const langNames = { ar: 'العربية', en: 'English', tr: 'Türkçe', ru: 'Русский' };
+  if (fields) {
+    // The source goes in as JSON so multi-line values (markdown bodies)
+    // arrive intact and unambiguous — the old "Source value: …" blocks
+    // separated by "---" collided with markdown rules in the body.
+    const source = Object.fromEntries(fieldNames.map((f) => [f, String(fields[f]).trim()]));
+    const targets = ALL_LANGS.filter((l) => l !== sourceLang);
+    const settled = await Promise.allSettled(
+      targets.map((lang) => translateFieldsInto(openrouterApiKey, lang, sourceLang, source, fieldNames)),
+    );
 
-  // Brand-name rules injected into every prompt.
-  const BRAND_RULES = `
-BRAND NAME RULES (must be followed exactly per language):
-- In Arabic (ar):  "ديوكس" → "ديوكس"  |  "آيلوكس"/"ايلوكس" → "آيلوكس"
-- In English (en): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
-- In Turkish (tr): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"
-- In Russian (ru): "ديوكس" → "DIOX"    |  "آيلوكس"/"ايلوكس" → "AYLUX"`;
+    const translations = {};
+    const failedLangs = [];
+    const errors = [];
+    settled.forEach((r, i) => {
+      if (r.status === 'fulfilled') translations[targets[i]] = r.value;
+      else {
+        failedLangs.push(targets[i]);
+        errors.push(r.reason);
+        logger.warn(`[translate] ${targets[i]} failed: ${r.reason?.message}`);
+      }
+    });
 
-  // Build a CONCRETE schema example that embeds the actual field names the
-  // caller asked for. Previously the schema was `{ "ar": { "field1": ... } }`
-  // (placeholder names) and the input wrapped each value with `[brackets]`,
-  // which led some models to either keep the brackets in the JSON keys
-  // (`"[subject]"`) or use the placeholder names verbatim (`"field1"`).
-  // Either way the FE's `translations.subject?.ar` lookup came back
-  // `undefined` and the EN/TR/RU tabs stayed blank.
-  //
-  // Concrete example shape:
-  //   {
-  //     "ar": { "subject": "...", "body": "..." },
-  //     "en": { "subject": "...", "body": "..." },
-  //     ...
-  //   }
-  const schemaForFields = (fieldList) => {
-    const fieldEntries = fieldList.map((f) => `"${f}": "..."`).join(', ');
-    return [
-      '{',
-      `  "ar": { ${fieldEntries} },`,
-      `  "en": { ${fieldEntries} },`,
-      `  "tr": { ${fieldEntries} },`,
-      `  "ru": { ${fieldEntries} }`,
-      '}',
-    ].join('\n');
-  };
+    if (failedLangs.length === targets.length) {
+      // Nothing usable: a real error, not a success with empty fields.
+      const first = errors[0];
+      sendJson(res, first?.status || 503, { success: false, error: first?.message || 'Translation failed.' }, origin);
+      return;
+    }
 
-  const fieldsInputBlock = (fieldList) =>
-    fieldList
-      .map((f) => `Field name: ${f}\nSource value: ${String(fields[f]).trim()}`)
-      .join('\n\n---\n\n');
+    // Diagnostic: log the SHAPE of what we're returning (not the full
+    // text — could be PII / long). Helps post-mortem any future drift.
+    logger.info(
+      `[translate] returning translations for langs=[${Object.keys(translations).join(',')}], ` +
+      `failed=[${failedLangs.join(',')}], fields=[${fieldNames.join(',')}]`,
+    );
+    // The source language is never returned; failedLangs lets the editor
+    // say which language still needs a retry.
+    sendJson(res, 200, { success: true, translations, failedLangs }, origin);
+    return;
+  }
 
-  const prompt = fields
-    ? `You are a professional translator for KARAHOCA cleaning products company.
+  // ── Free-form text (no field names) ──────────────────────────────────────
+  const prompt = `You are a professional translator for KARAHOCA cleaning products company.
 
-Translate each field below from ${langNames[sourceLang] || sourceLang} to Arabic (ar), English (en), Turkish (tr), and Russian (ru).
-${BRAND_RULES}
-
-CRITICAL OUTPUT RULES:
-- Return ONLY a raw JSON object — no markdown fences, no explanation, no extra text.
-- TOP-LEVEL keys MUST be the lowercase two-letter codes: "ar", "en", "tr", "ru" (NOT "Arabic", NOT "العربية").
-- INNER keys MUST be the exact field names listed below — no square brackets, no quotes inside the key, no extra whitespace.
-- For the source language ("${sourceLang}"), copy the original value verbatim.
-- All string values must be on a single line. Represent paragraph breaks as the escaped sequence \\n\\n, NOT literal line breaks inside the JSON string.
-
-Fields to translate:
-${fieldsInputBlock(fieldNames)}
-
-Output exactly this JSON shape, with the same field names as keys:
-${schemaForFields(fieldNames)}`
-    : `You are a professional translator for KARAHOCA cleaning products company.
-
-Translate the following text from ${langNames[sourceLang] || sourceLang} to all four languages.
+Translate the following text from ${LANG_NAMES[sourceLang] || sourceLang} to all four languages.
 Use natural, commercial language.
 ${BRAND_RULES}
 
@@ -342,81 +417,26 @@ Output exactly this shape:
 {"ar":"...","en":"...","tr":"...","ru":"..."}`;
 
   try {
-    // ── Call OpenRouter with automatic retry + model fallback ──────────────
-    const response = await callOpenRouterWithRetry(openrouterApiKey, prompt);
-
-    const payload = await response.json();
-    // OpenRouter / OpenAI-compatible response shape.
-    const rawText = payload?.choices?.[0]?.message?.content?.trim();
-
-    if (!rawText) {
-      sendJson(res, 502, { success: false, error: 'Empty response from translation service.' }, origin);
-      return;
-    }
-
-    // Strip markdown code fences if the model wrapped the JSON anyway.
-    const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-
-    // Try parse: as-is first, then with unescaped-newline repair.
-    let parsed = null;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      try {
-        parsed = JSON.parse(fixUnescapedNewlinesInJson(cleaned));
-      } catch { /* fall through */ }
-    }
-
-    if (!parsed) {
-      logger.warn('[translate] failed to parse model JSON. Raw (first 400 chars):',
-        rawText.slice(0, 400));
-      sendJson(res, 502, { success: false, error: 'Failed to parse translation response.' }, origin);
-      return;
-    }
-
-    // Normalise the parsed shape into strictly { ar/en/tr/ru → { field → val } }.
+    const parsed = await requestJson(openrouterApiKey, prompt);
     // For free-form `text` requests there are no field names — the
-    // normaliser then accepts the raw inner keys as-is (and the FE
-    // routes this branch differently anyway).
+    // normaliser then accepts the raw inner keys as-is.
     const translations = normaliseTranslationsShape(parsed, fieldNames);
 
     if (!translations) {
-      // Parse succeeded but we couldn't recognise ANY language or field
-      // keys — emit a real error rather than a false-positive success so
-      // the FE shows "حاول مجدداً" instead of an empty form with a green
-      // checkmark.
+      // Parse succeeded but we couldn't recognise ANY language keys —
+      // emit a real error rather than a false-positive success.
       logger.warn(
         '[translate] parsed JSON has no recognisable lang/field keys. Top-level keys:',
         Object.keys(parsed || {}),
-        'Sample raw:',
-        rawText.slice(0, 300),
       );
-      sendJson(
-        res,
-        502,
-        {
-          success: false,
-          error: 'الترجمة عادت بصيغة غير متوقَّعة. حاول مجدداً.',
-        },
-        origin,
-      );
+      sendJson(res, 502, { success: false, error: 'The translation came back in an unexpected format. Please try again.' }, origin);
       return;
     }
 
-    // Diagnostic: log the SHAPE of what we're returning (not the full
-    // text — could be PII / long). Helps post-mortem any future drift.
-    logger.info(
-      `[translate] returning translations for langs=[${Object.keys(translations).join(',')}], ` +
-      `fields=[${fieldNames.join(',') || 'free-form'}]`,
-    );
-
+    logger.info(`[translate] returning translations for langs=[${Object.keys(translations).join(',')}], fields=[free-form]`);
     sendJson(res, 200, { success: true, translations }, origin);
-
   } catch (err) {
-    // callOpenRouterWithRetry throws a descriptive, user-friendly message.
-    sendJson(res, 503, { success: false, error: err.message }, origin);
+    // callOpenRouterWithRetry / requestJson throw descriptive messages.
+    sendJson(res, err.status || 503, { success: false, error: err.message }, origin);
   }
 };
