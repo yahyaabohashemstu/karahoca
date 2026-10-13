@@ -12,6 +12,7 @@ import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { dequeueQueueItem, enqueueQueueItem } from '../redisClient.mjs';
 import { logger } from '../utils/logger.mjs';
 import { buildUpdater } from '../services/safeUpdate.mjs';
+import { availableLanguages, languageForSubscriber } from '../services/campaignLanguage.mjs';
 import { buildListUnsubscribeHeaders } from '../services/listUnsubscribe.mjs';
 
 const CAMPAIGN_UPDATE_FIELDS = [
@@ -369,17 +370,10 @@ const readExcludedEmails = (campaign) => {
 // content and recipients are frozen.
 const LOCKED_STATUSES = new Set(['queued', 'sending', 'sent']);
 
-const hasText = (value) => !!String(value || '').trim();
-
-export const pickSendLanguage = (campaign) =>
-  ['ar', 'en', 'tr', 'ru'].find((l) => hasText(campaign[`body_${l}`])) || 'ar';
-
 /** Why this campaign can't be mailed yet, or '' when it can. */
 const missingContentReason = (campaign) => {
-  const lang = pickSendLanguage(campaign);
-  if (!hasText(campaign[`body_${lang}`])) return 'The campaign has no body text in any language.';
-  if (!hasText(campaign[`subject_${lang}`])) {
-    return `The campaign is sent in ${lang.toUpperCase()}, but its ${lang.toUpperCase()} subject is empty.`;
+  if (!availableLanguages(campaign).length) {
+    return 'The campaign needs a subject and a body in at least one language.';
   }
   return '';
 };
@@ -404,7 +398,7 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   if (claimed.changes === 0) throw new Error('Campaign could not be claimed for sending');
 
   let subscribers = db.prepare(
-    "SELECT email, unsubscribe_key FROM newsletter_subscribers WHERE active=1"
+    "SELECT email, unsubscribe_key, lang FROM newsletter_subscribers WHERE active=1"
   ).all();
 
   if (excludedEmails.size > 0) {
@@ -416,17 +410,14 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
     return { sent: 0, sentA: 0, sentB: 0, errors: [] };
   }
 
-  // Subscribers have no stored language yet, so one language is sent to
-  // everyone: Arabic when it has a body, otherwise the first language that
-  // does. It used to be hard-wired to Arabic, so a campaign written in
-  // English only (which is what applying a template leaves: English filled,
-  // the others cleared for re-translation) went out as an EMPTY right-to-
-  // left e-mail with the bare title as its subject.
-  const lang = pickSendLanguage(campaign);
-  // A/B only when the language actually sent has a B subject. Checking
-  // ar/en regardless split an English send on an Arabic-only B subject:
-  // group B got subject A, and the "results" compared identical e-mails.
-  const hasAbTest = !!String(campaign[`subject_b_${lang}`] || '').trim();
+  // Each subscriber gets their own language, or the closest one written
+  // (services/campaignLanguage.mjs). It used to be one language for the
+  // whole list, so Turkish and Russian subscribers received Arabic.
+  const available = availableLanguages(campaign);
+  if (!available.length) {
+    db.prepare("UPDATE email_campaigns SET status='draft', updated_at=datetime('now') WHERE id=?").run(campaignId);
+    throw new Error('The campaign needs a subject and a body in at least one language.');
+  }
 
   let sent = 0;
   const errors = [];
@@ -439,24 +430,31 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   // So we split the work: batch all inserts up front (~100 ms for 5k rows
   // vs ~several seconds when committed one-by-one), then do the async sends.
   const insertSend = db.prepare(
-    'INSERT INTO email_sends(campaign_id, email, ab_variant) VALUES(?,?,?)',
+    'INSERT INTO email_sends(campaign_id, email, ab_variant, lang) VALUES(?,?,?,?)',
   );
   const updateResend = db.prepare('UPDATE email_sends SET resend_id=? WHERE id=?');
 
   // Each item describes the work for one subscriber, with pre-allocated send id.
   const sendQueue = [];
 
+  // A/B splits within each language that has a B subject, alternating per
+  // language so both groups get the same language mix.
+  const seenPerLang = {};
   const stageAllSends = db.transaction(() => {
-    for (let i = 0; i < subscribers.length; i++) {
-      const { email, unsubscribe_key: unsubscribeKey } = subscribers[i];
-      const variant = hasAbTest && i % 2 === 1 ? 'b' : 'a';
+    for (const subscriber of subscribers) {
+      const { email, unsubscribe_key: unsubscribeKey } = subscriber;
+      const lang = languageForSubscriber(campaign, subscriber.lang, available);
+      const index = seenPerLang[lang] = (seenPerLang[lang] ?? -1) + 1;
+      const hasAbTest = !!String(campaign[`subject_b_${lang}`] || '').trim();
+      const variant = hasAbTest && index % 2 === 1 ? 'b' : 'a';
       // ensureSubscriberUnsubscribeKey may INSERT/UPDATE — it's included
       // inside the transaction so the key allocation is atomic with the
       // send-row insert.
       const subscriberKey = ensureSubscriberUnsubscribeKey(db, email, unsubscribeKey);
-      const info = insertSend.run(campaignId, email, variant);
+      const info = insertSend.run(campaignId, email, variant, lang);
       sendQueue.push({
         email,
+        lang,
         variant,
         subscriberKey,
         sendId: info.lastInsertRowid,
@@ -471,7 +469,7 @@ export const dispatchCampaign = async (campaignId, options = {}) => {
   // Individual failures are collected; partial-failure semantics match
   // the previous behaviour exactly.
   const heartbeat = db.prepare("UPDATE email_campaigns SET updated_at=datetime('now') WHERE id=?");
-  for (const [index, { email, variant, subscriberKey, sendId }] of sendQueue.entries()) {
+  for (const [index, { email, lang, variant, subscriberKey, sendId }] of sendQueue.entries()) {
     // Liveness for closeInterruptedSends.
     if (index > 0 && index % 20 === 0) heartbeat.run(campaignId);
     const subject = variant === 'b'
@@ -774,6 +772,7 @@ export const handleAdminCampaigns = async (req, res, { sendJson, origin, url, bo
         es.opened_at,
         es.created_at,
         es.ab_variant,
+        es.lang,
         COUNT(lc.id) AS click_count
       FROM email_sends es
       LEFT JOIN email_link_clicks lc ON lc.send_id = es.id

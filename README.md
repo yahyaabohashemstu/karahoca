@@ -659,6 +659,14 @@ the http hop entirely.)
   `redirectscheme.permanent=true`) and put it in place of
   `redirect-to-https` on the `http-0-…` router. Traefik then answers 301 for
   GET and 308 for other methods, so a POST over http keeps its method and body
+- Search-engine copy refresh: the public pages are pre-rendered when the web
+  image builds, so content edits reach search engines only on a web rebuild.
+  Set `SITE_REBUILD_WEBHOOK_URL` (Coolify → karahoca-web → Webhooks → Deploy
+  Webhook) and `SITE_REBUILD_WEBHOOK_TOKEN` (Coolify API token with the
+  *deploy* permission) on this service: after any product / category / news
+  / blog change the API waits `SITE_REBUILD_DELAY_MINUTES` (default 5) of
+  quiet, then triggers one web rebuild. Status and "Refresh now" are on the
+  admin dashboard.
 
 ### Environment Checklist
 

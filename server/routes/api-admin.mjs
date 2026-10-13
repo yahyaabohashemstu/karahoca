@@ -9,6 +9,13 @@ import { getDb, logAudit } from '../services/db.mjs';
 import { createAdminCsrfCookie, generateCsrfToken, readAdminCsrfCookie } from '../auth.mjs';
 import { logger } from '../utils/logger.mjs';
 import { resolveDayRange } from '../utils/dateRange.mjs';
+import { getSiteRebuildStatus, markSiteChanged, triggerSiteRebuild } from '../services/siteRebuild.mjs';
+
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+// Admin routes whose data ends up in pre-rendered HTML: the catalogue
+// (products, categories), news and the blog. Not uploads on their own —
+// an image only matters once a saved item points at it.
+const PRERENDERED_CONTENT = /^\/api\/admin\/(products|categories|news|blog)(\/|$)/;
 
 import { handleAdminLogin, handleAdminLogout } from './admin-auth.mjs';
 import { handleAdminStats } from './admin-stats.mjs';
@@ -242,6 +249,32 @@ export const handleAdminRoutes = async (request, response, ctx) => {
     ? await readRequestBody(request, isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES)
     : {};
   const adminCtx = { ...ctx, body, admin: adminUser, user: adminUser };
+
+  // A successful write to anything the public pages render makes their
+  // pre-rendered copy stale (services/siteRebuild.mjs). Judged on the
+  // response actually sent, so failed or refused writes don't count.
+  if (MUTATION_METHODS.has(request.method) && PRERENDERED_CONTENT.test(url)) {
+    response.once('finish', () => {
+      if (response.statusCode < 400) markSiteChanged(`${request.method} ${url}`);
+    });
+  }
+
+  if (url === '/api/admin/site-rebuild') {
+    if (request.method === 'GET') {
+      sendJson(response, 200, { success: true, ...getSiteRebuildStatus() }, origin);
+      return true;
+    }
+    if (request.method === 'POST') {
+      try {
+        const status = await triggerSiteRebuild(`requested by ${adminUser.username || 'admin'}`);
+        logAudit({ action: 'UPDATE', entityType: 'site', entityName: 'Rebuild pre-rendered pages', adminUser: adminUser.username || 'admin' });
+        sendJson(response, 200, { success: true, ...status }, origin);
+      } catch (err) {
+        sendJson(response, err.statusCode || 502, { success: false, error: err.message }, origin);
+      }
+      return true;
+    }
+  }
 
   if (url === '/api/admin/session' && request.method === 'GET') {
     // Heal existing sessions that predate the CSRF rollout: if the JWT is

@@ -1,6 +1,7 @@
 import { getDb } from '../services/db.mjs';
 import { invalidateBlogCache, invalidateNewsCache, invalidateProductsCache } from '../services/publicCache.mjs';
 import { logger } from '../utils/logger.mjs';
+import { markSiteChanged, processSiteRebuild } from '../services/siteRebuild.mjs';
 
 const INTERVAL_MS = 60 * 1000;
 
@@ -20,9 +21,10 @@ const publishDueNewsArticles = () => {
       // Without this the cached /api/news JSON kept serving the old list
       // until its TTL ran out.
       void invalidateNewsCache();
+      markSiteChanged('scheduled news published');
     }
   } catch (e) {
-    logger.error('[news-scheduler] error:', e.message);
+    logger.error({ err: e }, '[news-scheduler] error');
   }
 };
 
@@ -66,9 +68,10 @@ const publishDueProducts = () => {
       // Bust the public products JSON cache for each affected brand so
       // the next visitor read picks up the newly-revealed products.
       for (const brand of dueBrands) void invalidateProductsCache(brand);
+      markSiteChanged('scheduled products published');
     }
   } catch (e) {
-    logger.error('[product-scheduler] error:', e.message);
+    logger.error({ err: e }, '[product-scheduler] error');
   }
 };
 
@@ -92,9 +95,10 @@ const publishDueBlogPosts = () => {
     if (result.changes > 0) {
       logger.info(`[blog-scheduler] Published ${result.changes} scheduled post(s).`);
       void invalidateBlogCache();
+      markSiteChanged('scheduled blog posts published');
     }
   } catch (e) {
-    logger.error('[blog-scheduler] error:', e.message);
+    logger.error({ err: e }, '[blog-scheduler] error');
   }
 };
 
@@ -102,6 +106,8 @@ const tick = () => {
   publishDueNewsArticles();
   publishDueProducts();
   publishDueBlogPosts();
+  // Same minute timer: refresh the pre-rendered pages once edits settle.
+  processSiteRebuild().catch((err) => logger.error({ err }, '[site-rebuild] tick failed'));
 };
 
 /**

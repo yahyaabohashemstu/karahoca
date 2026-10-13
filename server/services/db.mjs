@@ -2,10 +2,11 @@ import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { logger } from '../utils/logger.mjs';
 import { BLOG_BATCH_2 as BLOG_BATCH_2_SEED } from './blogSeedBatch2.mjs';
 import { correctedPieceCount, pieceCountLabel } from './pieceCount.mjs';
+import { reconstructVisitorTimestamps } from './chatTimestamps.mjs';
 
 const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3');
@@ -456,6 +457,13 @@ const migrateInitialData = () => {
   // ── A/B Testing: add ab_variant column to email_sends ─────────────────────
   try { db.exec("ALTER TABLE email_sends ADD COLUMN ab_variant TEXT DEFAULT 'a'"); } catch { /* already exists */ }
 
+  // ── Per-subscriber campaign language ──────────────────────────────────────
+  // The subscriber's site language (NULL = signed up before it was stored)
+  // and the language each e-mail actually went out in. Without them every
+  // campaign reached the whole list in one language.
+  try { db.exec('ALTER TABLE newsletter_subscribers ADD COLUMN lang TEXT'); } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE email_sends ADD COLUMN lang TEXT'); } catch { /* already exists */ }
+
   // ── Email click tracking table ─────────────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS email_link_clicks (
@@ -629,6 +637,7 @@ const migrateInitialData = () => {
   migrateAyluxMarketplaceLinks();
   migratePieceCountPlurals();
   migrateChatMessageTimestamps();
+  migrateChatTimestampsFromBackup();
   // Last: runs after every content seed above, so a fresh database ends up
   // with the same spelling as a migrated one.
   migrateDioxDottedI();
@@ -979,26 +988,118 @@ const migrateToneGuidelinesProductLinks = () => {
 
 // ─── Chat message timestamps ────────────────────────────────────────────────
 
+const hasInvalidChatTimestamp = "created_at IS NULL OR datetime(created_at) IS NULL";
+
+/**
+ * Real timestamps for `legacyRows` ({ id, user_id, created_at } with the old
+ * display-time values), rebuilt per visitor from `usersById` — see
+ * services/chatTimestamps.mjs. Returns id → ISO.
+ */
+const rebuildLegacyChatTimes = (legacyRows, usersById) => {
+  const byUser = new Map();
+  for (const row of legacyRows) {
+    if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
+    byUser.get(row.user_id).push(row);
+  }
+  const times = new Map();
+  for (const [userId, rows] of byUser) {
+    const user = usersById.get(userId);
+    if (!user) continue;
+    for (const [id, iso] of reconstructVisitorTimestamps(rows, user)) times.set(id, iso);
+  }
+  return times;
+};
+
+const writeChatTimes = (times) => {
+  const update = db.prepare('UPDATE chat_messages SET created_at = ? WHERE id = ?');
+  db.transaction(() => {
+    for (const [id, iso] of times) update.run(iso, id);
+  })();
+};
+
 /**
  * Before /api/chat/log validated it, created_at held the chat widget's
  * DISPLAY time ("٠٩:٣٠ ص", "09:30 AM") — no date at all. The admin showed it
  * verbatim, and as text it sorted after every real date, so the dashboard's
  * "messages in the last 7 days" counted every one of these rows as recent.
- * The day can't be recovered; the visitor's first_seen is the closest known
- * time (no message predates it). Display order stays by id.
+ * Each is rebuilt from its own clock plus the visitor's first/last visit;
+ * rows that can't be (visitor row gone) fall back to the first visit.
  */
 const migrateChatMessageTimestamps = () => {
   if (hasMigration('chat_message_timestamps_v1')) return;
+  const legacy = db.prepare(`SELECT id, user_id, created_at FROM chat_messages WHERE ${hasInvalidChatTimestamp}`).all();
+  if (legacy.length) {
+    const users = new Map(
+      db.prepare('SELECT id, first_seen, last_seen FROM chat_users').all().map((u) => [u.id, u]),
+    );
+    writeChatTimes(rebuildLegacyChatTimes(legacy, users));
+  }
   const { changes } = db.prepare(`
     UPDATE chat_messages
     SET created_at = COALESCE(
       (SELECT first_seen FROM chat_users WHERE chat_users.id = chat_messages.user_id),
       strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     )
-    WHERE created_at IS NULL OR datetime(created_at) IS NULL
+    WHERE ${hasInvalidChatTimestamp}
   `).run();
   markMigration('chat_message_timestamps_v1');
-  if (changes) logger.info(`[db] Repaired ${changes} chat message timestamp(s) that held a display time instead of a date`);
+  if (legacy.length) {
+    logger.info(`[db] Rebuilt ${legacy.length - changes} chat message timestamp(s) from their display time; ${changes} fell back to the first visit`);
+  }
+};
+
+/**
+ * The first release of the migration above set every legacy row to the
+ * visitor's first visit, overwriting the display times. The SQLite backups
+ * (server/data/backups, one per boot + daily) still hold them: take the
+ * newest backup that has legacy rows and rebuild those rows' real times.
+ * Only ids that were legacy in the backup are touched, so nothing logged
+ * since is affected. Read-only on the backup.
+ */
+const migrateChatTimestampsFromBackup = () => {
+  if (hasMigration('chat_message_timestamps_v2_from_backup')) return;
+  const backupDir = path.join(serverDir, 'data', 'backups');
+  let files = [];
+  try {
+    files = readdirSync(backupDir).filter((f) => /^karahoca-.*\.db$/.test(f)).sort().reverse();
+  } catch {
+    files = [];
+  }
+
+  let source = null;
+  for (const file of files) {
+    let backup;
+    try {
+      backup = new Database(path.join(backupDir, file), { readonly: true, fileMustExist: true });
+      const hasTable = backup.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='chat_messages'").get();
+      if (!hasTable) continue;
+      const legacy = backup.prepare(`SELECT id, user_id, created_at FROM chat_messages WHERE ${hasInvalidChatTimestamp}`).all();
+      if (!legacy.length) continue;
+      const users = new Map(
+        backup.prepare('SELECT id, first_seen, last_seen FROM chat_users').all().map((u) => [u.id, u]),
+      );
+      source = { file, legacy, users };
+      break;
+    } catch (err) {
+      logger.warn({ err, file }, '[db] Skipping unreadable backup while recovering chat timestamps');
+    } finally {
+      try { backup?.close(); } catch { /* ignore */ }
+    }
+  }
+
+  if (source) {
+    // Only rows that still exist (a visitor may have been deleted since).
+    const exists = db.prepare('SELECT 1 FROM chat_messages WHERE id = ? AND user_id = ?');
+    const times = rebuildLegacyChatTimes(source.legacy, source.users);
+    for (const row of source.legacy) {
+      if (!exists.get(row.id, row.user_id)) times.delete(row.id);
+    }
+    writeChatTimes(times);
+    logger.info(`[db] Recovered real timestamps for ${times.size} legacy chat message(s) from backup ${source.file}`);
+  } else {
+    logger.info('[db] No backup with legacy chat timestamps found; nothing to recover');
+  }
+  markMigration('chat_message_timestamps_v2_from_backup');
 };
 
 // ─── Newsletter opaque-key migration ────────────────────────────────────────

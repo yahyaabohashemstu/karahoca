@@ -2,6 +2,7 @@ import { getDb, incrementStat, generateOpaqueSubscriberKey } from './db.mjs';
 import { buildUnsubscribeUrl } from '../newsletterTokens.mjs';
 import { logger } from '../utils/logger.mjs';
 import { buildListUnsubscribeHeaders } from './listUnsubscribe.mjs';
+import { normaliseSubscriberLang } from './campaignLanguage.mjs';
 
 // ── Welcome email i18n strings ──────────────────────────────────────────────
 const WELCOME_EMAIL_I18N = {
@@ -144,6 +145,10 @@ export const subscribeNewsletter = async ({ email, lang, _honey }) => {
 
   const db = getDb();
   const now = new Date().toISOString();
+  // The site language they signed up from decides which language each
+  // campaign reaches them in. A later sign-up from another language
+  // (already subscribed or not) is their latest choice and replaces it.
+  const subscriberLang = normaliseSubscriberLang(lang);
 
   const existing = db.prepare(`
     SELECT email, active, unsubscribe_key
@@ -156,15 +161,18 @@ export const subscribeNewsletter = async ({ email, lang, _honey }) => {
   if (!existing) {
     subscriberKey = generateOpaqueSubscriberKey();
     db.prepare(`
-      INSERT INTO newsletter_subscribers(email, subscribed_at, active, unsubscribe_key)
-      VALUES(?,?,1,?)
-    `).run(normalizedEmail, now, subscriberKey);
+      INSERT INTO newsletter_subscribers(email, subscribed_at, active, unsubscribe_key, lang)
+      VALUES(?,?,1,?,?)
+    `).run(normalizedEmail, now, subscriberKey, subscriberLang);
     inserted = true;
     incrementStat('newsletter_signups');
   } else if (existing.active === 0) {
-    db.prepare('UPDATE newsletter_subscribers SET active = 1, subscribed_at = ? WHERE email = ?').run(now, normalizedEmail);
+    db.prepare('UPDATE newsletter_subscribers SET active = 1, subscribed_at = ?, lang = COALESCE(?, lang) WHERE email = ?')
+      .run(now, subscriberLang, normalizedEmail);
     inserted = true; // treat as new so they get the welcome email
     incrementStat('newsletter_signups');
+  } else if (subscriberLang) {
+    db.prepare('UPDATE newsletter_subscribers SET lang = ? WHERE email = ?').run(subscriberLang, normalizedEmail);
   }
 
   subscriberKey = ensureSubscriberUnsubscribeKey(db, normalizedEmail, subscriberKey);
